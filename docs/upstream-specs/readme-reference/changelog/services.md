@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Services
 
 Services are a type of item, similar to Products and Materials, except a service is a non-physical good that is always available that doesn't participate in warehouse workflows (picking, packing, receiving, put-away, moving).

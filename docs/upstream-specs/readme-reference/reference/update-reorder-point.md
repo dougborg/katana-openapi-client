@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Update the reorder point
 
 (Endpoint deprecation, we recommend using safety_stock instead) Updates an item’s safety stock level in a certain location and variant combination.

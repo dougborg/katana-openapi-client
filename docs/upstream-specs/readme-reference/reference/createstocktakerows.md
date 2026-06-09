@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Create stocktake rows
 
 Add one or many new rows for a stocktake. The endpoint accepts up to 250 stocktake rows.

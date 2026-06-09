@@ -1,7 +1,10 @@
-# Update a storage bin
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
 
-Updates the specified storage bin by setting the values of the parameters passed.
-    Any parameters not provided will be left unchanged.
+# Create a bin location
+
+Creates a new bin location for the given location.
 
 # OpenAPI definition
 
@@ -32,27 +35,16 @@ Updates the specified storage bin by setting the values of the parameters passed
     }
   },
   "paths": {
-    "/bin_locations/{id}": {
-      "patch": {
-        "summary": "Update a storage bin",
+    "/bin_locations": {
+      "post": {
+        "summary": "Create a bin location",
         "tags": [
-          "Storage bin"
+          "Bin location"
         ],
-        "description": "Updates the specified storage bin by setting the values of the parameters passed.\n    Any parameters not provided will be left unchanged.",
-        "operationId": "updateDefaultStorageBin",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "description": "Storage bin id",
-            "schema": {
-              "type": "integer"
-            },
-            "in": "path"
-          }
-        ],
+        "description": "Creates a new bin location for the given location.",
+        "operationId": "createBinLocation",
         "requestBody": {
-          "description": "Storage bin details",
+          "description": "Bin location details",
           "required": true,
           "content": {
             "application/json": {
@@ -66,6 +58,9 @@ Updates the specified storage bin by setting the values of the parameters passed
                 "properties": {
                   "bin_name": {
                     "type": "string"
+                  },
+                  "location_id": {
+                    "type": "integer"
                   }
                 }
               }
@@ -74,7 +69,7 @@ Updates the specified storage bin by setting the values of the parameters passed
         },
         "responses": {
           "200": {
-            "description": "Storage bin updated",
+            "description": "New bin location created",
             "headers": {
               "X-Ratelimit-Limit": {
                 "description": "Number of requests available for this application.",

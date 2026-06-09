@@ -199,3 +199,27 @@ overrides:
       without `resource_type` and the `serial_numbers` payload — upstream
       under-documents the required set. Local matches the real contract.
       Recommend Katana mark all three required (#830).
+
+  # --- bin_transfer_rows.quantity: upstream under-documents the type --------
+  - endpoint: "POST /bin_transfer_rows"
+    kind: type_diff
+    field: quantity
+    live: "?"
+    local: "string"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Live declares `quantity` as an untyped anyOf(number|string) that the audit
+      collapses to `?`. The bin-transfer wire contract returns quantities as
+      fixed-precision decimal strings (e.g. `"3"` in the README.io response
+      examples), so we type the request `string` to match. Recommend Katana
+      declare `type: string`.
+
+  - endpoint: "PATCH /bin_transfer_rows/{id}"
+    kind: type_diff
+    field: quantity
+    live: "?"
+    local: "string"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Same untyped-`quantity` omission as the POST variant. Local types it
+      `string` to match the decimal-string wire contract.

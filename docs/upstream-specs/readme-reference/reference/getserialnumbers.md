@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Returns a list of serial numbers
 
 Returns a list of serial numbers linked to the specified resource, sorted alphabetically.

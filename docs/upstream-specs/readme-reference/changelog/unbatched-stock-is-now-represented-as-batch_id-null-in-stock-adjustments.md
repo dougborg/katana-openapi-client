@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Unbatched stock is now represented as batch_id: null in Stock Adjustments
 
 The `batch_id` field in stock adjustment `batch_transactions` now accepts `null` to represent unbatched stock.

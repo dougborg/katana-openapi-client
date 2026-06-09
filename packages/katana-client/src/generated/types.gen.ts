@@ -1129,6 +1129,384 @@ export type StorageBinUpdate = {
 };
 
 /**
+ * Storage bin fields for create operations
+ */
+export type StorageBinCreate = {
+  /**
+   * Name of the storage bin
+   */
+  bin_name: string;
+  /**
+   * ID of the location the storage bin belongs to
+   */
+  location_id: number;
+};
+
+/**
+ * Lifecycle status of a bin transfer. New transfers start in `CREATED`; status
+ * changes are applied through the dedicated status endpoint.
+ */
+export type BinTransferStatus = "CREATED" | "IN_TRANSIT" | "DONE";
+
+/**
+ * Row granularity for a bin inventory query. `VARIANT` returns one row per
+ * (location, variant, bin); `BATCH` and `SERIAL_NUMBER` break rows down further
+ * by the matching traceability axis.
+ */
+export type BinInventoryGranularity = "VARIANT" | "BATCH" | "SERIAL_NUMBER";
+
+/**
+ * Traceability allocation on a bin transfer row, pinning the moved quantity to a
+ * specific batch and/or serial number. A null axis means that axis is unset.
+ */
+export type BinTransferTraceability = {
+  /**
+   * ID of the batch this quantity is drawn from, or null when unbatched.
+   */
+  batch_id?: number | null;
+  /**
+   * ID of the serial number this quantity is drawn from, or null when untraced.
+   */
+  serial_number_id?: number | null;
+  /**
+   * Quantity allocated to this traceability axis, as a decimal string.
+   */
+  quantity?: string;
+};
+
+/**
+ * Line item in a bin transfer — the variant, quantity, and source/target bins the
+ * stock moves between, with optional batch/serial traceability.
+ */
+export type BinTransferRow = {
+  /**
+   * Unique identifier for the bin transfer row.
+   */
+  id: number;
+  /**
+   * ID of the parent bin transfer.
+   */
+  bin_transfer_id: number;
+  /**
+   * ID of the location the transfer occurs within.
+   */
+  location_id?: number;
+  /**
+   * ID of the product or material variant being moved.
+   */
+  variant_id: number;
+  /**
+   * Quantity being moved, as a decimal string.
+   */
+  quantity: string;
+  /**
+   * ID of the bin the stock moves from, or null when unassigned.
+   */
+  source_bin_location_id?: number | null;
+  /**
+   * ID of the bin the stock moves to, or null when unassigned.
+   */
+  target_bin_location_id?: number | null;
+  /**
+   * Batch/serial allocations for the moved quantity.
+   */
+  traceability?: Array<BinTransferTraceability>;
+  /**
+   * Date the parent transfer was created (mirrored onto the row).
+   */
+  created_date?: string | null;
+  /**
+   * Timestamp the stock departed the source bin.
+   */
+  departed_at?: string | null;
+  /**
+   * Timestamp the stock arrived at the target bin.
+   */
+  arrived_at?: string | null;
+} & DeletableEntity;
+
+/**
+ * A movement of stock between bins within a single location, optionally carrying
+ * per-row batch/serial traceability.
+ */
+export type BinTransfer = {
+  /**
+   * Unique identifier for the bin transfer.
+   */
+  id: number;
+  /**
+   * Human-readable reference number for the transfer.
+   */
+  bin_transfer_number: string;
+  /**
+   * ID of the location the transfer occurs within.
+   */
+  location_id: number;
+  /**
+   * Current lifecycle status of the transfer.
+   */
+  status?: BinTransferStatus;
+  /**
+   * Date the transfer was created.
+   */
+  created_date?: string | null;
+  /**
+   * Timestamp the transfer left the source bins.
+   */
+  departed_at?: string | null;
+  /**
+   * Timestamp the transfer reached the target bins.
+   */
+  arrived_at?: string | null;
+  /**
+   * Optional free-text note about the transfer.
+   */
+  additional_info?: string | null;
+  /**
+   * Line items detailing the variants and quantities being moved.
+   */
+  bin_transfer_rows?: Array<BinTransferRow>;
+} & DeletableEntity;
+
+/**
+ * Paginated list of bin transfer records.
+ */
+export type BinTransferListResponse = {
+  /**
+   * Array of bin transfer records.
+   */
+  data?: Array<BinTransfer>;
+};
+
+/**
+ * Paginated list of bin transfer rows.
+ */
+export type BinTransferRowListResponse = {
+  /**
+   * Array of bin transfer row records.
+   */
+  data?: Array<BinTransferRow>;
+};
+
+/**
+ * Per-bin inventory position at the requested granularity. Quantities are decimal
+ * strings. A null `bin_location_id`, `batch_id`, or `serial_number_id` denotes
+ * stock whose traceability on that axis is unset. Rows reaching zero across all
+ * three quantities are removed, so absence implies zero.
+ */
+export type BinInventory = {
+  /**
+   * ID of the location.
+   */
+  location_id?: number;
+  /**
+   * ID of the variant.
+   */
+  variant_id?: number;
+  /**
+   * ID of the bin, or null for stock with no bin assignment.
+   */
+  bin_location_id?: number | null;
+  /**
+   * ID of the batch (present at `BATCH` granularity), or null.
+   */
+  batch_id?: number | null;
+  /**
+   * ID of the serial number (present at `SERIAL_NUMBER` granularity), or null.
+   */
+  serial_number_id?: number | null;
+  /**
+   * On-hand quantity in this position, as a decimal string.
+   */
+  quantity_in_stock?: string;
+  /**
+   * Quantity committed to orders, as a decimal string.
+   */
+  quantity_committed?: string;
+  /**
+   * Quantity expected from inbound receipts, as a decimal string.
+   */
+  quantity_expected?: string;
+};
+
+/**
+ * Paginated list of per-bin inventory positions.
+ */
+export type BinInventoryListResponse = {
+  /**
+   * Array of per-bin inventory positions.
+   */
+  data?: Array<BinInventory>;
+};
+
+/**
+ * Batch/serial allocation supplied on a bin transfer row.
+ */
+export type BinTransferTraceabilityRequest = {
+  /**
+   * ID of the batch to draw from, or null.
+   */
+  batch_id?: number | null;
+  /**
+   * ID of the serial number to draw from, or null.
+   */
+  serial_number_id?: number | null;
+  /**
+   * Quantity to allocate to this axis, as a decimal string.
+   */
+  quantity?: string;
+};
+
+/**
+ * A bin transfer row supplied inline when creating a bin transfer.
+ */
+export type BinTransferRowCreateNested = {
+  /**
+   * ID of the variant to move.
+   */
+  variant_id: number;
+  /**
+   * Quantity to move, as a decimal string.
+   */
+  quantity: string;
+  /**
+   * ID of the bin to move stock from, or null.
+   */
+  source_bin_location_id?: number | null;
+  /**
+   * ID of the bin to move stock to, or null.
+   */
+  target_bin_location_id?: number | null;
+  /**
+   * Optional batch/serial allocations for the moved quantity.
+   */
+  traceability?: Array<BinTransferTraceabilityRequest>;
+};
+
+/**
+ * Request payload for creating a bin transfer, optionally with rows and per-row
+ * traceability in a single call.
+ */
+export type CreateBinTransferRequest = {
+  /**
+   * ID of the location the transfer occurs within.
+   */
+  location_id: number;
+  /**
+   * Human-readable reference number for the transfer.
+   */
+  bin_transfer_number?: string;
+  /**
+   * Optional free-text note about the transfer.
+   */
+  additional_info?: string | null;
+  /**
+   * Date the transfer was created. Defaults to now when omitted.
+   */
+  created_date?: string;
+  /**
+   * Line items to create together with the transfer.
+   */
+  bin_transfer_rows?: Array<BinTransferRowCreateNested>;
+};
+
+/**
+ * Request payload for updating a bin transfer's header fields.
+ */
+export type UpdateBinTransferRequest = {
+  /**
+   * Updated reference number.
+   */
+  bin_transfer_number?: string;
+  /**
+   * Updated location ID.
+   */
+  location_id?: number;
+  /**
+   * Updated free-text note.
+   */
+  additional_info?: string | null;
+  /**
+   * Updated creation date.
+   */
+  created_date?: string | null;
+  /**
+   * Updated departure timestamp.
+   */
+  departed_at?: string | null;
+  /**
+   * Updated arrival timestamp.
+   */
+  arrived_at?: string | null;
+};
+
+/**
+ * Request payload for adding a row to an existing bin transfer.
+ */
+export type CreateBinTransferRowRequest = {
+  /**
+   * ID of the bin transfer to add this row to.
+   */
+  bin_transfer_id: number;
+  /**
+   * ID of the variant to move.
+   */
+  variant_id: number;
+  /**
+   * Quantity to move, as a decimal string.
+   */
+  quantity: string;
+  /**
+   * ID of the bin to move stock from, or null.
+   */
+  source_bin_location_id?: number | null;
+  /**
+   * ID of the bin to move stock to, or null.
+   */
+  target_bin_location_id?: number | null;
+  /**
+   * Optional batch/serial allocations for the moved quantity.
+   */
+  traceability?: Array<BinTransferTraceabilityRequest>;
+};
+
+/**
+ * Request payload for updating a bin transfer row.
+ */
+export type UpdateBinTransferRowRequest = {
+  /**
+   * Updated variant ID.
+   */
+  variant_id?: number;
+  /**
+   * Updated quantity, as a decimal string.
+   */
+  quantity?: string;
+  /**
+   * Updated source bin ID, or null.
+   */
+  source_bin_location_id?: number | null;
+  /**
+   * Updated target bin ID, or null.
+   */
+  target_bin_location_id?: number | null;
+  /**
+   * Updated batch/serial allocations for the moved quantity.
+   */
+  traceability?: Array<BinTransferTraceabilityRequest>;
+};
+
+/**
+ * Request payload for changing a bin transfer's status.
+ */
+export type UpdateBinTransferStatusRequest = {
+  /**
+   * New status for the bin transfer.
+   */
+  status: BinTransferStatus;
+};
+
+/**
  * Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
  *
  */
@@ -3262,6 +3640,11 @@ export type PurchaseOrderRow = {
    */
   purchase_order_id?: number;
   /**
+   * Destination location for this row when multi-location receiving is used.
+   * Null when the row inherits the order-level location.
+   */
+  location_id?: number | null;
+  /**
    * Total landed cost including shipping, duties, and other charges
    */
   landed_cost?: number;
@@ -3519,6 +3902,11 @@ export type CreatePurchaseOrderRowRequest = {
    * Optional arrival date in ISO 8601 format.
    */
   arrival_date?: string;
+  /**
+   * Destination location for this row, enabling multi-location receiving on a
+   * single purchase order. Defaults to the order-level location when omitted.
+   */
+  location_id?: number;
 };
 
 /**
@@ -3568,6 +3956,11 @@ export type UpdatePurchaseOrderRowRequest = {
    * Updatable only when received_date is not null
    */
   arrival_date?: string;
+  /**
+   * Destination location for this row (multi-location receiving). Updatable only
+   * when received_date is null.
+   */
+  location_id?: number;
 };
 
 /**
@@ -10040,6 +10433,78 @@ export type UpdateBatchStockResponses = {
 export type UpdateBatchStockResponse =
   UpdateBatchStockResponses[keyof UpdateBatchStockResponses];
 
+export type GetBinInventoryData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Row granularity. Defaults to `VARIANT`.
+     */
+    granularity?: BinInventoryGranularity;
+    /**
+     * Filters results by a location ID.
+     */
+    location_id?: number;
+    /**
+     * Filters results by a valid variant id.
+     */
+    variant_id?: number;
+    /**
+     * Filter by bin location ID. Pass `null` to target stock with no bin assignment.
+     */
+    bin_location_id?: string;
+    /**
+     * Filter by batch ID. Pass `null` to target unbatched stock.
+     */
+    batch_id?: string;
+    /**
+     * Filter by serial number ID. Pass `null` to target untraced serials.
+     */
+    serial_number_id?: string;
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+  };
+  url: "/bin_inventory";
+};
+
+export type GetBinInventoryErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetBinInventoryError =
+  GetBinInventoryErrors[keyof GetBinInventoryErrors];
+
+export type GetBinInventoryResponses = {
+  /**
+   * Per-bin inventory levels.
+   */
+  200: BinInventoryListResponse;
+};
+
+export type GetBinInventoryResponse =
+  GetBinInventoryResponses[keyof GetBinInventoryResponses];
+
 export type GetAllStorageBinsData = {
   body?: never;
   path?: never;
@@ -10098,6 +10563,52 @@ export type GetAllStorageBinsResponses = {
 
 export type GetAllStorageBinsResponse =
   GetAllStorageBinsResponses[keyof GetAllStorageBinsResponses];
+
+export type CreateStorageBinData = {
+  /**
+   * Storage bin details
+   */
+  body: StorageBinCreate;
+  path?: never;
+  query?: never;
+  url: "/bin_locations";
+};
+
+export type CreateStorageBinErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type CreateStorageBinError =
+  CreateStorageBinErrors[keyof CreateStorageBinErrors];
+
+export type CreateStorageBinResponses = {
+  /**
+   * Storage bin created
+   */
+  200: StorageBinResponse;
+};
+
+export type CreateStorageBinResponse =
+  CreateStorageBinResponses[keyof CreateStorageBinResponses];
 
 export type DeleteStorageBinData = {
   body?: never;
@@ -10193,6 +10704,571 @@ export type UpdateDefaultStorageBinResponses = {
 
 export type UpdateDefaultStorageBinResponse =
   UpdateDefaultStorageBinResponses[keyof UpdateDefaultStorageBinResponses];
+
+export type GetAllBinTransfersData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+    /**
+     * Filters results by an array of IDs.
+     */
+    ids?: Array<number>;
+    /**
+     * Soft-deleted data is excluded from result set by default. Set to true to include it.
+     */
+    include_deleted?: boolean;
+    /**
+     * Filter by bin transfer number.
+     */
+    bin_transfer_number?: string;
+    /**
+     * Filters results by a location ID.
+     */
+    location_id?: number;
+    /**
+     * Filter by bin transfer status.
+     */
+    status?: BinTransferStatus;
+  };
+  url: "/bin_transfers";
+};
+
+export type GetAllBinTransfersErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllBinTransfersError =
+  GetAllBinTransfersErrors[keyof GetAllBinTransfersErrors];
+
+export type GetAllBinTransfersResponses = {
+  /**
+   * List of bin transfers.
+   */
+  200: BinTransferListResponse;
+};
+
+export type GetAllBinTransfersResponse =
+  GetAllBinTransfersResponses[keyof GetAllBinTransfersResponses];
+
+export type CreateBinTransferData = {
+  /**
+   * Bin transfer details
+   */
+  body: CreateBinTransferRequest;
+  path?: never;
+  query?: never;
+  url: "/bin_transfers";
+};
+
+export type CreateBinTransferErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type CreateBinTransferError =
+  CreateBinTransferErrors[keyof CreateBinTransferErrors];
+
+export type CreateBinTransferResponses = {
+  /**
+   * Bin transfer created successfully
+   */
+  200: BinTransfer;
+};
+
+export type CreateBinTransferResponse =
+  CreateBinTransferResponses[keyof CreateBinTransferResponses];
+
+export type DeleteBinTransferData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfers/{id}";
+};
+
+export type DeleteBinTransferErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type DeleteBinTransferError =
+  DeleteBinTransferErrors[keyof DeleteBinTransferErrors];
+
+export type DeleteBinTransferResponses = {
+  /**
+   * Object deleted successfully
+   */
+  204: void;
+};
+
+export type DeleteBinTransferResponse =
+  DeleteBinTransferResponses[keyof DeleteBinTransferResponses];
+
+export type GetBinTransferData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfers/{id}";
+};
+
+export type GetBinTransferErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetBinTransferError =
+  GetBinTransferErrors[keyof GetBinTransferErrors];
+
+export type GetBinTransferResponses = {
+  /**
+   * Bin transfer details
+   */
+  200: BinTransfer;
+};
+
+export type GetBinTransferResponse =
+  GetBinTransferResponses[keyof GetBinTransferResponses];
+
+export type UpdateBinTransferData = {
+  /**
+   * Bin transfer update details
+   */
+  body: UpdateBinTransferRequest;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfers/{id}";
+};
+
+export type UpdateBinTransferErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type UpdateBinTransferError =
+  UpdateBinTransferErrors[keyof UpdateBinTransferErrors];
+
+export type UpdateBinTransferResponses = {
+  /**
+   * Bin transfer updated successfully
+   */
+  200: BinTransfer;
+};
+
+export type UpdateBinTransferResponse =
+  UpdateBinTransferResponses[keyof UpdateBinTransferResponses];
+
+export type UpdateBinTransferStatusData = {
+  /**
+   * Status update details
+   */
+  body: UpdateBinTransferStatusRequest;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfers/{id}/status";
+};
+
+export type UpdateBinTransferStatusErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type UpdateBinTransferStatusError =
+  UpdateBinTransferStatusErrors[keyof UpdateBinTransferStatusErrors];
+
+export type UpdateBinTransferStatusResponses = {
+  /**
+   * Bin transfer status updated successfully
+   */
+  200: BinTransfer;
+};
+
+export type UpdateBinTransferStatusResponse =
+  UpdateBinTransferStatusResponses[keyof UpdateBinTransferStatusResponses];
+
+export type GetAllBinTransferRowsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+    /**
+     * Filters results by an array of IDs.
+     */
+    ids?: Array<number>;
+    /**
+     * Soft-deleted data is excluded from result set by default. Set to true to include it.
+     */
+    include_deleted?: boolean;
+    /**
+     * Filter by parent bin transfer ID.
+     */
+    bin_transfer_id?: number;
+    /**
+     * Filters results by a valid variant id.
+     */
+    variant_id?: number;
+    /**
+     * Filter by source bin location ID.
+     */
+    source_bin_location_id?: number;
+    /**
+     * Filter by target bin location ID.
+     */
+    target_bin_location_id?: number;
+  };
+  url: "/bin_transfer_rows";
+};
+
+export type GetAllBinTransferRowsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllBinTransferRowsError =
+  GetAllBinTransferRowsErrors[keyof GetAllBinTransferRowsErrors];
+
+export type GetAllBinTransferRowsResponses = {
+  /**
+   * List of bin transfer rows.
+   */
+  200: BinTransferRowListResponse;
+};
+
+export type GetAllBinTransferRowsResponse =
+  GetAllBinTransferRowsResponses[keyof GetAllBinTransferRowsResponses];
+
+export type CreateBinTransferRowData = {
+  /**
+   * Bin transfer row details
+   */
+  body: CreateBinTransferRowRequest;
+  path?: never;
+  query?: never;
+  url: "/bin_transfer_rows";
+};
+
+export type CreateBinTransferRowErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type CreateBinTransferRowError =
+  CreateBinTransferRowErrors[keyof CreateBinTransferRowErrors];
+
+export type CreateBinTransferRowResponses = {
+  /**
+   * Bin transfer row created successfully
+   */
+  200: BinTransferRow;
+};
+
+export type CreateBinTransferRowResponse =
+  CreateBinTransferRowResponses[keyof CreateBinTransferRowResponses];
+
+export type DeleteBinTransferRowData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfer_rows/{id}";
+};
+
+export type DeleteBinTransferRowErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type DeleteBinTransferRowError =
+  DeleteBinTransferRowErrors[keyof DeleteBinTransferRowErrors];
+
+export type DeleteBinTransferRowResponses = {
+  /**
+   * Object deleted successfully
+   */
+  204: void;
+};
+
+export type DeleteBinTransferRowResponse =
+  DeleteBinTransferRowResponses[keyof DeleteBinTransferRowResponses];
+
+export type GetBinTransferRowData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfer_rows/{id}";
+};
+
+export type GetBinTransferRowErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetBinTransferRowError =
+  GetBinTransferRowErrors[keyof GetBinTransferRowErrors];
+
+export type GetBinTransferRowResponses = {
+  /**
+   * Bin transfer row details
+   */
+  200: BinTransferRow;
+};
+
+export type GetBinTransferRowResponse =
+  GetBinTransferRowResponses[keyof GetBinTransferRowResponses];
+
+export type UpdateBinTransferRowData = {
+  /**
+   * Bin transfer row update details
+   */
+  body: UpdateBinTransferRowRequest;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/bin_transfer_rows/{id}";
+};
+
+export type UpdateBinTransferRowErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type UpdateBinTransferRowError =
+  UpdateBinTransferRowErrors[keyof UpdateBinTransferRowErrors];
+
+export type UpdateBinTransferRowResponses = {
+  /**
+   * Bin transfer row updated successfully
+   */
+  200: BinTransferRow;
+};
+
+export type UpdateBinTransferRowResponse =
+  UpdateBinTransferRowResponses[keyof UpdateBinTransferRowResponses];
 
 export type GetAllInventoryPointData = {
   body?: never;
@@ -12930,6 +14006,10 @@ export type GetAllPurchaseOrderRowsData = {
      * Filters results by a valid variant id.
      */
     variant_id?: number;
+    /**
+     * Filters results by a location ID.
+     */
+    location_id?: number;
     /**
      * Filters purchase order additional cost rows by tax rate id
      */

@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Search sales order rows with advanced filters
 
 > 🚧 **Beta — subject to change.** This endpoint is publicly available, but its request/response shape may evolve before General Availability as we incorporate early feedback.
@@ -236,10 +240,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -416,10 +416,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",
@@ -598,10 +594,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -778,10 +770,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",
@@ -960,10 +948,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -1140,10 +1124,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",
@@ -1322,10 +1302,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -1502,10 +1478,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",
@@ -1684,10 +1656,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -1865,10 +1833,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -2009,10 +1973,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",
@@ -2191,10 +2151,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -2371,10 +2327,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",
@@ -2553,10 +2505,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
                                   },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
-                                  },
                                   "like": {
                                     "type": "string",
                                     "maxLength": 256,
@@ -2733,10 +2681,6 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "exists": {
-                                    "type": "boolean",
-                                    "description": "Match rows where this field is non-null (true) or null (false)."
                                   },
                                   "like": {
                                     "type": "string",

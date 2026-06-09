@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Update a purchase order additional cost row
 
 Updates the specified purchase order additional cost row by setting the values of the parameters passed.

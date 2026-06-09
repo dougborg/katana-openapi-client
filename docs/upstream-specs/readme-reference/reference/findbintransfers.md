@@ -1,7 +1,11 @@
-# List all storage bins
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
 
-Returns a list of storage bins you’ve previously created. 
-  The storage bins are returned in sorted order, with the most recent storage bin appearing first.
+# List all bin transfers
+
+Returns a list of bin transfers you've previously created, sorted with the most recent first. Each
+transfer is returned with its rows and the rows' traceability allocations.
 
 # OpenAPI definition
 
@@ -32,30 +36,56 @@ Returns a list of storage bins you’ve previously created.
     }
   },
   "paths": {
-    "/bin_locations": {
+    "/bin_transfers": {
       "get": {
-        "summary": "List all storage bins",
+        "summary": "List all bin transfers",
         "tags": [
-          "Storage bin"
+          "Bin transfer"
         ],
-        "description": "Returns a list of storage bins you’ve previously created. \n  The storage bins are returned in sorted order, with the most recent storage bin appearing first.",
-        "operationId": "getAllStorageBins",
+        "description": "Returns a list of bin transfers you've previously created, sorted with the most recent first. Each\ntransfer is returned with its rows and the rows' traceability allocations.",
+        "operationId": "findBinTransfers",
         "parameters": [
           {
-            "name": "location_id",
+            "name": "ids",
             "required": false,
-            "description": "Filters storage bins by location. By storage bins are returned for all locations",
+            "description": "Filter bin transfers by an array of ids",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "bin_transfer_number",
+            "required": false,
+            "description": "Filter by bin transfer number",
             "schema": {
               "type": "string"
             },
             "in": "query"
           },
           {
-            "name": "bin_name",
+            "name": "location_id",
             "required": false,
-            "description": "Filters storage bins by name",
+            "description": "Filter by the location id the transfer happens within",
             "schema": {
-              "type": "string"
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "status",
+            "required": false,
+            "description": "Filter by status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CREATED",
+                "IN_TRANSIT",
+                "DONE"
+              ]
             },
             "in": "query"
           },
@@ -85,11 +115,47 @@ Returns a list of storage bins you’ve previously created.
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "created_at_min",
+            "required": false,
+            "description": "Minimum value for created_at range. Must be compatible with ISO 8601 format",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "created_at_max",
+            "required": false,
+            "description": "Maximum value for created_at range. Must be compatible with ISO 8601 format",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "updated_at_min",
+            "required": false,
+            "description": "Minimum value for updated_at range. Must be compatible with ISO 8601 format",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "updated_at_max",
+            "required": false,
+            "description": "Maximum value for updated_at range. Must be compatible with ISO 8601 format",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of storage bins",
+            "description": "List of bin transfers",
             "headers": {
               "X-Pagination": {
                 "description": "Pagination metadata",
@@ -141,11 +207,56 @@ Returns a list of storage bins you’ve previously created.
                 "example": {
                   "data": [
                     {
-                      "id": 12345,
-                      "name": "Bin-2",
-                      "location_id": 12346,
-                      "created_at": "2020-10-23T10:37:05.085Z",
-                      "updated_at": "2020-10-23T10:37:05.085Z",
+                      "id": 1,
+                      "bin_transfer_number": "BT-1",
+                      "location_id": 1,
+                      "status": "CREATED",
+                      "created_date": "2026-05-22T10:00:00.000Z",
+                      "departed_at": null,
+                      "arrived_at": null,
+                      "additional_info": "urgent transfer",
+                      "bin_transfer_rows": [
+                        {
+                          "id": 11,
+                          "bin_transfer_id": 1,
+                          "location_id": 1,
+                          "variant_id": 42,
+                          "quantity": "3",
+                          "source_bin_location_id": 7,
+                          "target_bin_location_id": 9,
+                          "traceability": [
+                            {
+                              "batch_id": 100,
+                              "serial_number_id": null,
+                              "quantity": "3"
+                            }
+                          ],
+                          "created_at": "2026-05-22T10:00:00.000Z",
+                          "updated_at": "2026-05-22T10:00:00.000Z",
+                          "deleted_at": null
+                        },
+                        {
+                          "id": 12,
+                          "bin_transfer_id": 1,
+                          "location_id": 1,
+                          "variant_id": 43,
+                          "quantity": "1",
+                          "source_bin_location_id": 7,
+                          "target_bin_location_id": 9,
+                          "traceability": [
+                            {
+                              "batch_id": null,
+                              "serial_number_id": 500,
+                              "quantity": "1"
+                            }
+                          ],
+                          "created_at": "2026-05-22T10:00:00.000Z",
+                          "updated_at": "2026-05-22T10:00:00.000Z",
+                          "deleted_at": null
+                        }
+                      ],
+                      "created_at": "2026-05-22T10:00:00.000Z",
+                      "updated_at": "2026-05-22T10:00:00.000Z",
                       "deleted_at": null
                     }
                   ]

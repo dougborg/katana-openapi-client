@@ -16,6 +16,7 @@ def _get_kwargs(
     ids: list[int] | Unset = UNSET,
     purchase_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     group_id: float | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
@@ -39,6 +40,8 @@ def _get_kwargs(
     params["purchase_order_id"] = purchase_order_id
 
     params["variant_id"] = variant_id
+
+    params["location_id"] = location_id
 
     params["tax_rate_id"] = tax_rate_id
 
@@ -129,6 +132,7 @@ def sync_detailed(
     ids: list[int] | Unset = UNSET,
     purchase_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     group_id: float | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
@@ -149,6 +153,7 @@ def sync_detailed(
         ids (list[int] | Unset):
         purchase_order_id (float | Unset):
         variant_id (int | Unset):
+        location_id (int | Unset):
         tax_rate_id (float | Unset):
         group_id (float | Unset):
         purchase_uom (str | Unset):
@@ -173,6 +178,7 @@ def sync_detailed(
         ids=ids,
         purchase_order_id=purchase_order_id,
         variant_id=variant_id,
+        location_id=location_id,
         tax_rate_id=tax_rate_id,
         group_id=group_id,
         purchase_uom=purchase_uom,
@@ -198,6 +204,7 @@ def sync(
     ids: list[int] | Unset = UNSET,
     purchase_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     group_id: float | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
@@ -218,6 +225,7 @@ def sync(
         ids (list[int] | Unset):
         purchase_order_id (float | Unset):
         variant_id (int | Unset):
+        location_id (int | Unset):
         tax_rate_id (float | Unset):
         group_id (float | Unset):
         purchase_uom (str | Unset):
@@ -243,6 +251,7 @@ def sync(
         ids=ids,
         purchase_order_id=purchase_order_id,
         variant_id=variant_id,
+        location_id=location_id,
         tax_rate_id=tax_rate_id,
         group_id=group_id,
         purchase_uom=purchase_uom,
@@ -262,6 +271,7 @@ async def asyncio_detailed(
     ids: list[int] | Unset = UNSET,
     purchase_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     group_id: float | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
@@ -282,6 +292,7 @@ async def asyncio_detailed(
         ids (list[int] | Unset):
         purchase_order_id (float | Unset):
         variant_id (int | Unset):
+        location_id (int | Unset):
         tax_rate_id (float | Unset):
         group_id (float | Unset):
         purchase_uom (str | Unset):
@@ -306,6 +317,7 @@ async def asyncio_detailed(
         ids=ids,
         purchase_order_id=purchase_order_id,
         variant_id=variant_id,
+        location_id=location_id,
         tax_rate_id=tax_rate_id,
         group_id=group_id,
         purchase_uom=purchase_uom,
@@ -329,6 +341,7 @@ async def asyncio(
     ids: list[int] | Unset = UNSET,
     purchase_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     group_id: float | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
@@ -349,6 +362,7 @@ async def asyncio(
         ids (list[int] | Unset):
         purchase_order_id (float | Unset):
         variant_id (int | Unset):
+        location_id (int | Unset):
         tax_rate_id (float | Unset):
         group_id (float | Unset):
         purchase_uom (str | Unset):
@@ -375,6 +389,7 @@ async def asyncio(
             ids=ids,
             purchase_order_id=purchase_order_id,
             variant_id=variant_id,
+            location_id=location_id,
             tax_rate_id=tax_rate_id,
             group_id=group_id,
             purchase_uom=purchase_uom,

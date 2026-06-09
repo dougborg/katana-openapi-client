@@ -1,6 +1,11 @@
-# Delete a storage bin
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
 
-Deletes a storage bin by id.
+# List all bin locations
+
+Returns a list of bin locations you’ve previously created.
+  The bin locations are returned in sorted order, with the most recent bin location appearing first.
 
 # OpenAPI definition
 
@@ -31,29 +36,91 @@ Deletes a storage bin by id.
     }
   },
   "paths": {
-    "/bin_locations/{id}": {
-      "delete": {
-        "summary": "Delete a storage bin",
+    "/bin_locations": {
+      "get": {
+        "summary": "List all bin locations",
         "tags": [
-          "Storage bin"
+          "Bin location"
         ],
-        "description": "Deletes a storage bin by id.",
-        "operationId": "deleteStorageBin",
+        "description": "Returns a list of bin locations you’ve previously created.\n  The bin locations are returned in sorted order, with the most recent bin location appearing first.",
+        "operationId": "getAllBinLocations",
         "parameters": [
           {
-            "name": "id",
-            "required": true,
-            "description": "Storage bin id",
+            "name": "location_id",
+            "required": false,
+            "description": "Filters bin locations by location. By default bin locations are returned for all locations",
             "schema": {
-              "type": "integer"
+              "type": "string"
             },
-            "in": "path"
+            "in": "query"
+          },
+          {
+            "name": "bin_name",
+            "required": false,
+            "description": "Filters bin locations by name",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "include_deleted",
+            "required": false,
+            "description": "Soft-deleted data is excluded from result set by default. Set to true to include it.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "description": "Used for pagination (default is 50)",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "page",
+            "required": false,
+            "description": "Used for pagination (default is 1)",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ],
         "responses": {
-          "204": {
-            "description": "Storage bin deleted successfully",
+          "200": {
+            "description": "List of bin locations",
             "headers": {
+              "X-Pagination": {
+                "description": "Pagination metadata",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_records": {
+                      "type": "number"
+                    },
+                    "total_pages": {
+                      "type": "number"
+                    },
+                    "offset": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "first_page": {
+                      "type": "boolean"
+                    },
+                    "last_page": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
               "X-Ratelimit-Limit": {
                 "description": "Number of requests available for this application.",
                 "schema": {
@@ -70,6 +137,22 @@ Deletes a storage bin by id.
                 "description": "The timestamp when the quota will reset.",
                 "schema": {
                   "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": 12345,
+                      "name": "Bin-2",
+                      "location_id": 12346,
+                      "created_at": "2020-10-23T10:37:05.085Z",
+                      "updated_at": "2020-10-23T10:37:05.085Z",
+                      "deleted_at": null
+                    }
+                  ]
                 }
               }
             }
@@ -102,38 +185,6 @@ Deletes a storage bin by id.
                   "statusCode": 401,
                   "name": "UnauthorizedError",
                   "message": "Unauthorized"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Make sure data is correct",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 404,
-                  "name": "NotFoundError",
-                  "message": "Not found"
                 }
               }
             }

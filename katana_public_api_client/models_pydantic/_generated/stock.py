@@ -161,6 +161,16 @@ class StorageBinUpdate(KatanaPydanticBase):
     bin_name: Annotated[str, Field(description="Name of the storage bin")]
 
 
+class StorageBinCreate(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    bin_name: Annotated[str, Field(description="Name of the storage bin", min_length=1)]
+    location_id: Annotated[
+        int, Field(description="ID of the location the storage bin belongs to", ge=1)
+    ]
+
+
 class BatchTransaction1(KatanaPydanticBase):
     batch_id: Annotated[
         int, Field(description="ID of the ingredient batch being consumed")

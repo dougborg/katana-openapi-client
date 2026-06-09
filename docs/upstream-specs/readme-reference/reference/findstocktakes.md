@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # List all stocktakes
 
 Returns a list of stocktakes you’ve previously created. The stocktakes are returned in sorted order,

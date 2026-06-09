@@ -31,6 +31,7 @@ class CreatePurchaseOrderRowRequest:
     purchase_uom_conversion_rate: float | Unset = UNSET
     purchase_uom: str | Unset = UNSET
     arrival_date: datetime.datetime | Unset = UNSET
+    location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         purchase_order_id = self.purchase_order_id
@@ -57,6 +58,8 @@ class CreatePurchaseOrderRowRequest:
         if not isinstance(self.arrival_date, Unset):
             arrival_date = self.arrival_date.isoformat()
 
+        location_id = self.location_id
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -81,6 +84,8 @@ class CreatePurchaseOrderRowRequest:
             field_dict["purchase_uom"] = purchase_uom
         if arrival_date is not UNSET:
             field_dict["arrival_date"] = arrival_date
+        if location_id is not UNSET:
+            field_dict["location_id"] = location_id
 
         return field_dict
 
@@ -114,6 +119,8 @@ class CreatePurchaseOrderRowRequest:
         else:
             arrival_date = datetime.datetime.fromisoformat(_arrival_date)
 
+        location_id = d.pop("location_id", UNSET)
+
         create_purchase_order_row_request = cls(
             purchase_order_id=purchase_order_id,
             quantity=quantity,
@@ -126,6 +133,7 @@ class CreatePurchaseOrderRowRequest:
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
             purchase_uom=purchase_uom,
             arrival_date=arrival_date,
+            location_id=location_id,
         )
 
         return create_purchase_order_row_request

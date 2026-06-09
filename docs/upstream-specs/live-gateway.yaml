@@ -40,6 +40,23 @@ components:
       - amount
       title: AddShippingFeeDto
       type: object
+    BinLocationCreateDto:
+      additionalProperties: false
+      properties:
+        bin_name:
+          minLength: 1
+          nullable: false
+          type: string
+        location_id:
+          maximum: 2147483647
+          minimum: 1
+          nullable: false
+          type: integer
+      required:
+      - bin_name
+      - location_id
+      title: BinLocationCreateDto
+      type: object
     BinLocationUpdateDto:
       additionalProperties: false
       properties:
@@ -287,6 +304,152 @@ components:
       - batch_id
       - quantity
       title: CreateBatchTransactionV2Dto
+      type: object
+    CreateBinTransferDto:
+      additionalProperties: false
+      properties:
+        additional_info:
+          minLength: 0
+          nullable: true
+          type: string
+        bin_transfer_number:
+          maxLength: 255
+          minLength: 1
+          nullable: false
+          type: string
+        bin_transfer_rows:
+          items:
+            additionalProperties: false
+            definitions:
+              TraceabilityInputDto:
+                additionalProperties: false
+                properties:
+                  batch_id:
+                    maximum: 2147483647
+                    minimum: 0
+                    nullable: true
+                    type: number
+                  quantity:
+                    allOf:
+                    - anyOf:
+                      - minimum: 0
+                        type: number
+                      - pattern: ^[0-9]+?\.?[0-9]*$
+                        type: string
+                    - anyOf:
+                      - not:
+                          const: 0
+                        type: number
+                      - not:
+                          pattern: ^(-|)[0]+?\.?[0]*$
+                        type: string
+                  serial_number_id:
+                    maximum: 2147483647
+                    minimum: 0
+                    nullable: true
+                    type: number
+                title: TraceabilityInputDto
+                type: object
+            properties:
+              quantity:
+                allOf:
+                - anyOf:
+                  - minimum: 0
+                    type: number
+                  - pattern: ^[0-9]+?\.?[0-9]*$
+                    type: string
+                - anyOf:
+                  - not:
+                      const: 0
+                    type: number
+                  - not:
+                      pattern: ^(-|)[0]+?\.?[0]*$
+                    type: string
+              source_bin_location_id:
+                maximum: 2147483647
+                minimum: 0
+                nullable: true
+                type: number
+              target_bin_location_id:
+                maximum: 2147483647
+                minimum: 0
+                nullable: true
+                type: number
+              traceability:
+                items:
+                  $ref: '#/components/schemas/TraceabilityInputDto'
+                type: array
+              variant_id:
+                maximum: 2147483647
+                minimum: 0
+                nullable: false
+                type: integer
+            required:
+            - variant_id
+            - quantity
+            title: CreateNestedBinTransferRowDto
+            type: object
+          maxItems: 250
+          type: array
+        created_date:
+          format: date-time
+          nullable: true
+          type: string
+        location_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: false
+          type: integer
+      required:
+      - location_id
+      title: CreateBinTransferDto
+      type: object
+    CreateBinTransferRowDto:
+      additionalProperties: false
+      properties:
+        bin_transfer_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: false
+          type: integer
+        quantity:
+          allOf:
+          - anyOf:
+            - minimum: 0
+              type: number
+            - pattern: ^[0-9]+?\.?[0-9]*$
+              type: string
+          - anyOf:
+            - not:
+                const: 0
+              type: number
+            - not:
+                pattern: ^(-|)[0]+?\.?[0]*$
+              type: string
+        source_bin_location_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          type: number
+        target_bin_location_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          type: number
+        traceability:
+          items:
+            $ref: '#/components/schemas/TraceabilityInputDto'
+          type: array
+        variant_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: false
+          type: integer
+      required:
+      - variant_id
+      - quantity
+      - bin_transfer_id
+      title: CreateBinTransferRowDto
       type: object
     CreateBomRowsBatchDto:
       additionalProperties: false
@@ -1002,6 +1165,11 @@ components:
             properties:
               arrival_date:
                 type: string
+              location_id:
+                maximum: 2147483647
+                minimum: 1
+                nullable: false
+                type: integer
               price_per_unit:
                 maximum: 100000000000000000
                 minimum: 0
@@ -1089,6 +1257,11 @@ components:
           type: string
         currency:
           type: string
+        location_id:
+          maximum: 2147483647
+          minimum: 1
+          nullable: false
+          type: integer
         price_per_unit:
           maximum: 100000000000000000
           minimum: 0
@@ -2562,6 +2735,11 @@ components:
             title: PurchaseOrderRowReceiveBatchDto
             type: object
           type: array
+        location_id:
+          maximum: 2147483647
+          minimum: 1
+          nullable: false
+          type: integer
         purchase_order_row_id:
           maximum: 2147483647
           type: integer
@@ -2820,9 +2998,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -2891,9 +3066,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -2956,9 +3128,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3021,9 +3190,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3086,9 +3252,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3151,9 +3314,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3216,9 +3376,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3286,9 +3443,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3351,9 +3505,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3416,9 +3567,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3481,9 +3629,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3546,9 +3691,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3611,9 +3753,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3676,9 +3815,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3741,9 +3877,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3806,9 +3939,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3871,9 +4001,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -3965,9 +4092,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4036,9 +4160,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4101,9 +4222,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4166,9 +4284,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4231,9 +4346,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4296,9 +4408,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4361,9 +4470,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4426,9 +4532,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4491,9 +4594,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4556,9 +4656,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4621,9 +4718,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4686,9 +4780,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4751,9 +4842,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4816,9 +4904,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4886,9 +4971,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -4951,9 +5033,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5016,9 +5095,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5081,9 +5157,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5146,9 +5219,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5211,9 +5281,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5276,9 +5343,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5341,9 +5405,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5406,9 +5467,6 @@ components:
                         maxItems: 2
                         minItems: 2
                         type: array
-                      exists:
-                        description: Match rows where this field is non-null (true) or null (false)
-                        type: boolean
                       gt:
                         description: Greater than
                       gte:
@@ -5592,6 +5650,35 @@ components:
           type: string
       title: SupplierUpdateDto
       type: object
+    TraceabilityInputDto:
+      additionalProperties: false
+      properties:
+        batch_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          type: number
+        quantity:
+          allOf:
+          - anyOf:
+            - minimum: 0
+              type: number
+            - pattern: ^[0-9]+?\.?[0-9]*$
+              type: string
+          - anyOf:
+            - not:
+                const: 0
+              type: number
+            - not:
+                pattern: ^(-|)[0]+?\.?[0]*$
+              type: string
+        serial_number_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          type: number
+      title: TraceabilityInputDto
+      type: object
     UnlinkBinLocationDto:
       additionalProperties: false
       properties:
@@ -5639,6 +5726,88 @@ components:
           nullable: true
           type: string
       title: UpdateBatchDto
+      type: object
+    UpdateBinTransferDto:
+      additionalProperties: false
+      properties:
+        additional_info:
+          minLength: 0
+          nullable: true
+          type: string
+        arrived_at:
+          format: date-time
+          nullable: true
+          type: string
+        bin_transfer_number:
+          maxLength: 255
+          minLength: 1
+          nullable: false
+          type: string
+        created_date:
+          format: date-time
+          nullable: true
+          type: string
+        departed_at:
+          format: date-time
+          nullable: true
+          type: string
+        location_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: false
+          type: integer
+      title: UpdateBinTransferDto
+      type: object
+    UpdateBinTransferRowDto:
+      additionalProperties: false
+      properties:
+        quantity:
+          allOf:
+          - anyOf:
+            - minimum: 0
+              type: number
+            - pattern: ^[0-9]+?\.?[0-9]*$
+              type: string
+          - anyOf:
+            - not:
+                const: 0
+              type: number
+            - not:
+                pattern: ^(-|)[0]+?\.?[0]*$
+              type: string
+        source_bin_location_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          type: number
+        target_bin_location_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          type: number
+        traceability:
+          items:
+            $ref: '#/components/schemas/TraceabilityInputDto'
+          type: array
+        variant_id:
+          maximum: 2147483647
+          minimum: 0
+          nullable: false
+          type: integer
+      title: UpdateBinTransferRowDto
+      type: object
+    UpdateBinTransferStatusDto:
+      additionalProperties: false
+      properties:
+        status:
+          enum:
+          - CREATED
+          - IN_TRANSIT
+          - DONE
+          type: string
+      required:
+      - status
+      title: UpdateBinTransferStatusDto
       type: object
     UpdateCustomFieldDefinitionDto:
       additionalProperties: false
@@ -5982,6 +6151,11 @@ components:
         arrival_date:
           format: date
           type: string
+        location_id:
+          maximum: 2147483647
+          minimum: 1
+          nullable: false
+          type: integer
         price_per_unit:
           maximum: 100000000000000000
           minimum: 0
@@ -6891,6 +7065,57 @@ paths:
       - BatchController
       x-controller-name: BatchController
       x-operation-name: createBatch
+  /bin_inventory:
+    get:
+      operationId: BinInventoryController.findAndPaginate
+      parameters:
+      - content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+        in: query
+        name: pagination
+      - in: query
+        name: granularity
+        schema:
+          enum:
+          - VARIANT
+          - BATCH
+          - SERIAL_NUMBER
+          type: string
+      - in: query
+        name: location_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: variant_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: bin_location_id
+        schema:
+          pattern: ^(\d+|null)$
+          type: string
+      - in: query
+        name: batch_id
+        schema:
+          pattern: ^(\d+|null)$
+          type: string
+      - in: query
+        name: serial_number_id
+        schema:
+          pattern: ^(\d+|null)$
+          type: string
+      responses:
+        '200':
+          description: Return value of BinInventoryController.findAndPaginate
+      tags:
+      - BinInventoryController
+      x-controller-name: BinInventoryController
+      x-operation-name: findAndPaginate
   /bin_locations:
     get:
       operationId: BinLocationController.findBinLocations
@@ -6928,6 +7153,21 @@ paths:
       - BinLocationController
       x-controller-name: BinLocationController
       x-operation-name: findBinLocations
+    post:
+      operationId: BinLocationController.createBinLocation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BinLocationCreateDto'
+        required: true
+      responses:
+        '200':
+          description: Return value of BinLocationController.createBinLocation
+      tags:
+      - BinLocationController
+      x-controller-name: BinLocationController
+      x-operation-name: createBinLocation
   /bin_locations/{id}:
     delete:
       operationId: BinLocationController.deleteBinLocation
@@ -6968,6 +7208,281 @@ paths:
       - BinLocationController
       x-controller-name: BinLocationController
       x-operation-name: updateBinLocation
+  /bin_transfer_rows:
+    get:
+      operationId: BinTransferRowController.findAndPaginate
+      parameters:
+      - content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+        in: query
+        name: pagination
+      - content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+        in: query
+        name: dateFilter
+      - in: query
+        name: ids
+        schema:
+          items:
+            maximum: 2147483647
+            type: integer
+          type: array
+      - in: query
+        name: bin_transfer_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: variant_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: source_bin_location_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: target_bin_location_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: include_deleted
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Return value of BinTransferRowController.findAndPaginate
+      tags:
+      - BinTransferRowController
+      x-controller-name: BinTransferRowController
+      x-operation-name: findAndPaginate
+    post:
+      operationId: BinTransferRowController.create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBinTransferRowDto'
+        required: true
+      responses:
+        '200':
+          description: Return value of BinTransferRowController.create
+      tags:
+      - BinTransferRowController
+      x-controller-name: BinTransferRowController
+      x-operation-name: create
+  /bin_transfer_rows/{id}:
+    delete:
+      operationId: BinTransferRowController.deleteById
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      responses:
+        '200':
+          description: Return value of BinTransferRowController.deleteById
+      tags:
+      - BinTransferRowController
+      x-controller-name: BinTransferRowController
+      x-operation-name: deleteById
+    get:
+      operationId: BinTransferRowController.findById
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      responses:
+        '200':
+          description: Return value of BinTransferRowController.findById
+      tags:
+      - BinTransferRowController
+      x-controller-name: BinTransferRowController
+      x-operation-name: findById
+    patch:
+      operationId: BinTransferRowController.updateById
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBinTransferRowDto'
+        required: true
+        x-parameter-index: 1
+      responses:
+        '200':
+          description: Return value of BinTransferRowController.updateById
+      tags:
+      - BinTransferRowController
+      x-controller-name: BinTransferRowController
+      x-operation-name: updateById
+  /bin_transfers:
+    get:
+      operationId: BinTransferController.findAndPaginate
+      parameters:
+      - content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+        in: query
+        name: pagination
+      - content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+        in: query
+        name: dateFilter
+      - in: query
+        name: ids
+        schema:
+          items:
+            maximum: 2147483647
+            type: integer
+          type: array
+      - in: query
+        name: bin_transfer_number
+        schema:
+          type: string
+      - in: query
+        name: location_id
+        schema:
+          format: int32
+          type: integer
+      - in: query
+        name: status
+        schema:
+          enum:
+          - CREATED
+          - IN_TRANSIT
+          - DONE
+          type: string
+      - in: query
+        name: include_deleted
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Return value of BinTransferController.findAndPaginate
+      tags:
+      - BinTransferController
+      x-controller-name: BinTransferController
+      x-operation-name: findAndPaginate
+    post:
+      operationId: BinTransferController.create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBinTransferDto'
+        required: true
+      responses:
+        '200':
+          description: Return value of BinTransferController.create
+      tags:
+      - BinTransferController
+      x-controller-name: BinTransferController
+      x-operation-name: create
+  /bin_transfers/{id}:
+    delete:
+      operationId: BinTransferController.deleteById
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      responses:
+        '200':
+          description: Return value of BinTransferController.deleteById
+      tags:
+      - BinTransferController
+      x-controller-name: BinTransferController
+      x-operation-name: deleteById
+    get:
+      operationId: BinTransferController.findById
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      responses:
+        '200':
+          description: Return value of BinTransferController.findById
+      tags:
+      - BinTransferController
+      x-controller-name: BinTransferController
+      x-operation-name: findById
+    patch:
+      operationId: BinTransferController.updateById
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBinTransferDto'
+        required: true
+        x-parameter-index: 1
+      responses:
+        '200':
+          description: Return value of BinTransferController.updateById
+      tags:
+      - BinTransferController
+      x-controller-name: BinTransferController
+      x-operation-name: updateById
+  /bin_transfers/{id}/status:
+    patch:
+      operationId: BinTransferController.updateStatus
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          format: int32
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBinTransferStatusDto'
+        required: true
+        x-parameter-index: 1
+      responses:
+        '200':
+          description: Return value of BinTransferController.updateStatus
+      tags:
+      - BinTransferController
+      x-controller-name: BinTransferController
+      x-operation-name: updateStatus
   /bom_rows:
     get:
       operationId: BomRowController.getBomRows
@@ -9544,6 +10059,11 @@ paths:
         name: purchase_uom
         schema:
           type: string
+      - in: query
+        name: location_id
+        schema:
+          format: int32
+          type: integer
       - in: query
         name: include_deleted
         schema:

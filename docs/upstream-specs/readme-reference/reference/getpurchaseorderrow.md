@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Retrieve a purchase order row
 
 Retrieves the details of an existing purchase order row based on ID
@@ -97,6 +101,7 @@ Retrieves the details of an existing purchase order row based on ID
                   "purchase_order_id": 1,
                   "landed_cost": 45.5,
                   "group_id": 11,
+                  "location_id": 1,
                   "batch_transactions": [
                     {
                       "batch_id": 1,

@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Create a make-to-order manufacturing order
 
 Creates a new manufacturing order object that is linked to a specific sales order row.

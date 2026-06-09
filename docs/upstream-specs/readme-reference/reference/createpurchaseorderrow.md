@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Create a purchase order row
 
 Creates a new purchase order row object.
@@ -90,6 +94,10 @@ Creates a new purchase order row object.
                   },
                   "arrival_date": {
                     "type": "string"
+                  },
+                  "location_id": {
+                    "type": "integer",
+                    "maximum": 2147483647
                   }
                 }
               }
@@ -142,7 +150,8 @@ Creates a new purchase order row object.
                   "total": 1,
                   "total_in_base_currency": 1,
                   "landed_cost": 45.5,
-                  "group_id": 11
+                  "group_id": 11,
+                  "location_id": 1
                 }
               }
             }

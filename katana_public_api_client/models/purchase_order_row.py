@@ -30,9 +30,9 @@ class PurchaseOrderRow:
                 'price_per_unit_in_base_currency': 2.85, 'purchase_uom_conversion_rate': 1.0, 'purchase_uom': 'kg', 'currency':
                 'USD', 'conversion_rate': 1.0, 'total': 712.5, 'total_in_base_currency': 712.5, 'conversion_date':
                 '2024-01-28T09:15:00Z', 'received_date': '2024-02-15T14:30:00Z', 'arrival_date': '2024-02-15T10:00:00Z',
-                'purchase_order_id': 156, 'landed_cost': 735.5, 'group_id': 1, 'created_at': '2024-01-28T09:15:00Z',
-                'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None, 'batch_transactions': [{'quantity': 150, 'batch_id':
-                1001}, {'quantity': 100, 'batch_id': 1002}]}
+                'purchase_order_id': 156, 'location_id': 1, 'landed_cost': 735.5, 'group_id': 1, 'created_at':
+                '2024-01-28T09:15:00Z', 'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None, 'batch_transactions':
+                [{'quantity': 150, 'batch_id': 1001}, {'quantity': 100, 'batch_id': 1002}]}
     """
 
     id: int
@@ -55,6 +55,7 @@ class PurchaseOrderRow:
     arrival_date: datetime.datetime | None | Unset = UNSET
     batch_transactions: list[PurchaseOrderRowBatchTransactionsItem] | Unset = UNSET
     purchase_order_id: int | Unset = UNSET
+    location_id: int | None | Unset = UNSET
     landed_cost: float | Unset = UNSET
     group_id: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -137,6 +138,12 @@ class PurchaseOrderRow:
 
         purchase_order_id = self.purchase_order_id
 
+        location_id: int | None | Unset
+        if isinstance(self.location_id, Unset):
+            location_id = UNSET
+        else:
+            location_id = self.location_id
+
         landed_cost = self.landed_cost
 
         group_id = self.group_id
@@ -188,6 +195,8 @@ class PurchaseOrderRow:
             field_dict["batch_transactions"] = batch_transactions
         if purchase_order_id is not UNSET:
             field_dict["purchase_order_id"] = purchase_order_id
+        if location_id is not UNSET:
+            field_dict["location_id"] = location_id
         if landed_cost is not UNSET:
             field_dict["landed_cost"] = landed_cost
         if group_id is not UNSET:
@@ -332,6 +341,15 @@ class PurchaseOrderRow:
 
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
+        def _parse_location_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        location_id = _parse_location_id(d.pop("location_id", UNSET))
+
         landed_cost = d.pop("landed_cost", UNSET)
 
         group_id = d.pop("group_id", UNSET)
@@ -357,6 +375,7 @@ class PurchaseOrderRow:
             arrival_date=arrival_date,
             batch_transactions=batch_transactions,
             purchase_order_id=purchase_order_id,
+            location_id=location_id,
             landed_cost=landed_cost,
             group_id=group_id,
         )

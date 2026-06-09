@@ -12,6 +12,12 @@ import type {
   CreateBatchData,
   CreateBatchErrors,
   CreateBatchResponses,
+  CreateBinTransferData,
+  CreateBinTransferErrors,
+  CreateBinTransferResponses,
+  CreateBinTransferRowData,
+  CreateBinTransferRowErrors,
+  CreateBinTransferRowResponses,
   CreateBomRowData,
   CreateBomRowErrors,
   CreateBomRowResponses,
@@ -117,6 +123,9 @@ import type {
   CreateStockTransferData,
   CreateStockTransferErrors,
   CreateStockTransferResponses,
+  CreateStorageBinData,
+  CreateStorageBinErrors,
+  CreateStorageBinResponses,
   CreateSupplierAddressData,
   CreateSupplierAddressErrors,
   CreateSupplierAddressResponses,
@@ -132,6 +141,12 @@ import type {
   CreateWebhookData,
   CreateWebhookErrors,
   CreateWebhookResponses,
+  DeleteBinTransferData,
+  DeleteBinTransferErrors,
+  DeleteBinTransferResponses,
+  DeleteBinTransferRowData,
+  DeleteBinTransferRowErrors,
+  DeleteBinTransferRowResponses,
   DeleteBomRowData,
   DeleteBomRowErrors,
   DeleteBomRowResponses,
@@ -255,6 +270,12 @@ import type {
   GetAdditionalCostsData,
   GetAdditionalCostsErrors,
   GetAdditionalCostsResponses,
+  GetAllBinTransferRowsData,
+  GetAllBinTransferRowsErrors,
+  GetAllBinTransferRowsResponses,
+  GetAllBinTransfersData,
+  GetAllBinTransfersErrors,
+  GetAllBinTransfersResponses,
   GetAllBomRowsData,
   GetAllBomRowsErrors,
   GetAllBomRowsResponses,
@@ -384,6 +405,15 @@ import type {
   GetBatchStockData,
   GetBatchStockErrors,
   GetBatchStockResponses,
+  GetBinInventoryData,
+  GetBinInventoryErrors,
+  GetBinInventoryResponses,
+  GetBinTransferData,
+  GetBinTransferErrors,
+  GetBinTransferResponses,
+  GetBinTransferRowData,
+  GetBinTransferRowErrors,
+  GetBinTransferRowResponses,
   GetCustomFieldDefinitionData,
   GetCustomFieldDefinitionErrors,
   GetCustomFieldDefinitionResponses,
@@ -522,6 +552,15 @@ import type {
   UpdateBatchStockData,
   UpdateBatchStockErrors,
   UpdateBatchStockResponses,
+  UpdateBinTransferData,
+  UpdateBinTransferErrors,
+  UpdateBinTransferResponses,
+  UpdateBinTransferRowData,
+  UpdateBinTransferRowErrors,
+  UpdateBinTransferRowResponses,
+  UpdateBinTransferStatusData,
+  UpdateBinTransferStatusErrors,
+  UpdateBinTransferStatusResponses,
   UpdateBomRowData,
   UpdateBomRowErrors,
   UpdateBomRowResponses,
@@ -735,6 +774,31 @@ export const updateBatchStock = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List bin inventory levels
+ *
+ * Returns per-bin inventory levels at the chosen granularity. `granularity=VARIANT` (default) returns
+ * one row per (location, variant, bin); `BATCH` and `SERIAL_NUMBER` break rows down further by the
+ * matching traceability axis. Each row carries three decimal-string quantities: `quantity_in_stock`,
+ * `quantity_committed`, and `quantity_expected`.
+ *
+ * A null `bin_location_id`, `batch_id`, or `serial_number_id` denotes stock whose traceability on that
+ * axis has not been set (unassigned bin, unbatched stock, untraced serial). Pass `?<param>=null` to
+ * target those rows. Bin inventory levels are computed asynchronously and are eventually consistent.
+ */
+export const getBinInventory = <ThrowOnError extends boolean = false>(
+  options?: Options<GetBinInventoryData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetBinInventoryResponses,
+    GetBinInventoryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_inventory",
+    ...options,
+  });
+
+/**
  * List all storage bins
  *
  * Returns a list of storage bins you've previously created. The storage bins are returned in sorted order, with
@@ -751,6 +815,28 @@ export const getAllStorageBins = <ThrowOnError extends boolean = false>(
     security: [{ scheme: "bearer", type: "http" }],
     url: "/bin_locations",
     ...options,
+  });
+
+/**
+ * Create a storage bin
+ *
+ * Creates a new storage bin at the specified location.
+ */
+export const createStorageBin = <ThrowOnError extends boolean = false>(
+  options: Options<CreateStorageBinData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateStorageBinResponses,
+    CreateStorageBinErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_locations",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**
@@ -787,6 +873,226 @@ export const updateDefaultStorageBin = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/bin_locations/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * List all bin transfers
+ *
+ * Returns a list of bin transfers.
+ */
+export const getAllBinTransfers = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAllBinTransfersData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAllBinTransfersResponses,
+    GetAllBinTransfersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfers",
+    ...options,
+  });
+
+/**
+ * Create a bin transfer
+ *
+ * Creates a bin transfer, optionally with rows and per-row traceability in one
+ * call. Bin transfers move stock between bin locations within a single location.
+ * New transfers start in `CREATED`; status changes go through the status endpoint.
+ */
+export const createBinTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<CreateBinTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateBinTransferResponses,
+    CreateBinTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfers",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a bin transfer
+ *
+ * Deletes a bin transfer.
+ */
+export const deleteBinTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteBinTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteBinTransferResponses,
+    DeleteBinTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfers/{id}",
+    ...options,
+  });
+
+/**
+ * Get a bin transfer
+ *
+ * Returns a single bin transfer by id.
+ */
+export const getBinTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<GetBinTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetBinTransferResponses,
+    GetBinTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfers/{id}",
+    ...options,
+  });
+
+/**
+ * Update a bin transfer
+ *
+ * Updates a bin transfer's header fields.
+ */
+export const updateBinTransfer = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateBinTransferData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateBinTransferResponses,
+    UpdateBinTransferErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfers/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Update bin transfer status
+ *
+ * Updates the status of a bin transfer.
+ */
+export const updateBinTransferStatus = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateBinTransferStatusData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateBinTransferStatusResponses,
+    UpdateBinTransferStatusErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfers/{id}/status",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * List all bin transfer rows
+ *
+ * Returns a list of bin transfer rows.
+ */
+export const getAllBinTransferRows = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAllBinTransferRowsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAllBinTransferRowsResponses,
+    GetAllBinTransferRowsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfer_rows",
+    ...options,
+  });
+
+/**
+ * Create a bin transfer row
+ *
+ * Adds a row to an existing bin transfer.
+ */
+export const createBinTransferRow = <ThrowOnError extends boolean = false>(
+  options: Options<CreateBinTransferRowData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateBinTransferRowResponses,
+    CreateBinTransferRowErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfer_rows",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a bin transfer row
+ *
+ * Deletes a bin transfer row.
+ */
+export const deleteBinTransferRow = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteBinTransferRowData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteBinTransferRowResponses,
+    DeleteBinTransferRowErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfer_rows/{id}",
+    ...options,
+  });
+
+/**
+ * Get a bin transfer row
+ *
+ * Returns a single bin transfer row by id.
+ */
+export const getBinTransferRow = <ThrowOnError extends boolean = false>(
+  options: Options<GetBinTransferRowData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetBinTransferRowResponses,
+    GetBinTransferRowErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfer_rows/{id}",
+    ...options,
+  });
+
+/**
+ * Update a bin transfer row
+ *
+ * Updates a bin transfer row.
+ */
+export const updateBinTransferRow = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateBinTransferRowData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateBinTransferRowResponses,
+    UpdateBinTransferRowErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/bin_transfer_rows/{id}",
     ...options,
     headers: {
       "Content-Type": "application/json",

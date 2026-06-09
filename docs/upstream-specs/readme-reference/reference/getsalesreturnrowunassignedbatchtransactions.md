@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Retrieve unassigned batch transactions for a sales return row
 
 Retrieves the unassigned batch transactions for a sales return row based on sales return row id
