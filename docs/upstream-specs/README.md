@@ -15,12 +15,14 @@ The canonical OpenAPI spec served by the live API gateway at
 `https://api.katanamrp.com/v1/openapi.json`. Public endpoint, no auth. This is what the
 gateway *actually validates requests against*.
 
-- **Use it for**: request DTOs, paths, filter-param enums, component schemas. This is
-  the authoritative source for *what the API accepts*.
+- **Use it for**: request DTOs, paths, filter-param enums, **query parameters**,
+  component schemas. This is the authoritative source for *what the API accepts*.
 - **It does not have**: response shapes. Every `200` response is just
-  `{description: "Return value of FooController..."}` with no schema or example.
+  `{description: "Return value of FooController..."}` with no schema or example — which
+  is why `audit-spec`'s `--responses` dimension reads from the portal instead.
 
-This is what `poe audit-spec` compares the local spec against.
+This is what `poe audit-spec` compares the local spec's request DTOs and query
+parameters against.
 
 ### [`readme-portal.yaml`](./readme-portal.yaml)
 
@@ -47,7 +49,7 @@ must be removed) and re-surfaced under a category section.
 It does double duty:
 
 1. **CI allowlist** — `audit-spec-strict` runs in `poe check` and CI. Without the
-   registry, the ~13 known divergences would block every PR.
+   registry, the known divergences would block every PR.
 1. **Punch list** — entries categorized `local_correct_upstream_wrong` /
    `both_wrong_live_correct` are bugs in Katana's *published* spec that we'd recommend
    they fix. `audit-spec` prints them under "📋 Upstream punch list".
@@ -60,6 +62,15 @@ override pins the exact `(endpoint, kind, field, values)`, so if the spec shape 
 the override stops matching, the finding resurfaces as new drift, and the now-unused
 override is reported as **stale** (delete it). The file header documents the full entry
 schema. Run `poe audit-spec --no-overrides` to see raw, unsuppressed drift.
+
+The registry covers all three audit dimensions via its `kind` field: request-DTO drift
+(`type_diff` / `only_live` / `only_local` / `required_diff`), **query-parameter** drift
+(`param_only_local` / `param_only_live` / `param_type_diff` / `param_enum_diff`, vs the
+live gateway), and **response-shape** drift (`response_wrapper` / `response_empty_local`
+/ `response_empty_both`, vs the readme portal's response examples). The `pagination` /
+`dateFilter` JSON-blob expansion that local applies across ~40 list endpoints is
+filtered structurally in the auditor (not catalogued per endpoint). Disable a dimension
+with `--no-params` / `--no-responses`.
 
 ## Refresh
 
@@ -90,7 +101,10 @@ they're safe to run any time.
 What each step catches:
 
 - **`audit-spec`** — paths/operations the local spec is missing or has extra; required
-  fields, type/enum drift on request DTOs. The live gateway is canonical here.
+  fields, type/enum drift on request DTOs; **query-parameter** drift (name/type/enum vs
+  the live gateway); and **response-shape** drift (missing bodies + `{data: ...}`
+  wrapper mismatches vs the readme portal's response examples). The live gateway is
+  canonical for requests + params; the portal supplies the response examples.
 - **`validate-response-examples`** — drift in our local response schemas, surfaced by
   validating Katana's own README.io response examples against them. The live gateway has
   no response shapes, so this is the only structured signal we have for response
