@@ -2207,6 +2207,9 @@ async def test_receive_purchase_order_preview_enriches_per_row_details():
         row.variant_id = variant_id
         row.quantity = qty
         row.price_per_unit = ppu
+        # Match the real attrs model default so the effective-location
+        # resolution sees UNSET (→ None), not a stray MagicMock attribute.
+        row.location_id = UNSET
         return row
 
     mock_po = MagicMock(spec=RegularPurchaseOrder)
@@ -2283,6 +2286,84 @@ async def test_receive_purchase_order_preview_enriches_per_row_details():
     assert row_b.variant_id == 101
     assert row_b.sku == "C1265080ST"
     assert row_b.batch_summary == "batch 42x30, batch 51x22"
+
+
+@pytest.mark.asyncio
+async def test_receive_enriches_effective_destination_location():
+    """Receipt rows resolve their *effective* destination location (#945).
+
+    Effective = the receive-time override when supplied, else the PO row's
+    own ``location_id`` (set earlier via add_rows / PATCH). A row that carries
+    neither inherits the order-level location and renders blank.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    def _row(row_id: int, variant_id: int, location_id: object) -> MagicMock:
+        row = MagicMock()
+        row.id = row_id
+        row.variant_id = variant_id
+        row.quantity = 10.0
+        row.price_per_unit = 1.0
+        row.location_id = location_id
+        return row
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-LOC-001"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = "USD"
+    mock_po.total = 30.0
+    mock_po.purchase_order_rows = [
+        _row(1, variant_id=100, location_id=UNSET),  # override at receive time
+        _row(2, variant_id=101, location_id=55),  # row's own per-row location
+        _row(3, variant_id=102, location_id=UNSET),  # inherits order-level
+    ]
+
+    variant = MagicMock(sku="SKU", display_name="Item")
+    loc_42 = MagicMock(name="loc42")
+    loc_42.name = "West DC"
+    loc_55 = MagicMock(name="loc55")
+    loc_55.name = "East DC"
+    # get_many_by_ids is called twice: variants first, then locations.
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=[
+            {100: variant, 101: variant, 102: variant},
+            {42: loc_42, 55: loc_55},
+        ]
+    )
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+    lifespan_ctx.client = MagicMock()
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[
+            ReceiveItemRequest(purchase_order_row_id=1, quantity=10.0, location_id=42),
+            ReceiveItemRequest(purchase_order_row_id=2, quantity=10.0),
+            ReceiveItemRequest(purchase_order_row_id=3, quantity=10.0),
+        ],
+        preview=True,
+    )
+
+    result = await _receive_purchase_order_impl(request, context)
+    by_row = {ri.purchase_order_row_id: ri for ri in result.received_items}
+
+    # Row 1: receive-time override wins.
+    assert by_row[1].location_id == 42
+    assert by_row[1].location_name == "West DC"
+    # Row 2: no override → falls back to the row's own per-row location.
+    assert by_row[2].location_id == 55
+    assert by_row[2].location_name == "East DC"
+    # Row 3: neither → inherits order-level location, rendered blank.
+    assert by_row[3].location_id is None
+    assert by_row[3].location_name is None
 
 
 @pytest.mark.asyncio
