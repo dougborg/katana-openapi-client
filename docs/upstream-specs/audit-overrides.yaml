@@ -48,10 +48,17 @@
 # Entry schema
 # ------------
 #   endpoint:        "<METHOD> <path>"     (e.g. "POST /sales_orders/search")
-#   kind:            type_diff | only_live | only_local | required_diff
-#   field:           property name         (omit for kind: required_diff)
-#   live / local:    the exact type strings (kind: type_diff only — pins the
-#                    divergence so a *changed* type resurfaces)
+#   kind:            DTO drift — type_diff | only_live | only_local | required_diff
+#                    query params (--params) — param_only_local | param_only_live |
+#                      param_type_diff | param_enum_diff
+#                    responses (--responses) — response_wrapper |
+#                      response_empty_local | response_empty_both
+#                    (see the param/response section near the end of this file)
+#   field:           property name / wire param name / HTTP status code
+#                    (omit for kind: required_diff)
+#   live / local:    the exact type strings — pins the divergence so a *changed*
+#                    type resurfaces (type_diff, param_type_diff, param_enum_diff;
+#                    "wrapped"/"bare" for response_wrapper)
 #   live_required /
 #   local_required:  the exact required-key lists (kind: required_diff only)
 #   category:        one of the four above
@@ -223,3 +230,365 @@ overrides:
     reason: >-
       Same untyped-`quantity` omission as the POST variant. Local types it
       `string` to match the decimal-string wire contract.
+  # ==========================================================================
+  # Query-parameter drift (--params) and response-shape drift (--responses)
+  # ==========================================================================
+  # Kinds: param_only_local / param_only_live / param_type_diff / param_enum_diff
+  # (field = wire param name; live/local = type signatures for the *_diff kinds),
+  # and response_wrapper / response_empty_local / response_empty_both
+  # (field = HTTP status code; live/local = "wrapped"/"bare" for response_wrapper).
+  # The pagination/dateFilter scalar-expansion family is filtered structurally in
+  # the audit (STRUCTURAL_PARAM_NAMES), not catalogued here.
+  - endpoint: "GET /bin_locations"
+    kind: param_only_live
+    field: "ids"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the ids filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /customer_addresses"
+    kind: param_type_diff
+    field: "entity_type"
+    live: "string"
+    local: "$ref:AddressEntityType"
+    category: intentional_local_divergence
+    reason: >-
+      Local tightens the address entity_type filter to the typed
+      AddressEntityType enum (billing/shipping, the values the create
+      DTOs already use); the live gateway declares a bare string.
+
+  - endpoint: "GET /locations"
+    kind: param_only_live
+    field: "is_primary"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the is_primary filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /materials"
+    kind: param_type_diff
+    field: "batch_tracked"
+    live: "string"
+    local: "enum:[false,true]"
+    category: intentional_local_divergence
+    reason: >-
+      Local models the boolean batch_tracked filter as a stricter
+      enum:[false,true]; upstream declares a bare string. The wire
+      accepts ?batch_tracked=true (verified 2026-06-08). Local is more precise.
+
+  - endpoint: "GET /materials"
+    kind: param_only_live
+    field: "category_name"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the category_name filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /products"
+    kind: param_type_diff
+    field: "batch_tracked"
+    live: "string"
+    local: "enum:[false,true]"
+    category: intentional_local_divergence
+    reason: >-
+      Local models the boolean batch_tracked filter as a stricter
+      enum:[false,true]; upstream declares a bare string. The wire
+      accepts ?batch_tracked=true (verified 2026-06-08). Local is more precise.
+
+  - endpoint: "GET /products"
+    kind: param_only_live
+    field: "category_name"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the category_name filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /products"
+    kind: param_type_diff
+    field: "serial_tracked"
+    live: "string"
+    local: "enum:[false,true]"
+    category: intentional_local_divergence
+    reason: >-
+      Local models the boolean serial_tracked filter as a stricter
+      enum:[false,true]; upstream declares a bare string. The wire
+      accepts ?serial_tracked=true (verified 2026-06-08). Local is more precise.
+
+  - endpoint: "GET /purchase_order_rows"
+    kind: param_only_local
+    field: "group_id"
+    category: intentional_local_divergence
+    reason: >-
+      Local-only convenience filter (group_id) with no upstream
+      equivalent — an intentional client-side addition.
+
+  - endpoint: "GET /purchase_orders"
+    kind: param_only_live
+    field: "last_document_status"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the last_document_status filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /sales_order_addresses"
+    kind: param_type_diff
+    field: "entity_type"
+    live: "string"
+    local: "$ref:AddressEntityType"
+    category: intentional_local_divergence
+    reason: >-
+      Local tightens the address entity_type filter to the typed
+      AddressEntityType enum (billing/shipping, the values the create
+      DTOs already use); the live gateway declares a bare string.
+
+  - endpoint: "GET /sales_order_fulfillments"
+    kind: param_only_live
+    field: "invoice_status"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the invoice_status filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /sales_order_fulfillments"
+    kind: param_type_diff
+    field: "status"
+    live: "enum:[DELIVERED,PACKED]"
+    local: "string"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local types the status filter as a bare string; the gateway
+      declares a specific enum. Tighten local to the enum.
+    fix_tracked_in: "#938"
+
+  - endpoint: "GET /sales_order_fulfillments/{id}"
+    kind: param_only_live
+    field: "include_deleted"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the include_deleted filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /sales_order_shipping_fee"
+    kind: param_only_local
+    field: "ids"
+    category: intentional_local_divergence
+    reason: >-
+      Local-only convenience filter (ids) with no upstream
+      equivalent — an intentional client-side addition.
+
+  - endpoint: "GET /sales_order_shipping_fee"
+    kind: param_only_live
+    field: "sales_order_id"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the sales_order_id filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /sales_orders"
+    kind: param_type_diff
+    field: "production_status"
+    live: "enum:[BLOCKED,DONE,IN_PROGRESS,NONE,NOT_APPLICABLE,NOT_STARTED]"
+    local: "string"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local types the production_status filter as a bare string; the gateway
+      declares a specific enum. Tighten local to the enum.
+    fix_tracked_in: "#938"
+
+  - endpoint: "GET /sales_return_rows"
+    kind: param_only_local
+    field: "include_deleted"
+    category: intentional_local_divergence
+    reason: >-
+      Local-only convenience filter (include_deleted) with no upstream
+      equivalent — an intentional client-side addition.
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_local
+    field: "include_deleted"
+    category: intentional_local_divergence
+    reason: >-
+      Local-only convenience filter (include_deleted) with no upstream
+      equivalent — an intentional client-side addition.
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_live
+    field: "order_no"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents order_no; local exposes a differently-named
+      param for the same filter (see the local_only counterpart).
+      Part of the sales_returns param-rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_live
+    field: "order_return_date_max"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents order_return_date_max; local exposes a differently-named
+      param for the same filter (see the local_only counterpart).
+      Part of the sales_returns param-rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_live
+    field: "order_return_date_min"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents order_return_date_min; local exposes a differently-named
+      param for the same filter (see the local_only counterpart).
+      Part of the sales_returns param-rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_local
+    field: "return_date_max"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local exposes return_date_max, which the gateway doesn't recognize;
+      likely a rename of an upstream param (silently dropped on the
+      lenient gateway). Part of the sales_returns rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_local
+    field: "return_date_min"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local exposes return_date_min, which the gateway doesn't recognize;
+      likely a rename of an upstream param (silently dropped on the
+      lenient gateway). Part of the sales_returns rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_live
+    field: "return_location_id"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents return_location_id; local exposes a differently-named
+      param for the same filter (see the local_only counterpart).
+      Part of the sales_returns param-rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_local
+    field: "return_order_no"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local exposes return_order_no, which the gateway doesn't recognize;
+      likely a rename of an upstream param (silently dropped on the
+      lenient gateway). Part of the sales_returns rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_local
+    field: "sales_order_id"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local exposes sales_order_id, which the gateway doesn't recognize;
+      likely a rename of an upstream param (silently dropped on the
+      lenient gateway). Part of the sales_returns rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_only_live
+    field: "sales_order_no"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents sales_order_no; local exposes a differently-named
+      param for the same filter (see the local_only counterpart).
+      Part of the sales_returns param-rename cluster.
+    fix_tracked_in: "#939"
+
+  - endpoint: "GET /sales_returns"
+    kind: param_type_diff
+    field: "status"
+    live: "enum:[NOT_RETURNED,RESTOCKED_ALL,RETURNED_ALL]"
+    local: "string"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local types the status filter as a bare string; the gateway
+      declares a specific enum. Tighten local to the enum.
+    fix_tracked_in: "#938"
+
+  - endpoint: "GET /stocktake_rows"
+    kind: param_only_local
+    field: "stock_adjustment_id"
+    category: intentional_local_divergence
+    reason: >-
+      Local-only convenience filter (stock_adjustment_id) with no upstream
+      equivalent — an intentional client-side addition.
+
+  - endpoint: "GET /stocktakes"
+    kind: param_type_diff
+    field: "status"
+    live: "enum:[COMPLETED,COUNTED,IN_PROGRESS,NOT_STARTED]"
+    local: "string"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local types the status filter as a bare string; the gateway
+      declares a specific enum. Tighten local to the enum.
+    fix_tracked_in: "#938"
+
+  - endpoint: "GET /variants"
+    kind: param_only_live
+    field: "type"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Gateway documents the type filter; local does not expose it.
+      Add the missing client filter.
+    fix_tracked_in: "#937"
+
+  - endpoint: "GET /bin_locations"
+    kind: response_wrapper
+    field: "200"
+    live: "wrapped"
+    local: "bare"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Local response is bare; the readme-portal example is wrapped.
+      Verified against the live tenant 2026-06-08: our spec matches the
+      real wire contract; the portal example is a documentation artefact.
+
+  - endpoint: "GET /operators"
+    kind: response_wrapper
+    field: "200"
+    live: "bare"
+    local: "wrapped"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Local response is wrapped; the readme-portal example is bare.
+      Verified against the live tenant 2026-06-08: our spec matches the
+      real wire contract; the portal example is a documentation artefact.
+
+  - endpoint: "GET /serial_numbers"
+    kind: response_wrapper
+    field: "200"
+    live: "bare"
+    local: "wrapped"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Local response is wrapped; the readme-portal example is bare.
+      Verified against the live tenant 2026-06-08: our spec matches the
+      real wire contract; the portal example is a documentation artefact.
+
+  - endpoint: "GET /serial_numbers_stock"
+    kind: response_wrapper
+    field: "200"
+    live: "bare"
+    local: "wrapped"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Local response is wrapped; the readme-portal example is bare.
+      Verified against the live tenant 2026-06-08: our spec matches the
+      real wire contract; the portal example is a documentation artefact.

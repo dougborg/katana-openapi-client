@@ -19,8 +19,11 @@ from scripts.audit_spec_drift import (
     DEFAULT_LIVE,
     DEFAULT_LOCAL,
     DEFAULT_OVERRIDES,
+    DEFAULT_PORTAL,
     apply_overrides,
     audit,
+    audit_params,
+    audit_responses,
     load_overrides,
     load_spec,
     main,
@@ -409,11 +412,23 @@ class TestCommittedRegistry:
         new divergence appears (or an override goes stale and a finding
         resurfaces), this fails — exactly the intended signal.
         """
-        report = audit(load_spec(DEFAULT_LOCAL), load_spec(DEFAULT_LIVE))
+        report = audit(
+            load_spec(DEFAULT_LOCAL),
+            load_spec(DEFAULT_LIVE),
+            portal=load_spec(DEFAULT_PORTAL),
+        )
         apply_overrides(report, load_overrides(DEFAULT_OVERRIDES))
         assert report.drifted_endpoints == [], (
             "New spec drift not covered by the override registry — either fix "
             "the spec or add an override entry. See the report for details."
+        )
+        assert report.param_findings == [], (
+            "New query-parameter drift not covered by the registry — fix the "
+            "spec or add a param_* override entry."
+        )
+        assert report.response_findings == [], (
+            "New response-shape drift not covered by the registry — fix the "
+            "spec or add a response_* override entry."
         )
         assert report.stale_overrides == [], (
             "Stale override(s) — the suppressed drift is gone; remove them from "
@@ -435,3 +450,305 @@ class TestCommittedRegistry:
         bad = tmp_path / "bad.yaml"
         bad.write_text("overrides: [unbalanced: {", encoding="utf-8")
         assert main(["--overrides", str(bad)]) == 2
+
+
+# ----------------------------------------------------------------------
+# Query-parameter audit (--params)
+# ----------------------------------------------------------------------
+
+
+def _param_spec(path: str, params: list[dict], schemas: dict | None = None) -> dict:
+    """Minimal spec with one GET operation carrying query params."""
+    return {
+        "paths": {path: {"get": {"parameters": params}}},
+        "components": {"schemas": schemas or {}, "parameters": {}},
+    }
+
+
+def _q(name: str, schema: dict) -> dict:
+    return {"name": name, "in": "query", "schema": schema}
+
+
+class TestParamAudit:
+    def test_only_local(self) -> None:
+        local = _param_spec("/x", [_q("only_here", {"type": "string"})])
+        live = _param_spec("/x", [])
+        [f] = audit_params(local, live)
+        assert (f.kind, f.name, f.local) == ("param_only_local", "only_here", "string")
+
+    def test_only_live(self) -> None:
+        local = _param_spec("/x", [])
+        live = _param_spec("/x", [_q("filter", {"type": "string"})])
+        [f] = audit_params(local, live)
+        assert (f.kind, f.name, f.live) == ("param_only_live", "filter", "string")
+
+    def test_type_diff(self) -> None:
+        local = _param_spec("/x", [_q("q", {"type": "string"})])
+        live = _param_spec("/x", [_q("q", {"type": "boolean"})])
+        [f] = audit_params(local, live)
+        assert (f.kind, f.live, f.local) == ("param_type_diff", "boolean", "string")
+
+    def test_integer_number_not_flagged(self) -> None:
+        local = _param_spec("/x", [_q("id", {"type": "integer"})])
+        live = _param_spec("/x", [_q("id", {"type": "number"})])
+        assert audit_params(local, live) == []
+
+    def test_array_item_type_compared(self) -> None:
+        local = _param_spec(
+            "/x", [_q("ids", {"type": "array", "items": {"type": "string"}})]
+        )
+        live = _param_spec(
+            "/x", [_q("ids", {"type": "array", "items": {"type": "integer"}})]
+        )
+        [f] = audit_params(local, live)
+        assert f.kind == "param_type_diff"
+
+    def test_enum_diff(self) -> None:
+        local = _param_spec("/x", [_q("s", {"type": "string", "enum": ["A", "B"]})])
+        live = _param_spec("/x", [_q("s", {"type": "string", "enum": ["A", "C"]})])
+        [f] = audit_params(local, live)
+        assert f.kind == "param_enum_diff"
+
+    def test_enum_equal_via_ref_not_flagged(self) -> None:
+        """Local $ref enum vs live inline enum (no `type:`) with equal values."""
+        local = _param_spec(
+            "/x",
+            [_q("s", {"$ref": "#/components/schemas/E"})],
+            schemas={"E": {"type": "string", "enum": ["A", "B"]}},
+        )
+        live = _param_spec("/x", [_q("s", {"enum": ["A", "B"]})])
+        assert audit_params(local, live) == []
+
+    def test_asymmetric_enum_is_type_diff(self) -> None:
+        local = _param_spec("/x", [_q("s", {"type": "string"})])
+        live = _param_spec("/x", [_q("s", {"enum": ["A", "B"]})])
+        [f] = audit_params(local, live)
+        assert f.kind == "param_type_diff"
+
+    def test_ref_resolution_matches_by_wire_name(self) -> None:
+        local = {
+            "paths": {
+                "/x": {
+                    "get": {
+                        "parameters": [{"$ref": "#/components/parameters/sku_list"}]
+                    }
+                }
+            },
+            "components": {
+                "schemas": {},
+                "parameters": {
+                    "sku_list": {
+                        "name": "sku",
+                        "in": "query",
+                        "schema": {"type": "string"},
+                    }
+                },
+            },
+        }
+        live = _param_spec("/x", [_q("sku", {"type": "string"})])
+        assert audit_params(local, live) == []
+
+    def test_pagination_datefilter_filtered_structurally(self) -> None:
+        local = _param_spec(
+            "/x", [_q("page", {"type": "integer"}), _q("limit", {"type": "integer"})]
+        )
+        live = _param_spec(
+            "/x",
+            [
+                _q("pagination", {"type": "object"}),
+                _q("dateFilter", {"type": "object"}),
+            ],
+        )
+        assert audit_params(local, live) == []
+
+
+# ----------------------------------------------------------------------
+# Response-shape audit (--responses)
+# ----------------------------------------------------------------------
+
+
+def _resp_spec(path: str, responses: dict, schemas: dict | None = None) -> dict:
+    return {
+        "paths": {path: {"get": {"responses": responses}}},
+        "components": {"schemas": schemas or {}},
+    }
+
+
+_WRAPPED_SCHEMA = {
+    "type": "object",
+    "properties": {"data": {"type": "array", "items": {}}},
+}
+
+
+class TestResponseAudit:
+    def test_empty_local_nonempty_upstream(self) -> None:
+        local = _resp_spec("/x", {"200": {"description": "ok"}})
+        portal = _resp_spec(
+            "/x", {"200": {"content": {"application/json": {"example": {"data": []}}}}}
+        )
+        [f] = audit_responses(local, portal)
+        assert (f.kind, f.path) == ("response_empty_local", "/x")
+
+    def test_empty_both(self) -> None:
+        local = _resp_spec("/x", {"200": {"description": "ok"}})
+        portal = _resp_spec("/x", {"200": {"description": "ok"}})
+        [f] = audit_responses(local, portal)
+        assert f.kind == "response_empty_both"
+
+    def test_delete_empty_not_flagged(self) -> None:
+        local = {
+            "paths": {"/x": {"delete": {"responses": {"200": {"description": "ok"}}}}},
+            "components": {"schemas": {}},
+        }
+        portal = {
+            "paths": {"/x": {"delete": {"responses": {"200": {"description": "ok"}}}}},
+            "components": {"schemas": {}},
+        }
+        assert audit_responses(local, portal) == []
+
+    def test_204_not_flagged(self) -> None:
+        local = _resp_spec("/x", {"204": {"description": "no content"}})
+        portal = _resp_spec("/x", {"204": {"description": "no content"}})
+        assert audit_responses(local, portal) == []
+
+    def test_empty_local_no_portal_response_not_flagged(self) -> None:
+        """Local empty body but the portal doesn't document the op → no finding.
+
+        Without an upstream signal we can't conclude "both wrong"; flagging would
+        be a false positive on portal-uncovered endpoints.
+        """
+        local = _resp_spec("/x", {"200": {"description": "ok"}})
+        portal: dict = {"paths": {}, "components": {"schemas": {}}}
+        assert audit_responses(local, portal) == []
+
+    def test_wrapper_mismatch_local_wrapped_portal_bare(self) -> None:
+        local = _resp_spec(
+            "/x",
+            {
+                "200": {
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/L"}
+                        }
+                    }
+                }
+            },
+            schemas={"L": _WRAPPED_SCHEMA},
+        )
+        portal = _resp_spec(
+            "/x", {"200": {"content": {"application/json": {"example": []}}}}
+        )
+        [f] = audit_responses(local, portal)
+        assert (f.kind, f.local, f.live) == ("response_wrapper", "wrapped", "bare")
+
+    def test_wrapper_mismatch_local_bare_portal_wrapped(self) -> None:
+        local = _resp_spec(
+            "/x",
+            {"200": {"content": {"application/json": {"schema": {"type": "array"}}}}},
+        )
+        portal = _resp_spec(
+            "/x", {"200": {"content": {"application/json": {"example": {"data": []}}}}}
+        )
+        [f] = audit_responses(local, portal)
+        assert (f.kind, f.local, f.live) == ("response_wrapper", "bare", "wrapped")
+
+    def test_wrapper_match_not_flagged(self) -> None:
+        local = _resp_spec(
+            "/x",
+            {
+                "200": {
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/L"}
+                        }
+                    }
+                }
+            },
+            schemas={"L": _WRAPPED_SCHEMA},
+        )
+        portal = _resp_spec(
+            "/x", {"200": {"content": {"application/json": {"example": {"data": []}}}}}
+        )
+        assert audit_responses(local, portal) == []
+
+
+# ----------------------------------------------------------------------
+# Override suppression of param/response findings
+# ----------------------------------------------------------------------
+
+
+class TestParamResponseOverrides:
+    def _ov(self, tmp_path: Path, entries: list[dict]) -> Path:
+        p = tmp_path / "ov.yaml"
+        p.write_text(yaml.safe_dump({"overrides": entries}), encoding="utf-8")
+        return p
+
+    def test_param_type_diff_suppressed(self, tmp_path: Path) -> None:
+        local = _param_spec("/x", [_q("q", {"type": "string"})])
+        live = _param_spec("/x", [_q("q", {"type": "boolean"})])
+        report = audit(local, live, include_responses=False)
+        assert len(report.param_findings) == 1
+        overrides = load_overrides(
+            self._ov(
+                tmp_path,
+                [
+                    {
+                        "endpoint": "GET /x",
+                        "kind": "param_type_diff",
+                        "field": "q",
+                        "live": "boolean",
+                        "local": "string",
+                        "category": "intentional_local_divergence",
+                        "reason": "deliberately stricter",
+                    }
+                ],
+            )
+        )
+        apply_overrides(report, overrides)
+        assert report.param_findings == []
+        assert report.stale_overrides == []
+        assert len(report.suppressed) == 1
+
+    def test_stale_param_override_fails_strict_count(self, tmp_path: Path) -> None:
+        """A param override matching nothing is stale (counts toward strict)."""
+        local = _param_spec("/x", [_q("q", {"type": "string"})])
+        live = _param_spec("/x", [_q("q", {"type": "string"})])  # no drift
+        report = audit(local, live, include_responses=False)
+        overrides = load_overrides(
+            self._ov(
+                tmp_path,
+                [
+                    {
+                        "endpoint": "GET /x",
+                        "kind": "param_type_diff",
+                        "field": "q",
+                        "live": "boolean",
+                        "local": "string",
+                        "category": "intentional_local_divergence",
+                        "reason": "no longer matches",
+                    }
+                ],
+            )
+        )
+        apply_overrides(report, overrides)
+        assert len(report.stale_overrides) == 1
+        assert report.total_drift_count == 1
+
+    def test_response_wrapper_override_requires_live_local(
+        self, tmp_path: Path
+    ) -> None:
+        with pytest.raises(ValueError, match="requires `live` \\+ `local`"):
+            load_overrides(
+                self._ov(
+                    tmp_path,
+                    [
+                        {
+                            "endpoint": "GET /x",
+                            "kind": "response_wrapper",
+                            "field": "200",
+                            "category": "local_correct_upstream_wrong",
+                            "reason": "missing live/local",
+                        }
+                    ],
+                )
+            )

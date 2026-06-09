@@ -21,6 +21,20 @@ pair so findings are immediately actionable as fix PRs:
    (``nullable: true`` vs ``type: [..., "null"]``; ``integer`` vs ``number``)
    so only semantic differences are reported.
 
+Two further dimensions run by default (disable with ``--no-params`` /
+``--no-responses``):
+
+5. **Query-parameter drift** (``--params``) — compares query parameters of
+   shared operations against the live gateway by *wire name* (resolving
+   ``$ref``'d component params): ``param_only_local`` / ``param_only_live`` /
+   ``param_type_diff`` / ``param_enum_diff``. The ``pagination`` / ``dateFilter``
+   JSON-blob expansion is filtered structurally (see ``STRUCTURAL_PARAM_NAMES``).
+6. **Response-shape drift** (``--responses``) — missing response bodies
+   (``response_empty_local`` / ``response_empty_both``) and ``{data: ...}``
+   wrapper mismatches (``response_wrapper``). The live gateway has empty 2xx
+   bodies, so the reference is the readme **portal** spec (``--portal``), which
+   carries response *examples* (no schemas, so no response-level schema compare).
+
 **Override registry.** Known divergences are catalogued in
 ``docs/upstream-specs/audit-overrides.yaml`` and applied by default. A finding
 that matches an override is **suppressed** from the strict gate and re-surfaced
@@ -61,9 +75,33 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL = REPO_ROOT / "docs" / "katana-openapi.yaml"
 DEFAULT_LIVE = REPO_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
+DEFAULT_PORTAL = REPO_ROOT / "docs" / "upstream-specs" / "readme-portal.yaml"
 DEFAULT_OVERRIDES = REPO_ROOT / "docs" / "upstream-specs" / "audit-overrides.yaml"
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
+
+# Response statuses that legitimately carry no body — never flagged as empty.
+BODYLESS_STATUSES = {"204", "205", "304"}
+
+# Query params the local spec systematically expands from upstream's two opaque
+# JSON-blob params: `pagination` → explicit `page`/`limit`, and `dateFilter` →
+# the explicit created/updated bound scalars. This is a *universal* local
+# convention applied across ~40 list endpoints, not per-endpoint drift, so it is
+# filtered structurally here rather than catalogued as ~350 override entries
+# (the registry is for narrow, per-endpoint divergences). Analogous to the way
+# ``normalize_type`` structurally treats integer↔number as equivalent.
+STRUCTURAL_PARAM_NAMES = frozenset(
+    {
+        "pagination",
+        "dateFilter",
+        "page",
+        "limit",
+        "created_at_min",
+        "created_at_max",
+        "updated_at_min",
+        "updated_at_max",
+    }
+)
 
 # Override categories. See docs/upstream-specs/audit-overrides.yaml for the
 # full semantics. PUNCH_LIST_CATEGORIES are upstream bugs we'd recommend Katana
@@ -81,7 +119,26 @@ ALL_CATEGORIES = frozenset(
     }
 )
 PUNCH_LIST_CATEGORIES = frozenset({CATEGORY_UPSTREAM_WRONG, CATEGORY_BOTH_WRONG})
-OVERRIDE_KINDS = frozenset({"type_diff", "only_live", "only_local", "required_diff"})
+
+# DTO/request-body drift kinds (the original audit dimension).
+DTO_KINDS = frozenset({"type_diff", "only_live", "only_local", "required_diff"})
+# Query-parameter drift kinds (--params). Mirror the DTO kinds in param space.
+PARAM_KINDS = frozenset(
+    {"param_only_local", "param_only_live", "param_type_diff", "param_enum_diff"}
+)
+# Response-shape drift kinds (--responses).
+RESPONSE_KINDS = frozenset(
+    {"response_empty_local", "response_empty_both", "response_wrapper"}
+)
+# Kinds whose override entry pins exact `field` + `live`/`local` strings.
+TYPED_KINDS = frozenset(
+    {"type_diff", "param_type_diff", "param_enum_diff", "response_wrapper"}
+)
+# Kinds whose override entry pins a `field` (param name or status code).
+FIELDED_KINDS = (
+    frozenset({"type_diff", "only_live", "only_local"}) | PARAM_KINDS | RESPONSE_KINDS
+)
+OVERRIDE_KINDS = DTO_KINDS | PARAM_KINDS | RESPONSE_KINDS
 
 
 # ----------------------------------------------------------------------------
@@ -126,6 +183,62 @@ class EndpointDrift:
 
 
 @dataclass
+class ParamFinding:
+    """One query-parameter drift finding, scoped to ``(endpoint, name)``.
+
+    ``kind`` is one of ``PARAM_KINDS`` and maps directly onto an override
+    ``kind`` so the same registry suppresses it:
+
+    - ``param_only_local`` — we expose it, upstream doesn't.
+    - ``param_only_live`` — upstream documents it, we don't (missing filter).
+    - ``param_type_diff`` — both declare it, wire types disagree.
+    - ``param_enum_diff`` — both declare an enum, value sets disagree.
+    """
+
+    method: str
+    path: str
+    name: str
+    kind: str
+    live: str | None = None  # type signature (param_type_diff / param_enum_diff)
+    local: str | None = None
+
+    @property
+    def endpoint(self) -> str:
+        return f"{self.method.upper()} {self.path}"
+
+
+@dataclass
+class ResponseFinding:
+    """One response-shape drift finding, scoped to ``(endpoint, status)``.
+
+    ``kind`` is one of ``RESPONSE_KINDS``:
+
+    - ``response_empty_local`` — local declares no body but upstream documents
+      one (the #527 class).
+    - ``response_empty_both`` — neither side declares a body on a
+      non-DELETE / non-204 operation.
+    - ``response_wrapper`` — local ``{data: ...}`` wrapper vs a bare upstream
+      example, or vice versa.
+
+    Note: there is no response-level *schema* comparison — the live gateway has
+    empty bodies for every 2xx and the readme portal carries only ``example``
+    blocks (no ``schema``), so body presence and wrapper shape are the only
+    signals available.
+    """
+
+    method: str
+    path: str
+    status: str
+    kind: str
+    live: str | None = None  # wrapper shape ("wrapped"/"bare") for response_wrapper
+    local: str | None = None
+
+    @property
+    def endpoint(self) -> str:
+        return f"{self.method.upper()} {self.path}"
+
+
+@dataclass
 class AuditReport:
     """Top-level audit findings."""
 
@@ -137,6 +250,10 @@ class AuditReport:
     paths_only_in_local: list[tuple[str, str]] = field(default_factory=list)
     shared_endpoints: int = 0
     drifted_endpoints: list[EndpointDrift] = field(default_factory=list)
+    # Active (un-suppressed) param/response findings, populated when the
+    # corresponding audit dimension ran. apply_overrides drops suppressed ones.
+    param_findings: list[ParamFinding] = field(default_factory=list)
+    response_findings: list[ResponseFinding] = field(default_factory=list)
 
     # Populated by apply_overrides; empty when no registry is applied.
     suppressed: list[SuppressedFinding] = field(default_factory=list)
@@ -147,17 +264,19 @@ class AuditReport:
         """Count of everything ``--strict`` gates on.
 
         Suppressed findings are excluded (``apply_overrides`` drops fully
-        suppressed endpoints from ``drifted_endpoints``). **Stale overrides are
-        included** — an override that matches nothing means the divergence it
-        allowlisted is gone, so the entry must be removed. Failing on it keeps
-        the registry honest even on spec-only PRs, where CI skips the Python
-        test suite (the `code` path filter) and only the `audit-spec-strict`
-        step runs.
+        suppressed endpoints from ``drifted_endpoints`` and removes suppressed
+        param/response findings). **Stale overrides are included** — an override
+        that matches nothing means the divergence it allowlisted is gone, so the
+        entry must be removed. Failing on it keeps the registry honest even on
+        spec-only PRs, where CI skips the Python test suite (the `code` path
+        filter) and only the `audit-spec-strict` step runs.
         """
         return (
             len(self.paths_only_in_live)
             + len(self.paths_only_in_local)
             + len(self.drifted_endpoints)
+            + len(self.param_findings)
+            + len(self.response_findings)
             + len(self.stale_overrides)
         )
 
@@ -331,8 +450,22 @@ def types_equivalent(
 # ----------------------------------------------------------------------------
 
 
-def audit(local: dict[str, Any], live: dict[str, Any]) -> AuditReport:
-    """Run the full audit and return a structured report."""
+def audit(
+    local: dict[str, Any],
+    live: dict[str, Any],
+    *,
+    portal: dict[str, Any] | None = None,
+    include_params: bool = True,
+    include_responses: bool = True,
+) -> AuditReport:
+    """Run the full audit and return a structured report.
+
+    The DTO/path comparison always runs. ``include_params`` adds query-parameter
+    drift (vs the live gateway); ``include_responses`` adds response-shape drift
+    (vs the readme ``portal`` spec, which carries the only upstream response
+    examples). Both default on so the strict gate covers every dimension; pass
+    ``portal=None`` to skip the response audit when the portal spec is absent.
+    """
     local_paths = all_endpoints(local)
     live_paths = all_endpoints(live)
 
@@ -384,7 +517,284 @@ def audit(local: dict[str, Any], live: dict[str, Any]) -> AuditReport:
         if ed.has_drift:
             report.drifted_endpoints.append(ed)
 
+    if include_params:
+        report.param_findings = audit_params(local, live)
+    if include_responses and portal is not None:
+        report.response_findings = audit_responses(local, portal)
+
     return report
+
+
+# ----------------------------------------------------------------------------
+# Query-parameter audit (--params)
+# ----------------------------------------------------------------------------
+
+
+def resolve_query_params(
+    spec: dict[str, Any], op: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Map wire ``name`` → parameter schema for an operation's query params.
+
+    Resolves ``$ref`` parameters (local refs ``components/parameters``; the live
+    gateway inlines them) and keys by the wire ``name`` — not the component key —
+    so ``components/parameters/sku_list`` (wire name ``sku``) lines up across
+    specs.
+    """
+    comps = spec.get("components", {}).get("parameters", {})
+    out: dict[str, dict[str, Any]] = {}
+    for raw in op.get("parameters", []):
+        param = comps.get(raw["$ref"].rsplit("/", 1)[-1], {}) if "$ref" in raw else raw
+        if param.get("in") != "query":
+            continue
+        name = param.get("name")
+        if name:
+            out[name] = param
+    return out
+
+
+def param_type_sig(schema: dict[str, Any]) -> str:
+    """Wire-type signature for a query param's ``schema``.
+
+    Arrays render as ``array<itemtype>`` (so scalar-vs-array and item-type drift
+    surface); everything else delegates to ``normalize_type``.
+    """
+    if schema.get("type") == "array":
+        items = schema.get("items", {}) or {}
+        return f"array<{normalize_type(items)}>"
+    return normalize_type(schema)
+
+
+def param_types_equivalent(
+    live_p: dict[str, Any], local_p: dict[str, Any], local_schemas: dict[str, Any]
+) -> bool:
+    """True if two query-param schemas are the same wire type.
+
+    Arrays compare by item type; everything else delegates to ``types_equivalent``
+    (canonicalizes integer↔number and resolves a local ``$ref`` enum against a
+    live inline enum, so ``live=enum:[…]`` ↔ ``local=$ref:SomeEnum`` isn't flagged
+    when the value sets match).
+    """
+    live_s = live_p.get("schema", {})
+    local_s = local_p.get("schema", {})
+    if live_s.get("type") == "array" or local_s.get("type") == "array":
+        canon = {"integer": "number"}
+
+        def c(s: str) -> str:
+            if s.startswith("array<") and s.endswith(">"):
+                inner = s[len("array<") : -1]
+                return f"array<{canon.get(inner, inner)}>"
+            return canon.get(s, s)
+
+        return c(param_type_sig(live_s)) == c(param_type_sig(local_s))
+    return types_equivalent(live_s, local_s, local_schemas)
+
+
+def resolve_param_enum(
+    schema: dict[str, Any], schemas: dict[str, Any]
+) -> set[str] | None:
+    """Enum value set for a param schema, resolving a ``$ref`` to a shared enum."""
+    enum = schema.get("enum")
+    if enum:
+        return {str(v) for v in enum}
+    ref = schema.get("$ref")
+    if ref:
+        ref_enum = schemas.get(ref.rsplit("/", 1)[-1], {}).get("enum")
+        if ref_enum:
+            return {str(v) for v in ref_enum}
+    return None
+
+
+def audit_params(local: dict[str, Any], live: dict[str, Any]) -> list[ParamFinding]:
+    """Compare query parameters of shared operations (local ↔ live gateway)."""
+    live_schemas = live.get("components", {}).get("schemas", {})
+    local_schemas = local.get("components", {}).get("schemas", {})
+    findings: list[ParamFinding] = []
+    for path, methods in sorted(local.get("paths", {}).items()):
+        for method, op in methods.items():
+            if method not in HTTP_METHODS:
+                continue
+            live_op = live.get("paths", {}).get(path, {}).get(method)
+            if not live_op:
+                continue
+            local_params = resolve_query_params(local, op)
+            live_params = resolve_query_params(live, live_op)
+            for name in sorted(set(local_params) | set(live_params)):
+                if name in STRUCTURAL_PARAM_NAMES:
+                    continue
+                in_local = name in local_params
+                in_live = name in live_params
+                if in_local and not in_live:
+                    findings.append(
+                        ParamFinding(
+                            method=method,
+                            path=path,
+                            name=name,
+                            kind="param_only_local",
+                            local=param_type_sig(local_params[name].get("schema", {})),
+                        )
+                    )
+                elif in_live and not in_local:
+                    findings.append(
+                        ParamFinding(
+                            method=method,
+                            path=path,
+                            name=name,
+                            kind="param_only_live",
+                            live=param_type_sig(live_params[name].get("schema", {})),
+                        )
+                    )
+                else:
+                    live_s = live_params[name].get("schema", {})
+                    local_s = local_params[name].get("schema", {})
+                    if param_types_equivalent(
+                        live_params[name], local_params[name], local_schemas
+                    ):
+                        continue
+                    live_e = resolve_param_enum(live_s, live_schemas)
+                    local_e = resolve_param_enum(local_s, local_schemas)
+                    if live_e is not None and local_e is not None:
+                        # Both enums; equal values are just the live-omits-`type`
+                        # shape that types_equivalent can't see through.
+                        if live_e == local_e:
+                            continue
+                        findings.append(
+                            ParamFinding(
+                                method=method,
+                                path=path,
+                                name=name,
+                                kind="param_enum_diff",
+                                live=f"enum:[{','.join(sorted(live_e))}]",
+                                local=f"enum:[{','.join(sorted(local_e))}]",
+                            )
+                        )
+                    else:
+                        findings.append(
+                            ParamFinding(
+                                method=method,
+                                path=path,
+                                name=name,
+                                kind="param_type_diff",
+                                live=param_type_sig(live_s),
+                                local=param_type_sig(local_s),
+                            )
+                        )
+    return findings
+
+
+# ----------------------------------------------------------------------------
+# Response-shape audit (--responses)
+# ----------------------------------------------------------------------------
+
+
+def resolve_response(spec: dict[str, Any], resp: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a ``$ref`` response object to its ``components/responses`` entry."""
+    if "$ref" in resp:
+        name = resp["$ref"].rsplit("/", 1)[-1]
+        return spec.get("components", {}).get("responses", {}).get(name, {})
+    return resp
+
+
+def example_is_wrapped(resp: dict[str, Any]) -> bool | None:
+    """Wrapper shape of an upstream response *example*, or ``None`` if unknown.
+
+    ``True`` for a ``{"data": [...]}`` envelope, ``False`` for a bare array,
+    ``None`` when there's no usable example (a bare single object also → ``None``).
+    """
+    for cval in (resp.get("content") or {}).values():
+        ex = cval.get("example")
+        if isinstance(ex, dict) and isinstance(ex.get("data"), list):
+            return True
+        if isinstance(ex, list):
+            return False
+    return None
+
+
+def local_response_is_wrapped(
+    spec: dict[str, Any], schemas: dict[str, Any], resp: dict[str, Any]
+) -> bool | None:
+    """Wrapper shape of a *local* response, read off its resolved schema."""
+    for cval in (resp.get("content") or {}).values():
+        schema = cval.get("schema", {})
+        if schema.get("type") == "array":
+            return False
+        ref = schema.get("$ref")
+        if ref:
+            props, _ = fields_of(spec, schemas, ref.rsplit("/", 1)[-1])
+            data = props.get("data")
+            if data is not None:
+                return data.get("type") == "array" or "items" in data
+        elif schema.get("type") == "object" and "data" in schema.get("properties", {}):
+            return True
+    return None
+
+
+def audit_responses(
+    local: dict[str, Any], portal: dict[str, Any]
+) -> list[ResponseFinding]:
+    """Compare response shapes (local ↔ readme-portal examples)."""
+    local_schemas = local.get("components", {}).get("schemas", {})
+    findings: list[ResponseFinding] = []
+    for path, methods in sorted(local.get("paths", {}).items()):
+        for method, op in methods.items():
+            if method not in HTTP_METHODS:
+                continue
+            portal_op = portal.get("paths", {}).get(path, {}).get(method)
+            for raw_status, resp in (op.get("responses") or {}).items():
+                status = str(raw_status)
+                if not status.startswith("2") or status in BODYLESS_STATUSES:
+                    continue
+                local_resp = resolve_response(local, resp)
+                local_has_body = bool(local_resp.get("content"))
+
+                portal_resp: dict[str, Any] | None = None
+                if portal_op and status in (portal_op.get("responses") or {}):
+                    portal_resp = resolve_response(
+                        portal, portal_op["responses"][status]
+                    )
+
+                if not local_has_body:
+                    if method == "delete":
+                        continue
+                    # No corresponding portal response → no upstream signal. Don't
+                    # guess "both empty" (the portal simply may not document this
+                    # operation/status); only flag when the portal corroborates.
+                    if portal_resp is None:
+                        continue
+                    findings.append(
+                        ResponseFinding(
+                            method=method,
+                            path=path,
+                            status=status,
+                            kind=(
+                                "response_empty_local"
+                                if portal_resp.get("content")
+                                else "response_empty_both"
+                            ),
+                        )
+                    )
+                    continue
+
+                if portal_resp is None:
+                    continue
+                portal_wrapped = example_is_wrapped(portal_resp)
+                if portal_wrapped is None:
+                    continue
+                local_wrapped = local_response_is_wrapped(
+                    local, local_schemas, local_resp
+                )
+                if local_wrapped is None or local_wrapped == portal_wrapped:
+                    continue
+                findings.append(
+                    ResponseFinding(
+                        method=method,
+                        path=path,
+                        status=status,
+                        kind="response_wrapper",
+                        live="wrapped" if portal_wrapped else "bare",
+                        local="wrapped" if local_wrapped else "bare",
+                    )
+                )
+    return findings
 
 
 # ----------------------------------------------------------------------------
@@ -425,14 +835,15 @@ def load_overrides(path: Path) -> list[Override]:
             )
 
         field_name = e.get("field")
-        if kind in ("type_diff", "only_live", "only_local") and (
+        if kind in FIELDED_KINDS and (
             not isinstance(field_name, str) or not field_name
         ):
             raise ValueError(
-                f"{where}: kind `{kind}` requires `field` (a non-empty string)"
+                f"{where}: kind `{kind}` requires `field` (a non-empty string; "
+                "the property/param name, or status code for response kinds)"
             )
-        if kind == "type_diff" and ("live" not in e or "local" not in e):
-            raise ValueError(f"{where}: kind `type_diff` requires `live` + `local`")
+        if kind in TYPED_KINDS and ("live" not in e or "local" not in e):
+            raise ValueError(f"{where}: kind `{kind}` requires `live` + `local`")
         if kind == "required_diff":
             if "live_required" not in e or "local_required" not in e:
                 raise ValueError(
@@ -550,6 +961,63 @@ def apply_overrides(report: AuditReport, overrides: list[Override]) -> None:
             remaining.append(ed)
 
     report.drifted_endpoints = remaining
+
+    # Query-parameter findings: match on (endpoint, kind, field=name) and, for
+    # the typed kinds, the exact live/local signatures.
+    kept_params: list[ParamFinding] = []
+    for pf in report.param_findings:
+        ov = take(
+            pf.endpoint,
+            pf.kind,
+            lambda o, pf=pf: (
+                o.field_name == pf.name
+                and (
+                    o.kind not in TYPED_KINDS
+                    or (o.live == pf.live and o.local == pf.local)
+                )
+            ),
+        )
+        if ov:
+            detail = (
+                f"live=`{pf.live}` local=`{pf.local}`"
+                if pf.kind in TYPED_KINDS
+                else (f"local=`{pf.local}`" if pf.local else f"live=`{pf.live}`")
+            )
+            suppressed.append(
+                SuppressedFinding(pf.endpoint, pf.kind, pf.name, detail, ov)
+            )
+        else:
+            kept_params.append(pf)
+    report.param_findings = kept_params
+
+    # Response findings: match on (endpoint, kind, field=status) and, for
+    # response_wrapper, the exact shapes.
+    kept_responses: list[ResponseFinding] = []
+    for rf in report.response_findings:
+        ov = take(
+            rf.endpoint,
+            rf.kind,
+            lambda o, rf=rf: (
+                o.field_name == rf.status
+                and (
+                    o.kind != "response_wrapper"
+                    or (o.live == rf.live and o.local == rf.local)
+                )
+            ),
+        )
+        if ov:
+            detail = (
+                f"local {rf.local} vs upstream {rf.live}"
+                if rf.kind == "response_wrapper"
+                else f"status {rf.status} has no body"
+            )
+            suppressed.append(
+                SuppressedFinding(rf.endpoint, rf.kind, rf.status, detail, ov)
+            )
+        else:
+            kept_responses.append(rf)
+    report.response_findings = kept_responses
+
     report.suppressed = suppressed
     report.stale_overrides = [ov for i, ov in enumerate(overrides) if i not in used]
 
@@ -577,6 +1045,10 @@ def format_markdown(report: AuditReport) -> str:
         f"({len(report.paths_only_in_live)} live-only, "
         f"{len(report.paths_only_in_local)} local-only)"
     )
+    if report.param_findings:
+        lines.append(f"- Query-parameter drift: **{len(report.param_findings)}**")
+    if report.response_findings:
+        lines.append(f"- Response-shape drift: **{len(report.response_findings)}**")
     if report.suppressed or report.stale_overrides:
         lines.append(
             f"- Suppressed by override registry: **{len(report.suppressed)}** "
@@ -620,6 +1092,30 @@ def format_markdown(report: AuditReport) -> str:
                 lines.append(f"    - live  required: `{ed.live_required}`")
                 lines.append(f"    - local required: `{ed.local_required}`")
             lines.append("")
+
+    if report.param_findings:
+        lines.append("## Query-parameter drift")
+        lines.append("")
+        for pf in report.param_findings:
+            if pf.kind in TYPED_KINDS:
+                detail = f"live=`{pf.live}` local=`{pf.local}`"
+            elif pf.kind == "param_only_live":
+                detail = f"missing locally (live=`{pf.live}`)"
+            else:
+                detail = f"not in upstream (local=`{pf.local}`)"
+            lines.append(f"- `{pf.endpoint}` `{pf.name}` ({pf.kind}): {detail}")
+        lines.append("")
+
+    if report.response_findings:
+        lines.append("## Response-shape drift")
+        lines.append("")
+        for rf in report.response_findings:
+            if rf.kind == "response_wrapper":
+                detail = f"local {rf.local} vs upstream {rf.live}"
+            else:
+                detail = "no response body declared"
+            lines.append(f"- `{rf.endpoint}` ({rf.status}) {rf.kind}: {detail}")
+        lines.append("")
 
     _append_override_sections(lines, report)
     return "\n".join(lines)
@@ -724,6 +1220,28 @@ def format_json(report: AuditReport) -> str:
                 }
                 for ed in report.drifted_endpoints
             ],
+            "param_findings": [
+                {
+                    "method": pf.method,
+                    "path": pf.path,
+                    "name": pf.name,
+                    "kind": pf.kind,
+                    "live": pf.live,
+                    "local": pf.local,
+                }
+                for pf in report.param_findings
+            ],
+            "response_findings": [
+                {
+                    "method": rf.method,
+                    "path": rf.path,
+                    "status": rf.status,
+                    "kind": rf.kind,
+                    "live": rf.live,
+                    "local": rf.local,
+                }
+                for rf in report.response_findings
+            ],
             "suppressed": [
                 {
                     "endpoint": sf.endpoint,
@@ -807,6 +1325,27 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Ignore the override registry — report all raw drift.",
     )
+    parser.add_argument(
+        "--portal",
+        type=Path,
+        default=DEFAULT_PORTAL,
+        help=(
+            f"Path to the readme-portal spec — the response-shape reference "
+            f"(default: {DEFAULT_PORTAL.relative_to(REPO_ROOT)}). The live gateway "
+            "has empty response bodies, so the --responses audit reads body "
+            "presence + wrapper shape from the portal's examples."
+        ),
+    )
+    parser.add_argument(
+        "--no-params",
+        action="store_true",
+        help="Skip the query-parameter audit dimension.",
+    )
+    parser.add_argument(
+        "--no-responses",
+        action="store_true",
+        help="Skip the response-shape audit dimension.",
+    )
     args = parser.parse_args(argv)
 
     if not args.local.exists():
@@ -822,7 +1361,25 @@ def main(argv: list[str] | None = None) -> int:
 
     local = load_spec(args.local)
     live = load_spec(args.live)
-    report = audit(local, live)
+
+    portal: dict[str, Any] | None = None
+    if not args.no_responses:
+        if args.portal.exists():
+            portal = load_spec(args.portal)
+        else:
+            print(
+                f"warning: portal spec not found ({args.portal}); skipping the "
+                "response-shape audit. Run `uv run poe refresh-upstream-spec`.",
+                file=sys.stderr,
+            )
+
+    report = audit(
+        local,
+        live,
+        portal=portal,
+        include_params=not args.no_params,
+        include_responses=not args.no_responses,
+    )
 
     if not args.no_overrides:
         # An explicit --overrides PATH must exist (a typo shouldn't silently run
