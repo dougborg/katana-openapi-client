@@ -5934,6 +5934,17 @@ components:
           type: string
           format: date-time
           description: Expected arrival date for this line item
+        location_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: |-
+            Destination location for this row. Declared by the gateway on the nested
+            create-PO row, but **not honored at PO-create time** — Katana silently
+            overrides nested rows to the order-level location (verified live
+            2026-06-09). To set a per-row location, use `POST /purchase_order_rows` /
+            `PATCH /purchase_order_rows/{id}` after creation, or pass it at receive time
+            via `POST /purchase_order_receive`.
       example:
         quantity: 250
         price_per_unit: 2.85
@@ -6591,6 +6602,14 @@ components:
           type: string
           format: date-time
           description: Optional received date in ISO 8601 format.
+        location_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: |-
+            Destination location to receive this row into, enabling multi-location
+            receiving on a single purchase order. Defaults to the row's location (or the
+            order-level location) when omitted.
         batch_transactions:
           type: array
           description: Array of batch-specific transactions for this received quantity

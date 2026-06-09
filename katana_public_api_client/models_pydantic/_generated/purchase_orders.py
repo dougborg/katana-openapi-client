@@ -100,6 +100,14 @@ class PurchaseOrderRowRequest(KatanaPydanticBase):
         AwareDatetime | None,
         Field(description="Expected arrival date for this line item"),
     ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Destination location for this row. Declared by the gateway on the nested\ncreate-PO row, but **not honored at PO-create time** — Katana silently\noverrides nested rows to the order-level location (verified live\n2026-06-09). To set a per-row location, use `POST /purchase_order_rows` /\n`PATCH /purchase_order_rows/{id}` after creation, or pass it at receive time\nvia `POST /purchase_order_receive`.",
+            ge=1,
+            le=2147483647,
+        ),
+    ] = None
 
 
 class PurchaseOrderRow(DeletableEntity):
@@ -406,6 +414,14 @@ class PurchaseOrderReceiveRow(KatanaPydanticBase):
     received_date: Annotated[
         AwareDatetime | None,
         Field(description="Optional received date in ISO 8601 format."),
+    ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Destination location to receive this row into, enabling multi-location\nreceiving on a single purchase order. Defaults to the row's location (or the\norder-level location) when omitted.",
+            ge=1,
+            le=2147483647,
+        ),
     ] = None
     batch_transactions: Annotated[
         list[BatchTransaction5] | None,
