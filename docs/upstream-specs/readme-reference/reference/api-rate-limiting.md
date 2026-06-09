@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Rate limiting
 
 We've set API rate limits to protect Katana from API traffic spikes that could put our systems at risk. These limits also help ensure that our platform remains stable and usable for everyone. We evaluate the number of requests sent to an API and limit them if they surpass the allowed amount.

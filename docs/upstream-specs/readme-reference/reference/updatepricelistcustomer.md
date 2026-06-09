@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Update a price list customer
 
 Updates the specified price list customer by setting the values of the parameters passed.

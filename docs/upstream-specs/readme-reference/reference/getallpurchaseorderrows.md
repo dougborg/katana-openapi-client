@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # List all purchase order rows
 
 Returns a list of purchase order rows you’ve previously created.
@@ -95,6 +99,15 @@ Returns a list of purchase order rows you’ve previously created.
             "description": "Filters purchase order rows by purchase_uom",
             "schema": {
               "type": "number"
+            },
+            "in": "query"
+          },
+          {
+            "name": "location_id",
+            "required": false,
+            "description": "Filters purchase order rows by location id",
+            "schema": {
+              "type": "integer"
             },
             "in": "query"
           },
@@ -211,6 +224,7 @@ Returns a list of purchase order rows you’ve previously created.
                       "purchase_order_id": 1,
                       "landed_cost": 45.5,
                       "group_id": 11,
+                      "location_id": 1,
                       "batch_transactions": [
                         {
                           "batch_id": 1,

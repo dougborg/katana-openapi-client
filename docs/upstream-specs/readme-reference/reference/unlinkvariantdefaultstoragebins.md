@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Unlink variant default storage bins
 
 Bulk operation for unlinking variants from the default storage bins available in a specific location.

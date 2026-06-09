@@ -49,6 +49,31 @@ from katana_public_api_client.models.batch_transaction import (
 from katana_public_api_client.models.batch_transaction_request import (
     BatchTransactionRequest as AttrsBatchTransactionRequest,
 )
+from katana_public_api_client.models.bin_inventory import (
+    BinInventory as AttrsBinInventory,
+)
+from katana_public_api_client.models.bin_inventory_list_response import (
+    BinInventoryListResponse as AttrsBinInventoryListResponse,
+)
+from katana_public_api_client.models.bin_transfer import BinTransfer as AttrsBinTransfer
+from katana_public_api_client.models.bin_transfer_list_response import (
+    BinTransferListResponse as AttrsBinTransferListResponse,
+)
+from katana_public_api_client.models.bin_transfer_row import (
+    BinTransferRow as AttrsBinTransferRow,
+)
+from katana_public_api_client.models.bin_transfer_row_create_nested import (
+    BinTransferRowCreateNested as AttrsBinTransferRowCreateNested,
+)
+from katana_public_api_client.models.bin_transfer_row_list_response import (
+    BinTransferRowListResponse as AttrsBinTransferRowListResponse,
+)
+from katana_public_api_client.models.bin_transfer_traceability import (
+    BinTransferTraceability as AttrsBinTransferTraceability,
+)
+from katana_public_api_client.models.bin_transfer_traceability_request import (
+    BinTransferTraceabilityRequest as AttrsBinTransferTraceabilityRequest,
+)
 from katana_public_api_client.models.bom_row import BomRow as AttrsBomRow
 from katana_public_api_client.models.bom_row_list_response import (
     BomRowListResponse as AttrsBomRowListResponse,
@@ -61,6 +86,12 @@ from katana_public_api_client.models.coded_error_response import (
 )
 from katana_public_api_client.models.const_validation_error import (
     ConstValidationError as AttrsConstValidationError,
+)
+from katana_public_api_client.models.create_bin_transfer_request import (
+    CreateBinTransferRequest as AttrsCreateBinTransferRequest,
+)
+from katana_public_api_client.models.create_bin_transfer_row_request import (
+    CreateBinTransferRowRequest as AttrsCreateBinTransferRowRequest,
 )
 from katana_public_api_client.models.create_bom_row_request import (
     CreateBomRowRequest as AttrsCreateBomRowRequest,
@@ -591,6 +622,9 @@ from katana_public_api_client.models.stocktake_row_list_response import (
     StocktakeRowListResponse as AttrsStocktakeRowListResponse,
 )
 from katana_public_api_client.models.storage_bin import StorageBin as AttrsStorageBin
+from katana_public_api_client.models.storage_bin_create import (
+    StorageBinCreate as AttrsStorageBinCreate,
+)
 from katana_public_api_client.models.storage_bin_response import (
     StorageBinResponse as AttrsStorageBinResponse,
 )
@@ -634,6 +668,15 @@ from katana_public_api_client.models.unlink_variant_bin_location_request import 
 )
 from katana_public_api_client.models.updatable_entity import (
     UpdatableEntity as AttrsUpdatableEntity,
+)
+from katana_public_api_client.models.update_bin_transfer_request import (
+    UpdateBinTransferRequest as AttrsUpdateBinTransferRequest,
+)
+from katana_public_api_client.models.update_bin_transfer_row_request import (
+    UpdateBinTransferRowRequest as AttrsUpdateBinTransferRowRequest,
+)
+from katana_public_api_client.models.update_bin_transfer_status_request import (
+    UpdateBinTransferStatusRequest as AttrsUpdateBinTransferStatusRequest,
 )
 from katana_public_api_client.models.update_bom_row_request import (
     UpdateBomRowRequest as AttrsUpdateBomRowRequest,
@@ -789,7 +832,18 @@ from ._generated.common import (
     AdditionalCost as PydanticAdditionalCost,
     AdditionalCostListResponse as PydanticAdditionalCostListResponse,
     AssignedOperator as PydanticAssignedOperator,
+    BinInventory as PydanticBinInventory,
+    BinInventoryListResponse as PydanticBinInventoryListResponse,
+    BinTransfer as PydanticBinTransfer,
+    BinTransferListResponse as PydanticBinTransferListResponse,
+    BinTransferRow as PydanticBinTransferRow,
+    BinTransferRowCreateNested as PydanticBinTransferRowCreateNested,
+    BinTransferRowListResponse as PydanticBinTransferRowListResponse,
+    BinTransferTraceability as PydanticBinTransferTraceability,
+    BinTransferTraceabilityRequest as PydanticBinTransferTraceabilityRequest,
     ClearDemandForecastRequest as PydanticClearDemandForecastRequest,
+    CreateBinTransferRequest as PydanticCreateBinTransferRequest,
+    CreateBinTransferRowRequest as PydanticCreateBinTransferRowRequest,
     CreateCustomFieldDefinitionRequest as PydanticCreateCustomFieldDefinitionRequest,
     CreateDemandForecastRequest as PydanticCreateDemandForecastRequest,
     CreateInventorySafetyStockLevelRequest as PydanticCreateInventorySafetyStockLevelRequest,
@@ -820,6 +874,9 @@ from ._generated.common import (
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
+    UpdateBinTransferRequest as PydanticUpdateBinTransferRequest,
+    UpdateBinTransferRowRequest as PydanticUpdateBinTransferRowRequest,
+    UpdateBinTransferStatusRequest as PydanticUpdateBinTransferStatusRequest,
     UpdateCustomFieldDefinitionRequest as PydanticUpdateCustomFieldDefinitionRequest,
     User as PydanticUser,
     UserInfo as PydanticUserInfo,
@@ -1055,6 +1112,7 @@ from ._generated.stock import (
     StockTransferRow as PydanticStockTransferRow,
     StockTransferRowRequest as PydanticStockTransferRowRequest,
     StorageBin as PydanticStorageBin,
+    StorageBinCreate as PydanticStorageBinCreate,
     StorageBinResponse as PydanticStorageBinResponse,
     StorageBinUpdate as PydanticStorageBinUpdate,
     UpdateStockAdjustmentRequest as PydanticUpdateStockAdjustmentRequest,
@@ -1096,11 +1154,24 @@ def register_all_models() -> None:
     register(AttrsBatchStockUpdate, PydanticBatchStockUpdate)
     register(AttrsBatchTransaction, PydanticBatchTransaction)
     register(AttrsBatchTransactionRequest, PydanticBatchTransactionRequest)
+    register(AttrsBinInventory, PydanticBinInventory)
+    register(AttrsBinInventoryListResponse, PydanticBinInventoryListResponse)
+    register(AttrsBinTransfer, PydanticBinTransfer)
+    register(AttrsBinTransferListResponse, PydanticBinTransferListResponse)
+    register(AttrsBinTransferRow, PydanticBinTransferRow)
+    register(AttrsBinTransferRowCreateNested, PydanticBinTransferRowCreateNested)
+    register(AttrsBinTransferRowListResponse, PydanticBinTransferRowListResponse)
+    register(AttrsBinTransferTraceability, PydanticBinTransferTraceability)
+    register(
+        AttrsBinTransferTraceabilityRequest, PydanticBinTransferTraceabilityRequest
+    )
     register(AttrsBomRow, PydanticBomRow)
     register(AttrsBomRowListResponse, PydanticBomRowListResponse)
     register(AttrsClearDemandForecastRequest, PydanticClearDemandForecastRequest)
     register(AttrsCodedErrorResponse, PydanticCodedErrorResponse)
     register(AttrsConstValidationError, PydanticConstValidationError)
+    register(AttrsCreateBinTransferRequest, PydanticCreateBinTransferRequest)
+    register(AttrsCreateBinTransferRowRequest, PydanticCreateBinTransferRowRequest)
     register(AttrsCreateBomRowRequest, PydanticCreateBomRowRequest)
     register(
         AttrsCreateCustomFieldDefinitionRequest,
@@ -1395,6 +1466,7 @@ def register_all_models() -> None:
     register(AttrsStocktakeRow, PydanticStocktakeRow)
     register(AttrsStocktakeRowListResponse, PydanticStocktakeRowListResponse)
     register(AttrsStorageBin, PydanticStorageBin)
+    register(AttrsStorageBinCreate, PydanticStorageBinCreate)
     register(AttrsStorageBinResponse, PydanticStorageBinResponse)
     register(AttrsStorageBinUpdate, PydanticStorageBinUpdate)
     register(AttrsSupplier, PydanticSupplier)
@@ -1418,6 +1490,11 @@ def register_all_models() -> None:
         AttrsUnlinkVariantBinLocationRequest, PydanticUnlinkVariantBinLocationRequest
     )
     register(AttrsUpdatableEntity, PydanticUpdatableEntity)
+    register(AttrsUpdateBinTransferRequest, PydanticUpdateBinTransferRequest)
+    register(AttrsUpdateBinTransferRowRequest, PydanticUpdateBinTransferRowRequest)
+    register(
+        AttrsUpdateBinTransferStatusRequest, PydanticUpdateBinTransferStatusRequest
+    )
     register(AttrsUpdateBomRowRequest, PydanticUpdateBomRowRequest)
     register(
         AttrsUpdateCustomFieldDefinitionRequest,

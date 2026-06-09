@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # List all variants with negative stock
 
 Returns a list of variants with negative stock balance.

@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Receive a purchase order
 
 If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -88,6 +92,10 @@ If you receive the items on the purchase order, you can mark the purchase order 
                               }
                             }
                           }
+                        },
+                        "location_id": {
+                          "type": "integer",
+                          "maximum": 2147483647
                         }
                       }
                     },
@@ -130,6 +138,10 @@ If you receive the items on the purchase order, you can mark the purchase order 
                             }
                           }
                         }
+                      },
+                      "location_id": {
+                        "type": "integer",
+                        "maximum": 2147483647
                       }
                     },
                     "title": "Single row"

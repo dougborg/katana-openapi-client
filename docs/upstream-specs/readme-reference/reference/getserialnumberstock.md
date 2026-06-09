@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Returns a list of in-stock serial numbers
 
 Return a list of serial numbers with in-stock status which references to the linked resources

@@ -157,6 +157,312 @@ class AdditionalCostListResponse(KatanaPydanticBase):
     ] = None
 
 
+class BinTransferStatus(StrEnum):
+    created = "CREATED"
+    in_transit = "IN_TRANSIT"
+    done = "DONE"
+
+
+class BinInventoryGranularity(StrEnum):
+    variant = "VARIANT"
+    batch = "BATCH"
+    serial_number = "SERIAL_NUMBER"
+
+
+class BinTransferTraceability(KatanaPydanticBase):
+    batch_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the batch this quantity is drawn from, or null when unbatched."
+        ),
+    ] = None
+    serial_number_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the serial number this quantity is drawn from, or null when untraced."
+        ),
+    ] = None
+    quantity: Annotated[
+        str | None,
+        Field(
+            description="Quantity allocated to this traceability axis, as a decimal string."
+        ),
+    ] = None
+
+
+class BinTransferRow(DeletableEntity):
+    id: Annotated[int, Field(description="Unique identifier for the bin transfer row.")]
+    bin_transfer_id: Annotated[int, Field(description="ID of the parent bin transfer.")]
+    location_id: Annotated[
+        int | None, Field(description="ID of the location the transfer occurs within.")
+    ] = None
+    variant_id: Annotated[
+        int, Field(description="ID of the product or material variant being moved.")
+    ]
+    quantity: Annotated[
+        str, Field(description="Quantity being moved, as a decimal string.")
+    ]
+    source_bin_location_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the bin the stock moves from, or null when unassigned."
+        ),
+    ] = None
+    target_bin_location_id: Annotated[
+        int | None,
+        Field(description="ID of the bin the stock moves to, or null when unassigned."),
+    ] = None
+    traceability: Annotated[
+        list[BinTransferTraceability] | None,
+        Field(description="Batch/serial allocations for the moved quantity."),
+    ] = None
+    created_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Date the parent transfer was created (mirrored onto the row)."
+        ),
+    ] = None
+    departed_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp the stock departed the source bin."),
+    ] = None
+    arrived_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp the stock arrived at the target bin."),
+    ] = None
+
+
+class BinTransfer(DeletableEntity):
+    id: Annotated[int, Field(description="Unique identifier for the bin transfer.")]
+    bin_transfer_number: Annotated[
+        str, Field(description="Human-readable reference number for the transfer.")
+    ]
+    location_id: Annotated[
+        int, Field(description="ID of the location the transfer occurs within.")
+    ]
+    status: Annotated[
+        BinTransferStatus | None,
+        Field(description="Current lifecycle status of the transfer."),
+    ] = None
+    created_date: Annotated[
+        AwareDatetime | None, Field(description="Date the transfer was created.")
+    ] = None
+    departed_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp the transfer left the source bins."),
+    ] = None
+    arrived_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp the transfer reached the target bins."),
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Optional free-text note about the transfer.")
+    ] = None
+    bin_transfer_rows: Annotated[
+        list[BinTransferRow] | None,
+        Field(
+            description="Line items detailing the variants and quantities being moved."
+        ),
+    ] = None
+
+
+class BinTransferListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[BinTransfer] | None, Field(description="Array of bin transfer records.")
+    ] = None
+
+
+class BinTransferRowListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[BinTransferRow] | None,
+        Field(description="Array of bin transfer row records."),
+    ] = None
+
+
+class BinInventory(KatanaPydanticBase):
+    location_id: Annotated[int | None, Field(description="ID of the location.")] = None
+    variant_id: Annotated[int | None, Field(description="ID of the variant.")] = None
+    bin_location_id: Annotated[
+        int | None,
+        Field(description="ID of the bin, or null for stock with no bin assignment."),
+    ] = None
+    batch_id: Annotated[
+        int | None,
+        Field(description="ID of the batch (present at `BATCH` granularity), or null."),
+    ] = None
+    serial_number_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the serial number (present at `SERIAL_NUMBER` granularity), or null."
+        ),
+    ] = None
+    quantity_in_stock: Annotated[
+        str | None,
+        Field(description="On-hand quantity in this position, as a decimal string."),
+    ] = None
+    quantity_committed: Annotated[
+        str | None,
+        Field(description="Quantity committed to orders, as a decimal string."),
+    ] = None
+    quantity_expected: Annotated[
+        str | None,
+        Field(
+            description="Quantity expected from inbound receipts, as a decimal string."
+        ),
+    ] = None
+
+
+class BinInventoryListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[BinInventory] | None,
+        Field(description="Array of per-bin inventory positions."),
+    ] = None
+
+
+class BinTransferTraceabilityRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int | None, Field(description="ID of the batch to draw from, or null.")
+    ] = None
+    serial_number_id: Annotated[
+        int | None, Field(description="ID of the serial number to draw from, or null.")
+    ] = None
+    quantity: Annotated[
+        str | None,
+        Field(description="Quantity to allocate to this axis, as a decimal string."),
+    ] = None
+
+
+class BinTransferRowCreateNested(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[int, Field(description="ID of the variant to move.")]
+    quantity: Annotated[
+        str, Field(description="Quantity to move, as a decimal string.")
+    ]
+    source_bin_location_id: Annotated[
+        int | None, Field(description="ID of the bin to move stock from, or null.")
+    ] = None
+    target_bin_location_id: Annotated[
+        int | None, Field(description="ID of the bin to move stock to, or null.")
+    ] = None
+    traceability: Annotated[
+        list[BinTransferTraceabilityRequest] | None,
+        Field(description="Optional batch/serial allocations for the moved quantity."),
+    ] = None
+
+
+class CreateBinTransferRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    location_id: Annotated[
+        int, Field(description="ID of the location the transfer occurs within.")
+    ]
+    bin_transfer_number: Annotated[
+        str | None,
+        Field(
+            description="Human-readable reference number for the transfer.",
+            max_length=255,
+            min_length=1,
+        ),
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Optional free-text note about the transfer.")
+    ] = None
+    created_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Date the transfer was created. Defaults to now when omitted."
+        ),
+    ] = None
+    bin_transfer_rows: Annotated[
+        list[BinTransferRowCreateNested] | None,
+        Field(
+            description="Line items to create together with the transfer.",
+            max_length=250,
+        ),
+    ] = None
+
+
+class UpdateBinTransferRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    bin_transfer_number: Annotated[
+        str | None,
+        Field(description="Updated reference number.", max_length=255, min_length=1),
+    ] = None
+    location_id: Annotated[int | None, Field(description="Updated location ID.")] = None
+    additional_info: Annotated[
+        str | None, Field(description="Updated free-text note.")
+    ] = None
+    created_date: Annotated[
+        AwareDatetime | None, Field(description="Updated creation date.")
+    ] = None
+    departed_at: Annotated[
+        AwareDatetime | None, Field(description="Updated departure timestamp.")
+    ] = None
+    arrived_at: Annotated[
+        AwareDatetime | None, Field(description="Updated arrival timestamp.")
+    ] = None
+
+
+class CreateBinTransferRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    bin_transfer_id: Annotated[
+        int, Field(description="ID of the bin transfer to add this row to.")
+    ]
+    variant_id: Annotated[int, Field(description="ID of the variant to move.")]
+    quantity: Annotated[
+        str, Field(description="Quantity to move, as a decimal string.")
+    ]
+    source_bin_location_id: Annotated[
+        int | None, Field(description="ID of the bin to move stock from, or null.")
+    ] = None
+    target_bin_location_id: Annotated[
+        int | None, Field(description="ID of the bin to move stock to, or null.")
+    ] = None
+    traceability: Annotated[
+        list[BinTransferTraceabilityRequest] | None,
+        Field(description="Optional batch/serial allocations for the moved quantity."),
+    ] = None
+
+
+class UpdateBinTransferRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[int | None, Field(description="Updated variant ID.")] = None
+    quantity: Annotated[
+        str | None, Field(description="Updated quantity, as a decimal string.")
+    ] = None
+    source_bin_location_id: Annotated[
+        int | None, Field(description="Updated source bin ID, or null.")
+    ] = None
+    target_bin_location_id: Annotated[
+        int | None, Field(description="Updated target bin ID, or null.")
+    ] = None
+    traceability: Annotated[
+        list[BinTransferTraceabilityRequest] | None,
+        Field(description="Updated batch/serial allocations for the moved quantity."),
+    ] = None
+
+
+class UpdateBinTransferStatusRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    status: Annotated[
+        BinTransferStatus, Field(description="New status for the bin transfer.")
+    ]
+
+
 class CustomField(KatanaPydanticBase):
     field_name: Annotated[str | None, Field(description="Name of the custom field")] = (
         None

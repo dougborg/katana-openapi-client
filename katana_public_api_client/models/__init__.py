@@ -25,6 +25,17 @@ from .batch_stock_list_response import BatchStockListResponse
 from .batch_stock_update import BatchStockUpdate
 from .batch_transaction import BatchTransaction
 from .batch_transaction_request import BatchTransactionRequest
+from .bin_inventory import BinInventory
+from .bin_inventory_granularity import BinInventoryGranularity
+from .bin_inventory_list_response import BinInventoryListResponse
+from .bin_transfer import BinTransfer
+from .bin_transfer_list_response import BinTransferListResponse
+from .bin_transfer_row import BinTransferRow
+from .bin_transfer_row_create_nested import BinTransferRowCreateNested
+from .bin_transfer_row_list_response import BinTransferRowListResponse
+from .bin_transfer_status import BinTransferStatus
+from .bin_transfer_traceability import BinTransferTraceability
+from .bin_transfer_traceability_request import BinTransferTraceabilityRequest
 from .bom_row import BomRow
 from .bom_row_list_response import BomRowListResponse
 from .clear_demand_forecast_request import ClearDemandForecastRequest
@@ -36,6 +47,8 @@ from .const_validation_error import ConstValidationError
 from .const_validation_error_code import ConstValidationErrorCode
 from .const_validation_error_info import ConstValidationErrorInfo
 from .cost_distribution_method import CostDistributionMethod
+from .create_bin_transfer_request import CreateBinTransferRequest
+from .create_bin_transfer_row_request import CreateBinTransferRowRequest
 from .create_bom_row_request import CreateBomRowRequest
 from .create_custom_field_definition_request import CreateCustomFieldDefinitionRequest
 from .create_customer_address_request import CreateCustomerAddressRequest
@@ -474,6 +487,7 @@ from .stocktake_row import StocktakeRow
 from .stocktake_row_list_response import StocktakeRowListResponse
 from .stocktake_status import StocktakeStatus
 from .storage_bin import StorageBin
+from .storage_bin_create import StorageBinCreate
 from .storage_bin_response import StorageBinResponse
 from .storage_bin_update import StorageBinUpdate
 from .supplier import Supplier
@@ -496,6 +510,9 @@ from .unique_items_validation_error_info import UniqueItemsValidationErrorInfo
 from .unlink_manufacturing_order_request import UnlinkManufacturingOrderRequest
 from .unlink_variant_bin_location_request import UnlinkVariantBinLocationRequest
 from .updatable_entity import UpdatableEntity
+from .update_bin_transfer_request import UpdateBinTransferRequest
+from .update_bin_transfer_row_request import UpdateBinTransferRowRequest
+from .update_bin_transfer_status_request import UpdateBinTransferStatusRequest
 from .update_bom_row_request import UpdateBomRowRequest
 from .update_custom_field_definition_request import UpdateCustomFieldDefinitionRequest
 from .update_customer_address_request import UpdateCustomerAddressRequest
@@ -619,6 +636,17 @@ __all__ = (
     "BatchStockUpdate",
     "BatchTransaction",
     "BatchTransactionRequest",
+    "BinInventory",
+    "BinInventoryGranularity",
+    "BinInventoryListResponse",
+    "BinTransfer",
+    "BinTransferListResponse",
+    "BinTransferRow",
+    "BinTransferRowCreateNested",
+    "BinTransferRowListResponse",
+    "BinTransferStatus",
+    "BinTransferTraceability",
+    "BinTransferTraceabilityRequest",
     "BomRow",
     "BomRowListResponse",
     "ClearDemandForecastRequest",
@@ -628,6 +656,8 @@ __all__ = (
     "ConstValidationErrorCode",
     "ConstValidationErrorInfo",
     "CostDistributionMethod",
+    "CreateBinTransferRequest",
+    "CreateBinTransferRowRequest",
     "CreateBomRowRequest",
     "CreateCustomFieldDefinitionRequest",
     "CreateCustomerAddressRequest",
@@ -952,6 +982,7 @@ __all__ = (
     "StocktakeRowListResponse",
     "StocktakeStatus",
     "StorageBin",
+    "StorageBinCreate",
     "StorageBinResponse",
     "StorageBinUpdate",
     "Supplier",
@@ -972,6 +1003,9 @@ __all__ = (
     "UnlinkManufacturingOrderRequest",
     "UnlinkVariantBinLocationRequest",
     "UpdatableEntity",
+    "UpdateBinTransferRequest",
+    "UpdateBinTransferRowRequest",
+    "UpdateBinTransferStatusRequest",
     "UpdateBomRowRequest",
     "UpdateCustomFieldDefinitionRequest",
     "UpdateCustomerAddressRequest",

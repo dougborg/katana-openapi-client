@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Unbatched stock is now represented as batch_id: null in Purchase Order rows and Purchase Order recipe rows
 
 The batch\_id field in purchase order row and purchase order recipe row batch\_transactions now accepts null to represent unbatched stock.

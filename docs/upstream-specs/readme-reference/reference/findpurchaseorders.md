@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # List all purchase orders
 
 Returns a list of purchase orders you’ve previously created. The purchase orders are returned in sorted

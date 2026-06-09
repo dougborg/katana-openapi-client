@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Delete outsourced purchase order recipe row
 
 Deletes a single outsourced purchase order recipe row by id.

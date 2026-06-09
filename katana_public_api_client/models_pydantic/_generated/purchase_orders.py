@@ -183,6 +183,12 @@ class PurchaseOrderRow(DeletableEntity):
     purchase_order_id: Annotated[
         int | None, Field(description="Unique identifier of the parent purchase order")
     ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Destination location for this row when multi-location receiving is used.\nNull when the row inherits the order-level location."
+        ),
+    ] = None
     landed_cost: Annotated[
         float | None,
         Field(
@@ -522,6 +528,14 @@ class CreatePurchaseOrderRowRequest(KatanaPydanticBase):
         AwareDatetime | None,
         Field(description="Optional arrival date in ISO 8601 format."),
     ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Destination location for this row, enabling multi-location receiving on a\nsingle purchase order. Defaults to the order-level location when omitted.",
+            ge=1,
+            le=2147483647,
+        ),
+    ] = None
 
 
 class UpdatePurchaseOrderRowRequest(KatanaPydanticBase):
@@ -567,6 +581,14 @@ class UpdatePurchaseOrderRowRequest(KatanaPydanticBase):
     arrival_date: Annotated[
         AwareDatetime | None,
         Field(description="Updatable only when received_date is not null"),
+    ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Destination location for this row (multi-location receiving). Updatable only\nwhen received_date is null.",
+            ge=1,
+            le=2147483647,
+        ),
     ] = None
 
 
@@ -980,6 +1002,12 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
         SQLField(
             foreign_key="purchase_order.id",
             description="Unique identifier of the parent purchase order",
+        ),
+    ] = None
+    location_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="Destination location for this row when multi-location receiving is used.\nNull when the row inherits the order-level location."
         ),
     ] = None
     landed_cost: Annotated[

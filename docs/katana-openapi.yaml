@@ -2529,6 +2529,518 @@ components:
           description: Name of the storage bin
       example:
         bin_name: A-01-SHELF-2
+    StorageBinCreate:
+      type: object
+      description: Storage bin fields for create operations
+      additionalProperties: false
+      required:
+        - bin_name
+        - location_id
+      properties:
+        bin_name:
+          type: string
+          minLength: 1
+          description: Name of the storage bin
+        location_id:
+          type: integer
+          minimum: 1
+          description: ID of the location the storage bin belongs to
+      example:
+        bin_name: A-01-SHELF-2
+        location_id: 12346
+    BinTransferStatus:
+      type: string
+      enum:
+        - CREATED
+        - IN_TRANSIT
+        - DONE
+      description: |-
+        Lifecycle status of a bin transfer. New transfers start in `CREATED`; status
+        changes are applied through the dedicated status endpoint.
+    BinInventoryGranularity:
+      type: string
+      enum:
+        - VARIANT
+        - BATCH
+        - SERIAL_NUMBER
+      default: VARIANT
+      description: |-
+        Row granularity for a bin inventory query. `VARIANT` returns one row per
+        (location, variant, bin); `BATCH` and `SERIAL_NUMBER` break rows down further
+        by the matching traceability axis.
+    BinTransferTraceability:
+      type: object
+      description: |-
+        Traceability allocation on a bin transfer row, pinning the moved quantity to a
+        specific batch and/or serial number. A null axis means that axis is unset.
+      properties:
+        batch_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the batch this quantity is drawn from, or null when unbatched.
+        serial_number_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the serial number this quantity is drawn from, or null when untraced.
+        quantity:
+          type: string
+          description: Quantity allocated to this traceability axis, as a decimal string.
+    BinTransferRow:
+      description: |-
+        Line item in a bin transfer — the variant, quantity, and source/target bins the
+        stock moves between, with optional batch/serial traceability.
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the bin transfer row.
+            bin_transfer_id:
+              type: integer
+              description: ID of the parent bin transfer.
+            location_id:
+              type: integer
+              description: ID of the location the transfer occurs within.
+            variant_id:
+              type: integer
+              description: ID of the product or material variant being moved.
+            quantity:
+              type: string
+              description: Quantity being moved, as a decimal string.
+            source_bin_location_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the bin the stock moves from, or null when unassigned.
+            target_bin_location_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the bin the stock moves to, or null when unassigned.
+            traceability:
+              type: array
+              description: Batch/serial allocations for the moved quantity.
+              items:
+                $ref: "#/components/schemas/BinTransferTraceability"
+            created_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date the parent transfer was created (mirrored onto the row).
+            departed_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp the stock departed the source bin.
+            arrived_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp the stock arrived at the target bin.
+          required:
+            - id
+            - bin_transfer_id
+            - variant_id
+            - quantity
+        - $ref: "#/components/schemas/DeletableEntity"
+    BinTransfer:
+      description: |-
+        A movement of stock between bins within a single location, optionally carrying
+        per-row batch/serial traceability.
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the bin transfer.
+            bin_transfer_number:
+              type: string
+              description: Human-readable reference number for the transfer.
+            location_id:
+              type: integer
+              description: ID of the location the transfer occurs within.
+            status:
+              description: Current lifecycle status of the transfer.
+              $ref: "#/components/schemas/BinTransferStatus"
+            created_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date the transfer was created.
+            departed_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp the transfer left the source bins.
+            arrived_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp the transfer reached the target bins.
+            additional_info:
+              type:
+                - string
+                - "null"
+              description: Optional free-text note about the transfer.
+            bin_transfer_rows:
+              type: array
+              description: Line items detailing the variants and quantities being moved.
+              items:
+                $ref: "#/components/schemas/BinTransferRow"
+          required:
+            - id
+            - bin_transfer_number
+            - location_id
+        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 1
+        bin_transfer_number: BT-1
+        location_id: 1
+        status: IN_TRANSIT
+        created_date: "2026-05-22T10:00:00.000Z"
+        departed_at: "2026-05-22T11:00:00.000Z"
+        arrived_at: null
+        additional_info: urgent transfer
+        bin_transfer_rows:
+          - id: 11
+            bin_transfer_id: 1
+            location_id: 1
+            variant_id: 42
+            quantity: "3"
+            source_bin_location_id: 7
+            target_bin_location_id: 9
+            traceability:
+              - batch_id: 100
+                serial_number_id: null
+                quantity: "3"
+            created_at: "2026-05-22T10:00:00.000Z"
+            updated_at: "2026-05-22T10:00:00.000Z"
+            deleted_at: null
+        created_at: "2026-05-22T10:00:00.000Z"
+        updated_at: "2026-05-22T10:00:00.000Z"
+        deleted_at: null
+    BinTransferListResponse:
+      type: object
+      description: Paginated list of bin transfer records.
+      properties:
+        data:
+          type: array
+          description: Array of bin transfer records.
+          items:
+            $ref: "#/components/schemas/BinTransfer"
+      example:
+        data:
+          - id: 1
+            bin_transfer_number: BT-1
+            location_id: 1
+            status: CREATED
+            created_date: "2026-05-22T10:00:00.000Z"
+            departed_at: null
+            arrived_at: null
+            additional_info: urgent transfer
+            bin_transfer_rows: []
+            created_at: "2026-05-22T10:00:00.000Z"
+            updated_at: "2026-05-22T10:00:00.000Z"
+            deleted_at: null
+    BinTransferRowListResponse:
+      type: object
+      description: Paginated list of bin transfer rows.
+      properties:
+        data:
+          type: array
+          description: Array of bin transfer row records.
+          items:
+            $ref: "#/components/schemas/BinTransferRow"
+      example:
+        data:
+          - id: 11
+            bin_transfer_id: 1
+            location_id: 1
+            variant_id: 42
+            quantity: "3"
+            source_bin_location_id: 7
+            target_bin_location_id: 9
+            traceability:
+              - batch_id: 100
+                serial_number_id: null
+                quantity: "3"
+            created_at: "2026-05-22T10:00:00.000Z"
+            updated_at: "2026-05-22T10:00:00.000Z"
+            deleted_at: null
+    BinInventory:
+      type: object
+      description: |-
+        Per-bin inventory position at the requested granularity. Quantities are decimal
+        strings. A null `bin_location_id`, `batch_id`, or `serial_number_id` denotes
+        stock whose traceability on that axis is unset. Rows reaching zero across all
+        three quantities are removed, so absence implies zero.
+      properties:
+        location_id:
+          type: integer
+          description: ID of the location.
+        variant_id:
+          type: integer
+          description: ID of the variant.
+        bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin, or null for stock with no bin assignment.
+        batch_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the batch (present at `BATCH` granularity), or null.
+        serial_number_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the serial number (present at `SERIAL_NUMBER` granularity), or null.
+        quantity_in_stock:
+          type: string
+          description: On-hand quantity in this position, as a decimal string.
+        quantity_committed:
+          type: string
+          description: Quantity committed to orders, as a decimal string.
+        quantity_expected:
+          type: string
+          description: Quantity expected from inbound receipts, as a decimal string.
+    BinInventoryListResponse:
+      type: object
+      description: Paginated list of per-bin inventory positions.
+      properties:
+        data:
+          type: array
+          description: Array of per-bin inventory positions.
+          items:
+            $ref: "#/components/schemas/BinInventory"
+      example:
+        data:
+          - location_id: 1
+            variant_id: 42
+            bin_location_id: 7
+            batch_id: null
+            serial_number_id: null
+            quantity_in_stock: "12.0000000000"
+            quantity_committed: "2.0000000000"
+            quantity_expected: "5.0000000000"
+    BinTransferTraceabilityRequest:
+      type: object
+      additionalProperties: false
+      description: Batch/serial allocation supplied on a bin transfer row.
+      properties:
+        batch_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the batch to draw from, or null.
+        serial_number_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the serial number to draw from, or null.
+        quantity:
+          type: string
+          description: Quantity to allocate to this axis, as a decimal string.
+    BinTransferRowCreateNested:
+      type: object
+      additionalProperties: false
+      description: A bin transfer row supplied inline when creating a bin transfer.
+      required:
+        - variant_id
+        - quantity
+      properties:
+        variant_id:
+          type: integer
+          description: ID of the variant to move.
+        quantity:
+          type: string
+          description: Quantity to move, as a decimal string.
+        source_bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin to move stock from, or null.
+        target_bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin to move stock to, or null.
+        traceability:
+          type: array
+          description: Optional batch/serial allocations for the moved quantity.
+          items:
+            $ref: "#/components/schemas/BinTransferTraceabilityRequest"
+    CreateBinTransferRequest:
+      type: object
+      additionalProperties: false
+      description: |-
+        Request payload for creating a bin transfer, optionally with rows and per-row
+        traceability in a single call.
+      required:
+        - location_id
+      properties:
+        location_id:
+          type: integer
+          description: ID of the location the transfer occurs within.
+        bin_transfer_number:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Human-readable reference number for the transfer.
+        additional_info:
+          type:
+            - string
+            - "null"
+          description: Optional free-text note about the transfer.
+        created_date:
+          type: string
+          format: date-time
+          description: Date the transfer was created. Defaults to now when omitted.
+        bin_transfer_rows:
+          type: array
+          maxItems: 250
+          description: Line items to create together with the transfer.
+          items:
+            $ref: "#/components/schemas/BinTransferRowCreateNested"
+      example:
+        location_id: 1
+        bin_transfer_number: BT-1
+        additional_info: urgent transfer
+        bin_transfer_rows:
+          - variant_id: 42
+            quantity: "3"
+            source_bin_location_id: 7
+            target_bin_location_id: 9
+            traceability:
+              - batch_id: 100
+                quantity: "3"
+    UpdateBinTransferRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload for updating a bin transfer's header fields.
+      properties:
+        bin_transfer_number:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Updated reference number.
+        location_id:
+          type: integer
+          description: Updated location ID.
+        additional_info:
+          type:
+            - string
+            - "null"
+          description: Updated free-text note.
+        created_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Updated creation date.
+        departed_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Updated departure timestamp.
+        arrived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Updated arrival timestamp.
+      example:
+        bin_transfer_number: BT-1
+        additional_info: updated note
+    CreateBinTransferRowRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload for adding a row to an existing bin transfer.
+      required:
+        - bin_transfer_id
+        - variant_id
+        - quantity
+      properties:
+        bin_transfer_id:
+          type: integer
+          description: ID of the bin transfer to add this row to.
+        variant_id:
+          type: integer
+          description: ID of the variant to move.
+        quantity:
+          type: string
+          description: Quantity to move, as a decimal string.
+        source_bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin to move stock from, or null.
+        target_bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin to move stock to, or null.
+        traceability:
+          type: array
+          description: Optional batch/serial allocations for the moved quantity.
+          items:
+            $ref: "#/components/schemas/BinTransferTraceabilityRequest"
+      example:
+        bin_transfer_id: 1
+        variant_id: 42
+        quantity: "3"
+        source_bin_location_id: 7
+        target_bin_location_id: 9
+    UpdateBinTransferRowRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload for updating a bin transfer row.
+      properties:
+        variant_id:
+          type: integer
+          description: Updated variant ID.
+        quantity:
+          type: string
+          description: Updated quantity, as a decimal string.
+        source_bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: Updated source bin ID, or null.
+        target_bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: Updated target bin ID, or null.
+        traceability:
+          type: array
+          description: Updated batch/serial allocations for the moved quantity.
+          items:
+            $ref: "#/components/schemas/BinTransferTraceabilityRequest"
+      example:
+        quantity: "5"
+    UpdateBinTransferStatusRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload for changing a bin transfer's status.
+      required:
+        - status
+      properties:
+        status:
+          description: New status for the bin transfer.
+          $ref: "#/components/schemas/BinTransferStatus"
+      example:
+        status: IN_TRANSIT
     InventoryMovement:
       description: |
         Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
@@ -5744,6 +6256,13 @@ components:
             purchase_order_id:
               type: integer
               description: Unique identifier of the parent purchase order
+            location_id:
+              type:
+                - integer
+                - "null"
+              description: |-
+                Destination location for this row when multi-location receiving is used.
+                Null when the row inherits the order-level location.
             landed_cost:
               type: number
               description: Total landed cost including shipping, duties, and other charges
@@ -5768,6 +6287,7 @@ components:
         received_date: "2024-02-15T14:30:00Z"
         arrival_date: "2024-02-15T10:00:00Z"
         purchase_order_id: 156
+        location_id: 1
         landed_cost: 735.5
         group_id: 1
         created_at: "2024-01-28T09:15:00Z"
@@ -6137,6 +6657,13 @@ components:
           type: string
           format: date-time
           description: Optional arrival date in ISO 8601 format.
+        location_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: |-
+            Destination location for this row, enabling multi-location receiving on a
+            single purchase order. Defaults to the order-level location when omitted.
       example:
         purchase_order_id: 156
         quantity: 50
@@ -6194,6 +6721,13 @@ components:
           type: string
           format: date-time
           description: Updatable only when received_date is not null
+        location_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: |-
+            Destination location for this row (multi-location receiving). Updatable only
+            when received_date is null.
       example:
         quantity: 275
         price_per_unit: 2.95
@@ -13855,6 +14389,75 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /bin_inventory:
+    get:
+      summary: List bin inventory levels
+      tags:
+        - Storage bin
+      description: |-
+        Returns per-bin inventory levels at the chosen granularity. `granularity=VARIANT` (default) returns
+        one row per (location, variant, bin); `BATCH` and `SERIAL_NUMBER` break rows down further by the
+        matching traceability axis. Each row carries three decimal-string quantities: `quantity_in_stock`,
+        `quantity_committed`, and `quantity_expected`.
+
+        A null `bin_location_id`, `batch_id`, or `serial_number_id` denotes stock whose traceability on that
+        axis has not been set (unassigned bin, unbatched stock, untraced serial). Pass `?<param>=null` to
+        target those rows. Bin inventory levels are computed asynchronously and are eventually consistent.
+      operationId: getBinInventory
+      parameters:
+        - name: granularity
+          in: query
+          required: false
+          description: Row granularity. Defaults to `VARIANT`.
+          schema:
+            $ref: "#/components/schemas/BinInventoryGranularity"
+        - $ref: "#/components/parameters/location_id"
+        - $ref: "#/components/parameters/variant_id"
+        - name: bin_location_id
+          in: query
+          required: false
+          description: Filter by bin location ID. Pass `null` to target stock with no bin assignment.
+          schema:
+            type: string
+            pattern: "^(\\d+|null)$"
+        - name: batch_id
+          in: query
+          required: false
+          description: Filter by batch ID. Pass `null` to target unbatched stock.
+          schema:
+            type: string
+            pattern: "^(\\d+|null)$"
+        - name: serial_number_id
+          in: query
+          required: false
+          description: Filter by serial number ID. Pass `null` to target untraced serials.
+          schema:
+            type: string
+            pattern: "^(\\d+|null)$"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+      responses:
+        "200":
+          description: Per-bin inventory levels.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinInventoryListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /bin_locations:
     get:
       summary: List all storage bins
@@ -13894,6 +14497,43 @@ paths:
                   $ref: "#/components/schemas/StorageBinResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a storage bin
+      tags:
+        - Storage bin
+      description: Creates a new storage bin at the specified location.
+      operationId: createStorageBin
+      requestBody:
+        description: Storage bin details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageBinCreate"
+      responses:
+        "200":
+          description: Storage bin created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageBinResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -13946,6 +14586,403 @@ paths:
         - Storage bin
       description: Deletes a storage bin by id.
       operationId: deleteStorageBin
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /bin_transfers:
+    get:
+      summary: List all bin transfers
+      tags:
+        - Bin transfer
+      description: Returns a list of bin transfers.
+      operationId: getAllBinTransfers
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/include_deleted"
+        - name: bin_transfer_number
+          in: query
+          required: false
+          description: Filter by bin transfer number.
+          schema:
+            type: string
+        - $ref: "#/components/parameters/location_id"
+        - name: status
+          in: query
+          required: false
+          description: Filter by bin transfer status.
+          schema:
+            $ref: "#/components/schemas/BinTransferStatus"
+      responses:
+        "200":
+          description: List of bin transfers.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransferListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a bin transfer
+      tags:
+        - Bin transfer
+      description: |-
+        Creates a bin transfer, optionally with rows and per-row traceability in one
+        call. Bin transfers move stock between bin locations within a single location.
+        New transfers start in `CREATED`; status changes go through the status endpoint.
+      operationId: createBinTransfer
+      requestBody:
+        description: Bin transfer details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBinTransferRequest"
+      responses:
+        "200":
+          description: Bin transfer created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /bin_transfers/{id}:
+    get:
+      summary: Get a bin transfer
+      tags:
+        - Bin transfer
+      description: Returns a single bin transfer by id.
+      operationId: getBinTransfer
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Bin transfer details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransfer"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      summary: Update a bin transfer
+      tags:
+        - Bin transfer
+      description: Updates a bin transfer's header fields.
+      operationId: updateBinTransfer
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        description: Bin transfer update details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBinTransferRequest"
+      responses:
+        "200":
+          description: Bin transfer updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete a bin transfer
+      tags:
+        - Bin transfer
+      description: Deletes a bin transfer.
+      operationId: deleteBinTransfer
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /bin_transfers/{id}/status:
+    patch:
+      summary: Update bin transfer status
+      tags:
+        - Bin transfer
+      description: Updates the status of a bin transfer.
+      operationId: updateBinTransferStatus
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        description: Status update details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBinTransferStatusRequest"
+      responses:
+        "200":
+          description: Bin transfer status updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /bin_transfer_rows:
+    get:
+      summary: List all bin transfer rows
+      tags:
+        - Bin transfer
+      description: Returns a list of bin transfer rows.
+      operationId: getAllBinTransferRows
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/include_deleted"
+        - name: bin_transfer_id
+          in: query
+          required: false
+          description: Filter by parent bin transfer ID.
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/variant_id"
+        - name: source_bin_location_id
+          in: query
+          required: false
+          description: Filter by source bin location ID.
+          schema:
+            type: integer
+        - name: target_bin_location_id
+          in: query
+          required: false
+          description: Filter by target bin location ID.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of bin transfer rows.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransferRowListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a bin transfer row
+      tags:
+        - Bin transfer
+      description: Adds a row to an existing bin transfer.
+      operationId: createBinTransferRow
+      requestBody:
+        description: Bin transfer row details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBinTransferRowRequest"
+      responses:
+        "200":
+          description: Bin transfer row created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransferRow"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /bin_transfer_rows/{id}:
+    get:
+      summary: Get a bin transfer row
+      tags:
+        - Bin transfer
+      description: Returns a single bin transfer row by id.
+      operationId: getBinTransferRow
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Bin transfer row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransferRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      summary: Update a bin transfer row
+      tags:
+        - Bin transfer
+      description: Updates a bin transfer row.
+      operationId: updateBinTransferRow
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        description: Bin transfer row update details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBinTransferRowRequest"
+      responses:
+        "200":
+          description: Bin transfer row updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinTransferRow"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete a bin transfer row
+      tags:
+        - Bin transfer
+      description: Deletes a bin transfer row.
+      operationId: deleteBinTransferRow
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
@@ -16959,6 +17996,7 @@ paths:
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/purchase_order_id"
         - $ref: "#/components/parameters/variant_id"
+        - $ref: "#/components/parameters/location_id"
         - $ref: "#/components/parameters/tax_rate_id"
         - $ref: "#/components/parameters/group_id"
         - $ref: "#/components/parameters/purchase_uom"

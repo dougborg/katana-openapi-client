@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Unlink a manufacturing order from sales order row
 
 Unlinks the manufacturing order from a particular sales order row.
