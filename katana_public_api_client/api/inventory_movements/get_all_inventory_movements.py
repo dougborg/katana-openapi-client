@@ -8,10 +8,10 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_inventory_movements_resource_type import (
-    GetAllInventoryMovementsResourceType,
-)
 from ...models.inventory_movement_list_response import InventoryMovementListResponse
+from ...models.inventory_movement_resource_type_filter import (
+    InventoryMovementResourceTypeFilter,
+)
 
 
 def _get_kwargs(
@@ -19,7 +19,7 @@ def _get_kwargs(
     ids: list[int] | Unset = UNSET,
     variant_ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_type: InventoryMovementResourceTypeFilter | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     caused_by_order_no: str | Unset = UNSET,
     caused_by_resource_id: int | Unset = UNSET,
@@ -140,7 +140,7 @@ def sync_detailed(
     ids: list[int] | Unset = UNSET,
     variant_ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_type: InventoryMovementResourceTypeFilter | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     caused_by_order_no: str | Unset = UNSET,
     caused_by_resource_id: int | Unset = UNSET,
@@ -161,7 +161,11 @@ def sync_detailed(
         ids (list[int] | Unset):
         variant_ids (list[int] | Unset):
         location_id (int | Unset):
-        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_type (InventoryMovementResourceTypeFilter | Unset): Resource types accepted by
+            the `GET /inventory_movements` `resource_type` filter. A subset of
+            InventoryMovementResourceType (the response enum): the gateway does not allow filtering by
+            ManufacturingOrder or ManufacturingOrderRecipeRow even though movements can reference
+            them.
         resource_id (int | Unset):
         caused_by_order_no (str | Unset):
         caused_by_resource_id (int | Unset):
@@ -210,7 +214,7 @@ def sync(
     ids: list[int] | Unset = UNSET,
     variant_ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_type: InventoryMovementResourceTypeFilter | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     caused_by_order_no: str | Unset = UNSET,
     caused_by_resource_id: int | Unset = UNSET,
@@ -231,7 +235,11 @@ def sync(
         ids (list[int] | Unset):
         variant_ids (list[int] | Unset):
         location_id (int | Unset):
-        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_type (InventoryMovementResourceTypeFilter | Unset): Resource types accepted by
+            the `GET /inventory_movements` `resource_type` filter. A subset of
+            InventoryMovementResourceType (the response enum): the gateway does not allow filtering by
+            ManufacturingOrder or ManufacturingOrderRecipeRow even though movements can reference
+            them.
         resource_id (int | Unset):
         caused_by_order_no (str | Unset):
         caused_by_resource_id (int | Unset):
@@ -275,7 +283,7 @@ async def asyncio_detailed(
     ids: list[int] | Unset = UNSET,
     variant_ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_type: InventoryMovementResourceTypeFilter | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     caused_by_order_no: str | Unset = UNSET,
     caused_by_resource_id: int | Unset = UNSET,
@@ -296,7 +304,11 @@ async def asyncio_detailed(
         ids (list[int] | Unset):
         variant_ids (list[int] | Unset):
         location_id (int | Unset):
-        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_type (InventoryMovementResourceTypeFilter | Unset): Resource types accepted by
+            the `GET /inventory_movements` `resource_type` filter. A subset of
+            InventoryMovementResourceType (the response enum): the gateway does not allow filtering by
+            ManufacturingOrder or ManufacturingOrderRecipeRow even though movements can reference
+            them.
         resource_id (int | Unset):
         caused_by_order_no (str | Unset):
         caused_by_resource_id (int | Unset):
@@ -343,7 +355,7 @@ async def asyncio(
     ids: list[int] | Unset = UNSET,
     variant_ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_type: InventoryMovementResourceTypeFilter | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     caused_by_order_no: str | Unset = UNSET,
     caused_by_resource_id: int | Unset = UNSET,
@@ -364,7 +376,11 @@ async def asyncio(
         ids (list[int] | Unset):
         variant_ids (list[int] | Unset):
         location_id (int | Unset):
-        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_type (InventoryMovementResourceTypeFilter | Unset): Resource types accepted by
+            the `GET /inventory_movements` `resource_type` filter. A subset of
+            InventoryMovementResourceType (the response enum): the gateway does not allow filtering by
+            ManufacturingOrder or ManufacturingOrderRecipeRow even though movements can reference
+            them.
         resource_id (int | Unset):
         caused_by_order_no (str | Unset):
         caused_by_resource_id (int | Unset):

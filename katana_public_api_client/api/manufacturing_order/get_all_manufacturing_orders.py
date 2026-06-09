@@ -8,16 +8,14 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_manufacturing_orders_status import (
-    GetAllManufacturingOrdersStatus,
-)
 from ...models.manufacturing_order_list_response import ManufacturingOrderListResponse
+from ...models.manufacturing_order_status import ManufacturingOrderStatus
 
 
 def _get_kwargs(
     *,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrdersStatus | Unset = UNSET,
+    status: ManufacturingOrderStatus | Unset = UNSET,
     order_no: str | Unset = UNSET,
     location_id: int | Unset = UNSET,
     is_linked_to_sales_order: bool | Unset = UNSET,
@@ -131,7 +129,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrdersStatus | Unset = UNSET,
+    status: ManufacturingOrderStatus | Unset = UNSET,
     order_no: str | Unset = UNSET,
     location_id: int | Unset = UNSET,
     is_linked_to_sales_order: bool | Unset = UNSET,
@@ -152,7 +150,7 @@ def sync_detailed(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrdersStatus | Unset):
+        status (ManufacturingOrderStatus | Unset): Production status of a manufacturing order
         order_no (str | Unset):
         location_id (int | Unset):
         is_linked_to_sales_order (bool | Unset):
@@ -199,7 +197,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrdersStatus | Unset = UNSET,
+    status: ManufacturingOrderStatus | Unset = UNSET,
     order_no: str | Unset = UNSET,
     location_id: int | Unset = UNSET,
     is_linked_to_sales_order: bool | Unset = UNSET,
@@ -220,7 +218,7 @@ def sync(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrdersStatus | Unset):
+        status (ManufacturingOrderStatus | Unset): Production status of a manufacturing order
         order_no (str | Unset):
         location_id (int | Unset):
         is_linked_to_sales_order (bool | Unset):
@@ -262,7 +260,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrdersStatus | Unset = UNSET,
+    status: ManufacturingOrderStatus | Unset = UNSET,
     order_no: str | Unset = UNSET,
     location_id: int | Unset = UNSET,
     is_linked_to_sales_order: bool | Unset = UNSET,
@@ -283,7 +281,7 @@ async def asyncio_detailed(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrdersStatus | Unset):
+        status (ManufacturingOrderStatus | Unset): Production status of a manufacturing order
         order_no (str | Unset):
         location_id (int | Unset):
         is_linked_to_sales_order (bool | Unset):
@@ -328,7 +326,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrdersStatus | Unset = UNSET,
+    status: ManufacturingOrderStatus | Unset = UNSET,
     order_no: str | Unset = UNSET,
     location_id: int | Unset = UNSET,
     is_linked_to_sales_order: bool | Unset = UNSET,
@@ -349,7 +347,7 @@ async def asyncio(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrdersStatus | Unset):
+        status (ManufacturingOrderStatus | Unset): Production status of a manufacturing order
         order_no (str | Unset):
         location_id (int | Unset):
         is_linked_to_sales_order (bool | Unset):

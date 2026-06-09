@@ -8,9 +8,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_manufacturing_order_operation_rows_status import (
-    GetAllManufacturingOrderOperationRowsStatus,
-)
+from ...models.manufacturing_operation_status import ManufacturingOperationStatus
 from ...models.manufacturing_order_operation_row_list_response import (
     ManufacturingOrderOperationRowListResponse,
 )
@@ -19,7 +17,7 @@ from ...models.manufacturing_order_operation_row_list_response import (
 def _get_kwargs(
     *,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrderOperationRowsStatus | Unset = UNSET,
+    status: ManufacturingOperationStatus | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -129,7 +127,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrderOperationRowsStatus | Unset = UNSET,
+    status: ManufacturingOperationStatus | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -147,7 +145,8 @@ def sync_detailed(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrderOperationRowsStatus | Unset):
+        status (ManufacturingOperationStatus | Unset): Status of a manufacturing order operation
+            row
         manufacturing_order_id (float | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -190,7 +189,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrderOperationRowsStatus | Unset = UNSET,
+    status: ManufacturingOperationStatus | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -208,7 +207,8 @@ def sync(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrderOperationRowsStatus | Unset):
+        status (ManufacturingOperationStatus | Unset): Status of a manufacturing order operation
+            row
         manufacturing_order_id (float | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -246,7 +246,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrderOperationRowsStatus | Unset = UNSET,
+    status: ManufacturingOperationStatus | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -264,7 +264,8 @@ async def asyncio_detailed(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrderOperationRowsStatus | Unset):
+        status (ManufacturingOperationStatus | Unset): Status of a manufacturing order operation
+            row
         manufacturing_order_id (float | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -305,7 +306,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
-    status: GetAllManufacturingOrderOperationRowsStatus | Unset = UNSET,
+    status: ManufacturingOperationStatus | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -323,7 +324,8 @@ async def asyncio(
 
     Args:
         ids (list[int] | Unset):
-        status (GetAllManufacturingOrderOperationRowsStatus | Unset):
+        status (ManufacturingOperationStatus | Unset): Status of a manufacturing order operation
+            row
         manufacturing_order_id (float | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.

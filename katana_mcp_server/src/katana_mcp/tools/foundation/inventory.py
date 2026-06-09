@@ -39,8 +39,8 @@ from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
-from katana_public_api_client.models.get_all_inventory_movements_resource_type import (
-    GetAllInventoryMovementsResourceType,
+from katana_public_api_client.models.inventory_movement_resource_type_filter import (
+    InventoryMovementResourceTypeFilter,
 )
 from katana_public_api_client.models_pydantic._generated import (
     CachedLocation,
@@ -919,14 +919,13 @@ class GetInventoryMovementsRequest(BaseModel):
             "Look up via `list_locations`."
         ),
     )
-    resource_type: GetAllInventoryMovementsResourceType | None = Field(
+    resource_type: InventoryMovementResourceTypeFilter | None = Field(
         default=None,
         description=(
             "Filter movements by what caused them. Accepts one of: "
-            "`SalesOrderRow`, `ManufacturingOrder`, "
-            "`ManufacturingOrderRecipeRow`, `ProductionIngredient`, "
-            "`PurchaseOrderRow`, `PurchaseOrderRecipeRow`, "
-            "`StockAdjustmentRow`, `StockTransferRow`, `SystemGenerated`."
+            "`Production`, `ProductionIngredient`, `PurchaseOrderRow`, "
+            "`PurchaseOrderRecipeRow`, `SalesOrderRow`, `StockAdjustmentRow`, "
+            "`StockTransferRow`, `SystemGenerated`."
         ),
     )
     created_at_min: str | None = Field(

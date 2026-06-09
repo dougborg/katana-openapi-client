@@ -131,23 +131,20 @@ components:
       required: false
       schema:
         type: integer
-    resource_type:
+    inventory_movement_resource_type:
       name: resource_type
       in: query
-      description: Filters results by resource type.
+      description: Filters inventory movements by the resource type that caused them.
       required: false
       schema:
-        type: string
-        enum:
-          - PurchaseOrderRow
-          - PurchaseOrderRecipeRow
-          - SalesOrderRow
-          - ManufacturingOrderRecipeRow
-          - StockAdjustmentRow
-          - StockTransferRow
-          - ManufacturingOrder
-          - SystemGenerated
-          - ProductionIngredient
+        $ref: "#/components/schemas/InventoryMovementResourceTypeFilter"
+    serial_number_resource_type:
+      name: resource_type
+      in: query
+      description: Filters serial numbers by the resource type they are attached to.
+      required: false
+      schema:
+        $ref: "#/components/schemas/SerialNumberResourceType"
     resource_id:
       name: resource_id
       in: query
@@ -455,6 +452,13 @@ components:
       schema:
         $ref: "#/components/schemas/PurchaseOrderEntityType"
       in: query
+    address_entity_type:
+      name: entity_type
+      required: false
+      description: Filters addresses by entity type (billing or shipping).
+      schema:
+        $ref: "#/components/schemas/AddressEntityType"
+      in: query
     po_status:
       name: status
       required: false
@@ -532,17 +536,19 @@ components:
       schema:
         type: number
       in: query
-    mo_status:
+    manufacturing_order_status:
       name: status
       required: false
       description: Filters manufacturing orders by a status.
       schema:
-        enum:
-          - NOT_STARTED
-          - BLOCKED
-          - IN_PROGRESS
-          - PAUSED
-          - COMPLETED
+        $ref: "#/components/schemas/ManufacturingOrderStatus"
+      in: query
+    mo_operation_row_status:
+      name: status
+      required: false
+      description: Filters manufacturing order operation rows by a status.
+      schema:
+        $ref: "#/components/schemas/ManufacturingOperationStatus"
       in: query
     manufacturing_order_id:
       name: manufacturing_order_id
@@ -2030,6 +2036,23 @@ components:
         - SystemGenerated
         - ProductionIngredient
       description: Type of resource that caused an inventory movement
+
+    InventoryMovementResourceTypeFilter:
+      type: string
+      enum:
+        - Production
+        - ProductionIngredient
+        - PurchaseOrderRecipeRow
+        - PurchaseOrderRow
+        - SalesOrderRow
+        - StockAdjustmentRow
+        - StockTransferRow
+        - SystemGenerated
+      description: >-
+        Resource types accepted by the `GET /inventory_movements` `resource_type`
+        filter. A subset of InventoryMovementResourceType (the response enum):
+        the gateway does not allow filtering by ManufacturingOrder or
+        ManufacturingOrderRecipeRow even though movements can reference them.
 
     SerialNumberResourceType:
       type: string
@@ -15054,7 +15077,7 @@ paths:
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/variant_ids"
         - $ref: "#/components/parameters/location_id"
-        - $ref: "#/components/parameters/resource_type"
+        - $ref: "#/components/parameters/inventory_movement_resource_type"
         - $ref: "#/components/parameters/resource_id"
         - $ref: "#/components/parameters/caused_by_order_no"
         - $ref: "#/components/parameters/caused_by_resource_id"
@@ -15279,7 +15302,7 @@ paths:
       operationId: getAllManufacturingOrders
       parameters:
         - $ref: "#/components/parameters/ids"
-        - $ref: "#/components/parameters/mo_status"
+        - $ref: "#/components/parameters/manufacturing_order_status"
         - $ref: "#/components/parameters/order_no"
         - $ref: "#/components/parameters/location_id"
         - $ref: "#/components/parameters/is_linked_to_sales_order"
@@ -16036,7 +16059,7 @@ paths:
       operationId: getAllManufacturingOrderOperationRows
       parameters:
         - $ref: "#/components/parameters/ids"
-        - $ref: "#/components/parameters/mo_status"
+        - $ref: "#/components/parameters/mo_operation_row_status"
         - $ref: "#/components/parameters/manufacturing_order_id"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
@@ -21405,7 +21428,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
-        - $ref: "#/components/parameters/entity_type"
+        - $ref: "#/components/parameters/address_entity_type"
         - $ref: "#/components/parameters/ids"
         - name: sales_order_ids
           in: query
@@ -21765,7 +21788,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
-        - $ref: "#/components/parameters/entity_type"
+        - $ref: "#/components/parameters/address_entity_type"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/customer_ids"
         - $ref: "#/components/parameters/include_deleted"
@@ -22967,7 +22990,7 @@ paths:
         - Page beyond data → 200 with an empty ``data`` array, not 404.
       operationId: getAllSerialNumbers
       parameters:
-        - $ref: "#/components/parameters/resource_type"
+        - $ref: "#/components/parameters/serial_number_resource_type"
         - $ref: "#/components/parameters/resource_id"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"

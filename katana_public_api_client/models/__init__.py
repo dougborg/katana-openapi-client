@@ -220,14 +220,7 @@ from .format_validation_error import FormatValidationError
 from .format_validation_error_code import FormatValidationErrorCode
 from .format_validation_error_info import FormatValidationErrorInfo
 from .generic_validation_error import GenericValidationError
-from .get_all_inventory_movements_resource_type import (
-    GetAllInventoryMovementsResourceType,
-)
 from .get_all_inventory_point_extend_item import GetAllInventoryPointExtendItem
-from .get_all_manufacturing_order_operation_rows_status import (
-    GetAllManufacturingOrderOperationRowsStatus,
-)
-from .get_all_manufacturing_orders_status import GetAllManufacturingOrdersStatus
 from .get_all_materials_batch_tracked import GetAllMaterialsBatchTracked
 from .get_all_materials_extend_item import GetAllMaterialsExtendItem
 from .get_all_products_batch_tracked import GetAllProductsBatchTracked
@@ -240,7 +233,6 @@ from .get_all_sales_order_rows_product_availability import (
 from .get_all_sales_orders_product_availability import (
     GetAllSalesOrdersProductAvailability,
 )
-from .get_all_serial_numbers_resource_type import GetAllSerialNumbersResourceType
 from .get_all_variants_extend_item import GetAllVariantsExtendItem
 from .get_material_extend_item import GetMaterialExtendItem
 from .get_product_extend_item import GetProductExtendItem
@@ -255,6 +247,7 @@ from .inventory_list_response import InventoryListResponse
 from .inventory_movement import InventoryMovement
 from .inventory_movement_list_response import InventoryMovementListResponse
 from .inventory_movement_resource_type import InventoryMovementResourceType
+from .inventory_movement_resource_type_filter import InventoryMovementResourceTypeFilter
 from .inventory_reorder_point import InventoryReorderPoint
 from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
@@ -775,10 +768,7 @@ __all__ = (
     "FormatValidationErrorCode",
     "FormatValidationErrorInfo",
     "GenericValidationError",
-    "GetAllInventoryMovementsResourceType",
     "GetAllInventoryPointExtendItem",
-    "GetAllManufacturingOrderOperationRowsStatus",
-    "GetAllManufacturingOrdersStatus",
     "GetAllMaterialsBatchTracked",
     "GetAllMaterialsExtendItem",
     "GetAllProductsBatchTracked",
@@ -787,7 +777,6 @@ __all__ = (
     "GetAllSalesOrderRowsExtendItem",
     "GetAllSalesOrderRowsProductAvailability",
     "GetAllSalesOrdersProductAvailability",
-    "GetAllSerialNumbersResourceType",
     "GetAllVariantsExtendItem",
     "GetMaterialExtendItem",
     "GetProductExtendItem",
@@ -802,6 +791,7 @@ __all__ = (
     "InventoryMovement",
     "InventoryMovementListResponse",
     "InventoryMovementResourceType",
+    "InventoryMovementResourceTypeFilter",
     "InventoryReorderPoint",
     "InventoryReorderPointResponse",
     "InventorySafetyStockLevel",
