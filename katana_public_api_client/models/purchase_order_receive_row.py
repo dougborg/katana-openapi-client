@@ -24,6 +24,7 @@ class PurchaseOrderReceiveRow:
     purchase_order_row_id: int
     quantity: float
     received_date: datetime.datetime | Unset = UNSET
+    location_id: int | Unset = UNSET
     batch_transactions: list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset = (
         UNSET
     )
@@ -36,6 +37,8 @@ class PurchaseOrderReceiveRow:
         received_date: str | Unset = UNSET
         if not isinstance(self.received_date, Unset):
             received_date = self.received_date.isoformat()
+
+        location_id = self.location_id
 
         batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
@@ -54,6 +57,8 @@ class PurchaseOrderReceiveRow:
         )
         if received_date is not UNSET:
             field_dict["received_date"] = received_date
+        if location_id is not UNSET:
+            field_dict["location_id"] = location_id
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
 
@@ -77,6 +82,8 @@ class PurchaseOrderReceiveRow:
         else:
             received_date = datetime.datetime.fromisoformat(_received_date)
 
+        location_id = d.pop("location_id", UNSET)
+
         _batch_transactions = d.pop("batch_transactions", UNSET)
         batch_transactions: (
             list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset
@@ -96,6 +103,7 @@ class PurchaseOrderReceiveRow:
             purchase_order_row_id=purchase_order_row_id,
             quantity=quantity,
             received_date=received_date,
+            location_id=location_id,
             batch_transactions=batch_transactions,
         )
 
