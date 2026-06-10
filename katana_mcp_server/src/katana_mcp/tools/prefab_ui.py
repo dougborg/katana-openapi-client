@@ -8109,7 +8109,7 @@ def build_stock_transfer_modify_ui(
 # renders as the "Status" line.
 _BT_HEADER_FIELDS: tuple[tuple[str, str], ...] = (
     ("bin_transfer_number", "Transfer No"),
-    ("location_id", "Location ID"),
+    ("location_id", "Location"),
     ("created_date", "Created Date"),
     ("departed_at", "Departed At"),
     ("arrived_at", "Arrived At"),
@@ -8118,10 +8118,23 @@ _BT_HEADER_FIELDS: tuple[tuple[str, str], ...] = (
 )
 
 
+def _bt_location_display(value: Any, names: dict[int, str]) -> Any:
+    """Render a location id as ``Name (id=N)`` when resolvable, else as-is."""
+    if value is None:
+        return None
+    try:
+        key = int(value)
+    except (TypeError, ValueError):
+        return value
+    name = names.get(key)
+    return f"{name} (id={key})" if name else value
+
+
 def _render_bin_transfer_entity_view(
     bt: dict[str, Any],
     *,
     changes: dict[str, FieldChangeView] | None = None,
+    location_names: dict[int, str] | None = None,
 ) -> list[str]:
     """Render the bin-transfer entity view (header scalar diffs + warnings),
     returning the block-warning list for the caller to gate the Confirm button.
@@ -8130,17 +8143,30 @@ def _render_bin_transfer_entity_view(
     field is changing, else its plain value when present. Bin transfers have a
     GET-by-id endpoint, so unlike stock transfers the plain branch fires for
     unchanged header fields — the prior snapshot provides real context around
-    the diff lines.
+    the diff lines. The Location line resolves ids to names via
+    ``location_names`` (``extras["resolved_locations"]``) so the operator can
+    confirm without cross-referencing Katana; misses fall back to the raw id.
 
     Must be called inside ``with CardContent(), Column(gap=3):``.
     """
     changes = changes or {}
+    names = location_names or {}
     for field, label in _BT_HEADER_FIELDS:
         change = changes.get(field)
+        value = bt.get(field)
+        if field == "location_id":
+            if change is not None:
+                change = change.model_copy(
+                    update={
+                        "before": _bt_location_display(change.before, names),
+                        "after": _bt_location_display(change.after, names),
+                    }
+                )
+            value = _bt_location_display(value, names)
         if change is not None and change.kind != "unchanged":
             _render_field_diff_line(label, change=change)
-        elif bt.get(field) is not None:
-            _render_field_diff_line(label, value=bt.get(field))
+        elif value is not None:
+            _render_field_diff_line(label, value=value)
 
     _render_failed_changes_block(changes, field_label_overrides=dict(_BT_HEADER_FIELDS))
     return _render_warnings_block(bt.get("warnings"))
@@ -8243,10 +8269,13 @@ def build_bin_transfer_modify_ui(
         actions, include_operations=frozenset({"update_header", "update_status"})
     )
 
+    extras = response.get("extras") or {}
     bin_row_rows, bin_row_summary = _bin_modify_row_rows(
-        raw_prior_state, actions, extras=response.get("extras") or {}
+        raw_prior_state, actions, extras=extras
     )
     show_row_table = bool(bin_row_summary)
+    # Same wire shape as resolved_bins ({id: name}) — reuse the coercer.
+    location_names = _coerce_resolved_bins(extras.get("resolved_locations"))
 
     number_change = changes_by_field.get("bin_transfer_number")
     header_number = (
@@ -8301,7 +8330,7 @@ def build_bin_transfer_modify_ui(
             if response.get("message"):
                 Muted(content=response["message"])
             block_warnings = _render_bin_transfer_entity_view(
-                entity, changes=changes_by_field
+                entity, changes=changes_by_field, location_names=location_names
             )
             if show_row_table:
                 Separator()

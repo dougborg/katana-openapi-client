@@ -372,18 +372,21 @@ def _build_nested_rows(
 
 
 def _same_bin_row_warnings(rows: list[BinTransferRowInput]) -> list[str]:
-    """Warn about rows whose source and target bin are the same (no-op move)."""
+    """Warn about rows whose source and target bin are the same (no-op move).
+
+    Both-``None`` counts too — unassigned → unassigned moves nothing, just
+    like an identical bin id on both sides.
+    """
     offenders = [
         str(idx)
         for idx, row in enumerate(rows, start=1)
-        if row.source_bin_location_id is not None
-        and row.source_bin_location_id == row.target_bin_location_id
+        if row.source_bin_location_id == row.target_bin_location_id
     ]
     if not offenders:
         return []
     return [
-        f"Row(s) {', '.join(offenders)} have the same source and target bin — "
-        "the move would be a no-op for those rows."
+        f"Row(s) {', '.join(offenders)} have the same source and target bin "
+        "(or neither set) — the move would be a no-op for those rows."
     ]
 
 
@@ -1179,6 +1182,41 @@ async def _resolve_bins_for_card(
     return {b.id: b.bin_name for b in bins}
 
 
+async def _resolve_location_names_for_card(
+    services: Any,
+    existing: BinTransfer | None,
+    request: ModifyBinTransferRequest,
+) -> dict[int, str]:
+    """Resolve ``{location_id: name}`` for the modify card's Location line.
+
+    Covers the transfer's current location and, on a location move, the
+    header patch's new one — so the card renders names ("Main warehouse"),
+    not bare ids. Cache misses just drop out of the map; the card falls
+    back to the raw id.
+    """
+    from katana_public_api_client.models_pydantic._generated import CachedLocation
+
+    location_ids: set[int] = set()
+    if existing is not None:
+        location_ids.add(int(existing.location_id))
+    if request.update_header is not None and request.update_header.location_id:
+        location_ids.add(int(request.update_header.location_id))
+    if not location_ids:
+        return {}
+
+    resolved: dict[int, str] = {}
+    for location_id in location_ids:
+        name, _ = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            location_id,
+            entity_label="Location",
+        )
+        if name:
+            resolved[location_id] = name
+    return resolved
+
+
 async def _modify_bin_transfer_impl(
     request: ModifyBinTransferRequest, context: Context
 ) -> ModificationResponse:
@@ -1274,7 +1312,7 @@ async def _modify_bin_transfer_impl(
         request.add_rows or request.update_rows or request.delete_row_ids
     )
     if has_row_crud:
-        resolved_variants, resolved_bins = await asyncio.gather(
+        resolved_variants, resolved_bins, resolved_locations = await asyncio.gather(
             _resolve_bin_row_variants(
                 services, _collect_bin_row_variant_ids(existing, request)
             ),
@@ -1287,9 +1325,15 @@ async def _modify_bin_transfer_impl(
                     else None
                 ),
             ),
+            _resolve_location_names_for_card(services, existing, request),
         )
     else:
         resolved_variants, resolved_bins = {}, {}
+        # The Location header line renders on every card shape, so its
+        # name resolution isn't gated on row CRUD.
+        resolved_locations = await _resolve_location_names_for_card(
+            services, existing, request
+        )
 
     response = await run_modify_plan(
         request=request,
@@ -1306,6 +1350,7 @@ async def _modify_bin_transfer_impl(
         extras={
             "resolved_variants": resolved_variants,
             "resolved_bins": resolved_bins,
+            "resolved_locations": resolved_locations,
         },
         cache_merge=CacheMerge(
             cache=services.typed_cache,
