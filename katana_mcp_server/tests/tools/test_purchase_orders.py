@@ -3531,6 +3531,36 @@ async def test_list_purchase_orders_filters_by_status_and_billing(
 
 
 @pytest.mark.asyncio
+async def test_list_purchase_orders_filters_by_last_document_status(
+    context_with_typed_cache, no_sync
+):
+    """`last_document_status` filters on the cached DocumentSendStatus column."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(id=1, last_document_status="FAILED"),
+            make_purchase_order(id=2, last_document_status="SENT"),
+            make_purchase_order(id=3, last_document_status="FAILED"),
+        ],
+    )
+
+    result = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(last_document_status="FAILED"),
+        context,
+    )
+
+    assert {o.id for o in result.orders} == {1, 3}
+    # the value is also surfaced on the summary so the filter is visible
+    assert all(o.last_document_status == "FAILED" for o in result.orders)
+
+
+@pytest.mark.asyncio
 async def test_list_purchase_orders_filters_by_entity_type_and_tracking_location(
     context_with_typed_cache, no_sync
 ):
