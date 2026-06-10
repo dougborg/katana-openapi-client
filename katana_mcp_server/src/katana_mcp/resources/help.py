@@ -79,6 +79,15 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/apply). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
 
+### Bin Transfers & Storage Bins
+- **create_bin_transfer** - Move inventory between bins within one location (preview/apply). Rows carry source/target bin + batch/serial traceability.
+- **list_bin_transfers** - List bin transfers with status (CREATED/IN_TRANSIT/DONE) / location / date filters; `include_rows` for line items
+- **modify_bin_transfer** - Unified modify: header fields, row CRUD (add/update/delete — rows are mutable, unlike stock transfers), and/or status transition (preview/apply)
+- **delete_bin_transfer** - Delete a bin transfer
+- **list_bin_inventory** - Per-bin stock levels at VARIANT / BATCH / SERIAL_NUMBER granularity (live read). `bin_location_id='null'` finds unassigned stock.
+- **list_storage_bins** - List the named bins within each location. Use for bin ID lookups.
+- **create_storage_bin** - Create a storage bin in a location (preview/apply)
+
 ### Serial Numbers
 - **add_serial_numbers** - Attach serial numbers to a resource. Mint new ones (ManufacturingOrder, PurchaseOrderRow) or transfer existing strings between resources (SalesOrderRow, StockTransferRow, StockAdjustmentRow). Partial-failure capable. (preview/apply)
 - **list_serial_numbers** - List serial numbers, optionally scoped by `resource_type` and/or `resource_id`. Diagnostic / lookup tool — use to verify which strings are attached to an MO before fulfillment.
@@ -98,7 +107,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **list_additional_costs** - List or fuzzy-search the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`. Supports `query`, `limit`
 
 ### Cache Administration
-- **rebuild_cache** - Force-rebuild the local typed cache for one or more cached entity types. Covers transactional entities (PO, SO, MO, stock adjustment, stock transfer) and catalog entities (variant, product, material, service, customer, supplier, location, tax_rate, operator, factory, additional_cost). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
+- **rebuild_cache** - Force-rebuild the local typed cache for one or more cached entity types. Covers transactional entities (PO, SO, MO, stock adjustment, stock transfer, bin transfer) and catalog entities (variant, product, material, service, customer, supplier, location, tax_rate, operator, factory, additional_cost). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
 
 ## Safety Pattern
 
@@ -1972,6 +1981,140 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 **Parameters:**
 - `id` (required): Stock transfer ID
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+## Bin Transfer & Storage Bin Tools
+
+Bin transfers move stock **between storage bins within a single location**
+(contrast stock transfers, which move between locations). The status flow
+is CREATED → IN_TRANSIT → DONE. Unlike stock transfers, bin transfer rows
+are fully mutable post-creation and a GET-by-id endpoint exists, so
+previews show real `before → after` diffs.
+
+### create_bin_transfer
+Create a bin transfer within one location.
+
+**Parameters:**
+- `location_id` (required): Location the transfer occurs within — bins on
+  both sides must belong to it
+- `rows` (required): Line items
+  `[{variant_id, quantity, source_bin_location_id?, target_bin_location_id?, traceability?}]` —
+  `traceability` is `[{batch_id? | serial_number_id?, quantity}]` for
+  tracked variants. A `null` source means unassigned (un-binned) stock; a
+  `null` target moves stock to the location's unassigned pool.
+- `bin_transfer_number` (optional): When omitted, Katana assigns one
+  server-side
+- `additional_info` (optional): Notes
+- `created_date` (optional, ISO 8601): Leave None for server-stamping;
+  supply for back-fills
+- `preview` (optional, default true): true=preview, false=create
+
+**Safety:** When preview=false, prompts user for confirmation before creating.
+
+---
+
+### list_bin_transfers
+List bin transfers with filters. All filters run as indexed SQL against the
+typed cache. (The endpoint has no `updated_at_min` support, so each sync is
+a full fetch — fine for this low-volume entity.)
+
+**Parameters:**
+- `limit` (optional, default 50, min 1): Max rows to return
+- `page` (optional): Page number (1-based); when set, the response includes
+  `pagination` metadata computed via SQL COUNT
+- `ids` (optional): Filter by explicit list of bin transfer IDs
+- `status` (optional): "CREATED", "IN_TRANSIT", or "DONE" (tool literals
+  equal the Katana wire values)
+- `location_id` (optional): Filter by location ID
+- `bin_transfer_number` (optional): Exact match on the transfer number
+- `include_deleted` (optional, default `false`): When `true`, surface
+  soft-deleted transfers
+- `created_after` / `created_before`, `updated_after` / `updated_before`
+  (optional): ISO-8601 datetime bounds — indexed SQL range filters
+- `include_rows` (optional, default false): Populate per-transfer row
+  details (variant, quantity, source/target bin, traceability)
+
+---
+
+### modify_bin_transfer
+Unified modification surface — header fields, row-level CRUD, and status
+transition in one call.
+
+**Sub-payloads (all optional, any subset combinable):**
+- `update_header` — patch body fields (`bin_transfer_number`,
+  `location_id`, `additional_info`, `created_date`, `departed_at`,
+  `arrived_at`).
+- `add_rows` / `update_rows` / `delete_row_ids` — line item CRUD. Bin
+  transfer rows are mutable post-creation (`POST/PATCH/DELETE
+  /bin_transfer_rows`), unlike stock-transfer rows. `update_rows` entries
+  carry `id` plus any subset of `variant_id`, `quantity`,
+  `source_bin_location_id`, `target_bin_location_id`, `traceability`
+  (full replacement list).
+- `update_status` — `new_status: "CREATED" | "IN_TRANSIT" | "DONE"`.
+  Katana rejects invalid transitions; the action's error surfaces in the
+  response.
+
+**Parameters:**
+- `id` (required): Bin transfer ID
+- Any subset of the sub-payloads above
+- `preview` (optional, default true): true=preview, false=execute the
+  action plan in canonical order (header → row adds → row updates → row
+  deletes → status — status last so a DONE transition sees the final row
+  set); fail-fast on first error
+
+---
+
+### delete_bin_transfer
+Delete a bin transfer. Destructive — the transfer record (and its rows)
+is removed. The preview carries a `prior_state` snapshot including rows.
+
+**Parameters:**
+- `id` (required): Bin transfer ID
+- `preview` (optional, default true): true=preview, false=delete
+
+---
+
+### list_bin_inventory
+Per-bin stock levels — which bins hold which stock. Live read against
+`GET /bin_inventory` (not cached: rows carry no id/updated_at).
+
+**Parameters:**
+- `granularity` (optional, default "VARIANT"): "VARIANT" aggregates per
+  variant+bin; "BATCH" / "SERIAL_NUMBER" break rows out per batch / serial
+- `location_id` / `variant_id` (optional): Scope filters
+- `bin_location_id` / `batch_id` / `serial_number_id` (optional): Integer
+  ID as a string, or the literal string `'null'` to match rows without
+  that attribution (e.g. `bin_location_id='null'` finds un-binned stock)
+- `limit` (optional, default 50) / `page` (optional)
+
+**Returns:** Rows of (location_id, variant_id, bin_location_id, batch_id,
+serial_number_id, quantity_in_stock / committed / expected). A `null`
+bin_location_id means unassigned stock.
+
+---
+
+### list_storage_bins
+List storage bins (bin locations) — the named bins within each location.
+Live read against `GET /bin_locations`. Use for bin ID lookups on
+`create_bin_transfer` / `modify_bin_transfer` rows and
+`list_bin_inventory` filters.
+
+**Parameters:**
+- `location_id` (optional): Filter by location
+- `bin_name` (optional): Exact match on bin name
+- `include_deleted` (optional, default false)
+- `limit` (optional, default 50) / `page` (optional)
+
+---
+
+### create_storage_bin
+Create a storage bin within a location.
+
+**Parameters:**
+- `bin_name` (required): Name of the new bin (e.g. "A-01-02")
+- `location_id` (required): Location the bin belongs to
+- `preview` (optional, default true): true=preview, false=create
 
 ---
 
