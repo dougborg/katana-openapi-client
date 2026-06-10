@@ -216,6 +216,8 @@ class TestModificationCardRender:
         # Real prior — header diff reads before → after, not (prior unknown).
         assert frame.locator("text=Transfer No: BT-001 → BT-002").count() >= 1
         assert frame.locator("text=Status: CREATED → IN_TRANSIT").count() >= 1
+        # Location renders the resolved name, not the bare id.
+        assert frame.locator("text=Location: Main warehouse (id=1)").count() >= 1
         # Row diff table with summary line.
         assert frame.locator("text=Line items:").count() >= 1
         assert frame.locator("text=+1 added, ~1 updated, -1 deleted").count() >= 1

@@ -177,7 +177,9 @@ async def test_create_bin_transfer_confirm_success():
 
 @pytest.mark.asyncio
 async def test_create_bin_transfer_same_bin_rows_warn():
-    """Rows with source == target bin raise an operator-facing warning."""
+    """Rows with source == target bin — including both unset (unassigned →
+    unassigned) — raise an operator-facing warning; rows that actually move
+    stock don't."""
     context, _ = create_mock_context()
 
     request = CreateBinTransferRequest(
@@ -189,7 +191,13 @@ async def test_create_bin_transfer_same_bin_rows_warn():
                 source_bin_location_id=7,
                 target_bin_location_id=7,
             ),
-            BinTransferRowInput(variant_id=101, quantity=1),
+            BinTransferRowInput(variant_id=101, quantity=1),  # both None: no-op
+            BinTransferRowInput(
+                variant_id=102,
+                quantity=1,
+                source_bin_location_id=7,
+                target_bin_location_id=9,
+            ),
         ],
         preview=True,
     )
@@ -197,7 +205,7 @@ async def test_create_bin_transfer_same_bin_rows_warn():
 
     same_bin = [w for w in result.warnings if "same source and target bin" in w]
     assert len(same_bin) == 1
-    assert "Row(s) 1" in same_bin[0]
+    assert "Row(s) 1, 2" in same_bin[0]
 
 
 @pytest.mark.asyncio
@@ -543,9 +551,11 @@ async def test_modify_bt_plan_canonical_order_status_last():
         "delete_row",
         "update_status",
     ]
-    # Row CRUD plans thread the resolved lookups for the card's row table.
+    # Row CRUD plans thread the resolved lookups for the card's row table,
+    # and every plan shape threads location names for the header line.
     assert "resolved_variants" in response.extras
     assert "resolved_bins" in response.extras
+    assert "resolved_locations" in response.extras
 
 
 @pytest.mark.asyncio

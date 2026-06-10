@@ -1429,6 +1429,7 @@ def _bin_transfer_modify_response(*, is_preview: bool, succeeded: bool | None) -
                 403: {"sku": "WASHER", "display_name": "M5 washer"},
             },
             "resolved_bins": {7: "A-01", 8: "B-02", 9: "C-03"},
+            "resolved_locations": {1: "Main warehouse"},
         },
         "warnings": [],
         "next_actions": [],
