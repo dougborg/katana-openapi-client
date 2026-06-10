@@ -81,6 +81,13 @@ class TestHelpIndexContent:
         assert "Manufacturing & Sales" in HELP_INDEX
         assert "Stock Transfers" in HELP_INDEX
         assert "Bin Transfers" in HELP_INDEX
+        # The bin section's primary tools — a coarse section pin alone
+        # wouldn't catch a tool dropping out of the index.
+        assert "create_bin_transfer" in HELP_INDEX
+        assert "list_bin_transfers" in HELP_INDEX
+        assert "modify_bin_transfer" in HELP_INDEX
+        assert "list_bin_inventory" in HELP_INDEX
+        assert "list_storage_bins" in HELP_INDEX
 
     def test_documents_preview_apply_safety_pattern(self):
         # The preview/apply pattern is the single most important contract

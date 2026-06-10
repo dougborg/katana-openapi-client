@@ -2050,7 +2050,9 @@ transition in one call.
   /bin_transfer_rows`), unlike stock-transfer rows. `update_rows` entries
   carry `id` plus any subset of `variant_id`, `quantity`,
   `source_bin_location_id`, `target_bin_location_id`, `traceability`
-  (full replacement list).
+  (full replacement list). Omitted fields are left unchanged — a bin
+  assignment can be reassigned but not cleared back to unassigned via
+  `update_rows`; delete and re-add the row to un-bin it.
 - `update_status` — `new_status: "CREATED" | "IN_TRANSIT" | "DONE"`.
   Katana rejects invalid transitions; the action's error surfaces in the
   response.
