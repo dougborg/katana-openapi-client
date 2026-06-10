@@ -5,6 +5,8 @@ They provide granular control and are the building blocks for workflow tools.
 
 Organization:
 - items.py: Search and manage items (variants, products, materials, services)
+- bin_transfers.py: Bin transfers (move stock between bins within a
+  location), per-bin inventory levels, and storage bins
 - bom.py: Product-level BOM (Bill of Materials) read + modify on a
   producible product variant
 - inventory.py: Stock checking, low stock alerts, inventory operations
@@ -27,6 +29,7 @@ authoritative numbers.
 
 from fastmcp import FastMCP
 
+from .bin_transfers import register_tools as register_bin_transfer_tools
 from .bom import register_tools as register_bom_tools
 from .cache_admin import register_tools as register_cache_admin_tools
 from .catalog import register_tools as register_catalog_tools
@@ -58,6 +61,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_manufacturing_order_tools(mcp)
     register_order_tools(mcp)
     register_stock_transfer_tools(mcp)
+    register_bin_transfer_tools(mcp)
     register_serial_number_tools(mcp)
     register_reference_tools(mcp)
     register_cache_admin_tools(mcp)
