@@ -8,13 +8,14 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
+    Relationship,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
@@ -1672,6 +1673,106 @@ class CachedAdditionalCost(DeletableEntity, table=True):
     ]
 
     name: Mapped[str]
+
+
+class CachedBinTransferRow(DeletableEntity, table=True):
+    __tablename__ = "bin_transfer_row"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    bin_transfer_id: Annotated[
+        Mapped[int],
+        SQLField(
+            foreign_key="bin_transfer.id", description="ID of the parent bin transfer."
+        ),
+    ]
+    location_id: Annotated[
+        Mapped[int | None],
+        Field(description="ID of the location the transfer occurs within."),
+    ] = None
+    variant_id: Annotated[
+        Mapped[int],
+        Field(description="ID of the product or material variant being moved."),
+    ]
+    quantity: Annotated[
+        Mapped[str], Field(description="Quantity being moved, as a decimal string.")
+    ]
+    source_bin_location_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="ID of the bin the stock moves from, or null when unassigned."
+        ),
+    ] = None
+    target_bin_location_id: Annotated[
+        Mapped[int | None],
+        Field(description="ID of the bin the stock moves to, or null when unassigned."),
+    ] = None
+    traceability: Annotated[
+        Mapped[list[BinTransferTraceability] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Batch/serial allocations for the moved quantity.",
+        ),
+    ] = None
+    created_date: Annotated[
+        Mapped[datetime | None],
+        Field(
+            description="Date the parent transfer was created (mirrored onto the row)."
+        ),
+    ] = None
+    departed_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp the stock departed the source bin."),
+    ] = None
+    arrived_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp the stock arrived at the target bin."),
+    ] = None
+    bin_transfer: Mapped[Optional["CachedBinTransfer"]] = Relationship(
+        back_populates="bin_transfer_rows"
+    )
+
+
+class CachedBinTransfer(DeletableEntity, table=True):
+    __tablename__ = "bin_transfer"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    bin_transfer_number: Annotated[
+        Mapped[str],
+        Field(description="Human-readable reference number for the transfer."),
+    ]
+    location_id: Annotated[
+        Mapped[int], Field(description="ID of the location the transfer occurs within.")
+    ]
+    status: Annotated[
+        Mapped[BinTransferStatus | None],
+        Field(description="Current lifecycle status of the transfer."),
+    ] = None
+    created_date: Annotated[
+        Mapped[datetime | None], Field(description="Date the transfer was created.")
+    ] = None
+    departed_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp the transfer left the source bins."),
+    ] = None
+    arrived_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp the transfer reached the target bins."),
+    ] = None
+    additional_info: Annotated[
+        Mapped[str | None],
+        Field(description="Optional free-text note about the transfer."),
+    ] = None
+    bin_transfer_rows: Mapped[list["CachedBinTransferRow"]] = Relationship(
+        back_populates="bin_transfer"
+    )
 
 
 class CachedLocation(DeletableEntity, table=True):
