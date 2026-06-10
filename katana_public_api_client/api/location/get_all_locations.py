@@ -13,6 +13,7 @@ from ...models.location_list_response import LocationListResponse
 
 def _get_kwargs(
     *,
+    is_primary: bool | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     legal_name: str | Unset = UNSET,
@@ -31,6 +32,8 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    params["is_primary"] = is_primary
 
     json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
@@ -132,6 +135,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    is_primary: bool | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     legal_name: str | Unset = UNSET,
@@ -155,6 +159,7 @@ def sync_detailed(
     recent locations appearing first.
 
     Args:
+        is_primary (bool | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         legal_name (str | Unset):
@@ -181,6 +186,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        is_primary=is_primary,
         ids=ids,
         name=name,
         legal_name=legal_name,
@@ -208,6 +214,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    is_primary: bool | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     legal_name: str | Unset = UNSET,
@@ -231,6 +238,7 @@ def sync(
     recent locations appearing first.
 
     Args:
+        is_primary (bool | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         legal_name (str | Unset):
@@ -258,6 +266,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        is_primary=is_primary,
         ids=ids,
         name=name,
         legal_name=legal_name,
@@ -279,6 +288,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    is_primary: bool | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     legal_name: str | Unset = UNSET,
@@ -302,6 +312,7 @@ async def asyncio_detailed(
     recent locations appearing first.
 
     Args:
+        is_primary (bool | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         legal_name (str | Unset):
@@ -328,6 +339,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        is_primary=is_primary,
         ids=ids,
         name=name,
         legal_name=legal_name,
@@ -353,6 +365,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    is_primary: bool | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     legal_name: str | Unset = UNSET,
@@ -376,6 +389,7 @@ async def asyncio(
     recent locations appearing first.
 
     Args:
+        is_primary (bool | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         legal_name (str | Unset):
@@ -404,6 +418,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            is_primary=is_primary,
             ids=ids,
             name=name,
             legal_name=legal_name,

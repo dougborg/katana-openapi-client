@@ -15,6 +15,7 @@ from ...models.material_list_response import MaterialListResponse
 
 def _get_kwargs(
     *,
+    category_name: str | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     uom: str | Unset = UNSET,
@@ -35,6 +36,8 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    params["category_name"] = category_name
 
     json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
@@ -151,6 +154,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    category_name: str | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     uom: str | Unset = UNSET,
@@ -175,6 +179,7 @@ def sync_detailed(
         with the most recent materials appearing first.
 
     Args:
+        category_name (str | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         uom (str | Unset):
@@ -203,6 +208,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        category_name=category_name,
         ids=ids,
         name=name,
         uom=uom,
@@ -232,6 +238,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    category_name: str | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     uom: str | Unset = UNSET,
@@ -256,6 +263,7 @@ def sync(
         with the most recent materials appearing first.
 
     Args:
+        category_name (str | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         uom (str | Unset):
@@ -285,6 +293,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        category_name=category_name,
         ids=ids,
         name=name,
         uom=uom,
@@ -308,6 +317,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    category_name: str | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     uom: str | Unset = UNSET,
@@ -332,6 +342,7 @@ async def asyncio_detailed(
         with the most recent materials appearing first.
 
     Args:
+        category_name (str | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         uom (str | Unset):
@@ -360,6 +371,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        category_name=category_name,
         ids=ids,
         name=name,
         uom=uom,
@@ -387,6 +399,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    category_name: str | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     name: str | Unset = UNSET,
     uom: str | Unset = UNSET,
@@ -411,6 +424,7 @@ async def asyncio(
         with the most recent materials appearing first.
 
     Args:
+        category_name (str | Unset):
         ids (list[int] | Unset):
         name (str | Unset):
         uom (str | Unset):
@@ -441,6 +455,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            category_name=category_name,
             ids=ids,
             name=name,
             uom=uom,

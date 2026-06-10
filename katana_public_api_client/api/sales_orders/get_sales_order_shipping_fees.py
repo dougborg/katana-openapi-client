@@ -15,6 +15,7 @@ from ...models.sales_order_shipping_fee_list_response import (
 
 def _get_kwargs(
     *,
+    sales_order_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
@@ -26,6 +27,8 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    params["sales_order_id"] = sales_order_id
 
     params["limit"] = limit
 
@@ -113,6 +116,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    sales_order_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
@@ -127,6 +131,7 @@ def sync_detailed(
      Retrieves shipping fees for sales orders.
 
     Args:
+        sales_order_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
@@ -146,6 +151,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        sales_order_id=sales_order_id,
         limit=limit,
         page=page,
         ids=ids,
@@ -166,6 +172,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    sales_order_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
@@ -180,6 +187,7 @@ def sync(
      Retrieves shipping fees for sales orders.
 
     Args:
+        sales_order_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
@@ -200,6 +208,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        sales_order_id=sales_order_id,
         limit=limit,
         page=page,
         ids=ids,
@@ -214,6 +223,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    sales_order_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
@@ -228,6 +238,7 @@ async def asyncio_detailed(
      Retrieves shipping fees for sales orders.
 
     Args:
+        sales_order_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
@@ -247,6 +258,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        sales_order_id=sales_order_id,
         limit=limit,
         page=page,
         ids=ids,
@@ -265,6 +277,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    sales_order_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
@@ -279,6 +292,7 @@ async def asyncio(
      Retrieves shipping fees for sales orders.
 
     Args:
+        sales_order_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
@@ -300,6 +314,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            sales_order_id=sales_order_id,
             limit=limit,
             page=page,
             ids=ids,

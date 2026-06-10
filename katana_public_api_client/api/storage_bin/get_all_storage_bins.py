@@ -13,6 +13,7 @@ from ...models.storage_bin_response import StorageBinResponse
 
 def _get_kwargs(
     *,
+    ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -21,6 +22,12 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    json_ids: list[int] | Unset = UNSET
+    if not isinstance(ids, Unset):
+        json_ids = ids
+
+    params["ids"] = json_ids
 
     params["location_id"] = location_id
 
@@ -93,6 +100,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -106,6 +114,7 @@ def sync_detailed(
     the most recent storage bin appearing first.
 
     Args:
+        ids (list[int] | Unset):
         location_id (int | Unset):
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
@@ -122,6 +131,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        ids=ids,
         location_id=location_id,
         include_deleted=include_deleted,
         limit=limit,
@@ -139,6 +149,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -152,6 +163,7 @@ def sync(
     the most recent storage bin appearing first.
 
     Args:
+        ids (list[int] | Unset):
         location_id (int | Unset):
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
@@ -169,6 +181,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        ids=ids,
         location_id=location_id,
         include_deleted=include_deleted,
         limit=limit,
@@ -180,6 +193,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -193,6 +207,7 @@ async def asyncio_detailed(
     the most recent storage bin appearing first.
 
     Args:
+        ids (list[int] | Unset):
         location_id (int | Unset):
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
@@ -209,6 +224,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        ids=ids,
         location_id=location_id,
         include_deleted=include_deleted,
         limit=limit,
@@ -224,6 +240,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -237,6 +254,7 @@ async def asyncio(
     the most recent storage bin appearing first.
 
     Args:
+        ids (list[int] | Unset):
         location_id (int | Unset):
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
@@ -255,6 +273,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            ids=ids,
             location_id=location_id,
             include_deleted=include_deleted,
             limit=limit,

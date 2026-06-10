@@ -531,6 +531,22 @@ export type OutsourcedPurchaseOrderIngredientAvailability =
 export type VariantType = "product" | "material" | "service";
 
 /**
+ * Status of a purchase order's last document, accepted by the `GET /purchase_orders` `last_document_status` filter (verified against the live API 2026-06-10).
+ */
+export type PurchaseOrderDocumentStatus =
+  | "notSent"
+  | "sending"
+  | "sent"
+  | "failed";
+
+/**
+ * Invoice statuses accepted by the `GET /sales_order_fulfillments` `invoice_status` filter. A subset of SalesOrderFulfillmentInvoiceStatus (the response enum): the gateway does not allow filtering by `PARTIALLY_INVOICED` (verified against the live API 2026-06-10).
+ */
+export type SalesOrderFulfillmentInvoiceStatusFilter =
+  | "INVOICED"
+  | "NOT_INVOICED";
+
+/**
  * ABC inventory classification of the variant. Categorizes items by relative
  * value and consumption importance.
  */
@@ -10145,9 +10161,29 @@ export type SalesOrderRowId = number;
 export type CustomerIds = Array<number>;
 
 /**
- * Filters services by category name
+ * Filters results by category name
  */
 export type CategoryName = string;
+
+/**
+ * Filters locations by whether they are the primary location.
+ */
+export type IsPrimary = boolean;
+
+/**
+ * Filters purchase orders by the status of their last document.
+ */
+export type LastDocumentStatus = PurchaseOrderDocumentStatus;
+
+/**
+ * Filters fulfillments by invoice status.
+ */
+export type FulfillmentInvoiceStatus = SalesOrderFulfillmentInvoiceStatusFilter;
+
+/**
+ * Filters variants by item type (product or material).
+ */
+export type VariantType2 = InventoryItemType;
 
 /**
  * Resource identifier
@@ -10524,6 +10560,10 @@ export type GetAllStorageBinsData = {
   body?: never;
   path?: never;
   query?: {
+    /**
+     * Filters results by an array of IDs.
+     */
+    ids?: Array<number>;
     /**
      * Filters results by a location ID.
      */
@@ -11479,6 +11519,10 @@ export type GetAllLocationsData = {
   body?: never;
   path?: never;
   query?: {
+    /**
+     * Filters locations by whether they are the primary location.
+     */
+    is_primary?: boolean;
     /**
      * Filters results by an array of IDs.
      */
@@ -12745,6 +12789,10 @@ export type GetAllMaterialsData = {
   path?: never;
   query?: {
     /**
+     * Filters results by category name
+     */
+    category_name?: string;
+    /**
      * Filters results by an array of IDs.
      */
     ids?: Array<number>;
@@ -13100,6 +13148,10 @@ export type GetAllProductsData = {
   path?: never;
   query?: {
     /**
+     * Filters results by category name
+     */
+    category_name?: string;
+    /**
      * Filters results by an array of IDs.
      */
     ids?: Array<number>;
@@ -13400,6 +13452,10 @@ export type FindPurchaseOrdersData = {
   body?: never;
   path?: never;
   query?: {
+    /**
+     * Filters purchase orders by the status of their last document.
+     */
+    last_document_status?: PurchaseOrderDocumentStatus;
     /**
      * Filters results by an array of IDs.
      */
@@ -14880,6 +14936,10 @@ export type GetAllVariantsData = {
   body?: never;
   path?: never;
   query?: {
+    /**
+     * Filters variants by item type (product or material).
+     */
+    type?: InventoryItemType;
     /**
      * Filters results by an array of IDs.
      */
@@ -16528,7 +16588,7 @@ export type GetAllServicesData = {
      */
     is_sellable?: boolean;
     /**
-     * Filters services by category name
+     * Filters results by category name
      */
     category_name?: string;
     /**
@@ -18626,6 +18686,10 @@ export type GetAllSalesOrderFulfillmentsData = {
   path?: never;
   query?: {
     /**
+     * Filters fulfillments by invoice status.
+     */
+    invoice_status?: SalesOrderFulfillmentInvoiceStatusFilter;
+    /**
      * Number of records to return per page.
      */
     limit?: number;
@@ -18811,7 +18875,12 @@ export type GetSalesOrderFulfillmentData = {
      */
     id: number;
   };
-  query?: never;
+  query?: {
+    /**
+     * Soft-deleted data is excluded from result set by default. Set to true to include it.
+     */
+    include_deleted?: boolean;
+  };
   url: "/sales_order_fulfillments/{id}";
 };
 
@@ -21807,6 +21876,10 @@ export type GetSalesOrderShippingFeesData = {
   body?: never;
   path?: never;
   query?: {
+    /**
+     * Filter by sales order ID
+     */
+    sales_order_id?: number;
     /**
      * Number of records to return per page.
      */
