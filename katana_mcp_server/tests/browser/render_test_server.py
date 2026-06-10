@@ -27,6 +27,7 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
+    build_bin_transfer_modify_ui,
     build_bom_modify_ui,
     build_customer_create_ui,
     build_inventory_at_ui,
@@ -1331,6 +1332,115 @@ def _stock_transfer_modify_response(
     }
 
 
+def _bin_transfer_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
+    """Build a canned bin-transfer modify response (#943).
+
+    Bin transfers have a GET-by-id endpoint (unlike stock transfers), so
+    ``prior_state`` carries a real snapshot and header diffs read
+    ``before → after``. Exercises a header rename, the full row-CRUD trio
+    (add / update / delete) with resolved variant + bin names, and a status
+    transition — the modify-card family's PO shape with bin columns.
+    """
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=42,
+            changes=[
+                FieldChange(field="bin_transfer_number", old="BT-001", new="BT-002"),
+            ],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=2,
+            operation="add_row",
+            target_id=None,
+            changes=[
+                FieldChange(field="variant_id", old=None, new=403, is_added=True),
+                FieldChange(field="quantity", old=None, new=4.0, is_added=True),
+                FieldChange(
+                    field="target_bin_location_id", old=None, new=8, is_added=True
+                ),
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+        ActionResult(
+            index=3,
+            operation="update_row",
+            target_id=11,
+            changes=[
+                FieldChange(field="quantity", old="2.5", new=5.0),
+                FieldChange(field="target_bin_location_id", old=9, new=8),
+            ],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=4,
+            operation="delete_row",
+            target_id=12,
+            changes=[],
+            succeeded=succeeded,
+        ).model_dump(),
+        ActionResult(
+            index=5,
+            operation="update_status",
+            target_id=42,
+            changes=[FieldChange(field="new_status", old="CREATED", new="IN_TRANSIT")],
+            succeeded=succeeded,
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "bin_transfer",
+        "entity_id": 42,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 42,
+            "bin_transfer_number": "BT-001",
+            "location_id": 1,
+            "status": "CREATED",
+            "bin_transfer_rows": [
+                {
+                    "id": 11,
+                    "bin_transfer_id": 42,
+                    "variant_id": 401,
+                    "quantity": "2.5",
+                    "source_bin_location_id": 7,
+                    "target_bin_location_id": 9,
+                },
+                {
+                    "id": 12,
+                    "bin_transfer_id": 42,
+                    "variant_id": 402,
+                    "quantity": "1",
+                    "source_bin_location_id": 7,
+                    "target_bin_location_id": None,
+                },
+            ],
+        },
+        "extras": {
+            "resolved_variants": {
+                401: {"sku": "BOLT-M5", "display_name": "M5 bolt"},
+                402: {"sku": "NUT-M5", "display_name": "M5 nut"},
+                403: {"sku": "WASHER", "display_name": "M5 washer"},
+            },
+            "resolved_bins": {7: "A-01", 8: "B-02", 9: "C-03"},
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": None,
+        "message": (
+            "Preview: 5 action(s) planned for bin transfer 42"
+            if is_preview
+            else "Applied 5 action(s)"
+        ),
+    }
+
+
 def _so_failed_delete_response(*, is_preview: bool = False) -> dict:
     """Build a canned SO delete response where the apply fails.
 
@@ -2048,6 +2158,18 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         _stock_transfer_modify_response(is_preview=False, succeeded=True),
         confirm_request=_StubRequest(),
         confirm_tool="modify_stock_transfer",
+    ),
+    # #943 — bin-transfer modify card. PO-shaped: real prior-state header
+    # diffs + a row-CRUD diff table with resolved variant + bin names.
+    "bin_transfer_modify_preview": lambda: build_bin_transfer_modify_ui(
+        _bin_transfer_modify_response(is_preview=True, succeeded=None),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_bin_transfer",
+    ),
+    "bin_transfer_modify_applied": lambda: build_bin_transfer_modify_ui(
+        _bin_transfer_modify_response(is_preview=False, succeeded=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_bin_transfer",
     ),
     # #811 — BOM modify card with adds + updates + deletes against a
     # realistic 5-row existing recipe. Pins the row-content + status-pill
