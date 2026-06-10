@@ -39,6 +39,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from katana_mcp.logging import get_logger
 from katana_public_api_client.api.additional_costs import get_additional_costs
+from katana_public_api_client.api.bin_transfer import get_all_bin_transfers
 from katana_public_api_client.api.customer import get_all_customers
 from katana_public_api_client.api.factory import get_factory
 from katana_public_api_client.api.location import get_all_locations
@@ -70,7 +71,10 @@ from katana_public_api_client.models.get_all_variants_extend_item import (
 )
 from katana_public_api_client.models_pydantic._generated import (
     AdditionalCost as PydanticAdditionalCost,
+    BinTransfer as PydanticBinTransfer,
     CachedAdditionalCost,
+    CachedBinTransfer,
+    CachedBinTransferRow,
     CachedCustomer,
     CachedFactory,
     CachedLocation,
@@ -826,6 +830,27 @@ _STOCK_TRANSFER_SPEC = EntitySpec(
 )
 
 
+# Bin transfers: ``GET /bin_transfers`` does not support ``updated_at_min``
+# (only ids / status / location_id / bin_transfer_number / include_deleted),
+# so every sync is a full fetch — acceptable for a low-volume entity, same
+# trade-off as operators. ``include_deleted=True`` still propagates
+# soft-delete tombstones, and ``reconcile_children=True`` rebuilds the
+# nested rows to exactly match the wire on each sync, so no separate
+# row-tombstone spec (the PO-rows pattern) is needed: a row that vanishes
+# from the parent payload is cleared by the reconcile pass.
+_BIN_TRANSFER_SPEC = EntitySpec(
+    entity_key="bin_transfer",
+    api_fn=get_all_bin_transfers,
+    cache_cls=CachedBinTransfer,
+    pydantic_cls=PydanticBinTransfer,
+    child_cls=CachedBinTransferRow,
+    rows_field="bin_transfer_rows",
+    fk_field="bin_transfer_id",
+    supports_incremental=False,
+    reconcile_children=True,
+)
+
+
 # ---------------------------------------------------------------------------
 # Catalog specs (#472 Phase B) — variant + product/material parents,
 # service, customer, supplier, plus reference data.
@@ -1117,6 +1142,17 @@ async def ensure_stock_transfers_synced(
     await _ensure_synced(client, cache, _STOCK_TRANSFER_SPEC)
 
 
+async def ensure_bin_transfers_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull bin transfers from Katana and upsert into the cache.
+
+    Always a full fetch — the endpoint has no ``updated_at_min`` support
+    (see ``_BIN_TRANSFER_SPEC``).
+    """
+    await _ensure_synced(client, cache, _BIN_TRANSFER_SPEC)
+
+
 async def ensure_manufacturing_order_recipe_rows_synced(
     client: KatanaClient, cache: TypedCacheEngine
 ) -> None:
@@ -1245,6 +1281,7 @@ ENTITY_SPECS: dict[str, EntitySpec] = {
     "manufacturing_order": MANUFACTURING_ORDER_SPEC,
     "purchase_order": _PURCHASE_ORDER_SPEC,
     "stock_transfer": _STOCK_TRANSFER_SPEC,
+    "bin_transfer": _BIN_TRANSFER_SPEC,
     "product": _PRODUCT_SPEC,
     "material": _MATERIAL_SPEC,
     "variant": _VARIANT_SPEC,
