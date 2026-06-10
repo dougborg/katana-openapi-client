@@ -172,8 +172,9 @@ The cache is split into two tiers:
   directly (not dict shims), with default `include_archived=False` /
   `include_deleted=False` filters.
 - **Transactional tier** — sales orders, manufacturing orders (+ recipe rows), purchase
-  orders (+ rows), stock adjustments (+ rows), stock transfers (+ rows). Searched via
-  SQL `WHERE` clauses; no FTS sidecar — these tables don't carry free-text fields.
+  orders (+ rows), stock adjustments (+ rows), stock transfers (+ rows), bin transfers
+  (+ rows). Searched via SQL `WHERE` clauses; no FTS sidecar — these tables don't carry
+  free-text fields.
 
 The canonical entity list lives in
 [`typed_cache/sync.py`](https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/src/katana_mcp/typed_cache/sync.py)
