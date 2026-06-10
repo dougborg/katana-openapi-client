@@ -23,6 +23,10 @@ from katana_mcp.typed_cache import TypedCacheEngine
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models_pydantic._generated import (
+    BinTransferStatus,
+    BinTransferTraceability,
+    CachedBinTransfer,
+    CachedBinTransferRow,
     CachedManufacturingOrder,
     CachedManufacturingOrderRecipeRow,
     CachedPurchaseOrder,
@@ -488,6 +492,79 @@ def make_stock_transfer_row(
         variant_id=variant_id,
         quantity=quantity,
         cost_per_unit=cost_per_unit,
+    )
+
+
+# ----------------------------------------------------------------------------
+# bin_transfers
+# ----------------------------------------------------------------------------
+
+
+def make_bin_transfer(
+    *,
+    id: int = 1,
+    bin_transfer_number: str = "BT-TEST",
+    location_id: int = 1,
+    status: BinTransferStatus | str | None = "CREATED",
+    created_date: datetime | None = None,
+    departed_at: datetime | None = None,
+    arrived_at: datetime | None = None,
+    additional_info: str | None = None,
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
+    deleted_at: datetime | None = None,
+    rows: list[CachedBinTransferRow] | None = None,
+) -> CachedBinTransfer:
+    """Build a ``CachedBinTransfer`` for direct cache insertion."""
+    resolved_status = (
+        BinTransferStatus(status)
+        if isinstance(status, str)
+        else (status if status is not None else BinTransferStatus.created)
+    )
+    cached = CachedBinTransfer(
+        id=id,
+        bin_transfer_number=bin_transfer_number,
+        location_id=location_id,
+        status=resolved_status,
+        created_date=naive_utc(created_date),
+        departed_at=naive_utc(departed_at),
+        arrived_at=naive_utc(arrived_at),
+        additional_info=additional_info,
+        created_at=naive_utc(created_at) or datetime(2026, 6, 1),
+        updated_at=naive_utc(updated_at),
+        deleted_at=naive_utc(deleted_at),
+    )
+    cached.bin_transfer_rows = rows if rows is not None else []
+    return cached
+
+
+def make_bin_transfer_row(
+    *,
+    id: int,
+    bin_transfer_id: int,
+    variant_id: int,
+    quantity: str = "1",
+    source_bin_location_id: int | None = None,
+    target_bin_location_id: int | None = None,
+    traceability: list[dict[str, Any]] | None = None,
+) -> CachedBinTransferRow:
+    """Build a ``CachedBinTransferRow`` for direct cache insertion.
+
+    ``quantity`` is a wire decimal string — the cache column mirrors the
+    wire shape (unlike stock-transfer rows, whose wire quantity is a float).
+    """
+    return CachedBinTransferRow(
+        id=id,
+        bin_transfer_id=bin_transfer_id,
+        variant_id=variant_id,
+        quantity=quantity,
+        source_bin_location_id=source_bin_location_id,
+        target_bin_location_id=target_bin_location_id,
+        traceability=(
+            [BinTransferTraceability.model_validate(t) for t in traceability]
+            if traceability
+            else None
+        ),
     )
 
 

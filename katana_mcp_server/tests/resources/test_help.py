@@ -80,6 +80,7 @@ class TestHelpIndexContent:
         assert "Purchase Orders" in HELP_INDEX
         assert "Manufacturing & Sales" in HELP_INDEX
         assert "Stock Transfers" in HELP_INDEX
+        assert "Bin Transfers" in HELP_INDEX
 
     def test_documents_preview_apply_safety_pattern(self):
         # The preview/apply pattern is the single most important contract

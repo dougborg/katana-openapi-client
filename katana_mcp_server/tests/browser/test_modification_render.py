@@ -204,6 +204,37 @@ class TestModificationCardRender:
         assert frame.locator("table").count() == 0
         assert frame.locator("text=APPLIED").count() >= 1
 
+    def test_bin_transfer_modify_preview_renders_header_and_row_table(
+        self, render_scenario
+    ):
+        """#943 — bin-transfer modify card renders real before→after header
+        diffs (GET-by-id exists), the row-CRUD diff table with resolved
+        variant SKUs and bin NAMES (not bare ids), and the status diff.
+        """
+        frame = render_scenario("bin_transfer_modify_preview")
+        assert frame.locator("text=Modify Bin Transfer").count() >= 1
+        # Real prior — header diff reads before → after, not (prior unknown).
+        assert frame.locator("text=Transfer No: BT-001 → BT-002").count() >= 1
+        assert frame.locator("text=Status: CREATED → IN_TRANSIT").count() >= 1
+        # Row diff table with summary line.
+        assert frame.locator("text=Line items:").count() >= 1
+        assert frame.locator("text=+1 added, ~1 updated, -1 deleted").count() >= 1
+        assert frame.locator("table").count() >= 1
+        # Resolved variant SKU + resolved bin names in cells.
+        assert frame.locator("td").filter(has_text="WASHER").count() >= 1
+        assert frame.locator("td").filter(has_text="A-01").count() >= 1
+        # Updated row's bin reassignment renders as a name diff.
+        assert frame.locator("td").filter(has_text="C-03 → B-02").count() >= 1
+        assert frame.locator("button").filter(has_text="Confirm").count() == 1
+
+    def test_bin_transfer_modify_applied_renders_per_row_status(self, render_scenario):
+        """#943 — applied bin-transfer modify shows APPLIED chrome and per-row
+        status pills in the diff table's Status column."""
+        frame = render_scenario("bin_transfer_modify_applied")
+        assert frame.locator("table").count() >= 1
+        # add_row + update_row + delete_row → ≥3 APPLIED status cells.
+        assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
+
     def test_so_modify_partial_failure_applied_renders(self, render_scenario):
         """#723 SO modify card — partial-failure applied state renders the
         card-level PARTIAL FAILURE badge, the per-action APPLIED / FAILED
