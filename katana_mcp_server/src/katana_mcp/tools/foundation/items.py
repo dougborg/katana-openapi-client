@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -249,6 +249,17 @@ class SearchItemsRequest(BaseModel):
             'with {"update_header": {"is_archived": false}}.'
         ),
     )
+    type: Literal["product", "material"] | None = Field(
+        default=None,
+        description=(
+            "Restrict results to a single item type: 'product' (sellable "
+            "finished goods) or 'material' (raw components). Omit to return "
+            "products, materials, and services. The filter runs *after* the "
+            "fuzzy search picks its top ``limit`` matches, so you may get fewer "
+            "than ``limit`` results even when more items of that type exist "
+            "further down the ranking — raise ``limit`` to widen the candidate set."
+        ),
+    )
 
 
 class ItemInfo(BaseModel):
@@ -340,6 +351,12 @@ async def _search_items_impl(
     # Resolve each row's type once and reuse it below (the parent-id resolution
     # and the ItemInfo build both need it).
     typed_variants = [(v, _item_type(v)) for v in variants]
+
+    # Optional item-type narrowing. Post-filters the top fuzzy matches (the
+    # cache's smart_search has no type predicate); product/material are the
+    # only filterable types — the API rejects `service` here (see #937).
+    if request.type is not None:
+        typed_variants = [(v, t) for v, t in typed_variants if t == request.type]
 
     # The parent *item* id that modify_item/get_item need differs from the
     # variant ``id`` search returns. Products/materials carry it on the row

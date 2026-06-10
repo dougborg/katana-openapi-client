@@ -7,6 +7,7 @@ FTS5 with difflib fallback) and ``limit`` (default 50, max 250).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
@@ -49,11 +50,19 @@ def _normalize_query(query: str | None) -> str | None:
     return stripped or None
 
 
+# Ranked-window size pulled from smart_search when a Python predicate narrows
+# results, so the filter sees matches beyond the caller's `limit`. Far larger
+# than any tenant's reference-table row count (locations, tax rates, suppliers),
+# so predicate filtering on the fuzzy-search path is exhaustive in practice.
+_PREDICATE_SCAN_LIMIT = 1000
+
+
 async def _fetch_rows(
     context: Context,
     cached_cls: type[SQLModel],
     query: str | None,
     limit: int,
+    predicate: Callable[[Any], bool] | None = None,
 ) -> tuple[list[Any], int]:
     """Return ``(rows, total_before_limit)`` for a reference list query.
 
@@ -68,15 +77,29 @@ async def _fetch_rows(
     treat the filtered count as the visible total. Without a query,
     ``get_all`` returns every (filtered) row and we slice to ``limit``.
 
+    ``predicate`` is an optional row test applied *before* the limit slice
+    and the visible-total count, for column filters the ``CatalogQueries``
+    adapter doesn't push down (e.g. ``is_primary`` on locations). On the
+    fuzzy-search path the predicate would otherwise run *after*
+    ``smart_search`` already capped at ``limit`` — dropping matches ranked
+    beyond it — so when a predicate is set we pull a wider ranked window
+    (``_PREDICATE_SCAN_LIMIT``) and slice to ``limit`` only after filtering.
+    These reference tables are tiny, so this is exhaustive in practice.
+
     ``query`` must already be normalized (see ``_normalize_query``).
     """
     services = get_services(context)
     catalog = services.typed_cache.catalog
     if query is not None:
-        rows = await catalog.smart_search(cached_cls, query, limit=limit)
-        return rows, len(rows)
+        scan_limit = _PREDICATE_SCAN_LIMIT if predicate is not None else limit
+        rows = await catalog.smart_search(cached_cls, query, limit=scan_limit)
+        if predicate is not None:
+            rows = [r for r in rows if predicate(r)]
+        return rows[:limit], len(rows)
 
     raw = await catalog.get_all(cached_cls)
+    if predicate is not None:
+        raw = [r for r in raw if predicate(r)]
     total = len(raw)
     return raw[:limit], total
 
@@ -273,6 +296,13 @@ class ListLocationsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     query: str | None = Field(default=None, description="Fuzzy search by location name")
+    is_primary: bool | None = Field(
+        default=None,
+        description=(
+            "Filter to the primary location (true) or non-primary locations "
+            "(false). Omit to return all."
+        ),
+    )
     limit: int = Field(default=50, ge=1, le=250)
 
 
@@ -350,7 +380,17 @@ async def _list_locations_impl(
     request: ListLocationsRequest, context: Context
 ) -> ListLocationsResponse:
     query = _normalize_query(request.query)
-    rows, total = await _fetch_rows(context, CachedLocation, query, request.limit)
+    predicate = (
+        # Strict equality (not bool(...)) so is_primary=False matches only rows
+        # explicitly flagged non-primary; a NULL/unknown is_primary matches
+        # neither true nor false rather than being lumped in with false.
+        (lambda loc: getattr(loc, "is_primary", None) == request.is_primary)
+        if request.is_primary is not None
+        else None
+    )
+    rows, total = await _fetch_rows(
+        context, CachedLocation, query, request.limit, predicate=predicate
+    )
     return ListLocationsResponse(
         locations=[_location_from_row(r) for r in rows],
         total_count=total,

@@ -343,6 +343,58 @@ class TestListLocations:
         }
 
     @pytest.mark.asyncio
+    async def test_is_primary_filter(self):
+        """`is_primary=True` returns only the primary location; total reflects it."""
+        cached = [
+            _location(id=1, name="Primary WH", is_primary=True),
+            _location(id=2, name="Overflow WH", is_primary=False),
+            _location(id=3, name="Returns WH", is_primary=None),
+        ]
+        context, _ = _make_context(get_all=cached)
+        result = await list_locations(is_primary=True, limit=50, context=context)
+        payload = json.loads(_extract_text(result))
+        assert [loc["id"] for loc in payload["locations"]] == [1]
+        assert payload["total_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_is_primary_false_excludes_primary_and_unknown(self):
+        """`is_primary=False` returns only rows explicitly flagged non-primary.
+
+        A NULL/unknown ``is_primary`` (id=3) matches neither true nor false — it
+        is not lumped in with the explicit ``False`` rows. The predicate uses
+        strict equality rather than ``bool(...)`` to avoid that surprise.
+        """
+        cached = [
+            _location(id=1, name="Primary WH", is_primary=True),
+            _location(id=2, name="Overflow WH", is_primary=False),
+            _location(id=3, name="Returns WH", is_primary=None),
+        ]
+        context, _ = _make_context(get_all=cached)
+        result = await list_locations(is_primary=False, limit=50, context=context)
+        payload = json.loads(_extract_text(result))
+        assert {loc["id"] for loc in payload["locations"]} == {2}
+
+    @pytest.mark.asyncio
+    async def test_is_primary_with_query_scans_wide_window(self):
+        """query + predicate pulls a wider ranked window so a match ranked
+        beyond the caller's `limit` isn't dropped before the filter runs."""
+        from katana_mcp.tools.foundation.reference import _PREDICATE_SCAN_LIMIT
+
+        matches = [
+            _location(id=1, name="WH north", is_primary=False),
+            _location(id=2, name="WH south", is_primary=True),
+        ]
+        context, lifespan_ctx = _make_context(smart_search=matches, get_all=[])
+        result = await list_locations(
+            query="WH", is_primary=True, limit=1, context=context
+        )
+        # smart_search is asked for the wide scan window, not the caller's limit=1
+        _, kwargs = lifespan_ctx.typed_cache.catalog.smart_search.call_args
+        assert kwargs["limit"] == _PREDICATE_SCAN_LIMIT
+        payload = json.loads(_extract_text(result))
+        assert [loc["id"] for loc in payload["locations"]] == [2]
+
+    @pytest.mark.asyncio
     async def test_partial_address_from_dict_shape(self):
         """``_address_from_obj`` accepts either a ``LocationAddress`` or a
         raw dict (legacy cache shape). Pin the partial-field dict path —
