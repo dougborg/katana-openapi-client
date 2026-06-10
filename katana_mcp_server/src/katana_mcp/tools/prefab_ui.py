@@ -111,6 +111,10 @@ from pydantic import BaseModel
 
 from katana_mcp.logging import get_logger
 from katana_mcp.tools._addresses import addresses_are_equivalent
+from katana_mcp.tools.foundation.bin_row_table import (
+    merge_bin_row_rows_for_modify_card,
+    prepare_bin_row_table_rows,
+)
 from katana_mcp.tools.foundation.bom_table import (
     _derive_status_label,
     _merge_bom_rows_for_modify_card,
@@ -222,6 +226,12 @@ _STATUS_BUCKETS: dict[str, dict[_StatusBucket, set[str]]] = {
         "active": {"IN_TRANSIT"},
         "blocked": set(),
         "neutral": set(),
+    },
+    "bin_transfer": {
+        "success": {"DONE"},
+        "active": {"IN_TRANSIT"},
+        "blocked": set(),
+        "neutral": {"CREATED"},
     },
 }
 _BUCKET_TO_VARIANT: dict[_StatusBucket, str] = {
@@ -8075,6 +8085,235 @@ def build_stock_transfer_modify_ui(
             )
         _render_preview_footer(
             title_prefix=f"Stock Transfer {verb_label}",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(),
+            applied_verb=applied_verb,
+        )
+    return app
+
+
+# ============================================================================
+# Bin-transfer modify / delete card (#943) — header entity-view + one
+# collection diff table (rows). Unlike stock transfers, bin transfer rows are
+# fully mutable post-creation, and a GET-by-id endpoint exists — so this card
+# is the PO-card shape (real prior-state diffs + a line-item table) rather
+# than the stock-transfer header-only shape.
+# ============================================================================
+
+# (wire_field, label) for the bin-transfer header scalar diffs, in display
+# order. ``new_status`` is the field name ``compute_field_diff`` emits for the
+# ``update_status`` sub-payload (BinTransferStatusPatch.new_status); it
+# renders as the "Status" line.
+_BT_HEADER_FIELDS: tuple[tuple[str, str], ...] = (
+    ("bin_transfer_number", "Transfer No"),
+    ("location_id", "Location ID"),
+    ("created_date", "Created Date"),
+    ("departed_at", "Departed At"),
+    ("arrived_at", "Arrived At"),
+    ("additional_info", "Notes"),
+    ("new_status", "Status"),
+)
+
+
+def _render_bin_transfer_entity_view(
+    bt: dict[str, Any],
+    *,
+    changes: dict[str, FieldChangeView] | None = None,
+) -> list[str]:
+    """Render the bin-transfer entity view (header scalar diffs + warnings),
+    returning the block-warning list for the caller to gate the Confirm button.
+
+    Each ``_BT_HEADER_FIELDS`` entry renders its before→after diff when the
+    field is changing, else its plain value when present. Bin transfers have a
+    GET-by-id endpoint, so unlike stock transfers the plain branch fires for
+    unchanged header fields — the prior snapshot provides real context around
+    the diff lines.
+
+    Must be called inside ``with CardContent(), Column(gap=3):``.
+    """
+    changes = changes or {}
+    for field, label in _BT_HEADER_FIELDS:
+        change = changes.get(field)
+        if change is not None and change.kind != "unchanged":
+            _render_field_diff_line(label, change=change)
+        elif bt.get(field) is not None:
+            _render_field_diff_line(label, value=bt.get(field))
+
+    _render_failed_changes_block(changes, field_label_overrides=dict(_BT_HEADER_FIELDS))
+    return _render_warnings_block(bt.get("warnings"))
+
+
+_BIN_ROW_OP_NAMES = frozenset({"add_row", "update_row", "delete_row"})
+
+# DataTable columns for the bin-transfer modify card's line-item diff table.
+# SKU carries the kind gutter (``+ ``/``- ``/``~ ``/``  ``); the bin columns
+# render resolved names ("A-01") with ``bin <id>`` / em-dash fallbacks.
+_BIN_MODIFY_ROW_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="sku_label", header="SKU"),
+    DataTableColumn(key="display_name", header="Item"),
+    DataTableColumn(key="quantity_label", header="Qty", align="right", width="9rem"),
+    DataTableColumn(key="source_bin_label", header="From Bin", width="11rem"),
+    DataTableColumn(key="target_bin_label", header="To Bin", width="11rem"),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+_BIN_MODIFY_ROW_KEY = "bin_row_rows"
+_BIN_MODIFY_ROW_REF = f"{{{{ {_BIN_MODIFY_ROW_KEY} }}}}"
+
+
+def _coerce_resolved_bins(value: Any) -> dict[int, str]:
+    """Coerce a wire ``{bin_id: bin_name}`` map back to int keys.
+
+    Same wire round-trip as :func:`_coerce_resolved_id_map` (JSON stringifies
+    int keys) but for the flat bin-name lookup the bin row table reads.
+    """
+    out: dict[int, str] = {}
+    if not isinstance(value, dict):
+        return out
+    for key, val in value.items():
+        try:
+            int_key = int(key)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(val, str):
+            out[int_key] = val
+    return out
+
+
+def _bin_modify_row_rows(
+    prior_state: dict[str, Any] | None,
+    actions: list[dict[str, Any]],
+    *,
+    extras: dict[str, Any],
+) -> tuple[list[dict[str, Any]], str]:
+    """Build the bin-transfer line-item diff rows + summary, short-circuiting
+    when the plan has no row CRUD (header-/status-only modifies render just
+    the header diffs)."""
+    if not any(
+        str(a.get("operation") or "").lower() in _BIN_ROW_OP_NAMES for a in actions
+    ):
+        return [], ""
+    rows = prepare_bin_row_table_rows(
+        merge_bin_row_rows_for_modify_card(
+            prior_state,
+            actions,
+            _coerce_resolved_id_map(extras.get("resolved_variants")),
+            _coerce_resolved_bins(extras.get("resolved_bins")),
+        )
+    )
+    return rows, collection_diff_summary(rows)
+
+
+def build_bin_transfer_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the modify-/delete-bin-transfer card (#943).
+
+    Header scalar diffs (transfer number / location / dates / notes / status)
+    render via :func:`_render_bin_transfer_entity_view`; the row collection —
+    mutable for bin transfers, unlike stock transfers — renders a diff table
+    on the shared collection-diff skeleton (:mod:`bin_row_table`), shown only
+    when the plan touches rows. Bin transfers have a GET-by-id endpoint, so
+    ``prior_state`` carries a real snapshot and diff lines read
+    ``before → after``. Title verb derives from ``confirm_tool`` via
+    :func:`_verb_label` (``Modify`` / ``Delete``).
+    """
+    is_preview = bool(response.get("is_preview", True))
+    # Apply path: extend with the unattempted plan tail so a fail-fast partial
+    # doesn't drop not-run row actions from the morphed line-item table.
+    actions = _actions_with_not_run_tail(response, is_preview=is_preview)
+    entity_id = response.get("entity_id")
+    verb_label = _verb_label(confirm_tool)
+
+    raw_prior_state = response.get("prior_state")
+    prior_state = raw_prior_state if isinstance(raw_prior_state, dict) else {}
+    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    if entity_id is not None:
+        entity.setdefault("id", entity_id)
+
+    # Header + status field diffs both belong on the header view; scope to the
+    # two header-ish operations so row-level field names (quantity, bins)
+    # can't leak into the header lines.
+    changes_by_field = _index_changes_by_field(
+        actions, include_operations=frozenset({"update_header", "update_status"})
+    )
+
+    bin_row_rows, bin_row_summary = _bin_modify_row_rows(
+        raw_prior_state, actions, extras=response.get("extras") or {}
+    )
+    show_row_table = bool(bin_row_summary)
+
+    number_change = changes_by_field.get("bin_transfer_number")
+    header_number = (
+        entity.get("bin_transfer_number")
+        or (number_change.after if number_change is not None else None)
+        or entity_id
+        or "N/A"
+    )
+
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        # Morph the line-item table in place on apply (PO-card pattern).
+        extra_on_success=(
+            [
+                SetState(
+                    _BIN_MODIFY_ROW_KEY,
+                    f"{{{{ $result.state.{_BIN_MODIFY_ROW_KEY} }}}}",
+                )
+            ]
+            if show_row_table
+            else None
+        ),
+    )
+    cancel_label = (
+        "that bin transfer deletion"
+        if verb_label == "Delete"
+        else "those bin transfer changes"
+    )
+    cancel_action = _build_cancel_action(cancel_label)
+    confirm_label = _modify_confirm_label(verb_label, len(actions))
+    state = _init_modify_card_state(response)
+    if show_row_table:
+        state[_BIN_MODIFY_ROW_KEY] = bin_row_rows
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        title_suffix, state_label, state_variant, applied_verb = (
+            _modify_applied_state_labels(
+                verb_label, is_preview=is_preview, actions=actions
+            )
+        )
+        _render_preview_header(
+            title_prefix=f"{verb_label} Bin Transfer",
+            entity="bin_transfer",
+            order_number=str(header_number),
+            status=entity.get("status"),
+            applied_title_suffix=title_suffix,
+            applied_state_label=state_label,
+            applied_state_variant=state_variant,
+        )
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+            block_warnings = _render_bin_transfer_entity_view(
+                entity, changes=changes_by_field
+            )
+            if show_row_table:
+                Separator()
+                Muted(content="Line items:")
+                Text(content=bin_row_summary)
+                DataTable(
+                    columns=_BIN_MODIFY_ROW_COLUMNS,
+                    rows=_BIN_MODIFY_ROW_REF,
+                    **_paginate(len(bin_row_rows)),
+                )
+        _render_preview_footer(
+            title_prefix=f"Bin Transfer {verb_label}",
             block_warnings=block_warnings,
             confirm_label=confirm_label,
             apply_action=apply_action,

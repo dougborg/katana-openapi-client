@@ -671,6 +671,7 @@ def to_tool_result(
     raises (the generic ``ActionResult`` fallback was removed in Phase 6).
     """
     from katana_mcp.tools.prefab_ui import (
+        build_bin_transfer_modify_ui,
         build_bom_modify_ui,
         build_item_modify_ui,
         build_mo_modify_ui,
@@ -727,6 +728,14 @@ def to_tool_result(
 
     if response.entity_type == "stock_transfer":
         ui = build_stock_transfer_modify_ui(
+            response_dict,
+            confirm_request=confirm_request,
+            confirm_tool=confirm_tool,
+        )
+        return make_tool_result(response, ui=ui)
+
+    if response.entity_type == "bin_transfer":
+        ui = build_bin_transfer_modify_ui(
             response_dict,
             confirm_request=confirm_request,
             confirm_tool=confirm_tool,
