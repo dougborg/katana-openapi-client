@@ -311,6 +311,10 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
     ),
     "StockTransfer": CacheTableSpec(),
     "StockTransferRow": CacheTableSpec(json_columns=("batch_transactions",)),
+    "BinTransfer": CacheTableSpec(),
+    # ``traceability`` is a list of nested ``BinTransferTraceability``
+    # objects (batch/serial allocations) SQLAlchemy can't auto-map.
+    "BinTransferRow": CacheTableSpec(json_columns=("traceability",)),
     # ── Catalog tier (#472 Phase A) ──────────────────────────────────────
     # 11 entity types previously cached in the legacy single-table
     # ``CatalogCache`` (entities + entity_index + FTS5). Each gets its own
@@ -619,6 +623,13 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
         child="StockTransferRow",
         child_back_ref="stock_transfer",
         child_fk_field="stock_transfer_id",
+    ),
+    CacheTableRelationship(
+        parent="BinTransfer",
+        parent_field="bin_transfer_rows",
+        child="BinTransferRow",
+        child_back_ref="bin_transfer",
+        child_fk_field="bin_transfer_id",
     ),
     # ManufacturingOrder does NOT expose recipe_rows on the wire — the
     # rows are fetched via a separate ``manufacturing_order_recipe``
@@ -1426,8 +1437,10 @@ def inject_foreign_keys(classes: list[ClassInfo]) -> list[ClassInfo]:
             # pydantic.Field doesn't accept ``foreign_key``; the dual-import
             # scheme keeps pydantic.Field for normal validation fields and
             # uses sqlmodel.Field (aliased SQLField) for SQL-specific ones.
+            # The FK may be required (``int`` — e.g. BinTransferRow, where
+            # Katana always returns the parent id) or nullable (``int | None``).
             pattern = (
-                rf"({re.escape(fk_field)}:\s*Annotated\[\s*int\s*\|\s*None,"
+                rf"({re.escape(fk_field)}:\s*Annotated\[\s*int(?:\s*\|\s*None)?,"
                 r"\s*)Field\(\s*(description=)"
             )
             replacement = rf'\1SQLField(foreign_key="{parent_table}.id", \2'
