@@ -44,6 +44,13 @@ class OutsourcedPurchaseOrderIngredientAvailability(StrEnum):
     not_applicable = "NOT_APPLICABLE"
 
 
+class PurchaseOrderDocumentStatus(StrEnum):
+    not_sent = "notSent"
+    sending = "sending"
+    sent = "sent"
+    failed = "failed"
+
+
 class PurchaseOrderEntityType(StrEnum):
     regular = "regular"
     outsourced = "outsourced"

@@ -6,20 +6,29 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
 from ...models.sales_order_fulfillment import SalesOrderFulfillment
 
 
 def _get_kwargs(
     id: int,
+    *,
+    include_deleted: bool | Unset = UNSET,
 ) -> dict[str, Any]:
+
+    params: dict[str, Any] = {}
+
+    params["include_deleted"] = include_deleted
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/sales_order_fulfillments/{id}".format(
             id=quote(str(id), safe=""),
         ),
+        "params": params,
     }
 
     return _kwargs
@@ -74,6 +83,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    include_deleted: bool | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesOrderFulfillment]:
     """Retrieve a sales order fulfillment
 
@@ -81,6 +91,7 @@ def sync_detailed(
 
     Args:
         id (int):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -93,6 +104,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        include_deleted=include_deleted,
     )
 
     response = client.get_httpx_client().request(
@@ -106,6 +118,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    include_deleted: bool | Unset = UNSET,
 ) -> ErrorResponse | SalesOrderFulfillment | None:
     """Retrieve a sales order fulfillment
 
@@ -113,6 +126,7 @@ def sync(
 
     Args:
         id (int):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -126,6 +140,7 @@ def sync(
     return sync_detailed(
         id=id,
         client=client,
+        include_deleted=include_deleted,
     ).parsed
 
 
@@ -133,6 +148,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    include_deleted: bool | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesOrderFulfillment]:
     """Retrieve a sales order fulfillment
 
@@ -140,6 +156,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,6 +169,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        include_deleted=include_deleted,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -163,6 +181,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    include_deleted: bool | Unset = UNSET,
 ) -> ErrorResponse | SalesOrderFulfillment | None:
     """Retrieve a sales order fulfillment
 
@@ -170,6 +189,7 @@ async def asyncio(
 
     Args:
         id (int):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -184,5 +204,6 @@ async def asyncio(
         await asyncio_detailed(
             id=id,
             client=client,
+            include_deleted=include_deleted,
         )
     ).parsed

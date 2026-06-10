@@ -239,15 +239,6 @@ overrides:
   # (field = HTTP status code; live/local = "wrapped"/"bare" for response_wrapper).
   # The pagination/dateFilter scalar-expansion family is filtered structurally in
   # the audit (STRUCTURAL_PARAM_NAMES), not catalogued here.
-  - endpoint: "GET /bin_locations"
-    kind: param_only_live
-    field: "ids"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the ids filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
-
   - endpoint: "GET /customer_addresses"
     kind: param_type_diff
     field: "entity_type"
@@ -259,15 +250,6 @@ overrides:
       AddressEntityType enum (billing/shipping, the values the create
       DTOs already use); the live gateway declares a bare string.
 
-  - endpoint: "GET /locations"
-    kind: param_only_live
-    field: "is_primary"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the is_primary filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
-
   - endpoint: "GET /materials"
     kind: param_type_diff
     field: "batch_tracked"
@@ -279,15 +261,6 @@ overrides:
       enum:[false,true]; upstream declares a bare string. The wire
       accepts ?batch_tracked=true (verified 2026-06-08). Local is more precise.
 
-  - endpoint: "GET /materials"
-    kind: param_only_live
-    field: "category_name"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the category_name filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
-
   - endpoint: "GET /products"
     kind: param_type_diff
     field: "batch_tracked"
@@ -298,15 +271,6 @@ overrides:
       Local models the boolean batch_tracked filter as a stricter
       enum:[false,true]; upstream declares a bare string. The wire
       accepts ?batch_tracked=true (verified 2026-06-08). Local is more precise.
-
-  - endpoint: "GET /products"
-    kind: param_only_live
-    field: "category_name"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the category_name filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
 
   - endpoint: "GET /products"
     kind: param_type_diff
@@ -327,15 +291,6 @@ overrides:
       Local-only convenience filter (group_id) with no upstream
       equivalent — an intentional client-side addition.
 
-  - endpoint: "GET /purchase_orders"
-    kind: param_only_live
-    field: "last_document_status"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the last_document_status filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
-
   - endpoint: "GET /sales_order_addresses"
     kind: param_type_diff
     field: "entity_type"
@@ -348,15 +303,6 @@ overrides:
       DTOs already use); the live gateway declares a bare string.
 
   - endpoint: "GET /sales_order_fulfillments"
-    kind: param_only_live
-    field: "invoice_status"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the invoice_status filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
-
-  - endpoint: "GET /sales_order_fulfillments"
     kind: param_type_diff
     field: "status"
     live: "enum:[DELIVERED,PACKED]"
@@ -367,15 +313,6 @@ overrides:
       declares a specific enum. Tighten local to the enum.
     fix_tracked_in: "#938"
 
-  - endpoint: "GET /sales_order_fulfillments/{id}"
-    kind: param_only_live
-    field: "include_deleted"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the include_deleted filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
-
   - endpoint: "GET /sales_order_shipping_fee"
     kind: param_only_local
     field: "ids"
@@ -383,15 +320,6 @@ overrides:
     reason: >-
       Local-only convenience filter (ids) with no upstream
       equivalent — an intentional client-side addition.
-
-  - endpoint: "GET /sales_order_shipping_fee"
-    kind: param_only_live
-    field: "sales_order_id"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the sales_order_id filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
 
   - endpoint: "GET /sales_orders"
     kind: param_type_diff
@@ -539,15 +467,6 @@ overrides:
       Local types the status filter as a bare string; the gateway
       declares a specific enum. Tighten local to the enum.
     fix_tracked_in: "#938"
-
-  - endpoint: "GET /variants"
-    kind: param_only_live
-    field: "type"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Gateway documents the type filter; local does not expose it.
-      Add the missing client filter.
-    fix_tracked_in: "#937"
 
   - endpoint: "GET /bin_locations"
     kind: response_wrapper

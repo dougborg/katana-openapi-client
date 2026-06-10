@@ -850,10 +850,38 @@ components:
     category_name:
       name: category_name
       in: query
-      description: Filters services by category name
+      description: Filters results by category name
       required: false
       schema:
         type: string
+    is_primary:
+      name: is_primary
+      in: query
+      description: Filters locations by whether they are the primary location.
+      required: false
+      schema:
+        type: boolean
+    last_document_status:
+      name: last_document_status
+      in: query
+      description: Filters purchase orders by the status of their last document.
+      required: false
+      schema:
+        $ref: "#/components/schemas/PurchaseOrderDocumentStatus"
+    fulfillment_invoice_status:
+      name: invoice_status
+      in: query
+      description: Filters fulfillments by invoice status.
+      required: false
+      schema:
+        $ref: "#/components/schemas/SalesOrderFulfillmentInvoiceStatusFilter"
+    variant_type:
+      name: type
+      in: query
+      description: Filters variants by item type (product or material).
+      required: false
+      schema:
+        $ref: "#/components/schemas/InventoryItemType"
     id:
       name: id
       in: path
@@ -1764,6 +1792,29 @@ components:
         - material
         - service
       description: Type classification of a variant
+
+    PurchaseOrderDocumentStatus:
+      type: string
+      enum:
+        - notSent
+        - sending
+        - sent
+        - failed
+      description: >-
+        Status of a purchase order's last document, accepted by the
+        `GET /purchase_orders` `last_document_status` filter (verified against
+        the live API 2026-06-10).
+
+    SalesOrderFulfillmentInvoiceStatusFilter:
+      type: string
+      enum:
+        - INVOICED
+        - NOT_INVOICED
+      description: >-
+        Invoice statuses accepted by the `GET /sales_order_fulfillments`
+        `invoice_status` filter. A subset of SalesOrderFulfillmentInvoiceStatus
+        (the response enum): the gateway does not allow filtering by
+        `PARTIALLY_INVOICED` (verified against the live API 2026-06-10).
 
     AbcClassification:
       type: string
@@ -14510,6 +14561,7 @@ paths:
         the most recent storage bin appearing first.
       operationId: getAllStorageBins
       parameters:
+        - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/location_id"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/limit"
@@ -15174,6 +15226,7 @@ paths:
         recent locations appearing first.
       operationId: getAllLocations
       parameters:
+        - $ref: "#/components/parameters/is_primary"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/legal_name"
@@ -16607,6 +16660,7 @@ paths:
             with the most recent materials appearing first.
       operationId: getAllMaterials
       parameters:
+        - $ref: "#/components/parameters/category_name"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/uom"
@@ -17040,6 +17094,7 @@ paths:
             with the most recent products appearing first.
       operationId: getAllProducts
       parameters:
+        - $ref: "#/components/parameters/category_name"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/uom"
@@ -17430,6 +17485,7 @@ paths:
             order, with the most recent purchase orders appearing first.
       operationId: findPurchaseOrders
       parameters:
+        - $ref: "#/components/parameters/last_document_status"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/order_no"
         - $ref: "#/components/parameters/entity_type"
@@ -18841,6 +18897,7 @@ paths:
             with the most recent variants appearing first.
       operationId: getAllVariants
       parameters:
+        - $ref: "#/components/parameters/variant_type"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/product_id"
         - $ref: "#/components/parameters/material_id"
@@ -21603,6 +21660,7 @@ paths:
       description: Returns a list of sales order fulfillments.
       operationId: getAllSalesOrderFulfillments
       parameters:
+        - $ref: "#/components/parameters/fulfillment_invoice_status"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/sales_order_id"
@@ -21707,6 +21765,7 @@ paths:
       description: Retrieves a sales order fulfillment by ID.
       operationId: getSalesOrderFulfillment
       parameters:
+        - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/id"
       responses:
         "200":
@@ -23925,6 +23984,7 @@ paths:
       description: Retrieves shipping fees for sales orders.
       operationId: getSalesOrderShippingFees
       parameters:
+        - $ref: "#/components/parameters/sales_order_id"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"

@@ -43,6 +43,11 @@ from .stock import (
 )
 
 
+class SalesOrderFulfillmentInvoiceStatusFilter(StrEnum):
+    invoiced = "INVOICED"
+    not_invoiced = "NOT_INVOICED"
+
+
 class SalesReturnStatus(StrEnum):
     not_returned = "NOT_RETURNED"
     returned_all = "RETURNED_ALL"
