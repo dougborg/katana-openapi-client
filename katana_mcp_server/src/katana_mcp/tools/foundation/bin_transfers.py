@@ -99,6 +99,7 @@ from katana_public_api_client.models import (
     BinTransferTraceabilityRequest,
     CreateBinTransferRequest as APICreateBinTransferRequest,
     CreateBinTransferRowRequest as APICreateBinTransferRowRequest,
+    ErrorResponse,
     StorageBinCreate,
     StorageBinResponse,
     UpdateBinTransferRequest as APIUpdateBinTransferRequest,
@@ -1137,7 +1138,9 @@ async def _resolve_bins_for_card(
             include_deleted=True,
         )
         parsed = unwrap(response)
-        bins = parsed if isinstance(parsed, list) else []
+        # ``unwrap`` raises on error statuses; excluding ErrorResponse
+        # narrows the union to the bare-array success shape.
+        bins = [] if isinstance(parsed, ErrorResponse) else parsed
     except Exception as exc:
         logger.info(
             f"Could not fetch storage bins for card rendering: {exc} — "
@@ -1613,8 +1616,8 @@ async def _list_storage_bins_impl(
     )
     parsed = unwrap(response)
     # ``unwrap`` raises on error statuses, but its return type keeps the
-    # ErrorResponse union member — narrow to the success shape.
-    bins = parsed if isinstance(parsed, list) else []
+    # ErrorResponse union member — exclude it to reach the bare-array shape.
+    bins = [] if isinstance(parsed, ErrorResponse) else parsed
 
     infos = [_bin_to_info(b) for b in bins]
     return ListStorageBinsResponse(bins=infos, total_count=len(infos))
