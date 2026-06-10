@@ -3444,6 +3444,15 @@ export type PurchaseOrderRowRequest = {
    * Expected arrival date for this line item
    */
   arrival_date?: string;
+  /**
+   * Destination location for this row. Declared by the gateway on the nested
+   * create-PO row, but **not honored at PO-create time** — Katana silently
+   * overrides nested rows to the order-level location (verified live
+   * 2026-06-09). To set a per-row location, use `POST /purchase_order_rows` /
+   * `PATCH /purchase_order_rows/{id}` after creation, or pass it at receive time
+   * via `POST /purchase_order_receive`.
+   */
+  location_id?: number;
 };
 
 /**
@@ -3864,6 +3873,12 @@ export type PurchaseOrderReceiveRow = {
    * Optional received date in ISO 8601 format.
    */
   received_date?: string;
+  /**
+   * Destination location to receive this row into, enabling multi-location
+   * receiving on a single purchase order. Defaults to the row's location (or the
+   * order-level location) when omitted.
+   */
+  location_id?: number;
   /**
    * Array of batch-specific transactions for this received quantity
    */

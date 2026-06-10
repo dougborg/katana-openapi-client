@@ -8074,9 +8074,19 @@ class TestBuildReceiptUI:
         envelope = build_receipt_ui(response).to_json()
         tables = _find_components_by_type(envelope, "DataTable")
         assert len(tables) == 1
-        # Column set pinned: Item / SKU / Qty / Received / Batch / Line Total
+        # Column set pinned: Item / SKU / Qty / Destination / Received / Batch / Line Total.
+        # "Destination" carries the per-row receiving location for multi-location
+        # receives (#945); blank when the row inherits the order-level location.
         headers = [c.get("header") for c in tables[0].get("columns", [])]
-        assert headers == ["Item", "SKU", "Qty", "Received", "Batch", "Line Total"]
+        assert headers == [
+            "Item",
+            "SKU",
+            "Qty",
+            "Destination",
+            "Received",
+            "Batch",
+            "Line Total",
+        ]
 
     def test_per_row_table_flattens_strings_into_state(self):
         """``DataTable.rows`` is a state-bound mustache reference. The
@@ -8112,6 +8122,39 @@ class TestBuildReceiptUI:
         assert row["received_date"] == "2026-05-18"  # date-only
         assert row["row_total"] == "$5,200.00"
         assert row["batch_summary"] == ""
+        # No per-row location supplied → Destination cell is blank (the row
+        # inherits the order-level receiving location). See #945.
+        assert row["location"] == ""
+
+    def test_per_row_location_renders_destination(self):
+        """Multi-location receiving (#945): a row carrying location_name
+        renders it in the Destination column; a row with only location_id
+        falls back to 'Location ID: N'; a row with neither stays blank."""
+        response = {
+            "order_number": "PO-001",
+            "order_id": 123,
+            "is_preview": True,
+            "items_received": 3,
+            "received_items": [
+                {
+                    "purchase_order_row_id": 1,
+                    "quantity": 1.0,
+                    "location_id": 42,
+                    "location_name": "West DC",
+                },
+                {
+                    "purchase_order_row_id": 2,
+                    "quantity": 1.0,
+                    "location_id": 99,
+                    "location_name": None,
+                },
+                {"purchase_order_row_id": 3, "quantity": 1.0},
+            ],
+        }
+        envelope = build_receipt_ui(response).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        rows = state.get("received_items")
+        assert [r["location"] for r in rows] == ["West DC", "Location ID: 99", ""]
 
     def test_partial_receive_qty_shows_received_of_ordered(self):
         """Partial receives (qty < quantity_ordered) render as '52 of 60'

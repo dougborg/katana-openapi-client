@@ -142,6 +142,12 @@ class PurchaseOrderItem(BaseModel):
             "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
+    # NOTE: no per-row `location_id` here. Katana silently overrides nested
+    # rows at PO-create time to the order-level location (live-verified
+    # 2026-06-09: requested row location is dropped, row comes back at the
+    # header location). Per-row destinations only stick via add_rows /
+    # update_rows (modify_purchase_order) and at receive time — exposing it
+    # here would be a silent no-op.
 
 
 class CreatePurchaseOrderRequest(BaseModel):
@@ -517,6 +523,14 @@ class ReceiveItemRequest(BaseModel):
             "variant correction)."
         ),
     )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Destination location to receive this row into. Enables receiving "
+            "a single purchase order across multiple locations. When omitted, "
+            "the row lands at its own location (or the order-level location)."
+        ),
+    )
     batch_transactions: list[ReceiveBatchTransaction] | None = Field(
         default=None,
         description=(
@@ -601,6 +615,21 @@ class ReceivedItemInfo(BaseModel):
         description="quantity * price_per_unit in the PO currency.",
     )
     currency: str | None = None
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Effective per-row destination location: the receive-time override "
+            "when supplied, else the row's own location_id (set via add_rows / "
+            "PATCH). None when the row inherits the order-level receiving location."
+        ),
+    )
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved display name for the effective destination location "
+            "(via the typed cache). None when location_id is unset or unresolved."
+        ),
+    )
 
 
 class ReceivePurchaseOrderResponse(BaseModel):
@@ -718,13 +747,42 @@ async def _enrich_received_items(
             if vid is not None:
                 variant_ids.add(int(vid))
 
-    from katana_public_api_client.models_pydantic._generated import CachedVariant
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedLocation,
+        CachedVariant,
+    )
 
     variants_by_id: dict[int, Any] = (
         await services.typed_cache.catalog.get_many_by_ids(
             CachedVariant, variant_ids, include_deleted=True
         )
         if variant_ids
+        else {}
+    )
+
+    # Effective destination for a row = the receive-time override when the
+    # caller supplied one, else the row's own per-row location_id (set via
+    # add_rows / PATCH). Falls back to None — the row inherits the order-level
+    # location, which the card shows in its header rather than per-row.
+    def _effective_location_id(item: ReceiveItemRequest) -> int | None:
+        if item.location_id is not None:
+            return item.location_id
+        po_row = po_rows_by_id.get(item.purchase_order_row_id)
+        return unwrap_unset(po_row.location_id, None) if po_row is not None else None
+
+    # Per-row destination locations (multi-location receiving): resolve all
+    # distinct effective location_ids in one batched lookup so the receipt card
+    # can name each destination without an N+1 cache hit.
+    row_location_ids: set[int] = {
+        loc
+        for item in request_items
+        if (loc := _effective_location_id(item)) is not None
+    }
+    locations_by_id: dict[int, Any] = (
+        await services.typed_cache.catalog.get_many_by_ids(
+            CachedLocation, row_location_ids, include_deleted=True
+        )
+        if row_location_ids
         else {}
     )
 
@@ -757,6 +815,11 @@ async def _enrich_received_items(
             item.received_date or default_received_date
         )
 
+        effective_loc = _effective_location_id(item)
+        row_location = (
+            locations_by_id.get(effective_loc) if effective_loc is not None else None
+        )
+
         received.append(
             ReceivedItemInfo(
                 purchase_order_row_id=item.purchase_order_row_id,
@@ -774,6 +837,12 @@ async def _enrich_received_items(
                 price_per_unit=ppu,
                 row_total=(ppu * item.quantity) if ppu is not None else None,
                 currency=currency,
+                location_id=effective_loc,
+                location_name=(
+                    getattr(row_location, "name", None)
+                    if row_location is not None
+                    else None
+                ),
             )
         )
     return received
@@ -951,6 +1020,7 @@ async def _receive_purchase_order_impl(
                 purchase_order_row_id=item.purchase_order_row_id,
                 quantity=item.quantity,
                 received_date=item.received_date or default_received_date,
+                location_id=to_unset(item.location_id),
                 batch_transactions=_convert_receive_batch_transactions(
                     item.batch_transactions
                 ),
@@ -2761,6 +2831,13 @@ class PORowAdd(BaseModel):
             "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Destination location for this row (multi-location receiving). "
+            "When omitted, the row inherits the order-level location."
+        ),
+    )
 
 
 class PORowUpdate(BaseModel):
@@ -2796,6 +2873,13 @@ class PORowUpdate(BaseModel):
             "New row-level arrival date — ISO 8601 date or datetime "
             "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
             "Naive datetimes (no timezone) are interpreted as UTC."
+        ),
+    )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "New destination location for this row (multi-location receiving). "
+            "Updatable only while the row's received_date is null."
         ),
     )
 

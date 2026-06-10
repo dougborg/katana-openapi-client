@@ -8919,12 +8919,22 @@ def _build_receipt_row_display(item: dict[str, Any]) -> dict[str, Any]:
             return f"{recv_str} of {float(ordered):g}"
         return recv_str
 
+    def _location_display() -> str:
+        # Blank when the row inherits the order-level location (the common
+        # case) — the column only carries signal for multi-location receives.
+        name = item.get("location_name")
+        if name:
+            return str(name)
+        loc_id = item.get("location_id")
+        return f"Location ID: {loc_id}" if loc_id is not None else ""
+
     received_date = item.get("received_date")
     row_total = item.get("row_total")
     return {
         "display_name": item.get("display_name") or "",
         "sku": item.get("sku") or "",
         "quantity": _qty_display(),
+        "location": _location_display(),
         "received_date": _iso_date_only(received_date) if received_date else "—",
         "batch_summary": item.get("batch_summary") or "",
         "row_total": (
@@ -9031,6 +9041,7 @@ def build_receipt_ui(
                         ),
                         DataTableColumn(key="sku", header="SKU", sortable=True),
                         DataTableColumn(key="quantity", header="Qty", align="right"),
+                        DataTableColumn(key="location", header="Destination"),
                         DataTableColumn(key="received_date", header="Received"),
                         DataTableColumn(key="batch_summary", header="Batch"),
                         DataTableColumn(
