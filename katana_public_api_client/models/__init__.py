@@ -371,6 +371,7 @@ from .purchase_order_additional_cost_row_list_response import (
 )
 from .purchase_order_base import PurchaseOrderBase
 from .purchase_order_billing_status import PurchaseOrderBillingStatus
+from .purchase_order_document_status import PurchaseOrderDocumentStatus
 from .purchase_order_entity_type import PurchaseOrderEntityType
 from .purchase_order_list_response import PurchaseOrderListResponse
 from .purchase_order_receive_row import PurchaseOrderReceiveRow
@@ -402,6 +403,9 @@ from .sales_order_address_list_response import SalesOrderAddressListResponse
 from .sales_order_custom_fields_type_0 import SalesOrderCustomFieldsType0
 from .sales_order_fulfillment import SalesOrderFulfillment
 from .sales_order_fulfillment_invoice_status import SalesOrderFulfillmentInvoiceStatus
+from .sales_order_fulfillment_invoice_status_filter import (
+    SalesOrderFulfillmentInvoiceStatusFilter,
+)
 from .sales_order_fulfillment_list_response import SalesOrderFulfillmentListResponse
 from .sales_order_fulfillment_row_request import SalesOrderFulfillmentRowRequest
 from .sales_order_fulfillment_sales_order_fulfillment_rows_item import (
@@ -883,6 +887,7 @@ __all__ = (
     "PurchaseOrderAdditionalCostRowListResponse",
     "PurchaseOrderBase",
     "PurchaseOrderBillingStatus",
+    "PurchaseOrderDocumentStatus",
     "PurchaseOrderEntityType",
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
@@ -908,6 +913,7 @@ __all__ = (
     "SalesOrderCustomFieldsType0",
     "SalesOrderFulfillment",
     "SalesOrderFulfillmentInvoiceStatus",
+    "SalesOrderFulfillmentInvoiceStatusFilter",
     "SalesOrderFulfillmentListResponse",
     "SalesOrderFulfillmentRowRequest",
     "SalesOrderFulfillmentSalesOrderFulfillmentRowsItem",

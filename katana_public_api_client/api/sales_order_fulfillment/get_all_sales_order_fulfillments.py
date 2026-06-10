@@ -8,6 +8,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
+from ...models.sales_order_fulfillment_invoice_status_filter import (
+    SalesOrderFulfillmentInvoiceStatusFilter,
+)
 from ...models.sales_order_fulfillment_list_response import (
     SalesOrderFulfillmentListResponse,
 )
@@ -15,6 +18,7 @@ from ...models.sales_order_fulfillment_list_response import (
 
 def _get_kwargs(
     *,
+    invoice_status: SalesOrderFulfillmentInvoiceStatusFilter | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
@@ -32,6 +36,12 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    json_invoice_status: str | Unset = UNSET
+    if not isinstance(invoice_status, Unset):
+        json_invoice_status = invoice_status.value
+
+    params["invoice_status"] = json_invoice_status
 
     params["limit"] = limit
 
@@ -127,6 +137,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    invoice_status: SalesOrderFulfillmentInvoiceStatusFilter | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
@@ -147,6 +158,10 @@ def sync_detailed(
      Returns a list of sales order fulfillments.
 
     Args:
+        invoice_status (SalesOrderFulfillmentInvoiceStatusFilter | Unset): Invoice statuses
+            accepted by the `GET /sales_order_fulfillments` `invoice_status` filter. A subset of
+            SalesOrderFulfillmentInvoiceStatus (the response enum): the gateway does not allow
+            filtering by `PARTIALLY_INVOICED` (verified against the live API 2026-06-10).
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
@@ -172,6 +187,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        invoice_status=invoice_status,
         limit=limit,
         page=page,
         sales_order_id=sales_order_id,
@@ -198,6 +214,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    invoice_status: SalesOrderFulfillmentInvoiceStatusFilter | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
@@ -218,6 +235,10 @@ def sync(
      Returns a list of sales order fulfillments.
 
     Args:
+        invoice_status (SalesOrderFulfillmentInvoiceStatusFilter | Unset): Invoice statuses
+            accepted by the `GET /sales_order_fulfillments` `invoice_status` filter. A subset of
+            SalesOrderFulfillmentInvoiceStatus (the response enum): the gateway does not allow
+            filtering by `PARTIALLY_INVOICED` (verified against the live API 2026-06-10).
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
@@ -244,6 +265,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        invoice_status=invoice_status,
         limit=limit,
         page=page,
         sales_order_id=sales_order_id,
@@ -264,6 +286,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    invoice_status: SalesOrderFulfillmentInvoiceStatusFilter | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
@@ -284,6 +307,10 @@ async def asyncio_detailed(
      Returns a list of sales order fulfillments.
 
     Args:
+        invoice_status (SalesOrderFulfillmentInvoiceStatusFilter | Unset): Invoice statuses
+            accepted by the `GET /sales_order_fulfillments` `invoice_status` filter. A subset of
+            SalesOrderFulfillmentInvoiceStatus (the response enum): the gateway does not allow
+            filtering by `PARTIALLY_INVOICED` (verified against the live API 2026-06-10).
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
@@ -309,6 +336,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        invoice_status=invoice_status,
         limit=limit,
         page=page,
         sales_order_id=sales_order_id,
@@ -333,6 +361,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    invoice_status: SalesOrderFulfillmentInvoiceStatusFilter | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
@@ -353,6 +382,10 @@ async def asyncio(
      Returns a list of sales order fulfillments.
 
     Args:
+        invoice_status (SalesOrderFulfillmentInvoiceStatusFilter | Unset): Invoice statuses
+            accepted by the `GET /sales_order_fulfillments` `invoice_status` filter. A subset of
+            SalesOrderFulfillmentInvoiceStatus (the response enum): the gateway does not allow
+            filtering by `PARTIALLY_INVOICED` (verified against the live API 2026-06-10).
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
@@ -380,6 +413,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            invoice_status=invoice_status,
             limit=limit,
             page=page,
             sales_order_id=sales_order_id,

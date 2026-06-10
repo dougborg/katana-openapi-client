@@ -13,12 +13,14 @@ from ...models.find_purchase_orders_billing_status import (
 )
 from ...models.find_purchase_orders_extend_item import FindPurchaseOrdersExtendItem
 from ...models.find_purchase_orders_status import FindPurchaseOrdersStatus
+from ...models.purchase_order_document_status import PurchaseOrderDocumentStatus
 from ...models.purchase_order_entity_type import PurchaseOrderEntityType
 from ...models.purchase_order_list_response import PurchaseOrderListResponse
 
 
 def _get_kwargs(
     *,
+    last_document_status: PurchaseOrderDocumentStatus | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
     entity_type: PurchaseOrderEntityType | Unset = UNSET,
@@ -39,6 +41,12 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    json_last_document_status: str | Unset = UNSET
+    if not isinstance(last_document_status, Unset):
+        json_last_document_status = last_document_status.value
+
+    params["last_document_status"] = json_last_document_status
 
     json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
@@ -163,6 +171,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    last_document_status: PurchaseOrderDocumentStatus | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
     entity_type: PurchaseOrderEntityType | Unset = UNSET,
@@ -188,6 +197,9 @@ def sync_detailed(
         order, with the most recent purchase orders appearing first.
 
     Args:
+        last_document_status (PurchaseOrderDocumentStatus | Unset): Status of a purchase order's
+            last document, accepted by the `GET /purchase_orders` `last_document_status` filter
+            (verified against the live API 2026-06-10).
         ids (list[int] | Unset):
         order_no (str | Unset):
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
@@ -217,6 +229,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        last_document_status=last_document_status,
         ids=ids,
         order_no=order_no,
         entity_type=entity_type,
@@ -246,6 +259,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    last_document_status: PurchaseOrderDocumentStatus | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
     entity_type: PurchaseOrderEntityType | Unset = UNSET,
@@ -271,6 +285,9 @@ def sync(
         order, with the most recent purchase orders appearing first.
 
     Args:
+        last_document_status (PurchaseOrderDocumentStatus | Unset): Status of a purchase order's
+            last document, accepted by the `GET /purchase_orders` `last_document_status` filter
+            (verified against the live API 2026-06-10).
         ids (list[int] | Unset):
         order_no (str | Unset):
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
@@ -301,6 +318,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        last_document_status=last_document_status,
         ids=ids,
         order_no=order_no,
         entity_type=entity_type,
@@ -324,6 +342,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    last_document_status: PurchaseOrderDocumentStatus | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
     entity_type: PurchaseOrderEntityType | Unset = UNSET,
@@ -349,6 +368,9 @@ async def asyncio_detailed(
         order, with the most recent purchase orders appearing first.
 
     Args:
+        last_document_status (PurchaseOrderDocumentStatus | Unset): Status of a purchase order's
+            last document, accepted by the `GET /purchase_orders` `last_document_status` filter
+            (verified against the live API 2026-06-10).
         ids (list[int] | Unset):
         order_no (str | Unset):
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
@@ -378,6 +400,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        last_document_status=last_document_status,
         ids=ids,
         order_no=order_no,
         entity_type=entity_type,
@@ -405,6 +428,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    last_document_status: PurchaseOrderDocumentStatus | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
     entity_type: PurchaseOrderEntityType | Unset = UNSET,
@@ -430,6 +454,9 @@ async def asyncio(
         order, with the most recent purchase orders appearing first.
 
     Args:
+        last_document_status (PurchaseOrderDocumentStatus | Unset): Status of a purchase order's
+            last document, accepted by the `GET /purchase_orders` `last_document_status` filter
+            (verified against the live API 2026-06-10).
         ids (list[int] | Unset):
         order_no (str | Unset):
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
@@ -461,6 +488,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            last_document_status=last_document_status,
             ids=ids,
             order_no=order_no,
             entity_type=entity_type,

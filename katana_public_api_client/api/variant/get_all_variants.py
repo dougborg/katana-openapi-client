@@ -10,11 +10,13 @@ from ...client_types import UNSET, Response, Unset
 from ...models.abc_classification import AbcClassification
 from ...models.error_response import ErrorResponse
 from ...models.get_all_variants_extend_item import GetAllVariantsExtendItem
+from ...models.inventory_item_type import InventoryItemType
 from ...models.variant_list_response import VariantListResponse
 
 
 def _get_kwargs(
     *,
+    type_: InventoryItemType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     material_id: int | Unset = UNSET,
@@ -37,6 +39,12 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    json_type_: str | Unset = UNSET
+    if not isinstance(type_, Unset):
+        json_type_ = type_.value
+
+    params["type"] = json_type_
 
     json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
@@ -165,6 +173,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    type_: InventoryItemType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     material_id: int | Unset = UNSET,
@@ -191,6 +200,7 @@ def sync_detailed(
         with the most recent variants appearing first.
 
     Args:
+        type_ (InventoryItemType | Unset): Item type discriminator for products and materials
         ids (list[int] | Unset):
         product_id (int | Unset):
         material_id (int | Unset):
@@ -223,6 +233,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        type_=type_,
         ids=ids,
         product_id=product_id,
         material_id=material_id,
@@ -254,6 +265,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    type_: InventoryItemType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     material_id: int | Unset = UNSET,
@@ -280,6 +292,7 @@ def sync(
         with the most recent variants appearing first.
 
     Args:
+        type_ (InventoryItemType | Unset): Item type discriminator for products and materials
         ids (list[int] | Unset):
         product_id (int | Unset):
         material_id (int | Unset):
@@ -313,6 +326,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        type_=type_,
         ids=ids,
         product_id=product_id,
         material_id=material_id,
@@ -338,6 +352,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    type_: InventoryItemType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     material_id: int | Unset = UNSET,
@@ -364,6 +379,7 @@ async def asyncio_detailed(
         with the most recent variants appearing first.
 
     Args:
+        type_ (InventoryItemType | Unset): Item type discriminator for products and materials
         ids (list[int] | Unset):
         product_id (int | Unset):
         material_id (int | Unset):
@@ -396,6 +412,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        type_=type_,
         ids=ids,
         product_id=product_id,
         material_id=material_id,
@@ -425,6 +442,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    type_: InventoryItemType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     material_id: int | Unset = UNSET,
@@ -451,6 +469,7 @@ async def asyncio(
         with the most recent variants appearing first.
 
     Args:
+        type_ (InventoryItemType | Unset): Item type discriminator for products and materials
         ids (list[int] | Unset):
         product_id (int | Unset):
         material_id (int | Unset):
@@ -485,6 +504,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            type_=type_,
             ids=ids,
             product_id=product_id,
             material_id=material_id,
