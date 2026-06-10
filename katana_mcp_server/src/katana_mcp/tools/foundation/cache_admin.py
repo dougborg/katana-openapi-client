@@ -61,6 +61,7 @@ CacheEntityType = Literal[
     "manufacturing_order",
     "stock_adjustment",
     "stock_transfer",
+    "bin_transfer",
     # Catalog entities — flat tables, no inline child rows. ``variant``
     # carries denormalized parent-archive state; the rest are simple
     # name/id lookups against the corresponding Katana endpoints.
@@ -96,7 +97,8 @@ class RebuildCacheRequest(BaseModel):
             "table(s) for that entity, clears its sync watermark, and "
             "re-fetches the live state from Katana. Covers transactional "
             "entities (purchase_order, sales_order, manufacturing_order, "
-            "stock_adjustment, stock_transfer) and catalog entities "
+            "stock_adjustment, stock_transfer, bin_transfer) and catalog "
+            "entities "
             "(variant, product, material, service, customer, supplier, "
             "location, tax_rate, operator, factory, additional_cost)."
         ),
@@ -287,9 +289,9 @@ async def rebuild_cache(
     **Supported entity types:**
 
     - Transactional: ``purchase_order``, ``sales_order``,
-      ``manufacturing_order``, ``stock_adjustment``, ``stock_transfer``
-      (each rebuilds the parent table plus its child/related-spec
-      tables, e.g. PO + PO rows, MO + MO recipe rows).
+      ``manufacturing_order``, ``stock_adjustment``, ``stock_transfer``,
+      ``bin_transfer`` (each rebuilds the parent table plus its
+      child/related-spec tables, e.g. PO + PO rows, MO + MO recipe rows).
     - Catalog: ``variant``, ``product``, ``material``, ``service``,
       ``customer``, ``supplier``, ``location``, ``tax_rate``,
       ``operator``, ``factory``, ``additional_cost`` (flat tables,
