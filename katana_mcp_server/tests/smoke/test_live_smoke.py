@@ -2,11 +2,13 @@
 
 Each test calls a tool impl through the ``live_smoke_context`` and asserts the
 response is *structurally* valid — the right model, a list payload, a
-non-negative count. The impls are decorated with ``@cache_read(...)``, which
-syncs the entity into the context's typed cache before running, so the tests
-don't sync explicitly. Assertions never pin exact values: the test tenant's
-data drifts. The point is "auth + sync + tool wiring work end-to-end", not
-"there are exactly N locations".
+non-negative count. Cache-backed impls sync the entity into the context's
+typed cache before querying (via ``@cache_read(...)`` for the reference
+tools, or an inline ``ensure_<entity>_synced`` call for bin transfers), so
+the tests don't sync explicitly; the bin inventory / storage-bin tools are
+live reads with no cache step at all. Assertions never pin exact values: the
+test tenant's data drifts. The point is "auth + sync + tool wiring work
+end-to-end", not "there are exactly N locations".
 
 These skip automatically when ``KATANA_TEST_API_KEY`` is unset (the skip lives
 in the ``live_smoke_context`` fixture).

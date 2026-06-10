@@ -866,18 +866,42 @@ class BinTransferRowAdd(BaseModel):
 
 
 class BinTransferRowUpdate(BaseModel):
-    """Patch to an existing bin transfer row."""
+    """Patch to an existing bin transfer row.
+
+    ``None`` on any field means "leave unchanged" (the repo-wide
+    None → UNSET patch convention) — so a bin assignment can be
+    *reassigned* to another bin but not *cleared* back to the unassigned
+    pool through this tool. To move stock to unassigned, delete the row
+    and re-add it without the bin field.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Bin transfer row ID to update")
-    variant_id: int | None = Field(default=None, description="New variant ID")
-    quantity: float | None = Field(default=None, description="New quantity", gt=0)
+    variant_id: int | None = Field(
+        default=None,
+        description="Replacement variant ID; omit to leave unchanged",
+    )
+    quantity: float | None = Field(
+        default=None,
+        description="Replacement quantity; omit to leave unchanged",
+        gt=0,
+    )
     source_bin_location_id: int | None = Field(
-        default=None, description="New source bin ID"
+        default=None,
+        description=(
+            "Replacement source bin ID; omit to leave unchanged. Clearing "
+            "to unassigned is not supported here — delete and re-add the "
+            "row instead."
+        ),
     )
     target_bin_location_id: int | None = Field(
-        default=None, description="New target bin ID"
+        default=None,
+        description=(
+            "Replacement target bin ID; omit to leave unchanged. Clearing "
+            "to unassigned is not supported here — delete and re-add the "
+            "row instead."
+        ),
     )
     traceability: list[BinTransferTraceabilityInput] | None = Field(
         default=None,
@@ -997,8 +1021,8 @@ def _wire_traceability_from_dumped(
             batch_id=to_unset(item.get("batch_id")),
             serial_number_id=to_unset(item.get("serial_number_id")),
             quantity=(
-                _quantity_to_wire(item["quantity"])
-                if item.get("quantity") is not None
+                _quantity_to_wire(quantity)
+                if (quantity := item.get("quantity")) is not None
                 else UNSET
             ),
         )
@@ -1120,21 +1144,26 @@ async def _resolve_bin_row_variants(
 
 
 async def _resolve_bins_for_card(
-    services: Any, existing: BinTransfer | None
+    services: Any, existing: BinTransfer | None, new_location_id: int | None = None
 ) -> dict[int, str]:
     """Best-effort ``{bin_id: bin_name}`` lookup for the modify card's row table.
 
     Storage bins aren't cached (live-only endpoint), so this issues one live
     GET scoped to the transfer's location — every bin a row can legally
-    reference belongs to that location. Failures (or an unfetchable parent)
+    reference belongs to that location. When the same plan moves the transfer
+    to a new location (``update_header.location_id``), that location wins:
+    the row bins must belong to it. Failures (or an unfetchable parent)
     degrade to an empty map and the card falls back to ``bin <id>`` cells.
     """
-    if existing is None:
+    location_id = new_location_id or (
+        existing.location_id if existing is not None else None
+    )
+    if location_id is None:
         return {}
     try:
         response = await api_get_all_storage_bins.asyncio_detailed(
             client=services.client,
-            location_id=existing.location_id,
+            location_id=location_id,
             include_deleted=True,
         )
         parsed = unwrap(response)
@@ -1249,7 +1278,15 @@ async def _modify_bin_transfer_impl(
             _resolve_bin_row_variants(
                 services, _collect_bin_row_variant_ids(existing, request)
             ),
-            _resolve_bins_for_card(services, existing),
+            _resolve_bins_for_card(
+                services,
+                existing,
+                new_location_id=(
+                    request.update_header.location_id
+                    if request.update_header is not None
+                    else None
+                ),
+            ),
         )
     else:
         resolved_variants, resolved_bins = {}, {}
