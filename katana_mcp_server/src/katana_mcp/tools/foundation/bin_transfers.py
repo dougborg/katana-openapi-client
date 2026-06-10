@@ -1060,6 +1060,93 @@ async def _plan_row_updates(
     return specs
 
 
+def _collect_bin_row_variant_ids(
+    existing: BinTransfer | None,
+    request: ModifyBinTransferRequest,
+) -> set[int]:
+    """Gather every variant id the modify card's row table needs resolved.
+
+    Union of the existing rows' variants (the snapshot the card renders) and
+    the variants referenced by ``add_rows`` / ``update_rows`` so added /
+    variant-swapped rows show a SKU + name, not a bare id. One set → one
+    batched cache lookup in :func:`_resolve_bin_row_variants`.
+    """
+    ids: set[int] = set()
+    if existing is not None:
+        for row in unwrap_unset(existing.bin_transfer_rows, None) or []:
+            ids.add(int(row.variant_id))
+    for add in request.add_rows or []:
+        ids.add(int(add.variant_id))
+    for upd in request.update_rows or []:
+        if upd.variant_id is not None:
+            ids.add(int(upd.variant_id))
+    return ids
+
+
+async def _resolve_bin_row_variants(
+    services: Any, variant_ids: set[int]
+) -> dict[int, dict[str, str | None]]:
+    """Batch-resolve ``{variant_id: {"sku", "display_name"}}`` via the typed
+    cache for the modify card's row table. Misses degrade to ``None`` fields
+    so the row still renders (``variant <id>`` fallback). Mirrors the PO
+    card's ``_resolve_po_row_variants``.
+    """
+    if not variant_ids:
+        return {}
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    # Enrichment lookup by ID — include archived + deleted so a row that
+    # references an archived/deleted variant still resolves its SKU + name.
+    variants = await services.typed_cache.catalog.get_many_by_ids(
+        CachedVariant, variant_ids, include_archived=True, include_deleted=True
+    )
+    resolved: dict[int, dict[str, str | None]] = {}
+    for vid in variant_ids:
+        v = variants.get(vid)
+        if v is None:
+            resolved[vid] = {"sku": None, "display_name": None}
+        elif isinstance(v, dict):
+            resolved[vid] = {
+                "sku": v.get("sku"),
+                "display_name": v.get("display_name"),
+            }
+        else:
+            resolved[vid] = {
+                "sku": getattr(v, "sku", None),
+                "display_name": getattr(v, "display_name", None),
+            }
+    return resolved
+
+
+async def _resolve_bins_for_card(
+    services: Any, existing: BinTransfer | None
+) -> dict[int, str]:
+    """Best-effort ``{bin_id: bin_name}`` lookup for the modify card's row table.
+
+    Storage bins aren't cached (live-only endpoint), so this issues one live
+    GET scoped to the transfer's location — every bin a row can legally
+    reference belongs to that location. Failures (or an unfetchable parent)
+    degrade to an empty map and the card falls back to ``bin <id>`` cells.
+    """
+    if existing is None:
+        return {}
+    try:
+        response = await api_get_all_storage_bins.asyncio_detailed(
+            client=services.client,
+            location_id=existing.location_id,
+            include_deleted=True,
+        )
+        parsed = unwrap(response)
+        bins = parsed if isinstance(parsed, list) else []
+    except Exception as exc:
+        logger.info(
+            f"Could not fetch storage bins for card rendering: {exc} — "
+            "row table will show bare bin ids."
+        )
+        return {}
+    return {b.id: b.bin_name for b in bins}
+
+
 async def _modify_bin_transfer_impl(
     request: ModifyBinTransferRequest, context: Context
 ) -> ModificationResponse:
@@ -1147,7 +1234,24 @@ async def _modify_bin_transfer_impl(
             )
         )
 
-    return await run_modify_plan(
+    # Resolve variant SKU / name (typed cache) + bin names (one live GET,
+    # storage bins aren't cached) for the card's row table — user-facing
+    # identities, not bare ids. Skipped for header-/status-only plans: the
+    # card short-circuits and never renders the row table.
+    has_row_crud = bool(
+        request.add_rows or request.update_rows or request.delete_row_ids
+    )
+    if has_row_crud:
+        resolved_variants, resolved_bins = await asyncio.gather(
+            _resolve_bin_row_variants(
+                services, _collect_bin_row_variant_ids(existing, request)
+            ),
+            _resolve_bins_for_card(services, existing),
+        )
+    else:
+        resolved_variants, resolved_bins = {}, {}
+
+    response = await run_modify_plan(
         request=request,
         naming=EntityNaming(
             entity_type="bin_transfer",
@@ -1159,6 +1263,10 @@ async def _modify_bin_transfer_impl(
         web_url_kind=None,
         existing=existing,
         plan=plan,
+        extras={
+            "resolved_variants": resolved_variants,
+            "resolved_bins": resolved_bins,
+        },
         cache_merge=CacheMerge(
             cache=services.typed_cache,
             # Deliberately NOT setting ``parent_from_outcome``: like the PO
@@ -1169,6 +1277,31 @@ async def _modify_bin_transfer_impl(
             refetch_for_merge=lambda eid: _fetch_bin_transfer_attrs(services, eid),
         ),
     )
+
+    # Apply-path: synthesize NOT-RUN entries for the unattempted plan tail.
+    # ``execute_plan`` is fail-fast — without these the card's row-table
+    # morph would silently hide every planned row action past a failure.
+    # Mirrors the PO / SO / BOM fail-fast handling.
+    if not response.is_preview:
+        not_run_specs = plan[len(response.actions) :]
+        not_run_actions = [
+            {
+                "operation": spec.operation,
+                "target_id": spec.target_id,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                    for c in spec.diff
+                ],
+                "status_label": "NOT RUN",
+            }
+            for spec in not_run_specs
+        ]
+        if not_run_actions:
+            response.extras["not_run_actions"] = not_run_actions
+
+    return response
 
 
 @observe_tool
