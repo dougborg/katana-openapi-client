@@ -2191,6 +2191,13 @@ async def verify_order_document(
 # ============================================================================
 
 
+# Values the cache stores for ``CachedPurchaseOrder.last_document_status``
+# (DocumentSendStatus). The API's `last_document_status` *filter* uses the
+# camelCase wire form (notSent/sending/sent/failed); the cache and this
+# request use the UPPER_SNAKE response form, coerced to the cache enum below.
+FindPurchaseOrdersLastDocumentStatus = Literal["NOT_SENT", "SENDING", "SENT", "FAILED"]
+
+
 class ListPurchaseOrdersRequest(BaseModel):
     """Request to list/filter purchase orders (list-tool pattern v2)."""
 
@@ -2241,6 +2248,15 @@ class ListPurchaseOrdersRequest(BaseModel):
     billing_status: FindPurchaseOrdersBillingStatus | None = Field(
         default=None,
         description="Filter by billing status: BILLED, NOT_BILLED, PARTIALLY_BILLED.",
+    )
+    last_document_status: FindPurchaseOrdersLastDocumentStatus | None = Field(
+        default=None,
+        description=(
+            "Filter by the send status of the PO's last document: "
+            "NOT_SENT, SENDING, SENT, FAILED. These are the cache/response-form "
+            "values (UPPER_SNAKE) — not the Katana API filter's camelCase form "
+            "(notSent/sending/sent/failed), so pass the UPPER_SNAKE spelling here."
+        ),
     )
     currency: str | None = Field(
         default=None, description="Filter by currency code (e.g. 'USD')"
@@ -2336,6 +2352,7 @@ class PurchaseOrderSummary(BaseModel):
     order_no: str | None
     status: str | None
     billing_status: str | None
+    last_document_status: str | None = None
     entity_type: str | None
     supplier_id: int | None
     location_id: int | None
@@ -2379,6 +2396,7 @@ def _apply_purchase_order_filters(
 
     from katana_public_api_client.models_pydantic._generated import (
         CachedPurchaseOrder,
+        DocumentSendStatus,
         PurchaseOrderBillingStatus,
         PurchaseOrderEntityType,
         PurchaseOrderStatus,
@@ -2403,6 +2421,15 @@ def _apply_purchase_order_filters(
             CachedPurchaseOrder.billing_status
             == coerce_enum(
                 request.billing_status, PurchaseOrderBillingStatus, "billing_status"
+            )
+        )
+    if request.last_document_status is not None:
+        stmt = stmt.where(
+            CachedPurchaseOrder.last_document_status
+            == coerce_enum(
+                request.last_document_status,
+                DocumentSendStatus,
+                "last_document_status",
             )
         )
     if request.currency is not None:
@@ -2580,6 +2607,7 @@ async def _list_purchase_orders_impl(
                 order_no=po.order_no,
                 status=enum_to_str(po.status),
                 billing_status=enum_to_str(po.billing_status),
+                last_document_status=enum_to_str(po.last_document_status),
                 entity_type=enum_to_str(po.entity_type),
                 supplier_id=po.supplier_id,
                 location_id=po.location_id,

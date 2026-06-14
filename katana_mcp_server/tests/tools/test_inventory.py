@@ -618,6 +618,27 @@ async def test_search_items():
 
 
 @pytest.mark.asyncio
+async def test_search_items_filters_by_type():
+    """`type` narrows results to a single item type (product/material)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[
+            {"id": 1, "sku": "P-1", "type": "product", "display_name": "Prod"},
+            {"id": 2, "sku": "M-1", "type": "material", "display_name": "Mat"},
+            {"id": 3, "sku": "S-1", "type": "service", "display_name": "Svc"},
+        ]
+    )
+
+    result = await _search_items_impl(
+        SearchItemsRequest(query="x", limit=20, type="material"), context
+    )
+
+    assert [i.id for i in result.items] == [2]
+    assert result.total_count == 1
+    assert result.items[0].item_type == "material"
+
+
+@pytest.mark.asyncio
 async def test_search_items_handles_optional_fields():
     """Test search_items handles missing optional fields."""
     context, lifespan_ctx = create_mock_context()
