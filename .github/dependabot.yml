@@ -4,6 +4,8 @@
 #
 # Supported ecosystems:
 # - uv: Python dependencies via pyproject.toml and uv.lock (GA since March 2025)
+# - npm: TypeScript client deps via packages/katana-client/package-lock.json
+#        (the lockfile CI gates with `npm ci` in the typescript-client job)
 # - github-actions: Workflow action versions
 # - docker: Base images in Dockerfiles
 #
@@ -29,6 +31,31 @@ updates:
     groups:
       # Group minor/patch updates to reduce PR noise
       python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # TypeScript client (npm — packages/katana-client/package-lock.json)
+  # This is the lockfile CI installs from (`npm ci` in the typescript-client job).
+  # The root pnpm workspace lockfile is not gated by CI, so it's intentionally
+  # not tracked here to avoid churning a lockfile nothing verifies.
+  - package-ecosystem: "npm"
+    directory: "/packages/katana-client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "typescript"
+    groups:
+      # Group minor/patch updates to reduce PR noise
+      npm-minor-patch:
         update-types:
           - "minor"
           - "patch"
