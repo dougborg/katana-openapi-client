@@ -1,0 +1,36 @@
+# zizmor configuration — https://docs.zizmor.sh/configuration/
+#
+# Every entry below is a deliberate, reviewed exception with a rationale — not a
+# blanket suppression. The repo's house rule is "fix the finding, don't silence
+# it"; these are the cases where the flagged pattern is load-bearing and the fix
+# would break the workflow.
+
+rules:
+  artipacked:
+    # These checkouts intentionally persist the Git credential because the job
+    # pushes back to the repo. `persist-credentials: false` is set on every
+    # other (read-only) checkout in the tree.
+    ignore:
+      # release-client / release-mcp jobs: python-semantic-release pushes the
+      # version-bump commit and tag using SEMANTIC_RELEASE_TOKEN.
+      - release.yml:63
+      - release.yml:132
+      # sync-lockfile job: commits the regenerated uv.lock and pushes to main.
+      - release.yml:252
+      # update-mcp-dependency: commits the client bump and pushes to main.
+      - update-mcp-dependency.yml:19
+
+  dangerous-triggers:
+    # update-mcp-dependency runs on `workflow_run` after the Release workflow
+    # completes on main. It does not check out or execute untrusted PR code —
+    # it only bumps the MCP client dependency on the already-trusted main ref.
+    # This is the documented way to chain a job after another workflow.
+    #
+    # dependabot-auto-merge uses `pull_request_target` — the only trigger that
+    # gives a Dependabot PR a write-scoped token to enable auto-merge. It never
+    # checks out or runs PR code (API-only via gh), which is the documented safe
+    # pattern. (That workflow lands in sibling PR #958; this entry is here so the
+    # gate stays green once both merge — a no-op until the file exists.)
+    ignore:
+      - update-mcp-dependency.yml:3
+      - dependabot-auto-merge.yml:13

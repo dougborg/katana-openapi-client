@@ -13,14 +13,21 @@ on:
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
+# Least privilege at the workflow level; jobs opt into the scopes they need.
+permissions: {}
+
 jobs:
   # This workflow triggers GitHub to create a new prebuild
   # The actual prebuild happens via Codespaces settings
   trigger-prebuild:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Log prebuild trigger
         run: |
