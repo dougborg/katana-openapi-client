@@ -90,7 +90,28 @@ mkdocs.yml, etc.) to avoid unnecessary builds.
 - Code security analysis
 - License compliance checks
 
-**Permissions:** `contents: read`, `security-events: write`
+**Permissions:** `contents: read`, `security-events: write` (scoped to the
+`security-scan` job)
+
+### [zizmor.yml](zizmor.yml)
+
+**Trigger:** PRs and pushes touching `.github/workflows/**` or `.github/zizmor.yml`,
+plus a weekly schedule and manual dispatch
+
+**Purpose:** Static analysis of our own GitHub Actions workflows — catches template
+injection, excessive token permissions, credential persistence, dangerous triggers, and
+unpinned actions
+
+**Steps:**
+
+- Run [`zizmor`](https://docs.zizmor.sh) over `.github/workflows/`
+- Upload SARIF to the Security tab
+- Fail the job on any finding (regression gate)
+
+**Permissions:** `contents: read`, `security-events: write` (job-scoped)
+
+**Note:** Deliberate, reviewed exceptions live in [`.github/zizmor.yml`](../zizmor.yml)
+with a rationale per entry — not blanket suppressions.
 
 ### [update-mcp-dependency.yml](update-mcp-dependency.yml)
 
@@ -218,9 +239,17 @@ act push -W .github/workflows/release.yml
 
 ### Updating Actions
 
+**All actions are pinned to a full commit SHA** with a trailing version comment
+(`uses: actions/checkout@<sha> # v6.0.3`) — a mutable tag can be moved by anyone who
+compromises the upstream action, so SHAs are the supply-chain baseline. Dependabot
+updates SHA pins automatically and keeps the version comment current, so the normal flow
+is unchanged. When adding a new action, pin it with
+[`pinact`](https://github.com/suzuki-shunsuke/pinact) (`pinact run`) rather than by
+hand.
+
 Keep actions up to date by:
 
-1. Monitoring Dependabot alerts
+1. Monitoring Dependabot alerts and the weekly `zizmor` scan
 1. Reviewing action changelogs
 1. Testing in a branch before merging
 
