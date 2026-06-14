@@ -1,0 +1,67 @@
+name: zizmor
+
+# Static analysis of our own GitHub Actions workflows (zizmor). Catches
+# template injection, excessive token permissions, credential persistence,
+# dangerous triggers, and unpinned actions before they reach main.
+#
+# Findings are uploaded to the Security tab as SARIF; the job also fails on any
+# finding so a regression blocks the PR. Deliberate exceptions are documented in
+# .github/zizmor.yml.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/zizmor.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/zizmor.yml"
+  schedule:
+    # Weekly, alongside the other security scans.
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          enable-cache: true
+          python-version: "3.14"
+
+      - name: Run zizmor
+        # zizmor emits SARIF to stdout (there is no --output flag); redirect it
+        # to a file. The exit code is the gate — zizmor exits non-zero on any
+        # finding, which fails this step and blocks the PR. The SARIF upload
+        # below still runs (if: always()) so findings reach the Security tab
+        # even on failure. Documented intentional cases are exempted in
+        # .github/zizmor.yml. Pinned to a known version so CI matches local
+        # runs; bump deliberately to pick up new audits.
+        # GH_TOKEN enables zizmor's online audits (e.g. known-vulnerable actions).
+        run: >-
+          uvx zizmor@1.25.2 --persona regular --format sarif .github/workflows/
+          > zizmor.sarif
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SARIF to the Security tab
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        if: always()
+        with:
+          sarif_file: zizmor.sarif
+          category: zizmor
