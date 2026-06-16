@@ -144,6 +144,25 @@ See
 [Automated Dependency Management](../../docs/MONOREPO_SEMANTIC_RELEASE.md#automated-dependency-management)
 for details.
 
+### [dependabot-auto-merge.yml](dependabot-auto-merge.yml)
+
+**Trigger:** `pull_request_target` on Dependabot PRs
+
+**Purpose:** Enable GitHub native auto-merge on low-risk Dependabot PRs so they merge
+once required CI checks pass
+
+**Steps:**
+
+- Read update metadata via `dependabot/fetch-metadata`
+- For patch/minor updates, run `gh pr merge --auto --squash`
+- Major version bumps are skipped and left for human review
+
+**Permissions:** `contents: write`, `pull-requests: write`
+
+**Requires:** "Allow auto-merge" enabled in repo settings, and branch protection on
+`main` with required status checks (auto-merge waits for green; it never bypasses a
+failing check).
+
 ### [copilot-setup-steps.yml](copilot-setup-steps.yml)
 
 **Type:** Reusable workflow
