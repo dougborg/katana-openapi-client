@@ -17,7 +17,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
@@ -53,8 +53,10 @@ jobs:
       - name: Check current MCP dependency
         id: check-current
         if: steps.check-release.outputs.has_release == 'true'
+        env:
+          # Pass via env rather than inline ${{ }} (zizmor: template-injection).
+          CLIENT_VERSION: ${{ steps.check-release.outputs.client_version }}
         run: |
-          CLIENT_VERSION="${{ steps.check-release.outputs.client_version }}"
           CURRENT_DEP=$(grep "katana-openapi-client>=" katana_mcp_server/pyproject.toml | sed 's/.*>=\([0-9.]*\).*/\1/')
 
           echo "current_version=$CURRENT_DEP" >> $GITHUB_OUTPUT
@@ -69,7 +71,7 @@ jobs:
 
       - name: Install uv
         if: steps.check-current.outputs.needs_update == 'true'
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -77,9 +79,10 @@ jobs:
 
       - name: Update MCP dependency
         if: steps.check-current.outputs.needs_update == 'true'
+        env:
+          # Pass via env rather than inline ${{ }} (zizmor: template-injection).
+          CLIENT_VERSION: ${{ steps.check-release.outputs.client_version }}
         run: |
-          CLIENT_VERSION="${{ steps.check-release.outputs.client_version }}"
-
           # Update the dependency in pyproject.toml
           sed -i \
             "s/katana-openapi-client>=.*\",/katana-openapi-client>=$CLIENT_VERSION\",/" \
@@ -96,9 +99,12 @@ jobs:
 
       - name: Commit and push
         if: steps.check-current.outputs.needs_update == 'true'
+        env:
+          # Pass via env rather than inline ${{ }} (zizmor: template-injection).
+          CLIENT_VERSION: ${{ steps.check-release.outputs.client_version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add katana_mcp_server/pyproject.toml uv.lock
-          git commit -m "chore(mcp): update client dependency to v${{ steps.check-release.outputs.client_version }}"
+          git commit -m "chore(mcp): update client dependency to v${CLIENT_VERSION}"
           git push origin main
