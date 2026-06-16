@@ -147,6 +147,8 @@ def _validate_with_openapi_spec_validator(spec_path: Path) -> bool:
         from openapi_spec_validator import validate_spec as openapi_validate_spec
         from openapi_spec_validator.exceptions import OpenAPISpecValidatorError
 
+        from scripts._yaml import safe_load_yaml
+
     except ImportError as e:
         print("   ❌ Required validation dependencies missing:")
         print(f"      Missing: {e.name}")
@@ -155,15 +157,16 @@ def _validate_with_openapi_spec_validator(spec_path: Path) -> bool:
 
     # Load and validate the spec
     try:
-        with open(spec_path, encoding="utf-8") as f:
-            spec = yaml.safe_load(f)
+        spec = safe_load_yaml(spec_path.read_text(encoding="utf-8"))
 
         openapi_validate_spec(spec)
         print("   ✅ openapi-spec-validator passed")
         return True
 
     except yaml.YAMLError as e:
-        print(f"   ❌ YAML parsing error: {e}")
+        # Include the path explicitly — parsing from a string (not a file
+        # handle) means PyYAML reports the source as "<unicode string>".
+        print(f"   ❌ YAML parsing error in {spec_path}: {e}")
         return False
     except OpenAPISpecValidatorError as e:
         print(f"   ❌ OpenAPI spec validation error: {e}")

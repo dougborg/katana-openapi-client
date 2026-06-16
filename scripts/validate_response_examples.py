@@ -34,10 +34,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import yaml
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
+
+from scripts._yaml import safe_load_yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL = REPO_ROOT / "docs" / "katana-openapi.yaml"
@@ -77,7 +78,7 @@ class ValidationReport:
 
 
 def load_yaml_spec(path: Path) -> dict[str, Any]:
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+    return safe_load_yaml(path.read_text(encoding="utf-8"))
 
 
 def _build_local_registry(local_spec: dict[str, Any]) -> Registry:
