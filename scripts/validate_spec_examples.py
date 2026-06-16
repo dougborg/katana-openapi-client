@@ -40,10 +40,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import yaml
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
+
+from scripts._yaml import safe_load_yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SPEC = REPO_ROOT / "docs" / "katana-openapi.yaml"
@@ -328,7 +329,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: spec not found: {args.spec}", file=sys.stderr)
         return 2
 
-    spec = yaml.safe_load(args.spec.read_text(encoding="utf-8"))
+    spec = safe_load_yaml(args.spec.read_text(encoding="utf-8"))
     report = validate_spec(spec)
     text = format_report(report)
     if args.output:

@@ -72,6 +72,8 @@ from typing import Any
 
 import yaml
 
+from scripts._yaml import safe_load_yaml
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL = REPO_ROOT / "docs" / "katana-openapi.yaml"
 DEFAULT_LIVE = REPO_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
@@ -317,7 +319,7 @@ def load_spec(path: Path) -> dict[str, Any]:
     """Load a spec from JSON or YAML based on extension."""
     text = path.read_text(encoding="utf-8")
     if path.suffix.lower() in (".yaml", ".yml"):
-        return yaml.safe_load(text)
+        return safe_load_yaml(text)
     return json.loads(text)
 
 
@@ -804,7 +806,7 @@ def audit_responses(
 
 def load_overrides(path: Path) -> list[Override]:
     """Load + validate the override registry. Raises ValueError on bad schema."""
-    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    raw = safe_load_yaml(path.read_text(encoding="utf-8")) or {}
     entries = raw.get("overrides") or []
     if not isinstance(entries, list):
         raise ValueError(f"{path}: `overrides` must be a list")
