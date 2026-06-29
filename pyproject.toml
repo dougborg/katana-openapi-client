@@ -129,7 +129,7 @@ dev = [
   # Bump deliberately: change the pin, run `uv run poe regenerate-all`, commit the
   # regenerated diff. The regen-freshness CI check guards this.
   "openapi-python-client==0.29.0",
-  "datamodel-code-generator==0.64.0",
+  "datamodel-code-generator==0.66.0",
   # Semantic release
   "python-semantic-release>=10.5.0",
   # MCP server (workspace member) — needed to run katana_mcp_server/tests/
