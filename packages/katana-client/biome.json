@@ -27,6 +27,13 @@
     }
   },
   "files": {
-    "ignore": ["dist", "node_modules", "src/generated"]
-  }
+    "ignore": ["dist", "node_modules"]
+  },
+  "overrides": [
+    {
+      "include": ["src/generated/**"],
+      "linter": { "enabled": false },
+      "organizeImports": { "enabled": false }
+    }
+  ]
 }
