@@ -511,11 +511,11 @@ class TestRetryAfterEndToEndIntegration:
         return RetryTransport(transport=inner, retry=retry), inner
 
     @staticmethod
-    def _resp(status: int, headers: dict[str, str] | None = None) -> MagicMock:
-        response = MagicMock(spec=httpx.Response)
-        response.status_code = status
-        response.headers = headers or {}
-        return response
+    def _resp(status: int, headers: dict[str, str] | None = None) -> httpx.Response:
+        # A real Response (not a MagicMock) so httpx-retries >= 0.6 can write
+        # response.extensions["retry"] — extensions is an instance-only attribute
+        # that a spec'd mock refuses to expose.
+        return httpx.Response(status_code=status, headers=headers or {})
 
     @pytest.mark.asyncio
     @pytest.mark.looptime
