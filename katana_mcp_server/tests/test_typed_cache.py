@@ -429,44 +429,71 @@ class TestConcurrentProcessSharing:
     """
 
     @pytest.mark.asyncio
-    async def test_two_engines_same_dir_both_write_without_lock_error(
+    async def test_second_writer_waits_out_held_lock_instead_of_erroring(
         self, tmp_path: Path
     ):
-        """Two engines on one DB file both commit a write concurrently.
+        """A second writer waits out a *held* write lock, then lands.
 
-        Simulates two server processes (a Claude Desktop connector + a
-        Claude Code session) sharing ``typed_cache.db``. Both open the same
-        file, then race a ``SyncState`` write. With WAL + ``busy_timeout``
-        the loser of the write lock waits out the winner's brief commit and
-        still lands, rather than raising ``database is locked``.
+        Simulates two server processes (a Claude Desktop connector + a Claude
+        Code session) sharing ``typed_cache.db``. Rather than racing two quick
+        commits (which can serialize and pass even without ``busy_timeout``),
+        this forces genuine contention: engine A flushes an insert to acquire
+        SQLite's write lock and holds the transaction open while engine B
+        attempts its own write in a background task.
+
+        While A holds the lock, B must *block* in its driver thread (waiting
+        out ``busy_timeout``) rather than raise ``database is locked`` — proven
+        by B being unable to complete within a short window. A holds the lock
+        for the whole of that window by construction, so the check is
+        deterministic, not timing-sensitive. Once A commits, B lands. With the
+        default zero ``busy_timeout`` B would raise immediately instead of
+        waiting, so this distinguishes the configured behavior from the default.
         """
-        # Arrange: two independent engines pointed at the same file (each a
-        # distinct engine + connection pool, like two OS processes would be).
         db_path = tmp_path / "shared.db"
         engine_a = TypedCacheEngine(db_path=db_path)
         engine_b = TypedCacheEngine(db_path=db_path)
         await engine_a.open()
         await engine_b.open()
 
-        async def _write(engine: TypedCacheEngine, key: str, count: int) -> None:
-            async with engine.session() as session:
+        async def _b_write() -> None:
+            async with engine_b.session() as session:
                 session.add(
                     SyncState(
-                        entity_type=key,
+                        entity_type="purchase_order",
                         last_synced=datetime(2026, 1, 1, 12, 0, 0),
-                        row_count=count,
+                        row_count=2,
                     )
                 )
                 await session.commit()
 
+        task_b: asyncio.Task[None] | None = None
         try:
-            # Act: race both writers. No ``database is locked`` may escape.
-            await asyncio.gather(
-                _write(engine_a, "sales_order", 1),
-                _write(engine_b, "purchase_order", 2),
-            )
+            async with engine_a.session() as session_a:
+                session_a.add(
+                    SyncState(
+                        entity_type="sales_order",
+                        last_synced=datetime(2026, 1, 1, 12, 0, 0),
+                        row_count=1,
+                    )
+                )
+                # Acquire the write lock (SQLite RESERVED) without committing.
+                await session_a.flush()
 
-            # Assert: both writes are durable and visible to a third reader.
+                # B races for the same lock. While A holds it, B must block on
+                # busy_timeout — it cannot finish, so shielding it from the
+                # wait_for cancellation and expecting a timeout proves B is
+                # waiting rather than erroring.
+                task_b = asyncio.create_task(_b_write())
+                with pytest.raises(asyncio.TimeoutError):
+                    await asyncio.wait_for(asyncio.shield(task_b), timeout=0.5)
+                assert not task_b.done()
+
+                # Release the lock; B's pending write now proceeds.
+                await session_a.commit()
+
+            await asyncio.wait_for(task_b, timeout=30)
+
+            # Both writes are durable and visible to a third reader.
             reader = TypedCacheEngine(db_path=db_path)
             await reader.open()
             try:
@@ -480,6 +507,8 @@ class TestConcurrentProcessSharing:
             finally:
                 await reader.close()
         finally:
+            if task_b is not None and not task_b.done():
+                task_b.cancel()
             await engine_a.close()
             await engine_b.close()
 
