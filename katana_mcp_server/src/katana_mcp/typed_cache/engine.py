@@ -76,10 +76,14 @@ def _default_db_path() -> Path:
     separate DB — e.g. an ``erp-dev`` connector that must not share state with
     prod. Resolved at call time (not import time) so tests and per-process
     env overrides take effect. An empty / whitespace value is ignored and
-    falls back to the shared default.
+    falls back to the shared default. A leading ``~`` is expanded to the user
+    home so ``KATANA_CACHE_DIR=~/katana-cache-dev`` behaves like a typical path
+    override instead of creating a literal ``~`` directory under the CWD.
     """
     override = os.environ.get(_CACHE_DIR_ENV, "").strip()
-    base = Path(override) if override else Path(user_cache_dir("katana-mcp"))
+    base = (
+        Path(override).expanduser() if override else Path(user_cache_dir("katana-mcp"))
+    )
     return base / _DB_FILENAME
 
 

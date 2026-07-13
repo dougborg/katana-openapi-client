@@ -547,6 +547,24 @@ class TestCacheDirOverride:
         assert resolved.name == "typed_cache.db"
         assert "katana-mcp" in str(resolved)
 
+    def test_tilde_in_env_override_expands_to_home(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """A leading ``~`` in ``KATANA_CACHE_DIR`` expands to the user home,
+        not a literal ``~`` directory under the CWD."""
+        from katana_mcp.typed_cache.engine import _default_db_path
+
+        # Arrange: a fake home so the assertion doesn't depend on the real env.
+        monkeypatch.setenv("HOME", "/home/testuser")
+        monkeypatch.setenv("KATANA_CACHE_DIR", "~/katana-cache-dev")
+
+        # Act
+        resolved = _default_db_path()
+
+        # Assert: ~ resolved against $HOME.
+        assert resolved == Path("/home/testuser/katana-cache-dev/typed_cache.db")
+        assert "~" not in str(resolved)
+
     @pytest.mark.asyncio
     async def test_engine_default_honors_env_override(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
