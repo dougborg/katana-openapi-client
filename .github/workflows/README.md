@@ -154,7 +154,8 @@ once required CI checks pass
 **Steps:**
 
 - Read update metadata via `dependabot/fetch-metadata`
-- For patch/minor updates, run `gh pr merge --auto --squash`
+- For **semver** patch/minor updates, run `gh pr merge --auto --squash` (PEP440 Python
+  bumps and anything not semver patch/minor are left for human review)
 - Major version bumps are skipped and left for human review
 
 **Permissions:** `contents: write`, `pull-requests: write`

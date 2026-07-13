@@ -25,6 +25,10 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    # Wait 7 days before proposing a bump to a newly published version, so a
+    # freshly compromised or yanked release has time to surface before it lands.
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "python"
@@ -50,6 +54,8 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "typescript"
@@ -72,6 +78,8 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "github-actions"
@@ -93,6 +101,8 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "docker"

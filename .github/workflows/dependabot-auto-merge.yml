@@ -39,7 +39,7 @@ jobs:
         id: meta
         uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
 
-      - name: Enable auto-merge for patch and minor updates
+      - name: Enable auto-merge for semver patch/minor updates
         # Explicit allow-list: only semver patch/minor bumps auto-merge. A bare
         # `!= semver-major` would also let through pep440-major (Python packages
         # use PEP440 versioning, and this repo has a `uv` ecosystem), plus
