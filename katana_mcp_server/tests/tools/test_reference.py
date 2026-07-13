@@ -549,7 +549,7 @@ class TestRequestModels:
 
     def test_get_supplier_requires_id(self):
         with pytest.raises(ValueError):
-            GetSupplierRequest()  # type: ignore[call-arg]
+            GetSupplierRequest.model_validate({})
 
     @pytest.mark.parametrize(
         "model",
