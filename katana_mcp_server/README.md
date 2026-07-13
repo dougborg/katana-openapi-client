@@ -147,6 +147,12 @@ the card pattern details.
 
 - `KATANA_API_KEY` (required): Your Katana API key
 - `KATANA_BASE_URL` (optional): API base URL (default: https://api.katanamrp.com/v1)
+- `KATANA_CACHE_DIR` (optional): Directory for the typed-cache SQLite file. Defaults to
+  a shared machine-wide cache dir (`~/Library/Caches/katana-mcp` on macOS) so multiple
+  server instances share one warm cache — concurrency-safe via WAL + a 30s
+  `busy_timeout`. Set this only for **hard isolation** (a separate DB per connector,
+  e.g. a dev tenant that must not share prod state). See
+  [docs/development.md](docs/development.md#cache-isolation-with-katana_cache_dir).
 - `KATANA_MCP_LOG_LEVEL` (optional): Log level - DEBUG, INFO, WARNING, ERROR (default:
   INFO)
 - `KATANA_MCP_LOG_FORMAT` (optional): Log format - json, text (default: json)

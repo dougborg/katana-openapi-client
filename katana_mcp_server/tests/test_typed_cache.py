@@ -409,9 +409,131 @@ class TestLifecycle:
                 busy = (await conn.execute(text("PRAGMA busy_timeout"))).scalar()
                 synchronous = (await conn.execute(text("PRAGMA synchronous"))).scalar()
             assert journal == "wal"
-            assert busy == 5000
+            assert busy == 30000
             # synchronous=NORMAL is enum value 1.
             assert synchronous == 1
+        finally:
+            await engine.close()
+
+
+class TestConcurrentProcessSharing:
+    """#974: two engines sharing one cache dir must not deadlock on writes.
+
+    The default cache path is a single machine-wide location, so every
+    running ``katana-mcp-server`` opens the same SQLite file. Before the
+    fix, concurrent writers could block on the write lock long enough for
+    the MCP client to time a ``tools/call`` out. The engine now defends the
+    shared file with WAL + a 30s ``busy_timeout`` and keeps write
+    transactions scoped tightly around the DB writes, so contention
+    degrades to a brief stall instead of a client-visible hang.
+    """
+
+    @pytest.mark.asyncio
+    async def test_two_engines_same_dir_both_write_without_lock_error(
+        self, tmp_path: Path
+    ):
+        """Two engines on one DB file both commit a write concurrently.
+
+        Simulates two server processes (a Claude Desktop connector + a
+        Claude Code session) sharing ``typed_cache.db``. Both open the same
+        file, then race a ``SyncState`` write. With WAL + ``busy_timeout``
+        the loser of the write lock waits out the winner's brief commit and
+        still lands, rather than raising ``database is locked``.
+        """
+        # Arrange: two independent engines pointed at the same file (each a
+        # distinct engine + connection pool, like two OS processes would be).
+        db_path = tmp_path / "shared.db"
+        engine_a = TypedCacheEngine(db_path=db_path)
+        engine_b = TypedCacheEngine(db_path=db_path)
+        await engine_a.open()
+        await engine_b.open()
+
+        async def _write(engine: TypedCacheEngine, key: str, count: int) -> None:
+            async with engine.session() as session:
+                session.add(
+                    SyncState(
+                        entity_type=key,
+                        last_synced=datetime(2026, 1, 1, 12, 0, 0),
+                        row_count=count,
+                    )
+                )
+                await session.commit()
+
+        try:
+            # Act: race both writers. No ``database is locked`` may escape.
+            await asyncio.gather(
+                _write(engine_a, "sales_order", 1),
+                _write(engine_b, "purchase_order", 2),
+            )
+
+            # Assert: both writes are durable and visible to a third reader.
+            reader = TypedCacheEngine(db_path=db_path)
+            await reader.open()
+            try:
+                async with reader.session() as session:
+                    so = await session.get(SyncState, "sales_order")
+                    po = await session.get(SyncState, "purchase_order")
+                assert so is not None
+                assert so.row_count == 1
+                assert po is not None
+                assert po.row_count == 2
+            finally:
+                await reader.close()
+        finally:
+            await engine_a.close()
+            await engine_b.close()
+
+
+class TestCacheDirOverride:
+    """#974: ``KATANA_CACHE_DIR`` isolates the cache to a chosen directory."""
+
+    def test_default_path_uses_env_override_when_set(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """``KATANA_CACHE_DIR`` redirects the default DB path under that dir."""
+        from katana_mcp.typed_cache.engine import _default_db_path
+
+        # Arrange
+        monkeypatch.setenv("KATANA_CACHE_DIR", str(tmp_path))
+
+        # Act
+        resolved = _default_db_path()
+
+        # Assert
+        assert resolved == tmp_path / "typed_cache.db"
+
+    def test_blank_env_override_falls_back_to_shared_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """An empty / whitespace ``KATANA_CACHE_DIR`` is ignored."""
+        from katana_mcp.typed_cache.engine import _default_db_path
+
+        # Arrange
+        monkeypatch.setenv("KATANA_CACHE_DIR", "   ")
+
+        # Act
+        resolved = _default_db_path()
+
+        # Assert: falls back to the platformdirs cache dir, not "   ".
+        assert resolved.name == "typed_cache.db"
+        assert "katana-mcp" in str(resolved)
+
+    @pytest.mark.asyncio
+    async def test_engine_default_honors_env_override(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """A default-constructed engine writes under ``KATANA_CACHE_DIR``."""
+        # Arrange
+        monkeypatch.setenv("KATANA_CACHE_DIR", str(tmp_path))
+        engine = TypedCacheEngine()
+
+        # Act
+        assert engine.db_path == tmp_path / "typed_cache.db"
+        await engine.open()
+
+        # Assert: the file materialized under the override dir.
+        try:
+            assert (tmp_path / "typed_cache.db").exists()
         finally:
             await engine.close()
 

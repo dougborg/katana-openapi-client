@@ -9,6 +9,7 @@ fetch).
 from __future__ import annotations
 
 import asyncio
+import os
 import sqlite3
 from collections import defaultdict
 from pathlib import Path
@@ -53,7 +54,33 @@ assert _inventory_mod is not None
 assert _contacts_mod is not None
 assert _common_mod is not None
 
-_DEFAULT_DB_PATH = Path(user_cache_dir("katana-mcp")) / "typed_cache.db"
+_CACHE_DIR_ENV = "KATANA_CACHE_DIR"
+_DB_FILENAME = "typed_cache.db"
+
+
+def _default_db_path() -> Path:
+    """Resolve the default SQLite cache path, honoring ``KATANA_CACHE_DIR``.
+
+    By default the cache lives at one machine-wide location
+    (``platformdirs.user_cache_dir("katana-mcp")/typed_cache.db``), which is
+    intentional: a **shared** cache stays warm across every checkout,
+    worktree, and connector, so a fresh server process reuses an already-
+    synced DB instead of paying the cold-sync cost (Katana meters ~60 req/min
+    per API key — see the typed-cache README). The shared file is made
+    concurrency-safe via WAL + a generous ``busy_timeout`` (see
+    ``_apply_sqlite_pragmas``) so multiple server processes don't deadlock on
+    the write lock.
+
+    ``KATANA_CACHE_DIR`` is the hard-isolation escape hatch (#974): point a
+    connector / session at its own directory when you deliberately want a
+    separate DB — e.g. an ``erp-dev`` connector that must not share state with
+    prod. Resolved at call time (not import time) so tests and per-process
+    env overrides take effect. An empty / whitespace value is ignored and
+    falls back to the shared default.
+    """
+    override = os.environ.get(_CACHE_DIR_ENV, "").strip()
+    base = Path(override) if override else Path(user_cache_dir("katana-mcp"))
+    return base / _DB_FILENAME
 
 
 def _migrate_pre_create_all(sync_conn: Any) -> None:
@@ -98,16 +125,25 @@ def _apply_sqlite_pragmas(dbapi_conn: sqlite3.Connection, _record: object) -> No
     """Per-connection PRAGMAs for the file-backed typed cache.
 
     Multiple MCP server processes (Claude Desktop + worktrees) share the
-    same SQLite file. WAL lets concurrent readers coexist with a writer;
-    ``busy_timeout`` makes a contended writer wait instead of failing
-    immediately with ``database is locked``; ``synchronous=NORMAL`` is
-    the standard pairing with WAL. Registered via ``event.listen`` on
+    same SQLite file (#974). WAL lets concurrent readers coexist with a
+    writer; ``busy_timeout`` makes a contended writer wait instead of
+    failing immediately with ``database is locked``; ``synchronous=NORMAL``
+    is the standard pairing with WAL. Registered via ``event.listen`` on
     the file-backed engine so every checked-out connection has them.
+
+    ``busy_timeout`` is 30s: a cold sync writes the cache in many short
+    transactions (the ``_sync_one_locked`` write blocks are scoped tightly
+    around the DB writes, *not* the network fetch), so a contended writer
+    only ever waits out another process's brief commit, not a full sync.
+    The generous ceiling means transient contention degrades to a short
+    stall well within the MCP client's call timeout instead of surfacing
+    as a ``database is locked`` error or a client-visible ``tools/call``
+    hang.
     """
     cursor = dbapi_conn.cursor()
     try:
         cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA busy_timeout=30000")
         cursor.execute("PRAGMA synchronous=NORMAL")
     finally:
         cursor.close()
@@ -137,9 +173,11 @@ class TypedCacheEngine:
         """Configure the engine but don't open it yet.
 
         Args:
-            db_path: SQLite file path for file-backed mode. Defaults to the
-                user cache dir when ``None`` and ``in_memory`` is false.
-                Must not be provided when ``in_memory=True``.
+            db_path: SQLite file path for file-backed mode. Defaults to
+                ``_default_db_path()`` when ``None`` and ``in_memory`` is
+                false — the shared machine-wide cache dir, or the
+                ``KATANA_CACHE_DIR`` override when set (#974). Must not be
+                provided when ``in_memory=True``.
             in_memory: Use a ``:memory:`` SQLite backend instead of a file.
                 Intended for tests — all data lives in process memory and
                 is lost when the engine is closed. A ``StaticPool`` keeps
@@ -155,7 +193,7 @@ class TypedCacheEngine:
         self._db_path: Path | None = (
             None
             if in_memory
-            else (db_path if db_path is not None else _DEFAULT_DB_PATH)
+            else (db_path if db_path is not None else _default_db_path())
         )
         self._engine: AsyncEngine | None = None
         self._locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
