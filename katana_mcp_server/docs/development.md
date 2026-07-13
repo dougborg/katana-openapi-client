@@ -136,6 +136,39 @@ You can configure Claude Desktop to support both modes simultaneously.
 **Tip**: Use development mode while coding, then test against production mode before
 creating a PR.
 
+### Cache isolation with `KATANA_CACHE_DIR`
+
+Every `katana-mcp-server` instance shares one machine-wide typed-cache SQLite file by
+default (`~/Library/Caches/katana-mcp/typed_cache.db` on macOS). This is intentional — a
+**shared warm cache** means a freshly launched server reuses an already-synced DB
+instead of paying the cold-sync cost (Katana meters ~60 req/min per API key). The shared
+file is made concurrency-safe with WAL + a 30s `busy_timeout`, so multiple instances
+(e.g. both connectors above enabled at once, or a Desktop connector plus a Claude Code
+`.mcp.json` session) coexist without deadlocking on the write lock.
+
+Set `KATANA_CACHE_DIR` only when you deliberately want **hard isolation** — a separate
+DB per connector — for example so an `erp-dev` connector on a different tenant never
+shares state with prod:
+
+```json
+{
+  "mcpServers": {
+    "katana-erp-dev": {
+      "command": "/absolute/path/to/katana-openapi-client/.venv/bin/mcp-hmr",
+      "args": ["katana_mcp.server:mcp"],
+      "cwd": "/absolute/path/to/katana-openapi-client/katana_mcp_server",
+      "env": {
+        "KATANA_API_KEY": "your-dev-api-key-here",
+        "KATANA_CACHE_DIR": "/absolute/path/to/katana-cache-dev"
+      }
+    }
+  }
+}
+```
+
+Each directory gets its own `typed_cache.db`. Trade-off: an isolated cache starts cold
+on first launch, so prefer the shared default unless the tenants genuinely differ.
+
 ## Development Workflow
 
 ### Typical Iteration Cycle

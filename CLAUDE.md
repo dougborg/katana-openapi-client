@@ -156,6 +156,24 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
 
 ### Cross-cutting
 
+- **Multiple `katana-mcp-server` instances share one machine-wide SQLite cache — the
+  "Unable to reach katana-erp-dev" reconnect loop.** The typed cache defaults to a
+  single path (`platformdirs.user_cache_dir("katana-mcp")/typed_cache.db`), so every
+  running server — a Claude Desktop connector + a Claude Code `.mcp.json` session, or
+  two Desktop connectors (`katana-erp` + `katana-erp-dev`) — opens the **same** file and
+  all become writers. **Recognizable signature:** the MCP client reports "Unable to
+  reach katana-erp-dev", the server log shows a tight `tools/list` reconnect loop with
+  **zero** `tools/call` landing (reads succeed, writes hang), and the WAL grows.
+  **Diagnose with** `lsof ~/Library/Caches/katana-mcp/typed_cache.db` — >1 server PID
+  holding the same inode confirms it. **Fixed in #974:** the shared file now uses WAL +
+  a 30s `busy_timeout`, and the sync write transactions are scoped tightly around the DB
+  writes (never across the network fetch), so contention degrades to a brief stall
+  instead of a client-visible hang. For **hard isolation** (a separate DB per connector,
+  e.g. a dev tenant) set `KATANA_CACHE_DIR` — but prefer the shared warm default (an
+  isolated cache starts cold, and Katana meters ~60 req/min per key). Pinned by
+  `katana_mcp_server/tests/test_typed_cache.py::TestConcurrentProcessSharing` and
+  `::TestCacheDirOverride`.
+
 - **Variants can have null SKUs — never assume `Variant.sku` (or `ServiceVariant.sku`)
   is non-null.** Katana allows variants without SKUs (legacy NetSuite imports are a
   common source). The wire contract reflects this: `Variant.sku` **and**
