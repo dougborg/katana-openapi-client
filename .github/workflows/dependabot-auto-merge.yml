@@ -1,0 +1,56 @@
+name: Dependabot auto-merge
+
+# Enable GitHub's native auto-merge on low-risk Dependabot PRs so they merge
+# themselves once required CI checks pass. Branch protection still gates the
+# merge — this only flips the "auto-merge when green" switch; it never bypasses
+# a failing check. Major version bumps are intentionally left for human review.
+#
+# Requires:
+#   - "Allow auto-merge" enabled in repo settings (Settings → General).
+#   - Branch protection on `main` with required status checks, so a PR cannot
+#     merge until CI is green.
+
+on:
+  pull_request_target:
+    # Only the events where enabling auto-merge is meaningful. Notably excludes
+    # `closed`: pull_request_target fires on close/merge too, and re-running
+    # `gh pr merge --auto` against an already-closed PR just fails with a noisy
+    # red check.
+    types: [opened, reopened, synchronize, ready_for_review]
+
+# Least privilege at the workflow level; the job opts into the write scopes it
+# needs. Keeps any future job added here from inheriting repo write access by
+# default — important since this workflow runs on pull_request_target.
+permissions: {}
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    # Gate on the PR author from the event payload, not github.actor — actor is
+    # whoever triggered the event (a human editing/labeling a Dependabot PR would
+    # be the actor), whereas user.login is the stable PR author. This is the form
+    # GitHub's own Dependabot auto-merge docs use.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+
+      - name: Enable auto-merge for semver patch/minor updates
+        # Explicit allow-list: only semver patch/minor bumps auto-merge. A bare
+        # `!= semver-major` would also let through pep440-major (Python packages
+        # use PEP440 versioning, and this repo has a `uv` ecosystem), plus
+        # `indeterminate`, `in-range`/`outside-range`, and security update-types
+        # — anything not on this list is left for human review. Grouped PRs
+        # report the highest bump in the group, so a group containing a major
+        # falls through to manual review.
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
