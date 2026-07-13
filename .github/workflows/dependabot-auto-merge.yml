@@ -10,7 +10,13 @@ name: Dependabot auto-merge
 #   - Branch protection on `main` with required status checks, so a PR cannot
 #     merge until CI is green.
 
-on: pull_request_target
+on:
+  pull_request_target:
+    # Only the events where enabling auto-merge is meaningful. Notably excludes
+    # `closed`: pull_request_target fires on close/merge too, and re-running
+    # `gh pr merge --auto` against an already-closed PR just fails with a noisy
+    # red check.
+    types: [opened, reopened, synchronize, ready_for_review]
 
 # Least privilege at the workflow level; the job opts into the write scopes it
 # needs. Keeps any future job added here from inheriting repo write access by
