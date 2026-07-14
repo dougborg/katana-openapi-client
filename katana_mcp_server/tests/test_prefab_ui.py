@@ -2561,6 +2561,52 @@ class TestBuildPOModifyUI:
         assert "NOT_RECEIVED" in rendered and "PARTIALLY_RECEIVED" in rendered
         assert "→" in rendered
 
+    def test_applied_total_reflects_post_apply_state_not_prior(self):
+        """Regression: the applied modify card's Total metric shows the
+        server-recomputed total from ``extras['post_apply_state']``, not the
+        stale pre-modify ``prior_state['total']``.
+
+        Before the fix the card rendered the prior total (``$1,250.00``)
+        even after row/qty edits changed it on the server (to ``$3,822.00``)
+        — the dispatcher wrote the fresh PO through to the cache but never
+        threaded its recomputed total back onto the card.
+        """
+        actions = [
+            {
+                "operation": "update_row",
+                "target_id": 5001,
+                "succeeded": True,
+                "changes": [{"field": "quantity", "old": 10, "new": 12}],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._applied(
+                actions,
+                extras={"post_apply_state": {"total": 3822.0, "currency": "USD"}},
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # The Total metric reflects the applied (post-modify) total …
+        assert "$3,822.00" in rendered
+        # … and NOT the pre-modify prior_state total.
+        assert "$1,250.00" not in rendered
+
+    def test_preview_total_falls_back_to_prior_state(self):
+        """Without ``post_apply_state`` (the preview path — nothing applied
+        yet), the Total metric renders the pre-modify ``prior_state`` total.
+        Pins the fallback so the applied-path override doesn't regress
+        preview rendering."""
+        app = build_po_modify_ui(
+            self._preview([]),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "$1,250.00" in rendered
+
     def test_supplier_change_renders_composite_diff(self):
         """A supplier change surfaces ``Supplier: <old> (<old_id>) → <new>``
         — the composite name+ID rendering keeps the diff readable without

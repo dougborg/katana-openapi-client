@@ -1013,6 +1013,123 @@ async def test_run_modify_plan_overlays_patch_response_on_stale_refetch(monkeypa
     assert merged.name == "FRESH"
 
 
+@pytest.mark.asyncio
+async def test_run_modify_plan_stashes_post_apply_header_state(monkeypatch):
+    """After a successful apply, the dispatcher surfaces the merged parent's
+    header scalars under ``extras['post_apply_state']`` — dropping nested
+    collections — so the card renders the server-recomputed total instead of
+    the stale pre-modify ``prior_state`` total (PO stale-total bug).
+    """
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    class _POStub:
+        def to_dict(self) -> dict:
+            return {
+                "id": 42,
+                "total": 3822.0,
+                "currency": "USD",
+                "status": "NOT_RECEIVED",
+                # nested collection — must be dropped from post_apply_state
+                # (the card rebuilds line-item rows from ``actions``).
+                "purchase_order_rows": [{"id": 1}, {"id": 2}],
+            }
+
+    refetched_parent = _POStub()
+
+    async def fake_merge(cache, spec, attrs_objs):
+        pass
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return object()
+
+    async def fake_refetch(_eid: int):
+        return refetched_parent
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,
+            diff=[FieldChange(field="status", old="DRAFT", new="NOT_RECEIVED")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+
+    fake_cache = cast(TypedCacheEngine, object())
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=fake_refetch),
+    )
+
+    post = response.extras["post_apply_state"]
+    assert post["total"] == 3822.0
+    assert post["currency"] == "USD"
+    assert post["status"] == "NOT_RECEIVED"
+    # Nested collections are dropped to keep the payload lean.
+    assert "purchase_order_rows" not in post
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_no_post_apply_state_when_parent_unserializable(
+    monkeypatch,
+):
+    """When the merged parent can't be serialized (no ``to_dict`` /
+    ``model_dump``), ``extras`` gains no ``post_apply_state`` key — the card
+    then falls back to ``prior_state``. Guards the ``None`` snapshot path."""
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    async def fake_merge(cache, spec, attrs_objs):
+        pass
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return object()
+
+    async def fake_refetch(_eid: int):
+        return object()  # no to_dict/model_dump → serialize returns None
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,
+            diff=[FieldChange(field="status", old="DRAFT", new="DONE")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+
+    fake_cache = cast(TypedCacheEngine, object())
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=fake_refetch),
+    )
+
+    assert "post_apply_state" not in response.extras
+
+
 # ============================================================================
 # #786: post-apply merge must not stall on the rate-limit reset gate.
 #   - ``parent_from_outcome`` reuses the PATCH response (no parent GET).

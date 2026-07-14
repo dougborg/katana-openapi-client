@@ -3910,9 +3910,11 @@ def _render_po_entity_view(
     - Each rendered field line looks up ``changes.get("<wire_field>")``
       and, if present, swaps its rendering for the before→after form.
     - Unchanged fields render the same as the create card.
-    - The Total Metric uses the post-change ``total_cost`` from the
-      response payload — line-item adds/removes already propagated into
-      the response's recomputed total by the dispatcher.
+    - The Total Metric shows ``entity["total_cost"]``. On the apply path
+      the caller overlays the dispatcher's post-apply header snapshot
+      (``extras["post_apply_state"]``, carrying Katana's server-recomputed
+      ``total``) so line-item adds/removes/qty edits are reflected; on the
+      preview path it's the pre-modify ``prior_state`` total.
 
     Must be called inside ``with PrefabApp(...) as app, Card(): with
     CardContent(), Column(gap=3):``.
@@ -4598,6 +4600,15 @@ def build_po_modify_ui(
     # unchanged-field rows surface real values in the rendered card.
     raw_prior_state = response.get("prior_state")
     prior_state = _normalize_po_prior_state(raw_prior_state)
+    # Apply path: the dispatcher stashes the post-modify header snapshot
+    # (server-recomputed ``total`` and friends) under
+    # ``extras["post_apply_state"]``. Normalize it the same way as
+    # prior_state and overlay it below so the Total metric reflects the
+    # *applied* PO, not the pre-modify snapshot. Empty on the preview path
+    # (nothing applied yet) — the card then falls back to prior_state.
+    post_apply_state = _normalize_po_prior_state(
+        (response.get("extras") or {}).get("post_apply_state")
+    )
     # Note: katana_url is read from RESULT via the Prefab template
     # ``{{ result.katana_url }}`` in _render_preview_footer's
     # applied-state View-in-Katana button — no need to pass it through
@@ -4612,7 +4623,11 @@ def build_po_modify_ui(
     # katana_url) win. Applied: the response carries the post-change
     # scalars too — the same overlay yields the post-change entity,
     # modulo nested collections which the dispatcher already updated.
-    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    entity = {
+        **prior_state,
+        **post_apply_state,
+        **{k: v for k, v in response.items() if v is not None},
+    }
     # ``entity_id`` from the response is the PO's identity; surface it
     # under the same key the create-card pattern uses so the header
     # Badge picks it up regardless of which payload populated it.
