@@ -7320,11 +7320,15 @@ def _so_detail_rows_table(so: dict[str, Any]) -> None:
     """Tier 3 — line-item DataTable (SKU, name, qty, unit price, line total).
 
     Static inline table — no per-row drill-down (the SO is the destination;
-    row detail is inline, per the #913 product decision). Rows are read from
-    ``state.so.rows`` via the mandatory mustache binding. Each row carries
-    pre-formatted ``unit_price_display`` / ``line_total_display`` strings so
-    the money columns render currency-aware without a renderer-side formatter.
-    Renders a friendly empty-state when the SO has no line items.
+    row detail is inline, per the #913 product decision). The table binds to
+    ``state.so.rows_display`` — pre-formatted display cells carrying
+    ``unit_price_display`` / ``line_total_display`` strings so the money columns
+    render currency-aware without a renderer-side formatter. The authoritative
+    ``state.so.rows`` (full row data incl. ``id`` / ``total_discount`` /
+    ``variant_id`` / ``tax_rate_id``) is kept separately so the model still sees
+    row identifiers when the host forwards only ``structured_content`` — see
+    :func:`build_so_detail_ui`. Renders a friendly empty-state when the SO has
+    no line items.
     """
     rows = so.get("rows") or []
     if not rows:
@@ -7345,7 +7349,7 @@ def _so_detail_rows_table(so: dict[str, Any]) -> None:
                 key="line_total_display", header="Line Total", align="right"
             ),
         ],
-        rows="{{ so.rows }}",
+        rows="{{ so.rows_display }}",
         **_paginate(len(rows)),
     )
 
@@ -7353,9 +7357,12 @@ def _so_detail_rows_table(so: dict[str, Any]) -> None:
 def _so_detail_row_cells(so: dict[str, Any]) -> list[dict[str, Any]]:
     """Pre-compute per-row display cells for the line-item DataTable.
 
-    The DataTable binds to ``state.so.rows`` (mustache), so the state copy of
-    each row needs the rendered ``sku`` / ``display_name`` / ``quantity`` plus
-    two pre-formatted money strings:
+    These cells are stored under ``state.so.rows_display`` (via
+    :func:`with_display_rows`) and the DataTable binds to
+    ``{{ so.rows_display }}`` — kept separate from the authoritative
+    ``state.so.rows`` so the reduction here never strips row identifiers. Each
+    cell needs the rendered ``sku`` / ``display_name`` / ``quantity`` plus two
+    pre-formatted money strings:
 
     - ``unit_price_display`` — ``price_per_unit`` formatted via
       ``_format_money`` in the SO currency (``"—"`` when null).
@@ -7425,11 +7432,18 @@ def build_so_detail_ui(so: dict[str, Any]) -> PrefabApp:
     embedded child table) and ``build_variant_details_ui`` (Metric-row Tier 2
     on a read card).
     """
-    # The line-item DataTable binds to ``state.so.rows``; swap in the
-    # pre-formatted display cells so the money columns render currency-aware
-    # without a renderer-side formatter. Shallow-copy ``so`` so the caller's
-    # response dict isn't mutated.
-    so_state = {**so, "rows": _so_detail_row_cells(so)}
+    # The line-item DataTable binds to ``state.so.rows_display`` — pre-formatted
+    # display cells so the money columns render currency-aware without a
+    # renderer-side formatter. Crucially, we ADD that key rather than overwriting
+    # ``state.so.rows``: the authoritative rows (row ``id``, ``total_discount``,
+    # ``variant_id``, ``tax_rate_id`` …) stay in ``state.so.rows`` so a host that
+    # forwards only ``structured_content`` to the model still exposes the row
+    # identifiers an agent needs to edit pricing safely. (Claude Code drops the
+    # ``content`` JSON channel when ``structuredContent`` is present —
+    # anthropics/claude-code#55677 — so display-only cells there would strip the
+    # IDs, which sent an agent scraping the Katana web UI for row data.)
+    # Shallow-copy ``so`` so the caller's response dict isn't mutated.
+    so_state = {**so, "rows_display": _so_detail_row_cells(so)}
 
     with PrefabApp(state={"so": so_state}, css_class="p-4") as app, Card():
         with CardHeader(), Column(gap=1):

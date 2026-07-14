@@ -283,7 +283,7 @@ class TestOtherCardsRender:
     def test_so_detail_renders(self, render_scenario):
         """``build_so_detail_ui`` — read-only SO detail card (#913).
 
-        Proves the static line-item DataTable (rows='{{ so.rows }}') mounts
+        Proves the static line-item DataTable (rows='{{ so.rows_display }}') mounts
         and the card surfaces resolved names, addresses, and the single
         View-in-Katana footer link — no Confirm/mutation buttons.
         """

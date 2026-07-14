@@ -10454,20 +10454,26 @@ def _so_detail_response(
     rows = (
         [
             {
+                "id": 5001,
                 "variant_id": 700,
                 "sku": "SKU-A",
                 "display_name": "Widget / Red",
                 "quantity": 2,
                 "price_per_unit": 100.0,
                 "total": 200.0,
+                "tax_rate_id": 9,
+                "total_discount": "15.00",
             },
             {
+                "id": 5002,
                 "variant_id": 701,
                 "sku": None,
                 "display_name": None,
                 "quantity": 5,
                 "price_per_unit": 10.0,
                 "total": None,
+                "tax_rate_id": 9,
+                "total_discount": "0.00",
             },
         ]
         if with_rows
@@ -10587,17 +10593,20 @@ class TestBuildSoDetailUI:
         assert labels.get("Delivery") == "2026-07-01"
 
     def test_line_item_table_uses_mustache_rows(self) -> None:
-        """The line-item DataTable binds rows via mustache to state.so.rows."""
+        """The line-item DataTable binds rows via mustache to the display-cell
+        key ``state.so.rows_display`` (NOT ``state.so.rows``, which is kept as
+        the authoritative row data — see
+        ``test_authoritative_row_data_survives_in_structured_content``)."""
         envelope = build_so_detail_ui(_so_detail_response()).to_json()
         tables = _find_components_by_type(envelope, "DataTable")
         assert len(tables) == 1
-        assert tables[0].get("rows") == "{{ so.rows }}"
+        assert tables[0].get("rows") == "{{ so.rows_display }}"
 
     def test_line_item_cells_formatted(self) -> None:
-        """Row state cells coalesce null SKU, fall back display_name, and
+        """Row display cells coalesce null SKU, fall back display_name, and
         pre-format the money columns (incl. computed line total)."""
         app = build_so_detail_ui(_so_detail_response())
-        rows = app.to_json()["state"]["so"]["rows"]
+        rows = app.to_json()["state"]["so"]["rows_display"]
         assert rows[0]["sku"] == "SKU-A"
         assert rows[0]["unit_price_display"] == "$100.00"
         assert rows[0]["line_total_display"] == "$200.00"
@@ -10607,10 +10616,37 @@ class TestBuildSoDetailUI:
         assert rows[1]["display_name"] == "Variant 701"
         assert rows[1]["line_total_display"] == "$50.00"
 
+    def test_authoritative_row_data_survives_in_structured_content(self) -> None:
+        """P0 regression guard (anthropics/claude-code#55677): the row ``id``,
+        ``total_discount``, ``variant_id`` and ``tax_rate_id`` an agent needs to
+        edit pricing MUST live in ``state.so.rows`` — the structured_content
+        channel — so they survive on a host that drops the ``content`` JSON
+        channel when ``structuredContent`` is present. The display-cell
+        transform must never clobber this authoritative data.
+
+        This is the fix for the incident where an agent, seeing only the
+        rendered card, believed ``get_sales_order`` "stripped" row IDs and
+        discounts and went scraping the Katana web UI for them.
+        """
+        state_so = build_so_detail_ui(_so_detail_response()).to_json()["state"]["so"]
+        rows = state_so["rows"]
+        assert [r["id"] for r in rows] == [5001, 5002], (
+            "Row IDs must survive in state.so.rows for the model to target "
+            "update_rows / delete_row_ids."
+        )
+        assert [r["total_discount"] for r in rows] == ["15.00", "0.00"], (
+            "Per-line discounts must survive so the model can edit pricing "
+            "without a browser round-trip."
+        )
+        assert [r["variant_id"] for r in rows] == [700, 701]
+        assert all(r["tax_rate_id"] == 9 for r in rows)
+
     def test_null_variant_id_row_uses_neutral_label(self) -> None:
         """A row with no display_name AND a null variant_id renders a neutral
         "Unknown item" label, not a confusing "Variant None" (variant_id is
-        optional in the response)."""
+        optional in the response). The neutral label is a *display* fallback, so
+        it lives in the ``rows_display`` cells — ``state.so.rows`` keeps the raw
+        null ``display_name``."""
         response = {
             **_so_detail_response(),
             "rows": [
@@ -10624,8 +10660,8 @@ class TestBuildSoDetailUI:
                 }
             ],
         }
-        rows = build_so_detail_ui(response).to_json()["state"]["so"]["rows"]
-        assert rows[0]["display_name"] == "Unknown item"
+        cells = build_so_detail_ui(response).to_json()["state"]["so"]["rows_display"]
+        assert cells[0]["display_name"] == "Unknown item"
 
     def test_address_blocks_rendered(self) -> None:
         """Billing + shipping address blocks surface recipient / company /

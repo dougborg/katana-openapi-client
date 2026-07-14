@@ -513,7 +513,7 @@ def _variant_batch_app() -> PrefabApp:
 def _so_detail_app() -> PrefabApp:
     """build_so_detail_ui — read-only sales-order detail card (#913).
 
-    Exercises the static line-item DataTable (rows='{{ so.rows }}'), the
+    Exercises the static line-item DataTable (rows='{{ so.rows_display }}'), the
     resolved customer/location party lines, billing+shipping address blocks,
     storefront link, and the single View-in-Katana footer button.
     """
