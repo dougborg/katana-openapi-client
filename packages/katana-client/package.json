@@ -59,9 +59,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@hey-api/openapi-ts": "^0.88.0",
+    "@hey-api/openapi-ts": "^0.99.0",
     "@types/node": "^24.10.1",
-    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/coverage-v8": "^4.1.10",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^4.0.15"
