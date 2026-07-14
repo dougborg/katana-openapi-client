@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -9,6 +9,10 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.traceability_request import TraceabilityRequest
+
 
 T = TypeVar("T", bound="SalesOrderFulfillmentRowRequest")
 
@@ -20,6 +24,7 @@ class SalesOrderFulfillmentRowRequest:
     sales_order_row_id: int | Unset = UNSET
     quantity: float | Unset = UNSET
     serial_numbers: list[int] | Unset = UNSET
+    traceability: list[TraceabilityRequest] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,6 +36,13 @@ class SalesOrderFulfillmentRowRequest:
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = self.serial_numbers
 
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -40,11 +52,15 @@ class SalesOrderFulfillmentRowRequest:
             field_dict["quantity"] = quantity
         if serial_numbers is not UNSET:
             field_dict["serial_numbers"] = serial_numbers
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.traceability_request import TraceabilityRequest
+
         d = dict(src_dict)
         sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
@@ -52,10 +68,22 @@ class SalesOrderFulfillmentRowRequest:
 
         serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
 
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[TraceabilityRequest] | Unset = UNSET
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = TraceabilityRequest.from_dict(
+                    cast(Mapping[str, Any], traceability_item_data)
+                )
+
+                traceability.append(traceability_item)
+
         sales_order_fulfillment_row_request = cls(
             sales_order_row_id=sales_order_row_id,
             quantity=quantity,
             serial_numbers=serial_numbers,
+            traceability=traceability,
         )
 
         sales_order_fulfillment_row_request.additional_properties = d

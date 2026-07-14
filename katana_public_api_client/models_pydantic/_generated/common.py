@@ -347,6 +347,28 @@ class BinTransferTraceabilityRequest(KatanaPydanticBase):
     ] = None
 
 
+class TraceabilityRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int | None, Field(description="ID of the batch to draw from, or null.")
+    ] = None
+    bin_location_id: Annotated[
+        int | None, Field(description="ID of the bin location to draw from, or null.")
+    ] = None
+    serial_number_id: Annotated[
+        int | None,
+        Field(description="ID of the serial number to attach / draw from, or null."),
+    ] = None
+    quantity: Annotated[
+        float | None,
+        Field(
+            description="Quantity allocated to this axis. Must be non-zero when supplied."
+        ),
+    ] = None
+
+
 class BinTransferRowCreateNested(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -837,12 +859,14 @@ class Object(KatanaPydanticBase):
 
 class Event(StrEnum):
     sales_order_created = "sales_order.created"
+    sales_order_approved = "sales_order.approved"
     sales_order_packed = "sales_order.packed"
     sales_order_delivered = "sales_order.delivered"
     sales_order_updated = "sales_order.updated"
     sales_order_deleted = "sales_order.deleted"
     sales_order_availability_updated = "sales_order.availability_updated"
     purchase_order_created = "purchase_order.created"
+    purchase_order_approved = "purchase_order.approved"
     purchase_order_updated = "purchase_order.updated"
     purchase_order_deleted = "purchase_order.deleted"
     purchase_order_partially_received = "purchase_order.partially_received"
@@ -852,6 +876,7 @@ class Event(StrEnum):
     purchase_order_row_updated = "purchase_order_row.updated"
     purchase_order_row_deleted = "purchase_order_row.deleted"
     outsourced_purchase_order_created = "outsourced_purchase_order.created"
+    outsourced_purchase_order_approved = "outsourced_purchase_order.approved"
     outsourced_purchase_order_updated = "outsourced_purchase_order.updated"
     outsourced_purchase_order_deleted = "outsourced_purchase_order.deleted"
     outsourced_purchase_order_received = "outsourced_purchase_order.received"

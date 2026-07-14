@@ -21,12 +21,14 @@ from .common import Event, Object
 
 class WebhookEvent(StrEnum):
     sales_order_created = "sales_order.created"
+    sales_order_approved = "sales_order.approved"
     sales_order_updated = "sales_order.updated"
     sales_order_deleted = "sales_order.deleted"
     sales_order_packed = "sales_order.packed"
     sales_order_delivered = "sales_order.delivered"
     sales_order_availability_updated = "sales_order.availability_updated"
     purchase_order_created = "purchase_order.created"
+    purchase_order_approved = "purchase_order.approved"
     purchase_order_updated = "purchase_order.updated"
     purchase_order_deleted = "purchase_order.deleted"
     purchase_order_partially_received = "purchase_order.partially_received"
@@ -85,6 +87,7 @@ class WebhookEvent(StrEnum):
     product_recipe_row_updated = "product_recipe_row.updated"
     product_recipe_row_deleted = "product_recipe_row.deleted"
     outsourced_purchase_order_created = "outsourced_purchase_order.created"
+    outsourced_purchase_order_approved = "outsourced_purchase_order.approved"
     outsourced_purchase_order_updated = "outsourced_purchase_order.updated"
     outsourced_purchase_order_deleted = "outsourced_purchase_order.deleted"
     outsourced_purchase_order_received = "outsourced_purchase_order.received"

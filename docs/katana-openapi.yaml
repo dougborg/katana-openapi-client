@@ -2121,27 +2121,30 @@ components:
       type: string
       enum:
         - ManufacturingOrder
+        - Production
         - StockAdjustmentRow
         - StockTransferRow
         - PurchaseOrderRow
         - SalesOrderRow
       description: |
-        Allowed resource types when creating serial numbers via
-        ``POST /serial_numbers``. Note: ``Production`` is valid when
-        *retrieving* serial numbers (see ``SerialNumberResourceType``) but
-        is not accepted as input here — the API rejects it with 422.
+        Allowed resource types when creating (minting or transferring)
+        serial numbers via ``POST /serial_numbers``.
 
         **Write semantics differ by resource type:**
 
-        - **Mint** (create new serial-number strings) — ``ManufacturingOrder``
-          and ``PurchaseOrderRow``. The supplied string doesn't need to
-          pre-exist anywhere.
-        - **Transfer** (move an existing serial number to this resource) —
-          ``SalesOrderRow``, ``StockTransferRow``, and ``StockAdjustmentRow``.
-          The supplied string MUST already exist (typically attached to a
-          ManufacturingOrder output). If it doesn't, the response surfaces
-          it in ``failed`` with ``reason: MISSING`` — the call still returns
-          200, not 422.
+        - **Mint** — ``ManufacturingOrder`` and ``PurchaseOrderRow``.
+        - **Transfer** (move an existing serial number onto this resource) —
+          ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``, and
+          ``Production``.
+
+        **A serial-number string the tenant doesn't already know is rejected
+        with ``422`` — verified live 2026-07-14 (#980)** for ``SalesOrderRow``
+        (``serial numbers not found``) and ``Production``
+        (``UnknownSerialNumber``). The older graceful-``200`` behaviour (the
+        string in a ``failed`` array with ``reason: MISSING``) was NOT
+        observed; the ``successful`` / ``failed`` partial-outcome shape and the
+        exact mint-vs-transfer boundary need broader re-verification —
+        tracked in #983.
 
     CreateSerialNumberFailureReason:
       type: string
@@ -2924,6 +2927,41 @@ components:
         quantity:
           type: string
           description: Quantity to allocate to this axis, as a decimal string.
+    TraceabilityRequest:
+      type: object
+      additionalProperties: false
+      description: |-
+        Batch / serial / bin allocation supplied on a create-or-update row to
+        trace the moved quantity to a specific batch, serial number, and/or
+        bin location. Mirrors Katana's ``TraceabilityInputItemDto`` — the
+        unified traceability input that supersedes the older per-entity
+        ``serial_numbers`` arrays for attaching serial-tracked units to a row.
+
+        Any axis may be null; a non-null ``serial_number_id`` attaches (or
+        draws from) that serial number for the allocated ``quantity``. Katana
+        marks ``quantity`` required on stock-adjustment traceability rows and
+        treats it as the per-allocation amount everywhere else, so it is
+        modelled as optional here to accept every valid payload shape.
+      properties:
+        batch_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the batch to draw from, or null.
+        bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin location to draw from, or null.
+        serial_number_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the serial number to attach / draw from, or null.
+        quantity:
+          type: number
+          description: >-
+            Quantity allocated to this axis. Must be non-zero when supplied.
     BinTransferRowCreateNested:
       type: object
       additionalProperties: false
@@ -3721,7 +3759,6 @@ components:
         - variant_id
         - planned_quantity
         - location_id
-        - order_no
       properties:
         status:
           type: string
@@ -3733,7 +3770,10 @@ components:
             ``PATCH /manufacturing_orders/{id}``.
         order_no:
           type: string
-          description: Custom manufacturing order number for tracking and reference
+          description: |
+            Custom manufacturing order number for tracking and reference.
+            Optional — Katana server-generates a default (``MO-<n>``) when
+            omitted.
         variant_id:
           type: integer
           description: ID of the product variant to manufacture
@@ -7824,15 +7864,17 @@ components:
       type: string
       description: |-
         Available webhook events for real-time notifications.
-        Complete list of all 58 supported events as documented in the Katana API.
+        Complete list of all 61 supported events as documented in the Katana API.
       enum:
         - sales_order.created
+        - sales_order.approved
         - sales_order.updated
         - sales_order.deleted
         - sales_order.packed
         - sales_order.delivered
         - sales_order.availability_updated
         - purchase_order.created
+        - purchase_order.approved
         - purchase_order.updated
         - purchase_order.deleted
         - purchase_order.partially_received
@@ -7875,6 +7917,7 @@ components:
         - product_recipe_row.updated
         - product_recipe_row.deleted
         - outsourced_purchase_order.created
+        - outsourced_purchase_order.approved
         - outsourced_purchase_order.updated
         - outsourced_purchase_order.deleted
         - outsourced_purchase_order.received
@@ -8105,12 +8148,14 @@ components:
           description: Filter logs by event type
           enum:
             - sales_order.created
+            - sales_order.approved
             - sales_order.packed
             - sales_order.delivered
             - sales_order.updated
             - sales_order.deleted
             - sales_order.availability_updated
             - purchase_order.created
+            - purchase_order.approved
             - purchase_order.updated
             - purchase_order.deleted
             - purchase_order.partially_received
@@ -8120,6 +8165,7 @@ components:
             - purchase_order_row.updated
             - purchase_order_row.deleted
             - outsourced_purchase_order.created
+            - outsourced_purchase_order.approved
             - outsourced_purchase_order.updated
             - outsourced_purchase_order.deleted
             - outsourced_purchase_order.received
@@ -9663,6 +9709,15 @@ components:
                 type: integer
               quantity:
                 type: number
+        traceability:
+          type: array
+          description: >-
+            Unified batch/serial/bin allocations for this row. The current way
+            to attach serial-tracked units to a sales order row — an
+            alternative to `serial_number_transactions` that also carries batch
+            and bin context per allocation.
+          items:
+            $ref: "#/components/schemas/TraceabilityRequest"
         attributes:
           type: array
           description: Custom attributes for this line item
@@ -10672,6 +10727,15 @@ components:
                 minItems: 1
                 items:
                   $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
+              traceability:
+                type: array
+                description: >-
+                  Unified batch/serial/bin allocations for the adjusted
+                  quantity. Use a non-null `serial_number_id` per entry to
+                  attach or remove specific serial-tracked units. Katana
+                  requires a non-zero `quantity` on each entry here.
+                items:
+                  $ref: "#/components/schemas/TraceabilityRequest"
       example:
         stock_adjustment_number: SA-2024-003
         stock_adjustment_date: "2024-01-17T14:30:00.000Z"
@@ -13201,6 +13265,11 @@ components:
             - integer
             - "null"
           description: ID of the specific batch being counted (required for batch-trackable items)
+        bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the bin location being counted (bin-tracked locations), or null.
         notes:
           type:
             - string
@@ -13881,6 +13950,15 @@ components:
             when the row's variant is serial-tracked; the count must equal `quantity`.
           items:
             type: integer
+        traceability:
+          type: array
+          description: >-
+            Unified batch/serial/bin allocations for the fulfilled quantity.
+            The current way to attach serial-tracked units — an alternative to
+            the flat `serial_numbers` array that also carries batch and bin
+            context per allocation.
+          items:
+            $ref: "#/components/schemas/TraceabilityRequest"
     CreateSalesOrderFulfillmentRequest:
       description: Request payload for creating a new sales order fulfillment
       type: object
@@ -14165,6 +14243,14 @@ components:
           description: |
             Quantity to transfer, as a fixed-precision decimal string
             (e.g. ``"1.0000000000"``).
+        traceability:
+          type: array
+          description: >-
+            Unified batch/serial/bin allocations for the transferred quantity.
+            Use a non-null `serial_number_id` per entry to move specific
+            serial-tracked units between locations.
+          items:
+            $ref: "#/components/schemas/TraceabilityRequest"
     CreateStockTransferRequest:
       description: Request payload for creating a new stock transfer
       type: object
@@ -22912,6 +22998,12 @@ paths:
             items:
               type: integer
         - $ref: "#/components/parameters/batch_id"
+        - name: bin_location_id
+          in: query
+          description: Filters stocktake rows by bin location ID
+          required: false
+          schema:
+            type: integer
         - name: stock_adjustment_id
           in: query
           description: Filters stocktakes by stock adjustment ID
@@ -23102,25 +23194,22 @@ paths:
         **Write semantics differ by ``resource_type``** (see
         ``CreateSerialNumberResourceType``):
 
-        - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
-          serial-number string doesn't need to pre-exist. The API creates a
-          new record and links it to the target resource.
-        - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
-          ``StockAdjustmentRow``) — the serial-number string MUST already
-          exist (typically attached to a ManufacturingOrder output). The
-          API moves the linkage from its current resource to the target.
-          If the string isn't anywhere yet, the entry lands in ``failed``
-          with ``reason: MISSING`` — the call still returns 200.
+        - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
+        - **Transfer** (move an existing serial number onto the target) —
+          ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
+          ``Production``. The serial-number string must already exist.
 
-        **Partial failure is the norm, not the exception.** The response
-        carries ``successful`` AND ``failed`` arrays; consumers must
-        handle both. A 200 status does NOT mean every input was applied —
-        check ``failed`` to learn which strings the API rejected.
-
-        **422 cases:** non-existent ``resource_id`` returns
-        ``422 UnprocessableEntityError`` with detail ``No entity found``
-        (not 404). Invalid ``resource_type`` (e.g. ``Production``)
-        returns 422 with an Ajv-style validation detail.
+        **Error cases** (verified live 2026-07-14, #980): a non-existent
+        ``resource_id`` returns ``404 NotFoundError`` with a type-specific
+        message (e.g. ``manufacturing order <id> not found`` /
+        ``production <id> not found``). A ``resource_type`` outside the
+        ``CreateSerialNumberResourceType`` enum returns ``422`` with an
+        Ajv-style validation detail. A serial-number string the tenant
+        doesn't already know is rejected with ``422`` — observed for
+        ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
+        (``UnknownSerialNumber``). The ``successful`` / ``failed``
+        partial-outcome response shape below was NOT reproduced for these
+        cases and needs re-verification — tracked in #983.
 
         **Transfer response quirks:** on a successful transfer the moved
         record's ``transaction_id`` may be the literal string
@@ -23155,6 +23244,8 @@ paths:
           $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "422":
           $ref: "#/components/responses/UnprocessableEntityError"
         "429":

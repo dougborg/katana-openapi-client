@@ -83,6 +83,14 @@ class TestAPIQualityAnalysis:
         # divergence — upstream does not expose the parameter at all on
         # ``stocktake_rows``, so leaving the local shape alone for now).
         "stock_adjustment_id": {"GET /stocktakes"},
+        # ``GET /bin_inventory`` is the divergent endpoint: it models
+        # ``bin_location_id`` as a nullable string filter (``^(\d+|null)$``)
+        # so callers can target unassigned stock via ``?bin_location_id=null``.
+        # ``GET /stocktake_rows`` uses a plain ``integer`` matching the upstream
+        # gateway. Exempt the special-case (``bin_inventory``) so the standard
+        # integer form stays the protected reference — and a future integer
+        # endpoint compares cleanly instead of tripping against the null form.
+        "bin_location_id": {"GET /bin_inventory"},
     }
 
     def test_parameter_consistency_across_endpoints(

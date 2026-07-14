@@ -22,7 +22,11 @@ from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Quantity, Transaction
+from .common import (
+    Quantity,
+    TraceabilityRequest,
+    Transaction,
+)
 
 
 class StocktakeStatus(StrEnum):
@@ -50,6 +54,7 @@ class SerialNumberResourceType(StrEnum):
 
 class CreateSerialNumberResourceType(StrEnum):
     manufacturing_order = "ManufacturingOrder"
+    production = "Production"
     stock_adjustment_row = "StockAdjustmentRow"
     stock_transfer_row = "StockTransferRow"
     purchase_order_row = "PurchaseOrderRow"
@@ -455,6 +460,12 @@ class StockAdjustmentRow1(KatanaPydanticBase):
             min_length=1,
         ),
     ] = None
+    traceability: Annotated[
+        list[TraceabilityRequest] | None,
+        Field(
+            description="Unified batch/serial/bin allocations for the adjusted quantity. Use a non-null `serial_number_id` per entry to attach or remove specific serial-tracked units. Katana requires a non-zero `quantity` on each entry here."
+        ),
+    ] = None
 
 
 class CreateStockAdjustmentRequest(KatanaPydanticBase):
@@ -789,6 +800,12 @@ class UpdateStocktakeRowRequest(KatanaPydanticBase):
             description="ID of the specific batch being counted (required for batch-trackable items)"
         ),
     ] = None
+    bin_location_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the bin location being counted (bin-tracked locations), or null."
+        ),
+    ] = None
     notes: Annotated[
         str | None, Field(description="Optional notes about the count", max_length=540)
     ] = None
@@ -846,6 +863,12 @@ class StockTransferRowRequest(KatanaPydanticBase):
         str | None,
         Field(
             description='Quantity to transfer, as a fixed-precision decimal string\n(e.g. ``"1.0000000000"``).\n'
+        ),
+    ] = None
+    traceability: Annotated[
+        list[TraceabilityRequest] | None,
+        Field(
+            description="Unified batch/serial/bin allocations for the transferred quantity. Use a non-null `serial_number_id` per entry to move specific serial-tracked units between locations."
         ),
     ] = None
 

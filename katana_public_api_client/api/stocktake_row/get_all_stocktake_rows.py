@@ -19,6 +19,7 @@ def _get_kwargs(
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
     batch_id: int | Unset = UNSET,
+    bin_location_id: int | Unset = UNSET,
     stock_adjustment_id: float | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -48,6 +49,8 @@ def _get_kwargs(
     params["stocktake_ids"] = json_stocktake_ids
 
     params["batch_id"] = batch_id
+
+    params["bin_location_id"] = bin_location_id
 
     params["stock_adjustment_id"] = stock_adjustment_id
 
@@ -133,6 +136,7 @@ def sync_detailed(
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
     batch_id: int | Unset = UNSET,
+    bin_location_id: int | Unset = UNSET,
     stock_adjustment_id: float | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -151,6 +155,7 @@ def sync_detailed(
         ids (list[int] | Unset):
         stocktake_ids (list[int] | Unset):
         batch_id (int | Unset):
+        bin_location_id (int | Unset):
         stock_adjustment_id (float | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -174,6 +179,7 @@ def sync_detailed(
         ids=ids,
         stocktake_ids=stocktake_ids,
         batch_id=batch_id,
+        bin_location_id=bin_location_id,
         stock_adjustment_id=stock_adjustment_id,
         include_deleted=include_deleted,
         created_at_min=created_at_min,
@@ -198,6 +204,7 @@ def sync(
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
     batch_id: int | Unset = UNSET,
+    bin_location_id: int | Unset = UNSET,
     stock_adjustment_id: float | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -216,6 +223,7 @@ def sync(
         ids (list[int] | Unset):
         stocktake_ids (list[int] | Unset):
         batch_id (int | Unset):
+        bin_location_id (int | Unset):
         stock_adjustment_id (float | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -240,6 +248,7 @@ def sync(
         ids=ids,
         stocktake_ids=stocktake_ids,
         batch_id=batch_id,
+        bin_location_id=bin_location_id,
         stock_adjustment_id=stock_adjustment_id,
         include_deleted=include_deleted,
         created_at_min=created_at_min,
@@ -258,6 +267,7 @@ async def asyncio_detailed(
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
     batch_id: int | Unset = UNSET,
+    bin_location_id: int | Unset = UNSET,
     stock_adjustment_id: float | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -276,6 +286,7 @@ async def asyncio_detailed(
         ids (list[int] | Unset):
         stocktake_ids (list[int] | Unset):
         batch_id (int | Unset):
+        bin_location_id (int | Unset):
         stock_adjustment_id (float | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -299,6 +310,7 @@ async def asyncio_detailed(
         ids=ids,
         stocktake_ids=stocktake_ids,
         batch_id=batch_id,
+        bin_location_id=bin_location_id,
         stock_adjustment_id=stock_adjustment_id,
         include_deleted=include_deleted,
         created_at_min=created_at_min,
@@ -321,6 +333,7 @@ async def asyncio(
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
     batch_id: int | Unset = UNSET,
+    bin_location_id: int | Unset = UNSET,
     stock_adjustment_id: float | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -339,6 +352,7 @@ async def asyncio(
         ids (list[int] | Unset):
         stocktake_ids (list[int] | Unset):
         batch_id (int | Unset):
+        bin_location_id (int | Unset):
         stock_adjustment_id (float | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -364,6 +378,7 @@ async def asyncio(
             ids=ids,
             stocktake_ids=stocktake_ids,
             batch_id=batch_id,
+            bin_location_id=bin_location_id,
             stock_adjustment_id=stock_adjustment_id,
             include_deleted=include_deleted,
             created_at_min=created_at_min,

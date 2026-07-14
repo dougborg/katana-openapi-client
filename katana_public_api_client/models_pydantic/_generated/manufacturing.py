@@ -57,11 +57,11 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     order_no: Annotated[
-        str,
+        str | None,
         Field(
-            description="Custom manufacturing order number for tracking and reference"
+            description="Custom manufacturing order number for tracking and reference.\nOptional — Katana server-generates a default (``MO-<n>``) when\nomitted.\n"
         ),
-    ]
+    ] = None
     variant_id: Annotated[
         int, Field(description="ID of the product variant to manufacture")
     ]

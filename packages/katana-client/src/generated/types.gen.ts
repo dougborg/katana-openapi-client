@@ -775,26 +775,29 @@ export type SerialNumberResourceType =
   | 'SalesOrderFulfillmentRow';
 
 /**
- * Allowed resource types when creating serial numbers via
- * ``POST /serial_numbers``. Note: ``Production`` is valid when
- * *retrieving* serial numbers (see ``SerialNumberResourceType``) but
- * is not accepted as input here — the API rejects it with 422.
+ * Allowed resource types when creating (minting or transferring)
+ * serial numbers via ``POST /serial_numbers``.
  *
  * **Write semantics differ by resource type:**
  *
- * - **Mint** (create new serial-number strings) — ``ManufacturingOrder``
- * and ``PurchaseOrderRow``. The supplied string doesn't need to
- * pre-exist anywhere.
- * - **Transfer** (move an existing serial number to this resource) —
- * ``SalesOrderRow``, ``StockTransferRow``, and ``StockAdjustmentRow``.
- * The supplied string MUST already exist (typically attached to a
- * ManufacturingOrder output). If it doesn't, the response surfaces
- * it in ``failed`` with ``reason: MISSING`` — the call still returns
- * 200, not 422.
+ * - **Mint** — ``ManufacturingOrder`` and ``PurchaseOrderRow``.
+ * - **Transfer** (move an existing serial number onto this resource) —
+ * ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``, and
+ * ``Production``.
+ *
+ * **A serial-number string the tenant doesn't already know is rejected
+ * with ``422`` — verified live 2026-07-14 (#980)** for ``SalesOrderRow``
+ * (``serial numbers not found``) and ``Production``
+ * (``UnknownSerialNumber``). The older graceful-``200`` behaviour (the
+ * string in a ``failed`` array with ``reason: MISSING``) was NOT
+ * observed; the ``successful`` / ``failed`` partial-outcome shape and the
+ * exact mint-vs-transfer boundary need broader re-verification —
+ * tracked in #983.
  *
  */
 export type CreateSerialNumberResourceType =
   | 'ManufacturingOrder'
+  | 'Production'
   | 'StockAdjustmentRow'
   | 'StockTransferRow'
   | 'PurchaseOrderRow'
@@ -1343,6 +1346,38 @@ export type BinTransferTraceabilityRequest = {
    * Quantity to allocate to this axis, as a decimal string.
    */
   quantity?: string;
+};
+
+/**
+ * Batch / serial / bin allocation supplied on a create-or-update row to
+ * trace the moved quantity to a specific batch, serial number, and/or
+ * bin location. Mirrors Katana's ``TraceabilityInputItemDto`` — the
+ * unified traceability input that supersedes the older per-entity
+ * ``serial_numbers`` arrays for attaching serial-tracked units to a row.
+ *
+ * Any axis may be null; a non-null ``serial_number_id`` attaches (or
+ * draws from) that serial number for the allocated ``quantity``. Katana
+ * marks ``quantity`` required on stock-adjustment traceability rows and
+ * treats it as the per-allocation amount everywhere else, so it is
+ * modelled as optional here to accept every valid payload shape.
+ */
+export type TraceabilityRequest = {
+  /**
+   * ID of the batch to draw from, or null.
+   */
+  batch_id?: number | null;
+  /**
+   * ID of the bin location to draw from, or null.
+   */
+  bin_location_id?: number | null;
+  /**
+   * ID of the serial number to attach / draw from, or null.
+   */
+  serial_number_id?: number | null;
+  /**
+   * Quantity allocated to this axis. Must be non-zero when supplied.
+   */
+  quantity?: number;
 };
 
 /**
@@ -1905,9 +1940,12 @@ export type CreateManufacturingOrderRequest = {
    */
   status?: 'NOT_STARTED';
   /**
-   * Custom manufacturing order number for tracking and reference
+   * Custom manufacturing order number for tracking and reference.
+   * Optional — Katana server-generates a default (``MO-<n>``) when
+   * omitted.
+   *
    */
-  order_no: string;
+  order_no?: string;
   /**
    * ID of the product variant to manufacture
    */
@@ -4613,16 +4651,18 @@ export type UnlinkVariantBinLocationListRequest = Array<UnlinkVariantBinLocation
 
 /**
  * Available webhook events for real-time notifications.
- * Complete list of all 58 supported events as documented in the Katana API.
+ * Complete list of all 61 supported events as documented in the Katana API.
  */
 export type WebhookEvent =
   | 'sales_order.created'
+  | 'sales_order.approved'
   | 'sales_order.updated'
   | 'sales_order.deleted'
   | 'sales_order.packed'
   | 'sales_order.delivered'
   | 'sales_order.availability_updated'
   | 'purchase_order.created'
+  | 'purchase_order.approved'
   | 'purchase_order.updated'
   | 'purchase_order.deleted'
   | 'purchase_order.partially_received'
@@ -4665,6 +4705,7 @@ export type WebhookEvent =
   | 'product_recipe_row.updated'
   | 'product_recipe_row.deleted'
   | 'outsourced_purchase_order.created'
+  | 'outsourced_purchase_order.approved'
   | 'outsourced_purchase_order.updated'
   | 'outsourced_purchase_order.deleted'
   | 'outsourced_purchase_order.received'
@@ -4824,12 +4865,14 @@ export type WebhookLogsExportRequest = {
    */
   event?:
     | 'sales_order.created'
+    | 'sales_order.approved'
     | 'sales_order.packed'
     | 'sales_order.delivered'
     | 'sales_order.updated'
     | 'sales_order.deleted'
     | 'sales_order.availability_updated'
     | 'purchase_order.created'
+    | 'purchase_order.approved'
     | 'purchase_order.updated'
     | 'purchase_order.deleted'
     | 'purchase_order.partially_received'
@@ -4839,6 +4882,7 @@ export type WebhookLogsExportRequest = {
     | 'purchase_order_row.updated'
     | 'purchase_order_row.deleted'
     | 'outsourced_purchase_order.created'
+    | 'outsourced_purchase_order.approved'
     | 'outsourced_purchase_order.updated'
     | 'outsourced_purchase_order.deleted'
     | 'outsourced_purchase_order.received'
@@ -5903,6 +5947,10 @@ export type UpdateSalesOrderRowRequest = {
     quantity?: number;
   }>;
   /**
+   * Unified batch/serial/bin allocations for this row. The current way to attach serial-tracked units to a sales order row — an alternative to `serial_number_transactions` that also carries batch and bin context per allocation.
+   */
+  traceability?: Array<TraceabilityRequest>;
+  /**
    * Custom attributes for this line item
    */
   attributes?: Array<{
@@ -6172,16 +6220,7 @@ export type SalesOrderSearchWhere = {
    * Date the order was picked / shipped.
    */
   picked_date?: SearchPredicate;
-  [key: string]:
-    | unknown
-    | Array<{
-        [key: string]: unknown;
-      }>
-    | Array<{
-        [key: string]: unknown;
-      }>
-    | SearchPredicate
-    | undefined;
+  [key: string]: unknown;
 };
 
 /**
@@ -6306,16 +6345,7 @@ export type SalesOrderRowSearchWhere = {
    * Actual shipping date for this row.
    */
   shipping_date?: SearchPredicate;
-  [key: string]:
-    | unknown
-    | Array<{
-        [key: string]: unknown;
-      }>
-    | Array<{
-        [key: string]: unknown;
-      }>
-    | SearchPredicate
-    | undefined;
+  [key: string]: unknown;
 };
 
 /**
@@ -6757,6 +6787,10 @@ export type CreateStockAdjustmentRequest = {
      * Optional batch-specific adjustments for tracked inventory
      */
     batch_transactions?: Array<StockAdjustmentBatchTransaction>;
+    /**
+     * Unified batch/serial/bin allocations for the adjusted quantity. Use a non-null `serial_number_id` per entry to attach or remove specific serial-tracked units. Katana requires a non-zero `quantity` on each entry here.
+     */
+    traceability?: Array<TraceabilityRequest>;
   }>;
 };
 
@@ -8568,6 +8602,10 @@ export type UpdateStocktakeRowRequest = {
    */
   batch_id?: number | null;
   /**
+   * ID of the bin location being counted (bin-tracked locations), or null.
+   */
+  bin_location_id?: number | null;
+  /**
    * Optional notes about the count
    */
   notes?: string | null;
@@ -9131,6 +9169,10 @@ export type SalesOrderFulfillmentRowRequest = {
    * Serial number IDs allocated to this fulfillment row. Required when the row's variant is serial-tracked; the count must equal `quantity`.
    */
   serial_numbers?: Array<number>;
+  /**
+   * Unified batch/serial/bin allocations for the fulfilled quantity. The current way to attach serial-tracked units — an alternative to the flat `serial_numbers` array that also carries batch and bin context per allocation.
+   */
+  traceability?: Array<TraceabilityRequest>;
 };
 
 /**
@@ -9410,6 +9452,10 @@ export type StockTransferRowRequest = {
    *
    */
   quantity?: string;
+  /**
+   * Unified batch/serial/bin allocations for the transferred quantity. Use a non-null `serial_number_id` per entry to move specific serial-tracked units between locations.
+   */
+  traceability?: Array<TraceabilityRequest>;
 };
 
 /**
@@ -20248,6 +20294,10 @@ export type GetAllStocktakeRowsData = {
      */
     batch_id?: number;
     /**
+     * Filters stocktake rows by bin location ID
+     */
+    bin_location_id?: number;
+    /**
      * Filters stocktakes by stock adjustment ID
      */
     stock_adjustment_id?: number;
@@ -20546,6 +20596,10 @@ export type CreateSerialNumbersErrors = {
    * Make sure you've entered your API token correctly.
    */
   401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
   /**
    * Validation failed.
    */
