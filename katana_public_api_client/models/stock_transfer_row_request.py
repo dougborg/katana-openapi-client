@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -9,6 +9,10 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.traceability_request import TraceabilityRequest
+
 
 T = TypeVar("T", bound="StockTransferRowRequest")
 
@@ -19,12 +23,20 @@ class StockTransferRowRequest:
 
     variant_id: int | Unset = UNSET
     quantity: str | Unset = UNSET
+    traceability: list[TraceabilityRequest] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id
 
         quantity = self.quantity
+
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -33,19 +45,35 @@ class StockTransferRowRequest:
             field_dict["variant_id"] = variant_id
         if quantity is not UNSET:
             field_dict["quantity"] = quantity
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.traceability_request import TraceabilityRequest
+
         d = dict(src_dict)
         variant_id = d.pop("variant_id", UNSET)
 
         quantity = d.pop("quantity", UNSET)
 
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[TraceabilityRequest] | Unset = UNSET
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = TraceabilityRequest.from_dict(
+                    cast(Mapping[str, Any], traceability_item_data)
+                )
+
+                traceability.append(traceability_item)
+
         stock_transfer_row_request = cls(
             variant_id=variant_id,
             quantity=quantity,
+            traceability=traceability,
         )
 
         stock_transfer_row_request.additional_properties = d

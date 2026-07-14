@@ -49,6 +49,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 404:
+        response_404 = ErrorResponse.from_dict(response.json())
+
+        return response_404
+
     if response.status_code == 422:
         response_422 = DetailedErrorResponse.from_dict(response.json())
 
@@ -93,25 +98,22 @@ def sync_detailed(
     **Write semantics differ by ``resource_type``** (see
     ``CreateSerialNumberResourceType``):
 
-    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
-      serial-number string doesn't need to pre-exist. The API creates a
-      new record and links it to the target resource.
-    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
-      ``StockAdjustmentRow``) — the serial-number string MUST already
-      exist (typically attached to a ManufacturingOrder output). The
-      API moves the linkage from its current resource to the target.
-      If the string isn't anywhere yet, the entry lands in ``failed``
-      with ``reason: MISSING`` — the call still returns 200.
+    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
+    - **Transfer** (move an existing serial number onto the target) —
+      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
+      ``Production``. The serial-number string must already exist.
 
-    **Partial failure is the norm, not the exception.** The response
-    carries ``successful`` AND ``failed`` arrays; consumers must
-    handle both. A 200 status does NOT mean every input was applied —
-    check ``failed`` to learn which strings the API rejected.
-
-    **422 cases:** non-existent ``resource_id`` returns
-    ``422 UnprocessableEntityError`` with detail ``No entity found``
-    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
-    returns 422 with an Ajv-style validation detail.
+    **Error cases** (verified live 2026-07-14, #980): a non-existent
+    ``resource_id`` returns ``404 NotFoundError`` with a type-specific
+    message (e.g. ``manufacturing order <id> not found`` /
+    ``production <id> not found``). A ``resource_type`` outside the
+    ``CreateSerialNumberResourceType`` enum returns ``422`` with an
+    Ajv-style validation detail. A serial-number string the tenant
+    doesn't already know is rejected with ``422`` — observed for
+    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
+    (``UnknownSerialNumber``). The ``successful`` / ``failed``
+    partial-outcome response shape below was NOT reproduced for these
+    cases and needs re-verification — tracked in #983.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -154,25 +156,22 @@ def sync(
     **Write semantics differ by ``resource_type``** (see
     ``CreateSerialNumberResourceType``):
 
-    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
-      serial-number string doesn't need to pre-exist. The API creates a
-      new record and links it to the target resource.
-    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
-      ``StockAdjustmentRow``) — the serial-number string MUST already
-      exist (typically attached to a ManufacturingOrder output). The
-      API moves the linkage from its current resource to the target.
-      If the string isn't anywhere yet, the entry lands in ``failed``
-      with ``reason: MISSING`` — the call still returns 200.
+    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
+    - **Transfer** (move an existing serial number onto the target) —
+      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
+      ``Production``. The serial-number string must already exist.
 
-    **Partial failure is the norm, not the exception.** The response
-    carries ``successful`` AND ``failed`` arrays; consumers must
-    handle both. A 200 status does NOT mean every input was applied —
-    check ``failed`` to learn which strings the API rejected.
-
-    **422 cases:** non-existent ``resource_id`` returns
-    ``422 UnprocessableEntityError`` with detail ``No entity found``
-    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
-    returns 422 with an Ajv-style validation detail.
+    **Error cases** (verified live 2026-07-14, #980): a non-existent
+    ``resource_id`` returns ``404 NotFoundError`` with a type-specific
+    message (e.g. ``manufacturing order <id> not found`` /
+    ``production <id> not found``). A ``resource_type`` outside the
+    ``CreateSerialNumberResourceType`` enum returns ``422`` with an
+    Ajv-style validation detail. A serial-number string the tenant
+    doesn't already know is rejected with ``422`` — observed for
+    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
+    (``UnknownSerialNumber``). The ``successful`` / ``failed``
+    partial-outcome response shape below was NOT reproduced for these
+    cases and needs re-verification — tracked in #983.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -210,25 +209,22 @@ async def asyncio_detailed(
     **Write semantics differ by ``resource_type``** (see
     ``CreateSerialNumberResourceType``):
 
-    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
-      serial-number string doesn't need to pre-exist. The API creates a
-      new record and links it to the target resource.
-    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
-      ``StockAdjustmentRow``) — the serial-number string MUST already
-      exist (typically attached to a ManufacturingOrder output). The
-      API moves the linkage from its current resource to the target.
-      If the string isn't anywhere yet, the entry lands in ``failed``
-      with ``reason: MISSING`` — the call still returns 200.
+    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
+    - **Transfer** (move an existing serial number onto the target) —
+      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
+      ``Production``. The serial-number string must already exist.
 
-    **Partial failure is the norm, not the exception.** The response
-    carries ``successful`` AND ``failed`` arrays; consumers must
-    handle both. A 200 status does NOT mean every input was applied —
-    check ``failed`` to learn which strings the API rejected.
-
-    **422 cases:** non-existent ``resource_id`` returns
-    ``422 UnprocessableEntityError`` with detail ``No entity found``
-    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
-    returns 422 with an Ajv-style validation detail.
+    **Error cases** (verified live 2026-07-14, #980): a non-existent
+    ``resource_id`` returns ``404 NotFoundError`` with a type-specific
+    message (e.g. ``manufacturing order <id> not found`` /
+    ``production <id> not found``). A ``resource_type`` outside the
+    ``CreateSerialNumberResourceType`` enum returns ``422`` with an
+    Ajv-style validation detail. A serial-number string the tenant
+    doesn't already know is rejected with ``422`` — observed for
+    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
+    (``UnknownSerialNumber``). The ``successful`` / ``failed``
+    partial-outcome response shape below was NOT reproduced for these
+    cases and needs re-verification — tracked in #983.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -269,25 +265,22 @@ async def asyncio(
     **Write semantics differ by ``resource_type``** (see
     ``CreateSerialNumberResourceType``):
 
-    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
-      serial-number string doesn't need to pre-exist. The API creates a
-      new record and links it to the target resource.
-    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
-      ``StockAdjustmentRow``) — the serial-number string MUST already
-      exist (typically attached to a ManufacturingOrder output). The
-      API moves the linkage from its current resource to the target.
-      If the string isn't anywhere yet, the entry lands in ``failed``
-      with ``reason: MISSING`` — the call still returns 200.
+    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
+    - **Transfer** (move an existing serial number onto the target) —
+      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
+      ``Production``. The serial-number string must already exist.
 
-    **Partial failure is the norm, not the exception.** The response
-    carries ``successful`` AND ``failed`` arrays; consumers must
-    handle both. A 200 status does NOT mean every input was applied —
-    check ``failed`` to learn which strings the API rejected.
-
-    **422 cases:** non-existent ``resource_id`` returns
-    ``422 UnprocessableEntityError`` with detail ``No entity found``
-    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
-    returns 422 with an Ajv-style validation detail.
+    **Error cases** (verified live 2026-07-14, #980): a non-existent
+    ``resource_id`` returns ``404 NotFoundError`` with a type-specific
+    message (e.g. ``manufacturing order <id> not found`` /
+    ``production <id> not found``). A ``resource_type`` outside the
+    ``CreateSerialNumberResourceType`` enum returns ``422`` with an
+    Ajv-style validation detail. A serial-number string the tenant
+    doesn't already know is rejected with ``422`` — observed for
+    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
+    (``UnknownSerialNumber``). The ``successful`` / ``failed``
+    partial-outcome response shape below was NOT reproduced for these
+    cases and needs re-verification — tracked in #983.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string

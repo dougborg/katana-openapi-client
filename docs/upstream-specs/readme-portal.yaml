@@ -11476,7 +11476,6 @@ paths:
                 variant_id:
                   type: number
               required:
-              - order_no
               - variant_id
               - location_id
               - planned_quantity
@@ -13488,6 +13487,8 @@ paths:
                 - batch_transactions:
                   - batch_id: 1
                     quantity: 10
+                  - batch_id: null
+                    quantity: 5
                   cost: 0
                   created_at: '2020-10-23T10:37:05.085Z'
                   deleted_at: null
@@ -13878,6 +13879,8 @@ paths:
                 batch_transactions:
                 - batch_id: 1
                   quantity: 10
+                - batch_id: null
+                  quantity: 5
                 cost: 0
                 created_at: '2020-10-23T10:37:05.085Z'
                 deleted_at: null
@@ -14244,6 +14247,7 @@ paths:
                   name: Shipping
                   price: 100
                   price_in_base: 110
+                  reference: 'Customs invoice #123'
                   tax_rate: 20
                   tax_rate_id: 31
                   updated_at: '2023-10-01T10:37:05.085Z'
@@ -14366,6 +14370,10 @@ paths:
                   maximum: 100000000000000000
                   minimum: 0
                   type: number
+                reference:
+                  maxLength: 255
+                  nullable: true
+                  type: string
                 tax_rate_id:
                   type: integer
               required:
@@ -14393,6 +14401,7 @@ paths:
                 name: Shipping
                 price: 100
                 price_in_base: 110
+                reference: 'Customs invoice #123'
                 tax_rate: 20
                 tax_rate_id: 31
                 updated_at: '2023-10-01T10:37:05.085Z'
@@ -14645,6 +14654,7 @@ paths:
                 name: Shipping
                 price: 100
                 price_in_base: 110
+                reference: 'Customs invoice #123'
                 tax_rate: 20
                 tax_rate_id: 31
                 updated_at: '2023-10-01T10:37:05.085Z'
@@ -14756,6 +14766,10 @@ paths:
                   maximum: 100000000000000000
                   minimum: 0
                   type: number
+                reference:
+                  maxLength: 255
+                  nullable: true
+                  type: string
                 tax_rate_id:
                   maximum: 2147483647
                   type: integer
@@ -14779,6 +14793,7 @@ paths:
                 name: Shipping
                 price: 100
                 price_in_base: 110
+                reference: 'Customs invoice #123'
                 tax_rate: 20
                 tax_rate_id: 31
                 updated_at: '2023-10-01T10:37:05.085Z'
@@ -22567,12 +22582,23 @@ paths:
                   sales_order_fulfillment_rows:
                   - batch_transactions:
                     - batch_id: 1
-                      quantity: 2
+                      quantity: 1
+                    - batch_id: null
+                      quantity: 1
                     id: 70550671
                     quantity: 2
                     sales_order_row_id: 1
                     serial_numbers:
                     - 1
+                    traceability:
+                    - batch_id: 1
+                      bin_location_id: 3
+                      quantity: '1'
+                      serial_number_id: null
+                    - batch_id: null
+                      bin_location_id: null
+                      quantity: '1'
+                      serial_number_id: null
                   sales_order_id: 1
                   status: DELIVERED
                   tracking_carrier: UPS
@@ -22697,6 +22723,8 @@ paths:
                     additionalProperties: false
                     properties:
                       batch_transactions:
+                        deprecated: true
+                        description: Batch-level breakdown of the fulfilled quantity. **Deprecated** — will be phased out; prefer `traceability`. When `traceability` is sent it wins over `batch_transactions` + `serial_numbers`.
                         items:
                           additionalProperties: false
                           properties:
@@ -22721,8 +22749,49 @@ paths:
                         maximum: 2147483647
                         type: integer
                       serial_numbers:
+                        deprecated: true
+                        description: Serial number ids for the fulfilled quantity. **Deprecated** — will be phased out; prefer `traceability`. When `traceability` is sent it wins over `batch_transactions` + `serial_numbers`.
                         items:
                           type: number
+                        type: array
+                      traceability:
+                        description: Unified allocation breakdown of the fulfilled quantity (batch / serial / bin). Preferred over `batch_transactions` + `serial_numbers`; when `traceability` is sent it wins. Serial entries set `serial_number_id` with implicit quantity `'1'` (still send it).
+                        items:
+                          additionalProperties: false
+                          description: 'One allocation entry. A row''s `traceability` is an array; entries together cover the row''s quantity.
+
+
+                            - **Non-tracked variant** — send `[]` (or omit `traceability`).
+
+                            - **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.
+
+                            - **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.
+
+
+                            A variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.'
+                          properties:
+                            batch_id:
+                              description: Batch id. Mutually exclusive with `serial_number_id`.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                            bin_location_id:
+                              description: Bin location id the allocation is drawn from / moved to. Optional.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                            quantity:
+                              description: Decimal string quantity for this allocation entry. Optional for most domains; stock adjustments require it (see `stockAdjustmentTraceabilityInputItem`). Serial entries are implicit `'1'` (the server stores and returns `'1'`), but send it explicitly when known.
+                              type: string
+                            serial_number_id:
+                              description: Serial number id. Mutually exclusive with `batch_id`.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                          type: object
                         type: array
                     required:
                     - sales_order_row_id
@@ -22774,6 +22843,11 @@ paths:
                   sales_order_row_id: 1
                   serial_numbers:
                   - 1
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 3
+                    quantity: '2'
+                    serial_number_id: null
                 sales_order_id: 1
                 status: DELIVERED
                 tracking_carrier: UPS
@@ -23026,12 +23100,23 @@ paths:
                 sales_order_fulfillment_rows:
                 - batch_transactions:
                   - batch_id: 1
-                    quantity: 2
+                    quantity: 1
+                  - batch_id: null
+                    quantity: 1
                   id: 70550671
                   quantity: 2
                   sales_order_row_id: 1
                   serial_numbers:
                   - 1
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 3
+                    quantity: '1'
+                    serial_number_id: null
+                  - batch_id: null
+                    bin_location_id: null
+                    quantity: '1'
+                    serial_number_id: null
                 sales_order_id: 1
                 status: DELIVERED
                 tracking_carrier: UPS
@@ -23186,6 +23271,13 @@ paths:
                     quantity: 2
                   quantity: 2
                   sales_order_row_id: 1
+                  serial_numbers:
+                  - 1
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 3
+                    quantity: '2'
+                    serial_number_id: null
                 sales_order_id: 1
                 status: DELIVERED
                 tracking_carrier: UPS
@@ -23419,7 +23511,9 @@ paths:
                     value: value
                   batch_transactions:
                   - batch_id: 1
-                    quantity: 10
+                    quantity: 5
+                  - batch_id: null
+                    quantity: 5
                   conversion_date: '2020-10-23T10:37:05.085Z'
                   conversion_rate: 2
                   created_at: '2020-10-23T10:37:05.085Z'
@@ -23441,6 +23535,15 @@ paths:
                   total: 150
                   total_discount: '10.00'
                   total_in_base_currency: 300
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 3
+                    quantity: '5'
+                    serial_number_id: null
+                  - batch_id: null
+                    bin_location_id: null
+                    quantity: '5'
+                    serial_number_id: null
                   updated_at: '2020-10-23T10:37:05.085Z'
                   variant:
                     config_attributes:
@@ -25527,7 +25630,9 @@ paths:
                   value: value
                 batch_transactions:
                 - batch_id: 1
-                  quantity: 10
+                  quantity: 5
+                - batch_id: null
+                  quantity: 5
                 conversion_date: '2020-10-23T10:37:05.085Z'
                 conversion_rate: 2
                 created_at: '2020-10-23T10:37:05.085Z'
@@ -25549,6 +25654,15 @@ paths:
                 total: 165
                 total_discount: '10.00'
                 total_in_base_currency: 330
+                traceability:
+                - batch_id: 1
+                  bin_location_id: 3
+                  quantity: '5'
+                  serial_number_id: null
+                - batch_id: null
+                  bin_location_id: null
+                  quantity: '5'
+                  serial_number_id: null
                 updated_at: '2020-10-23T10:37:05.085Z'
                 variant:
                   config_attributes:
@@ -25704,6 +25818,8 @@ paths:
                     type: object
                   type: array
                 batch_transactions:
+                  deprecated: true
+                  description: Batch-level breakdown of the row quantity. **Deprecated** — will be phased out; prefer `traceability`. When `traceability` is sent it wins over `batch_transactions` + `serial_number_transactions`.
                   items:
                     additionalProperties: false
                     properties:
@@ -25731,6 +25847,8 @@ paths:
                   maximum: 100000000000000000
                   type: number
                 serial_number_transactions:
+                  deprecated: true
+                  description: Serial-number breakdown of the row quantity. **Deprecated** — will be phased out; prefer `traceability`. When `traceability` is sent it wins over `batch_transactions` + `serial_number_transactions`.
                   items:
                     additionalProperties: false
                     properties:
@@ -25749,6 +25867,45 @@ paths:
                   description: Updatable only when sales order row status is NOT_SHIPPED or PENDING.
                   maximum: 1000000000000000000
                   type: number
+                traceability:
+                  description: Unified allocation breakdown of the row quantity (batch / serial / bin). Preferred over `batch_transactions` + `serial_number_transactions`; when `traceability` is sent it wins. Sending an empty array clears the row allocations, whereas omitting it leaves them unchanged.
+                  items:
+                    additionalProperties: false
+                    description: 'One allocation entry. A row''s `traceability` is an array; entries together cover the row''s quantity.
+
+
+                      - **Non-tracked variant** — send `[]` (or omit `traceability`).
+
+                      - **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.
+
+                      - **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.
+
+
+                      A variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.'
+                    properties:
+                      batch_id:
+                        description: Batch id. Mutually exclusive with `serial_number_id`.
+                        maximum: 2147483647
+                        minimum: 0
+                        nullable: true
+                        type: integer
+                      bin_location_id:
+                        description: Bin location id the allocation is drawn from / moved to. Optional.
+                        maximum: 2147483647
+                        minimum: 0
+                        nullable: true
+                        type: integer
+                      quantity:
+                        description: Decimal string quantity for this allocation entry. Optional for most domains; stock adjustments require it (see `stockAdjustmentTraceabilityInputItem`). Serial entries are implicit `'1'` (the server stores and returns `'1'`), but send it explicitly when known.
+                        type: string
+                      serial_number_id:
+                        description: Serial number id. Mutually exclusive with `batch_id`.
+                        maximum: 2147483647
+                        minimum: 0
+                        nullable: true
+                        type: integer
+                    type: object
+                  type: array
                 variant_id:
                   description: Updatable only when sales order row status is NOT_SHIPPED or PENDING.
                   type: integer
@@ -25780,6 +25937,11 @@ paths:
                 - 1
                 tax_rate_id: 1
                 total_discount: '10.00'
+                traceability:
+                - batch_id: 1
+                  bin_location_id: 3
+                  quantity: '10'
+                  serial_number_id: null
                 updated_at: '2020-10-23T10:37:05.085Z'
                 variant_id: 1
           description: Sales order row updated
@@ -26726,7 +26888,9 @@ paths:
                       value: value
                     batch_transactions:
                     - batch_id: 1
-                      quantity: 10
+                      quantity: 5
+                    - batch_id: null
+                      quantity: 5
                     conversion_date: '2020-10-23T10:37:05.085Z'
                     conversion_rate: 2
                     created_at: '2020-10-23T10:37:05.085Z'
@@ -26745,6 +26909,15 @@ paths:
                     total: 150
                     total_discount: '10.00'
                     total_in_base_currency: 75
+                    traceability:
+                    - batch_id: 1
+                      bin_location_id: 3
+                      quantity: '5'
+                      serial_number_id: null
+                    - batch_id: null
+                      bin_location_id: null
+                      quantity: '5'
+                      serial_number_id: null
                     updated_at: '2020-10-23T10:37:05.085Z'
                     variant_id: 1
                   shipping_address_id: 1235
@@ -27077,9 +27250,11 @@ paths:
                   price_per_unit: 150
                   quantity: 2
                   sales_order_id: 1
+                  serial_numbers: []
                   tax_rate_id: 1
                   total: 300
                   total_in_base_currency: 150
+                  traceability: []
                   updated_at: '2020-10-23T10:37:05.085Z'
                   variant_id: 1
                 shipping_address_id: 1235
@@ -29674,7 +29849,9 @@ paths:
                     value: value
                   batch_transactions:
                   - batch_id: 1
-                    quantity: 10
+                    quantity: 5
+                  - batch_id: null
+                    quantity: 5
                   conversion_date: '2020-10-23T10:37:05.085Z'
                   conversion_rate: 2
                   created_at: '2020-10-23T10:37:05.085Z'
@@ -29693,6 +29870,15 @@ paths:
                   total: 150
                   total_discount: '10.00'
                   total_in_base_currency: 75
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 3
+                    quantity: '5'
+                    serial_number_id: null
+                  - batch_id: null
+                    bin_location_id: null
+                    quantity: '5'
+                    serial_number_id: null
                   updated_at: '2020-10-23T10:37:05.085Z'
                   variant_id: 1
                 shipping_address_id: 1235
@@ -33449,6 +33635,15 @@ paths:
                     cost_per_unit: 123.45
                     id: 1
                     quantity: 100
+                    traceability:
+                    - batch_id: 1
+                      bin_location_id: 7
+                      quantity: '50'
+                      serial_number_id: null
+                    - batch_id: null
+                      bin_location_id: null
+                      quantity: '50'
+                      serial_number_id: null
                     variant_id: 1
                   - batch_transactions:
                     - batch_id: 3
@@ -33456,6 +33651,11 @@ paths:
                     cost_per_unit: 234.56
                     id: 2
                     quantity: 150
+                    traceability:
+                    - batch_id: 3
+                      bin_location_id: null
+                      quantity: '150'
+                      serial_number_id: null
                     variant_id: 2
                   updated_at: '2021-10-06T11:47:13.846Z'
           description: List all stock adjustments
@@ -33583,7 +33783,8 @@ paths:
                     additionalProperties: false
                     properties:
                       batch_transactions:
-                        description: Batch-level breakdown of the stock adjustment row quantity. The sum of batch transaction quantities must equal the row quantity.
+                        deprecated: true
+                        description: Batch-level breakdown of the stock adjustment row quantity. The sum of batch transaction quantities must equal the row quantity. **Deprecated** — will be phased out; prefer `traceability`. When both `traceability` and `batch_transactions` are sent, `traceability` wins.
                         items:
                           additionalProperties: false
                           properties:
@@ -33607,6 +33808,47 @@ paths:
                       quantity:
                         maximum: 100000000000000000
                         type: number
+                      traceability:
+                        description: Unified allocation breakdown of the row quantity (batch / serial / bin). Preferred over `batch_transactions`; when both are sent, `traceability` wins. Each entry requires an explicit `quantity` (the service does not default it).
+                        items:
+                          additionalProperties: false
+                          description: 'One allocation entry. A row''s `traceability` is an array; entries together cover the row''s quantity.
+
+
+                            - **Non-tracked variant** — send `[]` (or omit `traceability`).
+
+                            - **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.
+
+                            - **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.
+
+
+                            A variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.'
+                          properties:
+                            batch_id:
+                              description: Batch id. Mutually exclusive with `serial_number_id`.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                            bin_location_id:
+                              description: Bin location id the allocation is drawn from / moved to. Optional.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                            quantity:
+                              description: 'Decimal string. **Required** for stock adjustments: the service does not default it, so a missing `quantity` is rejected. Serial entries are implicit `''1''` but the value must still be sent.'
+                              type: string
+                            serial_number_id:
+                              description: Serial number id. Mutually exclusive with `batch_id`.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                          required:
+                          - quantity
+                          type: object
+                        type: array
                       variant_id:
                         maximum: 2147483647
                         type: integer
@@ -33645,6 +33887,15 @@ paths:
                   cost_per_unit: 123.45
                   id: 1
                   quantity: 100
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 7
+                    quantity: '50'
+                    serial_number_id: null
+                  - batch_id: null
+                    bin_location_id: null
+                    quantity: '50'
+                    serial_number_id: null
                   variant_id: 1
                 - batch_transactions:
                   - batch_id: 3
@@ -33652,6 +33903,11 @@ paths:
                   cost_per_unit: 234.56
                   id: 2
                   quantity: 150
+                  traceability:
+                  - batch_id: 3
+                    bin_location_id: null
+                    quantity: '150'
+                    serial_number_id: null
                   variant_id: 2
                 updated_at: '2021-10-06T11:47:13.846Z'
           description: New stock adjustment created
@@ -33922,6 +34178,25 @@ paths:
                 reason: adjustment reason
                 stock_adjustment_date: '2021-10-06T11:47:13.846Z'
                 stock_adjustment_number: SA-1
+                stock_adjustment_rows:
+                - batch_transactions:
+                  - batch_id: 1
+                    quantity: 50
+                  - batch_id: null
+                    quantity: 50
+                  cost_per_unit: 123.45
+                  id: 1
+                  quantity: 100
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 7
+                    quantity: '50'
+                    serial_number_id: null
+                  - batch_id: null
+                    bin_location_id: null
+                    quantity: '50'
+                    serial_number_id: null
+                  variant_id: 1
                 updated_at: '2021-10-06T11:47:13.846Z'
           description: Stock adjustment updated
           headers:
@@ -34122,12 +34397,21 @@ paths:
                   - batch_transactions:
                     - batch_id: 1
                       quantity: 50
-                    - batch_id: 2
+                    - batch_id: null
                       quantity: 50
                     cost_per_unit: 123.45
                     deleted_at: null
                     id: 1
                     quantity: 100
+                    traceability:
+                    - batch_id: 1
+                      bin_location_id: 5
+                      quantity: '50'
+                      serial_number_id: null
+                    - batch_id: null
+                      bin_location_id: null
+                      quantity: '50'
+                      serial_number_id: null
                     variant_id: 1
                   - batch_transactions:
                     - batch_id: 3
@@ -34136,6 +34420,11 @@ paths:
                     deleted_at: null
                     id: 2
                     quantity: 150
+                    traceability:
+                    - batch_id: 3
+                      bin_location_id: null
+                      quantity: '150'
+                      serial_number_id: null
                     variant_id: 2
                   target_location_id: 2
                   transfer_date: '2021-10-06T11:47:13.846Z'
@@ -34243,6 +34532,22 @@ paths:
       requestBody:
         content:
           application/json:
+            example:
+              source_location_id: 1
+              stock_transfer_number: ST-1
+              stock_transfer_rows:
+              - quantity: '100'
+                traceability:
+                - batch_id: 1
+                  bin_location_id: 5
+                  quantity: '50'
+                  serial_number_id: null
+                - batch_id: null
+                  bin_location_id: null
+                  quantity: '50'
+                  serial_number_id: null
+                variant_id: 1
+              target_location_id: 2
             schema:
               additionalProperties: false
               properties:
@@ -34264,11 +34569,15 @@ paths:
                     additionalProperties: false
                     properties:
                       batch_transactions:
+                        deprecated: true
+                        description: Batch-level breakdown of the stock transfer row quantity. The sum of batch transaction quantities must not exceed the row quantity. **Deprecated** — will be phased out; prefer `traceability`. When both `traceability` and `batch_transactions` are sent, `traceability` wins.
                         items:
                           additionalProperties: false
                           properties:
                             batch_id:
+                              description: ID of the batch to transfer stock for. Use `null` to transfer unbatched (untraced) stock.
                               maximum: 2147483647
+                              nullable: true
                               type: integer
                             quantity:
                               maximum: 100000000000000000
@@ -34282,6 +34591,45 @@ paths:
                       quantity:
                         maximum: 100000000000000000
                         type: string
+                      traceability:
+                        description: Unified allocation breakdown of the row quantity (batch / serial / bin). Preferred over `batch_transactions`; when both are sent, `traceability` wins.
+                        items:
+                          additionalProperties: false
+                          description: 'One allocation entry. A row''s `traceability` is an array; entries together cover the row''s quantity.
+
+
+                            - **Non-tracked variant** — send `[]` (or omit `traceability`).
+
+                            - **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.
+
+                            - **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.
+
+
+                            A variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.'
+                          properties:
+                            batch_id:
+                              description: Batch id. Mutually exclusive with `serial_number_id`.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                            bin_location_id:
+                              description: Bin location id the allocation is drawn from / moved to. Optional.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                            quantity:
+                              description: Decimal string quantity for this allocation entry. Optional for most domains; stock adjustments require it (see `stockAdjustmentTraceabilityInputItem`). Serial entries are implicit `'1'` (the server stores and returns `'1'`), but send it explicitly when known.
+                              type: string
+                            serial_number_id:
+                              description: Serial number id. Mutually exclusive with `batch_id`.
+                              maximum: 2147483647
+                              minimum: 0
+                              nullable: true
+                              type: integer
+                          type: object
+                        type: array
                       variant_id:
                         maximum: 2147483647
                         type: integer
@@ -34325,6 +34673,11 @@ paths:
                   deleted_at: null
                   id: 1
                   quantity: 3
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 5
+                    quantity: '3'
+                    serial_number_id: null
                   variant_id: 1
                 target_location_id: 2
                 transfer_date: '2020-10-23T10:37:05.085Z'
@@ -34630,6 +34983,11 @@ paths:
                   cost_per_unit: 10
                   deleted_at: null
                   quantity: 3
+                  traceability:
+                  - batch_id: 1
+                    bin_location_id: 5
+                    quantity: '3'
+                    serial_number_id: null
                   variant_id: 1
                 target_location_id: 2
                 transfer_date: '2020-10-23T10:37:05.085Z'
@@ -34810,6 +35168,11 @@ paths:
                     cost_per_unit: 10
                     deleted_at: null
                     quantity: 3
+                    traceability:
+                    - batch_id: 1
+                      bin_location_id: 5
+                      quantity: '3'
+                      serial_number_id: null
                     variant_id: 1
                   target_location_id: 2
                   transfer_date: '2020-10-23T10:37:05.085Z'
@@ -34976,6 +35339,12 @@ paths:
         required: false
         schema:
           type: number
+      - description: Filters stocktake rows by bin location id
+        in: query
+        name: bin_location_id
+        required: false
+        schema:
+          type: integer
       - description: Filters stocktake rows by stock adjustment id
         in: query
         name: stock_adjustment_id
@@ -35031,6 +35400,7 @@ paths:
               example:
                 data:
                 - batch_id: null
+                  bin_location_id: null
                   counted_quantity: null
                   created_at: '2021-11-22T15:04:37.324Z'
                   deleted_at: null
@@ -35158,6 +35528,11 @@ paths:
                         maximum: 2147483647
                         nullable: true
                         type: integer
+                      bin_location_id:
+                        description: Bin location the counted row applies to. Optional.
+                        maximum: 2147483647
+                        nullable: true
+                        type: integer
                       counted_quantity:
                         minimum: 0
                         nullable: true
@@ -35186,6 +35561,7 @@ paths:
             application/json:
               example:
               - batch_id: null
+                bin_location_id: null
                 counted_quantity: 21
                 created_at: '2022-01-13T14:30:18.174Z'
                 deleted_at: null
@@ -35466,6 +35842,11 @@ paths:
                   maximum: 2147483647
                   nullable: true
                   type: integer
+                bin_location_id:
+                  description: Bin location the counted row applies to. Optional.
+                  maximum: 2147483647
+                  nullable: true
+                  type: integer
                 counted_quantity:
                   minimum: 0
                   nullable: true
@@ -35486,6 +35867,7 @@ paths:
             application/json:
               example:
                 batch_id: null
+                bin_location_id: null
                 counted_quantity: 21
                 created_at: '2022-01-13T14:30:18.174Z'
                 deleted_at: null
@@ -35841,6 +36223,11 @@ paths:
                         maximum: 2147483647
                         nullable: true
                         type: integer
+                      bin_location_id:
+                        description: Bin location the counted row applies to. Optional.
+                        maximum: 2147483647
+                        nullable: true
+                        type: integer
                       counted_quantity:
                         minimum: 0
                         nullable: true
@@ -35884,6 +36271,7 @@ paths:
                 stocktake_number: STK-15
                 stocktake_rows:
                 - batch_id: null
+                  bin_location_id: null
                   counted_quantity: 21
                   created_at: '2022-01-13T14:30:18.174Z'
                   deleted_at: null
@@ -39390,6 +39778,7 @@ paths:
                   - sales_order.packed
                   - sales_order.delivered
                   - sales_order.updated
+                  - sales_order.approved
                   - sales_order.deleted
                   - sales_order.availability_updated
                   - purchase_order.created
@@ -39397,6 +39786,7 @@ paths:
                   - purchase_order.deleted
                   - purchase_order.partially_received
                   - purchase_order.received
+                  - purchase_order.approved
                   - purchase_order_row.created
                   - purchase_order_row.received
                   - purchase_order_row.updated
@@ -39405,6 +39795,7 @@ paths:
                   - outsourced_purchase_order.updated
                   - outsourced_purchase_order.deleted
                   - outsourced_purchase_order.received
+                  - outsourced_purchase_order.approved
                   - outsourced_purchase_order_row.created
                   - outsourced_purchase_order_row.updated
                   - outsourced_purchase_order_row.deleted
@@ -39734,6 +40125,7 @@ paths:
                     - sales_order.packed
                     - sales_order.delivered
                     - sales_order.updated
+                    - sales_order.approved
                     - sales_order.deleted
                     - sales_order.availability_updated
                     - purchase_order.created
@@ -39741,6 +40133,7 @@ paths:
                     - purchase_order.deleted
                     - purchase_order.partially_received
                     - purchase_order.received
+                    - purchase_order.approved
                     - purchase_order_row.created
                     - purchase_order_row.received
                     - purchase_order_row.updated
@@ -39749,6 +40142,7 @@ paths:
                     - outsourced_purchase_order.updated
                     - outsourced_purchase_order.deleted
                     - outsourced_purchase_order.received
+                    - outsourced_purchase_order.approved
                     - outsourced_purchase_order_row.created
                     - outsourced_purchase_order_row.updated
                     - outsourced_purchase_order_row.deleted
@@ -40168,6 +40562,7 @@ paths:
                     - sales_order.packed
                     - sales_order.delivered
                     - sales_order.updated
+                    - sales_order.approved
                     - sales_order.deleted
                     - sales_order.availability_updated
                     - purchase_order.created
@@ -40175,6 +40570,7 @@ paths:
                     - purchase_order.deleted
                     - purchase_order.partially_received
                     - purchase_order.received
+                    - purchase_order.approved
                     - purchase_order_row.created
                     - purchase_order_row.received
                     - purchase_order_row.updated
@@ -40183,6 +40579,7 @@ paths:
                     - outsourced_purchase_order.updated
                     - outsourced_purchase_order.deleted
                     - outsourced_purchase_order.received
+                    - outsourced_purchase_order.approved
                     - outsourced_purchase_order_row.created
                     - outsourced_purchase_order_row.updated
                     - outsourced_purchase_order_row.deleted

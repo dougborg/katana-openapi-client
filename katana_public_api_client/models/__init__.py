@@ -494,6 +494,7 @@ from .supplier_address_request import SupplierAddressRequest
 from .supplier_list_response import SupplierListResponse
 from .tax_rate import TaxRate
 from .tax_rate_list_response import TaxRateListResponse
+from .traceability_request import TraceabilityRequest
 from .type_validation_error import TypeValidationError
 from .type_validation_error_code import TypeValidationErrorCode
 from .type_validation_error_info import TypeValidationErrorInfo
@@ -988,6 +989,7 @@ __all__ = (
     "SupplierListResponse",
     "TaxRate",
     "TaxRateListResponse",
+    "TraceabilityRequest",
     "TypeValidationError",
     "TypeValidationErrorCode",
     "TypeValidationErrorInfo",

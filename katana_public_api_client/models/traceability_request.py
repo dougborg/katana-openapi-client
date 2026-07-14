@@ -7,26 +7,30 @@ from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateStocktakeRowRequest")
+T = TypeVar("T", bound="TraceabilityRequest")
 
 
 @_attrs_define
-class UpdateStocktakeRowRequest:
-    """Request payload for updating an existing stocktake row
+class TraceabilityRequest:
+    """Batch / serial / bin allocation supplied on a create-or-update row to
+    trace the moved quantity to a specific batch, serial number, and/or
+    bin location. Mirrors Katana's ``TraceabilityInputItemDto`` — the
+    unified traceability input that supersedes the older per-entity
+    ``serial_numbers`` arrays for attaching serial-tracked units to a row.
 
-    Example:
-        {'variant_id': 3001, 'batch_id': 501, 'counted_quantity': 148.0, 'notes': 'Recount confirmed minor variance'}
+    Any axis may be null; a non-null ``serial_number_id`` attaches (or
+    draws from) that serial number for the allocated ``quantity``. Katana
+    marks ``quantity`` required on stock-adjustment traceability rows and
+    treats it as the per-allocation amount everywhere else, so it is
+    modelled as optional here to accept every valid payload shape.
     """
 
-    variant_id: int | Unset = UNSET
     batch_id: int | None | Unset = UNSET
     bin_location_id: int | None | Unset = UNSET
-    notes: None | str | Unset = UNSET
-    counted_quantity: float | None | Unset = UNSET
+    serial_number_id: int | None | Unset = UNSET
+    quantity: float | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        variant_id = self.variant_id
-
         batch_id: int | None | Unset
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
@@ -39,38 +43,31 @@ class UpdateStocktakeRowRequest:
         else:
             bin_location_id = self.bin_location_id
 
-        notes: None | str | Unset
-        if isinstance(self.notes, Unset):
-            notes = UNSET
+        serial_number_id: int | None | Unset
+        if isinstance(self.serial_number_id, Unset):
+            serial_number_id = UNSET
         else:
-            notes = self.notes
+            serial_number_id = self.serial_number_id
 
-        counted_quantity: float | None | Unset
-        if isinstance(self.counted_quantity, Unset):
-            counted_quantity = UNSET
-        else:
-            counted_quantity = self.counted_quantity
+        quantity = self.quantity
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
-        if variant_id is not UNSET:
-            field_dict["variant_id"] = variant_id
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
         if bin_location_id is not UNSET:
             field_dict["bin_location_id"] = bin_location_id
-        if notes is not UNSET:
-            field_dict["notes"] = notes
-        if counted_quantity is not UNSET:
-            field_dict["counted_quantity"] = counted_quantity
+        if serial_number_id is not UNSET:
+            field_dict["serial_number_id"] = serial_number_id
+        if quantity is not UNSET:
+            field_dict["quantity"] = quantity
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        variant_id = d.pop("variant_id", UNSET)
 
         def _parse_batch_id(data: object) -> int | None | Unset:
             if data is None:
@@ -90,30 +87,22 @@ class UpdateStocktakeRowRequest:
 
         bin_location_id = _parse_bin_location_id(d.pop("bin_location_id", UNSET))
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_serial_number_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(int | None | Unset, data)
 
-        notes = _parse_notes(d.pop("notes", UNSET))
+        serial_number_id = _parse_serial_number_id(d.pop("serial_number_id", UNSET))
 
-        def _parse_counted_quantity(data: object) -> float | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(float | None | Unset, data)
+        quantity = d.pop("quantity", UNSET)
 
-        counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
-
-        update_stocktake_row_request = cls(
-            variant_id=variant_id,
+        traceability_request = cls(
             batch_id=batch_id,
             bin_location_id=bin_location_id,
-            notes=notes,
-            counted_quantity=counted_quantity,
+            serial_number_id=serial_number_id,
+            quantity=quantity,
         )
 
-        return update_stocktake_row_request
+        return traceability_request

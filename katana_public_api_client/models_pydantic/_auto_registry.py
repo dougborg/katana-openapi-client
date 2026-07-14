@@ -648,6 +648,9 @@ from katana_public_api_client.models.tax_rate import TaxRate as AttrsTaxRate
 from katana_public_api_client.models.tax_rate_list_response import (
     TaxRateListResponse as AttrsTaxRateListResponse,
 )
+from katana_public_api_client.models.traceability_request import (
+    TraceabilityRequest as AttrsTraceabilityRequest,
+)
 from katana_public_api_client.models.type_validation_error import (
     TypeValidationError as AttrsTypeValidationError,
 )
@@ -873,6 +876,7 @@ from ._generated.common import (
     SearchComparator as PydanticSearchComparator,
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
+    TraceabilityRequest as PydanticTraceabilityRequest,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
     UpdateBinTransferRequest as PydanticUpdateBinTransferRequest,
     UpdateBinTransferRowRequest as PydanticUpdateBinTransferRowRequest,
@@ -1476,6 +1480,7 @@ def register_all_models() -> None:
     register(AttrsSupplierListResponse, PydanticSupplierListResponse)
     register(AttrsTaxRate, PydanticTaxRate)
     register(AttrsTaxRateListResponse, PydanticTaxRateListResponse)
+    register(AttrsTraceabilityRequest, PydanticTraceabilityRequest)
     register(AttrsTypeValidationError, PydanticTypeValidationError)
     register(AttrsUnassignedBatchTransaction, PydanticUnassignedBatchTransaction)
     register(

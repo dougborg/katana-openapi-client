@@ -9,6 +9,7 @@ from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.batch_transaction import BatchTransaction
+    from ..models.traceability_request import TraceabilityRequest
     from ..models.update_sales_order_row_request_attributes_item import (
         UpdateSalesOrderRowRequestAttributesItem,
     )
@@ -41,6 +42,7 @@ class UpdateSalesOrderRowRequest:
     serial_number_transactions: (
         list[UpdateSalesOrderRowRequestSerialNumberTransactionsItem] | Unset
     ) = UNSET
+    traceability: list[TraceabilityRequest] | Unset = UNSET
     attributes: list[UpdateSalesOrderRowRequestAttributesItem] | Unset = UNSET
     custom_fields: None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0 = UNSET
 
@@ -76,6 +78,13 @@ class UpdateSalesOrderRowRequest:
                     serial_number_transactions_item_data.to_dict()
                 )
                 serial_number_transactions.append(serial_number_transactions_item)
+
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
 
         attributes: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.attributes, Unset):
@@ -113,6 +122,8 @@ class UpdateSalesOrderRowRequest:
             field_dict["batch_transactions"] = batch_transactions
         if serial_number_transactions is not UNSET:
             field_dict["serial_number_transactions"] = serial_number_transactions
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
         if attributes is not UNSET:
             field_dict["attributes"] = attributes
         if custom_fields is not UNSET:
@@ -123,6 +134,7 @@ class UpdateSalesOrderRowRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.batch_transaction import BatchTransaction
+        from ..models.traceability_request import TraceabilityRequest
         from ..models.update_sales_order_row_request_attributes_item import (
             UpdateSalesOrderRowRequestAttributesItem,
         )
@@ -172,6 +184,17 @@ class UpdateSalesOrderRowRequest:
 
                 serial_number_transactions.append(serial_number_transactions_item)
 
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[TraceabilityRequest] | Unset = UNSET
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = TraceabilityRequest.from_dict(
+                    cast(Mapping[str, Any], traceability_item_data)
+                )
+
+                traceability.append(traceability_item)
+
         _attributes = d.pop("attributes", UNSET)
         attributes: list[UpdateSalesOrderRowRequestAttributesItem] | Unset = UNSET
         if _attributes is not UNSET:
@@ -220,6 +243,7 @@ class UpdateSalesOrderRowRequest:
             total_discount=total_discount,
             batch_transactions=batch_transactions,
             serial_number_transactions=serial_number_transactions,
+            traceability=traceability,
             attributes=attributes,
             custom_fields=custom_fields,
         )

@@ -30,6 +30,7 @@ from .common import (
     ProductAvailability,
     SearchComparator,
     SearchScalarValue1,
+    TraceabilityRequest,
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
 from .stock import (
@@ -312,6 +313,12 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
     serial_number_transactions: Annotated[
         list[SerialNumberTransaction1] | None,
         Field(description="Serial number transactions for tracking"),
+    ] = None
+    traceability: Annotated[
+        list[TraceabilityRequest] | None,
+        Field(
+            description="Unified batch/serial/bin allocations for this row. The current way to attach serial-tracked units to a sales order row — an alternative to `serial_number_transactions` that also carries batch and bin context per allocation."
+        ),
     ] = None
     attributes: Annotated[
         list[Attribute] | None,
@@ -1077,6 +1084,12 @@ class SalesOrderFulfillmentRowRequest(KatanaPydanticBase):
         list[int] | None,
         Field(
             description="Serial number IDs allocated to this fulfillment row. Required when the row's variant is serial-tracked; the count must equal `quantity`."
+        ),
+    ] = None
+    traceability: Annotated[
+        list[TraceabilityRequest] | None,
+        Field(
+            description="Unified batch/serial/bin allocations for the fulfilled quantity. The current way to attach serial-tracked units — an alternative to the flat `serial_numbers` array that also carries batch and bin context per allocation."
         ),
     ] = None
 
