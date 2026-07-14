@@ -40,6 +40,7 @@ from katana_mcp.tools.prefab_ui import (
     build_variant_details_ui,
     build_verification_ui,
     status_badge_variant,
+    with_display_rows,
     with_preview_coaching,
 )
 from prefab_ui.app import PrefabApp
@@ -10529,6 +10530,30 @@ def _so_detail_response(
         "rows": rows,
         "warnings": warnings or [],
     }
+
+
+class TestWithDisplayRows:
+    """``with_display_rows`` — the non-clobber invariant that keeps authoritative
+    row identifiers in ``structured_content`` state (anthropics/claude-code#55677)."""
+
+    def test_adds_display_key_without_touching_authoritative_rows(self) -> None:
+        entity = {"id": 1, "rows": [{"id": 99, "total_discount": "5.00"}]}
+        cells = [{"sku": "SKU-A", "unit_price_display": "$1.00"}]
+        result = with_display_rows(entity, cells)
+        # Authoritative rows are preserved verbatim...
+        assert result["rows"] == [{"id": 99, "total_discount": "5.00"}]
+        # ...and the display cells land under the separate key.
+        assert result["rows_display"] == cells
+
+    def test_does_not_mutate_input(self) -> None:
+        entity = {"rows": [{"id": 99}]}
+        with_display_rows(entity, [{"sku": "X"}])
+        assert "rows_display" not in entity
+
+    def test_refuses_to_overwrite_existing_display_key(self) -> None:
+        entity = {"rows": [{"id": 99}], "rows_display": [{"sku": "old"}]}
+        with pytest.raises(ValueError, match="already present"):
+            with_display_rows(entity, [{"sku": "new"}])
 
 
 class TestBuildSoDetailUI:

@@ -156,6 +156,29 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
 
 ### Cross-cutting
 
+- **A UI-emitting tool's model-critical data MUST live in `structured_content`, not only
+  `content` — some hosts drop the `content` channel.** `make_tool_result` puts the full
+  response JSON in `content` and the Prefab card in `structured_content`. The MCP Apps
+  prose says `content` is model-visible and `structured_content` is UI-only — but that
+  is **host-dependent and not guaranteed**: Claude Code forwards **only**
+  `structuredContent` to the model when both are present, dropping `content[].text`
+  entirely (anthropics/claude-code#55677, closed "not planned"; claude.ai web currently
+  sends both). Large payloads are a second drop path (Claude Code truncates MCP output
+  above ~25k tokens via `MAX_MCP_OUTPUT_TOKENS`; claude.ai spills payloads above ~150k
+  chars to a pointer). **Consequence:** any identifier the model needs for a follow-up
+  action (row / line / address / fulfillment `id`, `variant_id`, discounts, tax IDs)
+  must be in the PrefabApp's `state=`, never reduced to display-only cells there. The
+  classic bug: a detail card doing `state = {**entity, "rows": display_cells}` —
+  overwriting authoritative rows with formatted cells — which stripped SO row IDs +
+  discounts and sent an agent scraping the Katana web UI. **Fix pattern:** put display
+  cells under a *separate* key via `with_display_rows(entity, cells)` (refuses to
+  clobber) and bind the DataTable to `{{ <entity>.rows_display }}`, leaving
+  `state.<entity>.rows` authoritative. Read tools that return `make_json_result` (or a
+  raw `ToolResult` with `structured_content=response.model_dump()`) are inherently safe
+  — full data in *both* channels. Pinned by
+  `tests/test_prefab_ui.py::TestWithDisplayRows` and
+  `::TestBuildSoDetailUI::test_authoritative_row_data_survives_in_structured_content`.
+
 - **Multiple `katana-mcp-server` instances share one machine-wide SQLite cache — the
   "Unable to reach katana-erp-dev" reconnect loop.** The typed cache defaults to a
   single path (`platformdirs.user_cache_dir("katana-mcp")/typed_cache.db`), so every

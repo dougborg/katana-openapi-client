@@ -177,6 +177,44 @@ def _paginate(
     return {"paginated": False}
 
 
+def with_display_rows(
+    entity: dict[str, Any],
+    cells: list[dict[str, Any]],
+    *,
+    display_key: str = "rows_display",
+) -> dict[str, Any]:
+    """Attach pre-formatted DataTable display cells to an entity's card state
+    WITHOUT clobbering its authoritative row data.
+
+    A detail card binds its line-item DataTable to a mustache key in
+    ``PrefabApp(state=...)``. The natural-but-wrong shape is
+    ``{**entity, "rows": cells}`` — overwriting the authoritative rows (which
+    carry row ``id`` / ``variant_id`` / discounts / tax IDs) with display-only
+    cells. That drops the identifiers a follow-up mutation keys on
+    (``update_rows`` / ``delete_row_ids`` …). It only *looks* harmless because
+    the full row data still rides in the ToolResult ``content`` channel — but
+    some hosts forward **only** ``structured_content`` to the model and drop
+    ``content`` (anthropics/claude-code#55677), so a display-only reduction
+    there strips the IDs from model context. (This is what sent an agent
+    scraping the Katana web UI for sales-order row data.)
+
+    This helper enforces the fix: it writes ``cells`` to a **separate**
+    ``display_key`` (bind the DataTable to that) and leaves the entity's own
+    authoritative keys untouched. It refuses to overwrite an existing
+    ``display_key`` so a future caller can't reintroduce the clobber by accident.
+
+    Bind the table to ``{{ <entity>.<display_key> }}`` and let the model read
+    identifiers from the entity's authoritative row key. See
+    :func:`build_so_detail_ui` for the canonical call site.
+    """
+    if display_key in entity:
+        raise ValueError(
+            f"with_display_rows: {display_key!r} already present on entity — "
+            f"refusing to overwrite (would risk clobbering authoritative data)."
+        )
+    return {**entity, display_key: cells}
+
+
 def _split_warnings(
     warnings: list[str] | None,
 ) -> tuple[list[str], list[str]]:
@@ -7432,18 +7470,13 @@ def build_so_detail_ui(so: dict[str, Any]) -> PrefabApp:
     embedded child table) and ``build_variant_details_ui`` (Metric-row Tier 2
     on a read card).
     """
-    # The line-item DataTable binds to ``state.so.rows_display`` — pre-formatted
-    # display cells so the money columns render currency-aware without a
-    # renderer-side formatter. Crucially, we ADD that key rather than overwriting
-    # ``state.so.rows``: the authoritative rows (row ``id``, ``total_discount``,
-    # ``variant_id``, ``tax_rate_id`` …) stay in ``state.so.rows`` so a host that
-    # forwards only ``structured_content`` to the model still exposes the row
-    # identifiers an agent needs to edit pricing safely. (Claude Code drops the
-    # ``content`` JSON channel when ``structuredContent`` is present —
-    # anthropics/claude-code#55677 — so display-only cells there would strip the
-    # IDs, which sent an agent scraping the Katana web UI for row data.)
+    # The line-item DataTable binds to ``state.so.rows_display`` (pre-formatted
+    # display cells) while ``state.so.rows`` stays authoritative (row ``id`` /
+    # ``total_discount`` / ``variant_id`` / ``tax_rate_id``). ``with_display_rows``
+    # enforces the non-clobber invariant so the identifiers survive on a host
+    # that forwards only ``structured_content`` (see the helper's docstring).
     # Shallow-copy ``so`` so the caller's response dict isn't mutated.
-    so_state = {**so, "rows_display": _so_detail_row_cells(so)}
+    so_state = with_display_rows(so, _so_detail_row_cells(so))
 
     with PrefabApp(state={"so": so_state}, css_class="p-4") as app, Card():
         with CardHeader(), Column(gap=1):
