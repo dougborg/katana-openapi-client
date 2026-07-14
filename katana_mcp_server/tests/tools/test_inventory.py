@@ -1211,6 +1211,45 @@ async def test_create_stock_adjustment_apply_forwards_new_fields():
 
 
 @pytest.mark.asyncio
+async def test_create_stock_adjustment_forwards_traceability():
+    """Row-level ``traceability`` (serial/batch/bin) reaches the API body and
+    serializes with only the supplied axes."""
+    from katana_mcp.tools.foundation._traceability import TraceabilityInput
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3002, "sku": "SN-001", "display_name": "Serial Item"}
+    )
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = MagicMock(id=9002)
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    with patch(_SA_API + ".asyncio_detailed", mock_api_call):
+        request = CreateStockAdjustmentRequest(
+            location_id=1,
+            rows=[
+                StockAdjustmentRow(
+                    sku="SN-001",
+                    quantity=1,
+                    traceability=[
+                        TraceabilityInput(serial_number_id=5501, quantity=1),
+                    ],
+                ),
+            ],
+            stock_adjustment_number="SA-SN-001",
+            preview=False,
+        )
+        await _create_stock_adjustment_impl(request, context)
+
+    assert mock_api_call.call_args is not None
+    api_body = mock_api_call.call_args.kwargs["body"]
+    row_dict = api_body.stock_adjustment_rows[0].to_dict()
+    assert row_dict["traceability"] == [{"serial_number_id": 5501, "quantity": 1}]
+
+
+@pytest.mark.asyncio
 async def test_create_stock_adjustment_apply_defaults_when_unset():
     """When the new fields aren't supplied, the tool generates a SA-<ts>
     number and stamps the call time as the date — Katana requires both

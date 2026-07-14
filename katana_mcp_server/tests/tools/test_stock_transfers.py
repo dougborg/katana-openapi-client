@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from katana_mcp.tools.foundation._traceability import TraceabilityInput
 from katana_mcp.tools.foundation.stock_transfers import (
     CreateStockTransferRequest,
     DeleteStockTransferRequest,
@@ -170,6 +171,69 @@ async def test_create_stock_transfer_confirm_success():
     row_dict = call_body.stock_transfer_rows[0].to_dict()
     assert "batch_transactions" in row_dict
     assert row_dict["batch_transactions"] == [{"batch_id": 77, "quantity": 5}]
+
+
+@pytest.mark.asyncio
+async def test_create_stock_transfer_serializes_traceability():
+    """A serial-tracked transfer serializes ``traceability`` into the row body,
+    omitting the unset batch/bin axes."""
+    context, _ = create_mock_context()
+
+    mock_transfer = _make_mock_transfer(
+        id=43,
+        stock_transfer_number="ST-43",
+        source_location_id=1,
+        target_location_id=2,
+        status="draft",
+        expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+    )
+
+    with (
+        patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+    ):
+        request = CreateStockTransferRequest(
+            source_location_id=1,
+            destination_location_id=2,
+            expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+            rows=[
+                StockTransferRowInput(
+                    variant_id=100,
+                    quantity=1,
+                    traceability=[TraceabilityInput(serial_number_id=9001, quantity=1)],
+                )
+            ],
+            preview=False,
+        )
+        await _create_stock_transfer_impl(request, context)
+
+    assert mock_api.await_args is not None
+    call_body = mock_api.await_args.kwargs["body"]
+    row_dict = call_body.stock_transfer_rows[0].to_dict()
+    assert row_dict["traceability"] == [{"serial_number_id": 9001, "quantity": 1}]
+
+
+def test_build_traceability_requests_distinguishes_none_from_empty():
+    """``None`` (omitted) → UNSET so the key drops from the body; an explicit
+    empty list passes through as ``[]`` so callers can express it distinctly."""
+    from katana_mcp.tools.foundation._traceability import build_traceability_requests
+
+    assert build_traceability_requests(None) is UNSET
+    assert build_traceability_requests([]) == []
+
+
+def test_traceability_input_rejects_zero_quantity_allows_negative():
+    """Katana's traceability quantity is non-zero (negatives are valid for
+    stock-decrease adjustments) — reject 0, accept negative."""
+    import pytest as _pytest
+    from katana_mcp.tools.foundation._traceability import TraceabilityInput
+    from pydantic import ValidationError
+
+    with _pytest.raises(ValidationError):
+        TraceabilityInput(serial_number_id=1, quantity=0)
+
+    # Negative quantity is valid (removing a serial-tracked unit).
+    assert TraceabilityInput(serial_number_id=1, quantity=-1).quantity == -1
 
 
 @pytest.mark.asyncio

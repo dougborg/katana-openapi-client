@@ -48,6 +48,10 @@ from katana_mcp.tools._modification_dispatch import (
     safe_fetch_for_diff,
     unset_dict,
 )
+from katana_mcp.tools.foundation._traceability import (
+    TraceabilityInput,
+    build_traceability_requests,
+)
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
@@ -2204,6 +2208,15 @@ class SORowUpdate(BaseModel):
         description=("New location ID. Look up via `list_locations`."),
     )
     total_discount: float | None = Field(default=None, description="New discount")
+    traceability: list[TraceabilityInput] | None = Field(
+        default=None,
+        description=(
+            "Unified batch/serial/bin allocations for this row — the current "
+            "way to attach serial-tracked units to a sales order row. Each "
+            "entry sets a serial_number_id (and optional batch_id / "
+            "bin_location_id) for one allocated unit."
+        ),
+    )
 
 
 class SOAddressAdd(BaseModel):
@@ -2476,7 +2489,13 @@ def _build_create_row_request(so_id: int, row: SORowAdd) -> APICreateSORowReques
 
 
 def _build_update_row_request(patch: SORowUpdate) -> APIUpdateSORowRequest:
-    return APIUpdateSORowRequest(**unset_dict(patch, exclude=("id",)))
+    # ``traceability`` carries pydantic sub-models, so build it explicitly from
+    # the original objects rather than through ``unset_dict`` (which
+    # ``model_dump``s sub-models to plain dicts).
+    return APIUpdateSORowRequest(
+        traceability=build_traceability_requests(patch.traceability),
+        **unset_dict(patch, exclude=("id", "traceability")),
+    )
 
 
 def _build_create_address_request(

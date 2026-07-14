@@ -56,8 +56,12 @@ logger = get_logger(__name__)
 
 # Mint or transfer — the set of ``resource_type`` values the API accepts on
 # ``POST /serial_numbers``. Mirrors ``CreateSerialNumberResourceType``.
+# ``Production`` IS a valid write target (transfer semantics — verified live
+# 2026-07-14, #980: the wire routes it to a production lookup and 422s
+# ``UnknownSerialNumber`` for a string that doesn't already exist).
 WriteResourceType = Literal[
     "ManufacturingOrder",
+    "Production",
     "StockAdjustmentRow",
     "StockTransferRow",
     "PurchaseOrderRow",
@@ -92,7 +96,7 @@ _MINT_RESOURCE_TYPES: frozenset[WriteResourceType] = frozenset(
     {"ManufacturingOrder", "PurchaseOrderRow"}
 )
 _TRANSFER_RESOURCE_TYPES: frozenset[WriteResourceType] = frozenset(
-    {"SalesOrderRow", "StockTransferRow", "StockAdjustmentRow"}
+    {"SalesOrderRow", "StockTransferRow", "StockAdjustmentRow", "Production"}
 )
 
 
@@ -100,6 +104,10 @@ def _semantic_label(resource_type: WriteResourceType) -> Literal["mint", "transf
     """Return ``"mint"`` or ``"transfer"`` for a write resource type."""
     if resource_type in _MINT_RESOURCE_TYPES:
         return "mint"
+    assert resource_type in _TRANSFER_RESOURCE_TYPES, (
+        f"{resource_type} is neither a mint nor a transfer type — the two sets "
+        "must together cover every WriteResourceType"
+    )
     return "transfer"
 
 
@@ -111,12 +119,12 @@ def _semantic_label(resource_type: WriteResourceType) -> Literal["mint", "transf
 _PARENT_ENTITY_TYPES: dict[WriteResourceType, str | None] = {
     "ManufacturingOrder": "manufacturing_order",
     "SalesOrderRow": "sales_order",
-    # PurchaseOrderRow / StockTransferRow / StockAdjustmentRow are
-    # deliberately omitted — none of CachedPurchaseOrder/PurchaseOrderRow,
-    # CachedStockTransfer/StockTransferRow, or the cached stock-adjustment
-    # models surface a ``serial_numbers`` column, so there is no cached
-    # state to invalidate on those writes. The watermark sync handles
-    # convergence on subsequent reads.
+    # PurchaseOrderRow / StockTransferRow / StockAdjustmentRow / Production
+    # are deliberately omitted — none of CachedPurchaseOrder/PurchaseOrderRow,
+    # CachedStockTransfer/StockTransferRow, the cached stock-adjustment models,
+    # nor any cached production model surface a ``serial_numbers`` column, so
+    # there is no cached state to invalidate on those writes. The watermark
+    # sync handles convergence on subsequent reads.
 }
 
 
@@ -251,32 +259,33 @@ class AddSerialNumbersRequest(BaseModel):
     resource_type: WriteResourceType = Field(
         ...,
         description=(
-            "Target resource type. Write semantics differ by type:\n\n"
-            "- **mint** (new serial numbers): ManufacturingOrder, "
-            "PurchaseOrderRow. The string doesn't need to pre-exist.\n"
+            "Target resource type:\n\n"
+            "- **mint**: ManufacturingOrder, PurchaseOrderRow.\n"
             "- **transfer** (move existing strings): SalesOrderRow, "
-            "StockTransferRow, StockAdjustmentRow. The string MUST already "
-            "exist (typically attached to an MO output). If it doesn't, "
-            "the API surfaces it in ``failed`` with ``reason: MISSING`` — "
-            "the call still returns 200, not 422."
+            "StockTransferRow, StockAdjustmentRow, Production.\n\n"
+            "A serial-number string the tenant doesn't already know is "
+            "rejected with 422 (observed live 2026-07-14 for SalesOrderRow "
+            "and Production). The older 200 + ``failed`` (``reason: MISSING``) "
+            "shape was not reproduced — re-verification tracked in #983."
         ),
     )
     resource_id: int = Field(
         ...,
         description=(
-            "ID of the target resource (MO id, SOR id, PO row id, etc.). "
-            "Non-existent ids return 422 from the API and propagate as a "
-            "``ValidationError`` (subclass of "
-            "``katana_public_api_client.utils.APIError``)."
+            "ID of the target resource (MO id, SOR id, PO row id, "
+            "production id, etc.). Non-existent ids return 404 NotFoundError "
+            "from the API and propagate as an ``APIError`` subclass "
+            "(``katana_public_api_client.utils``)."
         ),
     )
     serial_numbers: list[str] = Field(
         ...,
         min_length=1,
         description=(
-            "One or more serial-number strings to create or attach. "
-            "Partial failure is possible (per-string DUPLICATE / MISSING) — "
-            "the response splits the outcome into ``created`` and ``failed``."
+            "One or more serial-number strings to create or attach. A string "
+            "the tenant doesn't already know is rejected with 422 (see #983 — "
+            "the older per-string ``created`` / ``failed`` split was not "
+            "reproduced on the live wire)."
         ),
     )
     preview: bool = Field(

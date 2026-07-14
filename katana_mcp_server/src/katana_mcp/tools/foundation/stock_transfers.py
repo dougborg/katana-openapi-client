@@ -42,6 +42,10 @@ from katana_mcp.tools._modification_dispatch import (
     run_modify_plan,
     unset_dict,
 )
+from katana_mcp.tools.foundation._traceability import (
+    TraceabilityInput,
+    build_traceability_requests,
+)
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
@@ -172,6 +176,14 @@ class StockTransferRowInput(BaseModel):
         description=(
             "Batch transactions for batch-tracked items. Required for batch-tracked "
             "variants — each entry picks a batch_id and quantity."
+        ),
+    )
+    traceability: list[TraceabilityInput] | None = Field(
+        default=None,
+        description=(
+            "Unified batch/serial/bin allocations for serial-tracked variants — "
+            "each entry sets a serial_number_id (and optional batch_id / "
+            "bin_location_id) to move a specific serial-tracked unit."
         ),
     )
 
@@ -318,6 +330,7 @@ def _build_row_requests(
         api_row = StockTransferRowRequest(
             variant_id=row.variant_id,
             quantity=format(Decimal(str(row.quantity)), "f"),
+            traceability=build_traceability_requests(row.traceability),
         )
         if row.batch_transactions:
             api_row.additional_properties = {

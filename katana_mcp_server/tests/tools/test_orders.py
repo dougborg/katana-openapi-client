@@ -1013,6 +1013,134 @@ async def test_fulfill_sales_order_apply_passes_serials_to_api():
 
 
 @pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_accepts_traceability_serials():
+    """Serials supplied via ``traceability`` satisfy the serial-tracked guard —
+    no BLOCK even without a flat ``serial_numbers`` override."""
+    from katana_mcp.tools.foundation._traceability import TraceabilityInput
+
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-SN-TR"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="sales",
+        preview=True,
+        rows=[
+            FulfillRowOverride(
+                sales_order_row_id=1,
+                traceability=[TraceabilityInput(serial_number_id=501, quantity=1)],
+            )
+        ],
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if w.startswith("BLOCK:")]
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_apply_passes_traceability_to_api():
+    """Apply with a traceability override → POST body row carries ``traceability``."""
+    from katana_mcp.tools.foundation._traceability import TraceabilityInput
+
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-SN-TR2"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+    mock_get_response = MagicMock(status_code=200, parsed=mock_so)
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 7778
+    create_mock = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=fulfillment_obj)
+    )
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="sales",
+        preview=False,
+        rows=[
+            FulfillRowOverride(
+                sales_order_row_id=1,
+                traceability=[TraceabilityInput(serial_number_id=501, quantity=1)],
+            )
+        ],
+    )
+    await _fulfill_order_impl(request, context)
+
+    assert create_mock.call_args is not None
+    sent_rows = create_mock.call_args.kwargs["body"].sales_order_fulfillment_rows
+    row_dict = sent_rows[0].to_dict()
+    assert row_dict["traceability"] == [{"serial_number_id": 501, "quantity": 1}]
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_explicit_empty_traceability_reaches_wire():
+    """An explicitly-supplied empty ``traceability`` list is passed through as
+    ``[]`` (distinct from omission), consistent with the helper contract.
+
+    Uses a non-serial-tracked row so the empty list isn't intercepted by the
+    serial-tracked guard — the point here is purely the None-vs-[] passthrough.
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-SN-TR3"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 7779
+    create_mock = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=fulfillment_obj)
+    )
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="sales",
+        preview=False,
+        rows=[FulfillRowOverride(sales_order_row_id=1, traceability=[])],
+    )
+    await _fulfill_order_impl(request, context)
+
+    assert create_mock.call_args is not None
+    sent_rows = create_mock.call_args.kwargs["body"].sales_order_fulfillment_rows
+    assert sent_rows[0].to_dict()["traceability"] == []
+
+
+@pytest.mark.asyncio
 async def test_fulfill_sales_order_apply_refuses_serial_tracked_without_override():
     """Direct apply (preview=False) without override → refusal, no API call."""
     context, lifespan_ctx = create_mock_context()
