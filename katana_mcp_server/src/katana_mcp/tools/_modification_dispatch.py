@@ -851,6 +851,7 @@ async def run_modify_plan(
     message, next_actions = summarize_modify_outcome(
         actions, len(plan), entity_label=entity_label, tool_name=tool_name
     )
+    merged_parent: Any | None = None
 
     # Bug #2 (2026-05-12 supplier session): the typed cache went stale after
     # every modify because nothing wrote the post-state through. The next
@@ -882,7 +883,7 @@ async def run_modify_plan(
             else None
         )
         try:
-            await _post_apply_cache_merge(
+            merged_parent = await _post_apply_cache_merge(
                 cache_merge=cache_merge,
                 entity_type=entity_type,
                 entity_id=request.id,
@@ -900,6 +901,26 @@ async def run_modify_plan(
                 f"next sync — does not affect the API write."
             )
 
+    # Surface the post-apply header state so the card's derived metrics
+    # (notably the recomputed ``total``) reflect the *applied* entity, not
+    # the pre-modify ``prior_state`` snapshot. ``_post_apply_cache_merge``
+    # already fetched (and cached) the fresh parent — reuse it here instead
+    # of a second GET. We drop *list-valued* nested collections (the PO/SO
+    # rows, additional costs): the card rebuilds line-item rows from
+    # ``actions``, and carrying the full row set would roughly double the
+    # payload. Scalar fields and small nested objects (e.g. the ``supplier``
+    # dict) are kept — the card's ``_normalize_po_prior_state`` reads
+    # ``supplier.name`` for the reference line. ``None`` merged_parent (not
+    # cached / timed out / deleted) leaves the card on the prior snapshot,
+    # same as before this change.
+    response_extras = dict(extras or {})
+    if merged_parent is not None:
+        post_apply_snapshot = serialize_for_prior_state(merged_parent)
+        if post_apply_snapshot:
+            response_extras["post_apply_state"] = {
+                k: v for k, v in post_apply_snapshot.items() if not isinstance(v, list)
+            }
+
     return ModificationResponse(
         entity_type=entity_type,
         entity_id=request.id,
@@ -910,7 +931,7 @@ async def run_modify_plan(
         next_actions=next_actions,
         katana_url=katana_url,
         message=message,
-        extras=extras or {},
+        extras=response_extras,
     )
 
 
@@ -988,8 +1009,15 @@ async def _post_apply_cache_merge(
     entity_id: int,
     parent_field_overlay: dict[str, Any] | None = None,
     parent_override: Any | None = None,
-) -> None:
+) -> Any | None:
     """Re-fetch the modified entity from Katana and merge into the typed cache.
+
+    Returns the post-apply parent attrs that were merged into the cache
+    (with any ``parent_field_overlay`` applied) so the caller can surface
+    server-recomputed derived fields — the recomputed ``total`` especially
+    — on the response/card. Returns ``None`` whenever no merge happened:
+    the entity type isn't cached, the refetch timed out, or the entity was
+    deleted out from under us.
 
     Looks up the ``EntitySpec`` by ``entity_type`` in ``ENTITY_SPECS`` —
     entity types that aren't cached (no spec) skip silently. Returns
@@ -1022,7 +1050,7 @@ async def _post_apply_cache_merge(
 
     spec = ENTITY_SPECS.get(entity_type)
     if spec is None:
-        return  # entity not cached — nothing to merge
+        return None  # entity not cached — nothing to merge
 
     if parent_override is not None:
         # PATCH response stands in for the GET (CacheMerge.parent_from_outcome):
@@ -1044,9 +1072,9 @@ async def _post_apply_cache_merge(
                 f"exceeded {_CACHE_MERGE_FETCH_TIMEOUT_S}s (likely rate-limit "
                 f"backoff) — skipping merge. Cache recovers on next sync."
             )
-            return
+            return None
     if parent is None:
-        return  # fetch returned nothing (e.g., the entity was deleted)
+        return None  # fetch returned nothing (e.g., the entity was deleted)
 
     # Overlay fresh PATCH-response values onto the (possibly stale) GET
     # refetch. Generated attrs models are mutable (no ``frozen=True``);
@@ -1108,6 +1136,8 @@ async def _post_apply_cache_merge(
             continue
         if related_rows:
             await merge_filtered_fetch(cache_merge.cache, related_spec, related_rows)
+
+    return parent
 
 
 async def run_delete_plan(
