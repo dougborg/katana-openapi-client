@@ -16,7 +16,9 @@ from katana_mcp.tools.foundation.sales_orders import (
     SalesOrderItem,
     SOHeaderPatch,
     SORowAdd,
+    SORowUpdate,
     SOShippingFeeAdd,
+    _build_update_row_request,
     _create_sales_order_impl,
     _delete_sales_order_impl,
     _get_sales_order_impl,
@@ -3179,3 +3181,32 @@ async def test_delete_so_confirm_calls_api_and_records_prior_state():
     assert response.prior_state is not None
     assert response.katana_url is None  # entity gone
     mock_api.assert_awaited_once()
+
+
+def test_build_update_row_request_threads_traceability():
+    """``SORowUpdate.traceability`` maps onto the attrs update-row request and
+    serializes into the wire body, while unset row fields stay UNSET."""
+    from katana_mcp.tools.foundation._traceability import TraceabilityInput
+
+    patch = SORowUpdate(
+        id=55,
+        quantity=1,
+        traceability=[TraceabilityInput(serial_number_id=8801, quantity=1)],
+    )
+
+    api_row = _build_update_row_request(patch)
+
+    # Unset fields are omitted; traceability serializes with only the
+    # supplied axes.
+    row_dict = api_row.to_dict()
+    assert row_dict["quantity"] == 1
+    assert row_dict["traceability"] == [{"serial_number_id": 8801, "quantity": 1}]
+    assert "price_per_unit" not in row_dict
+
+
+def test_build_update_row_request_omits_traceability_when_absent():
+    """No traceability on the patch → the attrs field is UNSET (omitted)."""
+    api_row = _build_update_row_request(SORowUpdate(id=55, quantity=2))
+
+    assert api_row.traceability is UNSET
+    assert "traceability" not in api_row.to_dict()

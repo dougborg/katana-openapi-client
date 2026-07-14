@@ -309,14 +309,30 @@ async def test_add_serial_numbers_all_missing_transfer():
 # ============================================================================
 
 
+def test_add_serial_numbers_accepts_production_as_transfer_type():
+    """``Production`` is a valid write ``resource_type`` (transfer semantics) —
+    verified live 2026-07-14 (#980): the wire routes it to a production lookup
+    and 422s ``UnknownSerialNumber`` for a string that doesn't pre-exist."""
+    from katana_mcp.tools.foundation.serial_numbers import _semantic_label
+
+    request = AddSerialNumbersRequest(
+        resource_type="Production",
+        resource_id=1,
+        serial_numbers=["X"],
+        preview=False,
+    )
+    assert request.resource_type == "Production"
+    assert _semantic_label("Production") == "transfer"
+
+
 @pytest.mark.asyncio
-async def test_add_serial_numbers_rejects_production_resource_type():
-    """Pydantic Literal rejects ``Production`` at construction time."""
+async def test_add_serial_numbers_rejects_unknown_resource_type():
+    """Pydantic Literal rejects a ``resource_type`` outside the write enum."""
     from pydantic import ValidationError
 
     # Cast the bad value to Any so the static checker doesn't refuse it
     # at type-check time — the test asserts pydantic catches it at runtime.
-    bad_resource_type = cast(Any, "Production")
+    bad_resource_type = cast(Any, "NotARealResourceType")
     with pytest.raises(ValidationError):
         AddSerialNumbersRequest(
             resource_type=bad_resource_type,

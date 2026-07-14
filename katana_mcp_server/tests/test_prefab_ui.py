@@ -9266,7 +9266,9 @@ class TestConfirmButtonEmitsCallTool:
         on_click = _confirm_button_on_click(envelope, "Confirm Fulfillment")
         call = self._assert_apply_actions(on_click, "fulfill_order")
         args = call["arguments"]
-        assert args["rows"] == [{"sales_order_row_id": 42, "serial_numbers": [111]}]
+        assert args["rows"] == [
+            {"sales_order_row_id": 42, "serial_numbers": [111], "traceability": None}
+        ]
 
     def test_receipt_preview_confirm_emits_call_tool(self):
         from katana_mcp.tools.foundation.purchase_orders import (

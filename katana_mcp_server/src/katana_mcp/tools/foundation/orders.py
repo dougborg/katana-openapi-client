@@ -20,6 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import WireDatetime
+from katana_mcp.tools.foundation._traceability import (
+    TraceabilityInput,
+    build_traceability_requests,
+)
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
@@ -67,7 +71,17 @@ class FulfillRowOverride(BaseModel):
         description=(
             "Pre-existing SerialNumber IDs to attach to this fulfillment row. "
             "Length must equal the row's ordered quantity. Required when the "
-            "row's variant is serial-tracked."
+            "row's variant is serial-tracked (unless supplied via "
+            "``traceability`` instead)."
+        ),
+    )
+    traceability: list[TraceabilityInput] | None = Field(
+        default=None,
+        description=(
+            "Unified batch/serial/bin allocations for this fulfillment row — an "
+            "alternative to the flat ``serial_numbers`` list that also carries "
+            "batch and bin context per allocation. Set one entry per unit with "
+            "a serial_number_id to attach serial-tracked units."
         ),
     )
 
@@ -1261,6 +1275,16 @@ def _build_row_override_warnings(
     serial-tracked row is blocked separately, since each serial number
     represents a whole unit.
     """
+    # Rows that attach serials via the ``traceability`` list instead of the
+    # flat ``serial_numbers`` override. Katana validates their count/identity
+    # server-side, so we skip the ``serial_numbers``-count guards for them
+    # rather than false-blocking a valid traceability payload.
+    rows_with_traceability_serials = {
+        ovr.sales_order_row_id
+        for ovr in request_rows
+        if ovr.traceability
+        and any(t.serial_number_id is not None for t in ovr.traceability)
+    }
     warnings: list[str] = []
     so_row_ids = {row.id for row in so_rows}
 
@@ -1293,12 +1317,18 @@ def _build_row_override_warnings(
         qty = row.quantity
         is_tracked = serial_tracked_by_row.get(rid, False)
         serials = overrides_by_row.get(rid)
+        uses_traceability_serials = rid in rows_with_traceability_serials
         if is_tracked and qty is not None and qty != int(qty):
             warnings.append(
                 f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
                 f"serial-tracked but quantity ({qty}) is not a whole number; "
                 "serial-tracked variants must ship in integer units."
             )
+        elif uses_traceability_serials:
+            # Serials supplied via ``traceability`` instead of the flat
+            # ``serial_numbers`` list — Katana validates their count/identity
+            # server-side, so skip the ``serial_numbers`` presence/count guards.
+            pass
         elif is_tracked and not serials and (qty or 0) > 0:
             warnings.append(
                 f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
@@ -1547,6 +1577,11 @@ async def _fulfill_sales_order(
         for ovr in (request.rows or [])
         if ovr.serial_numbers is not None
     }
+    traceability_by_row: dict[int, list[TraceabilityInput]] = {
+        ovr.sales_order_row_id: ovr.traceability
+        for ovr in (request.rows or [])
+        if ovr.traceability is not None
+    }
 
     (
         serial_tracked_by_row,
@@ -1787,6 +1822,7 @@ async def _fulfill_sales_order(
             sales_order_row_id=row.id,
             quantity=row.quantity,
             serial_numbers=to_unset(overrides_by_row.get(row.id)),
+            traceability=build_traceability_requests(traceability_by_row.get(row.id)),
         )
         for row in so_rows
     ]

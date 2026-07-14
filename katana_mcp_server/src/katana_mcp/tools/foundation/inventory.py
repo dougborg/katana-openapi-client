@@ -21,6 +21,10 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import WireDatetime, patch_additional_info
 from katana_mcp.tools.decorators import cache_read
+from katana_mcp.tools.foundation._traceability import (
+    TraceabilityInput,
+    build_traceability_requests,
+)
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrIntList
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -1580,6 +1584,15 @@ class StockAdjustmentRow(BaseModel):
             "items."
         ),
     )
+    traceability: list[TraceabilityInput] | None = Field(
+        default=None,
+        description=(
+            "Unified batch/serial/bin allocations for serial-tracked variants — "
+            "each entry sets a serial_number_id (and optional batch_id / "
+            "bin_location_id) to attach or remove a specific serial-tracked unit. "
+            "Katana requires a non-zero quantity on each entry."
+        ),
+    )
 
 
 class CreateStockAdjustmentRequest(BaseModel):
@@ -1731,6 +1744,7 @@ async def _create_stock_adjustment_impl(
                 quantity=row.quantity,
                 cost_per_unit=to_unset(row.cost_per_unit),
                 batch_transactions=batch_txns,
+                traceability=build_traceability_requests(row.traceability),
             )
         )
         rows_summary_parts.append(f"- {row.sku} ({display_name}): {row.quantity:+.1f}")
