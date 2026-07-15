@@ -410,6 +410,55 @@ def _convert(spec: EntitySpec, attrs_obj: Any) -> tuple[Any, list[Any]]:
     return parent, children
 
 
+def _convert_batch(
+    spec: EntitySpec, attrs_objs: Iterable[Any]
+) -> tuple[list[Any], list[Any]]:
+    """Convert a batch of attrs objects into cache rows, isolating failures.
+
+    A single malformed record must never abort the whole batch. ``_convert``
+    can raise a ``ValidationError`` (e.g. a Katana wire quirk that slips past
+    the sentinel-null coercion, an unforeseen type mismatch, or a nested row the
+    generated model can't accept) — and because ``_sync_one_locked`` advances
+    ``SyncState.last_synced`` only *after* the loop, that raise would strand the
+    entire entity type *and* leave the watermark un-advanced, so every retry
+    re-poisons on the same record (the "reconnect loop" failure mode). Convert
+    each record independently; log-and-skip the ones that raise so the rest of
+    the batch still lands and the watermark advances.
+
+    Skipped records are recoverable: a later ``updated_at`` bump re-syncs them,
+    and ``rebuild_cache`` re-pulls the full set from scratch.
+    """
+    cached_parents: list[Any] = []
+    cached_children: list[Any] = []
+    skipped = 0
+    for attrs_obj in attrs_objs:
+        try:
+            parent, children = _convert(spec, attrs_obj)
+        except Exception as exc:
+            # Catch-all on purpose: this is the batch-resilience backstop, so a
+            # never-before-seen conversion failure degrades to one dropped row
+            # instead of a whole-entity outage.
+            skipped += 1
+            logger.warning(
+                "cache_sync_skipped_record",
+                entity=spec.entity_key,
+                record_id=getattr(attrs_obj, "id", None),
+                error=str(exc),
+            )
+            continue
+        cached_parents.append(parent)
+        cached_children.extend(children)
+
+    if skipped:
+        logger.warning(
+            "cache_sync_skipped_records_total",
+            entity=spec.entity_key,
+            skipped=skipped,
+        )
+
+    return cached_parents, cached_children
+
+
 # SQLite caps each prepared statement at 999 bound parameters by default.
 # Headroom (900) keeps us safe on older / embedded builds without sacrificing
 # meaningful throughput. Wide schemas (``CachedSalesOrder`` at 33 cols) end up
@@ -563,12 +612,7 @@ async def _sync_one_locked(
     else:
         attrs_objs = unwrap_data(response, default=[])
 
-    cached_parents: list[Any] = []
-    cached_children: list[Any] = []
-    for attrs_obj in attrs_objs:
-        parent, children = _convert(spec, attrs_obj)
-        cached_parents.append(parent)
-        cached_children.extend(children)
+    cached_parents, cached_children = _convert_batch(spec, attrs_objs)
 
     async with cache.session() as session:
         # Parents first so child FK constraints resolve on insert.
@@ -676,12 +720,7 @@ async def merge_filtered_fetch(
 
     Empty input is a no-op (no session opened, no merge issued).
     """
-    cached_parents: list[Any] = []
-    cached_children: list[Any] = []
-    for attrs_obj in attrs_objs:
-        parent, children = _convert(spec, attrs_obj)
-        cached_parents.append(parent)
-        cached_children.extend(children)
+    cached_parents, cached_children = _convert_batch(spec, attrs_objs)
 
     if not cached_parents:
         return

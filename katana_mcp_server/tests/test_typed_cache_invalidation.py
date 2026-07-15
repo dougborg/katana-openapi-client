@@ -1063,3 +1063,142 @@ class TestReconcileChildren:
         assert summary.row_count == 1
         assert summary.rows is not None
         assert [r.id for r in summary.rows] == [1]
+
+
+class TestMalformedRecordResilience:
+    """One bad record must never black out a whole entity's sync.
+
+    Two complementary layers guard this:
+
+    1. ``KatanaPydanticBase.from_attrs`` coerces Katana's literal
+       ``"null"``/``"undefined"`` sentinel (seen on serial-number transfer
+       responses) to ``None`` on typed fields, so the quirky-but-otherwise-valid
+       record is *retained*, not dropped.
+    2. ``_convert_batch`` isolates any *other* per-record conversion failure —
+       log-and-skip the one bad row so the rest of the batch still lands and the
+       watermark advances (an unhandled raise would strand the entire entity and
+       leave ``SyncState`` un-advanced, re-poisoning every retry).
+
+    Regression for the live "``list_manufacturing_orders`` returns a
+    ``ValidationError`` for SerialNumber.transaction_date=='null'" outage.
+    """
+
+    @staticmethod
+    def _mo_attrs(order_id: int, serial_numbers: list[dict] | None = None):
+        from katana_public_api_client.models import ManufacturingOrder as AttrsMO
+
+        payload: dict = {
+            "id": order_id,
+            "order_no": f"MO-{order_id}",
+            "status": "NOT_STARTED",
+            "variant_id": 9001,
+            "planned_quantity": 5.0,
+            "location_id": 1,
+            "created_at": "2026-01-01T00:00:00.000Z",
+            "updated_at": "2026-01-02T00:00:00.000Z",
+        }
+        if serial_numbers is not None:
+            payload["serial_numbers"] = serial_numbers
+        return AttrsMO.from_dict(payload)
+
+    @pytest.mark.asyncio
+    async def test_sync_tolerates_null_string_serial_in_manufacturing_orders(
+        self, typed_cache_engine
+    ):
+        """A batch with a ``transaction_date="null"`` nested serial must fully land.
+
+        This is the exact wire shape that took the MO list down: a healthy MO
+        alongside one whose nested ``serial_numbers[]`` carries Katana's literal
+        ``"null"`` sentinel in a typed field. Both MOs must reach the cache, and
+        the quirky serial must be *retained* with the sentinel coerced to None —
+        the string field (``serial_number``) preserved verbatim.
+        """
+        from katana_mcp.typed_cache.sync import ensure_manufacturing_orders_synced
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrder,
+        )
+
+        good = self._mo_attrs(5001)
+        poisoned = self._mo_attrs(
+            5002,
+            serial_numbers=[
+                {
+                    "id": 42,
+                    "transaction_id": "undefined",
+                    "serial_number": "SN-KEEP",
+                    "resource_id": "null",
+                    "resource_type": "ManufacturingOrder",
+                    "transaction_date": "null",
+                    "quantity_change": 1,
+                }
+            ],
+        )
+
+        parsed = MagicMock()
+        parsed.data = [good, poisoned]
+        response = MagicMock()
+        response.status_code = 200
+        response.parsed = parsed
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_manufacturing_orders.asyncio_detailed",
+                new=AsyncMock(return_value=response),
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+                new=AsyncMock(return_value=_empty_response()),
+            ),
+        ):
+            await ensure_manufacturing_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached_good = await session.get(CachedManufacturingOrder, 5001)
+            cached_poisoned = await session.get(CachedManufacturingOrder, 5002)
+
+        assert cached_good is not None
+        assert cached_poisoned is not None, (
+            "poisoned MO must land — the null-string serial is coerced, not dropped"
+        )
+        assert cached_poisoned.serial_numbers is not None
+        assert len(cached_poisoned.serial_numbers) == 1
+        serial = cached_poisoned.serial_numbers[0]
+        assert serial["serial_number"] == "SN-KEEP"
+        assert serial["transaction_date"] is None
+        assert serial["resource_id"] is None
+
+    @pytest.mark.asyncio
+    async def test_convert_batch_skips_unconvertible_record(self, monkeypatch):
+        """``_convert_batch`` isolates a raising record and keeps the rest.
+
+        The Layer-2 coercion can't anticipate every future Katana quirk, so the
+        sync loop needs a backstop: a record whose ``_convert`` raises for *any*
+        reason is logged and skipped, and the surviving records are still
+        returned for upsert.
+        """
+        from katana_mcp.typed_cache import (
+            MANUFACTURING_ORDER_SPEC,
+            sync as sync_mod,
+        )
+
+        good1 = self._mo_attrs(6001)
+        bad = self._mo_attrs(6002)
+        good2 = self._mo_attrs(6003)
+
+        real_convert = sync_mod._convert
+
+        def flaky_convert(spec, attrs_obj):
+            if getattr(attrs_obj, "id", None) == 6002:
+                raise ValueError("boom: simulated unforeseen conversion failure")
+            return real_convert(spec, attrs_obj)
+
+        monkeypatch.setattr(sync_mod, "_convert", flaky_convert)
+
+        parents, _children = sync_mod._convert_batch(
+            MANUFACTURING_ORDER_SPEC, [good1, bad, good2]
+        )
+
+        landed_ids = {p.id for p in parents}
+        assert landed_ids == {6001, 6003}
+        assert 6002 not in landed_ids
