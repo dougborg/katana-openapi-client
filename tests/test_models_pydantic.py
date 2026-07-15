@@ -458,6 +458,85 @@ class TestServiceVariantNullSku:
         assert pydantic_service.variants[1].sku is None
 
 
+class TestSerialNumberSentinelNull:
+    """``from_attrs`` must tolerate Katana's literal ``"null"``/``"undefined"`` string.
+
+    On serial-number *transfer* responses Katana serializes absent values as the
+    literal string ``"null"`` (or ``"undefined"``) instead of a JSON null. The
+    generated attrs parser passes the raw string straight through (its
+    ``_parse_<field>`` fallbacks return the value on parse failure), so the break
+    only surfaces at the *typed* pydantic field: ``transaction_date:
+    AwareDatetime`` and ``resource_id: int`` reject ``"null"`` with a
+    ``ValidationError``. In the typed-cache MO sync that single quirky record
+    aborted the whole batch, blacking out ``list_manufacturing_orders`` entirely.
+
+    The fix coerces the sentinel to ``None`` in ``KatanaPydanticBase.from_attrs``
+    for any field that can't hold a string, while leaving genuine string fields
+    (``transaction_id``, ``serial_number``) untouched so a legitimate value that
+    happens to be ``"null"`` still survives. Pinned here at the conversion seam so
+    a future refactor can't silently reintroduce the crash.
+    """
+
+    def test_from_attrs_coerces_null_string_on_typed_fields(self) -> None:
+        """The crash path: ``SerialNumber.from_attrs`` with sentinel strings."""
+        from katana_public_api_client.models import SerialNumber as AttrsSerialNumber
+        from katana_public_api_client.models_pydantic._generated import SerialNumber
+
+        attrs_sn = AttrsSerialNumber.from_dict(
+            {
+                "id": 42,
+                "transaction_id": "undefined",
+                "serial_number": "SN-KEEP-001",
+                "resource_id": "null",
+                "resource_type": "ManufacturingOrder",
+                "transaction_date": "null",
+                "quantity_change": 1,
+            }
+        )
+        # attrs stores the raw sentinel strings — the tolerance lives downstream.
+        assert attrs_sn.transaction_date == "null"
+        assert attrs_sn.resource_id == "null"
+
+        pydantic_sn = SerialNumber.from_attrs(attrs_sn)
+
+        # Typed (non-string) fields: sentinel coerced to None → record survives.
+        assert pydantic_sn.transaction_date is None
+        assert pydantic_sn.resource_id is None
+        # String fields: sentinel preserved verbatim (a real value could be "null").
+        assert pydantic_sn.transaction_id == "undefined"
+        assert pydantic_sn.serial_number == "SN-KEEP-001"
+        # The rest of the record is retained, not dropped.
+        assert pydantic_sn.id == 42
+        assert pydantic_sn.quantity_change == 1
+
+    def test_from_attrs_preserves_real_datetime(self) -> None:
+        """A genuine ISO datetime must still parse — coercion only hits sentinels."""
+        from katana_public_api_client.models import SerialNumber as AttrsSerialNumber
+        from katana_public_api_client.models_pydantic._generated import SerialNumber
+
+        attrs_sn = AttrsSerialNumber.from_dict(
+            {
+                "id": 43,
+                "serial_number": "SN-002",
+                "transaction_date": "2026-01-15T10:00:00.000Z",
+                "quantity_change": -1,
+            }
+        )
+        pydantic_sn = SerialNumber.from_attrs(attrs_sn)
+        assert pydantic_sn.transaction_date is not None
+        assert pydantic_sn.transaction_date.year == 2026
+
+    def test_from_attrs_preserves_serial_number_literally_null(self) -> None:
+        """``serial_number`` is a string field: a literal ``"null"`` value is data,
+        not a sentinel, and must be preserved."""
+        from katana_public_api_client.models import SerialNumber as AttrsSerialNumber
+        from katana_public_api_client.models_pydantic._generated import SerialNumber
+
+        attrs_sn = AttrsSerialNumber.from_dict({"id": 44, "serial_number": "null"})
+        pydantic_sn = SerialNumber.from_attrs(attrs_sn)
+        assert pydantic_sn.serial_number == "null"
+
+
 class TestManufacturingOrderNullDeadline:
     """ManufacturingOrder.production_deadline_date must accept None.
 
