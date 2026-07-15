@@ -9,8 +9,19 @@ from __future__ import annotations
 
 import datetime
 import enum
+import types
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, get_args, get_origin
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    TypeVar,
+    Union,
+    cast,
+    get_args,
+    get_origin,
+)
 
 from sqlmodel import SQLModel
 from sqlmodel._compat import SQLModelConfig
@@ -35,6 +46,69 @@ def _get_unset() -> Any:
     from ..client_types import UNSET
 
     return UNSET
+
+
+# Katana serializes some absent values as the literal *string* ``"null"`` or
+# ``"undefined"`` rather than a JSON null — documented on serial-number transfer
+# responses (see ``models/serial_number.py``: ``transaction_id`` may be
+# ``"undefined"``, ``resource_id`` may be ``"null"``). The generated attrs
+# parsers pass the raw string straight through (their ``_parse_<field>``
+# fallbacks ``return`` the value on parse failure), so it only blows up when the
+# value reaches a *typed* pydantic field — e.g. ``transaction_date:
+# AwareDatetime`` or ``resource_id: int`` rejects ``"null"`` with a
+# ``ValidationError``. In the typed-cache sync that single bad record would abort
+# the whole batch. Coerce the sentinel to ``None`` for any field that cannot hold
+# a string; leave string-typed fields (``transaction_id``, ``serial_number``)
+# untouched so a legitimate value that happens to be ``"null"`` still survives.
+_SENTINEL_NULL_STRINGS = frozenset({"null", "undefined"})
+
+
+def _flatten_member_types(annotation: Any) -> list[Any]:
+    """Flatten an annotation into its concrete member types.
+
+    Unwraps ``Annotated[T, ...]`` to ``T`` and expands unions (both
+    ``typing.Union`` and the ``X | Y`` ``types.UnionType`` form) so callers can
+    reason about each alternative of an ``Optional``/union field.
+    """
+    origin = get_origin(annotation)
+    if origin is Annotated:
+        return _flatten_member_types(get_args(annotation)[0])
+    if origin is Union or origin is types.UnionType:
+        flattened: list[Any] = []
+        for arg in get_args(annotation):
+            flattened.extend(_flatten_member_types(arg))
+        return flattened
+    return [annotation]
+
+
+def _annotation_accepts_str(annotation: Any) -> bool:
+    """Whether a plain ``str`` is a valid value for a field of this annotation.
+
+    ``True`` if any non-``None`` member is ``str`` / a ``str`` subclass (e.g. a
+    ``StrEnum``) or a permissive non-class construct (``Any``, ``object``);
+    ``False`` only when every member is a concrete non-string type. Used to gate
+    the ``"null"``/``"undefined"`` sentinel coercion so string-bearing fields are
+    never touched.
+    """
+    members = [m for m in _flatten_member_types(annotation) if m is not type(None)]
+    if not members:
+        return True
+    for member in members:
+        # Non-class constructs (``Any``, bare ``object`` reached via typing)
+        # accept anything, so a string is valid — stay permissive.
+        if not isinstance(member, type):
+            return True
+        if member is object or issubclass(member, str):
+            return True
+    return False
+
+
+def _coerce_sentinel_null(value: Any, annotation: Any) -> Any:
+    """Map Katana's literal ``"null"``/``"undefined"`` string to ``None`` when the
+    target field cannot hold a string; otherwise return ``value`` unchanged."""
+    if not isinstance(value, str) or value not in _SENTINEL_NULL_STRINGS:
+        return value
+    return None if not _annotation_accepts_str(annotation) else value
 
 
 class KatanaPydanticBase(SQLModel):
@@ -152,6 +226,14 @@ class KatanaPydanticBase(SQLModel):
             if field_name.endswith("_") and not field_name.startswith("_"):
                 # Remove trailing underscore for pydantic field
                 pydantic_field_name = field_name[:-1]
+
+            # Normalize Katana's literal ``"null"``/``"undefined"`` sentinel to
+            # None for typed (non-string) fields so a single quirky record
+            # doesn't fail ``model_validate`` below (and, in the typed-cache
+            # sync, abort the whole batch).
+            model_field = cls.model_fields.get(pydantic_field_name)
+            if model_field is not None:
+                value = _coerce_sentinel_null(value, model_field.annotation)
 
             data[pydantic_field_name] = value
 
