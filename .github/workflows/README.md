@@ -226,6 +226,18 @@ graph TD
 
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
 - PyPI publishing uses Trusted Publishers (no manual tokens needed)
+- `RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` - Credentials for the **GitHub App** used
+  by the Release and Update-MCP-Dependency workflows to push the `chore(release)`
+  version bumps + tags to `main`. These replace the old `SEMANTIC_RELEASE_TOKEN` PAT,
+  whose fine-grained-token expiry silently broke every release. Set up the App once:
+  1. Create a GitHub App (org or user) with **Repository permissions → Contents: Read
+     and write** and **Pull requests: Read and write**.
+  1. Install it on `katana-openapi-client`.
+  1. Add it to the `main` ruleset's **bypass list** so it can push the release
+     commit/tag directly (the ruleset otherwise blocks direct pushes).
+  1. Store the App's **App ID** as `RELEASE_APP_ID` and a generated **private key**
+     (`.pem` contents) as `RELEASE_APP_PRIVATE_KEY` in repo Actions secrets. The private
+     key does not expire the way a fine-grained PAT does.
 
 ### Environments
 
@@ -293,7 +305,8 @@ When adding new workflows:
 - Verify a new `client-v*` tag was created
 - Check if MCP dependency is already up to date
 - Review update-mcp-dependency workflow logs
-- Ensure `SEMANTIC_RELEASE_TOKEN` has `pull-requests: write` permission
+- Ensure the release GitHub App (`RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY`) has
+  `Contents: write` + `Pull requests: write` and is on the `main` ruleset bypass list
 
 **MCP release not triggering after dependency update:**
 

@@ -60,10 +60,26 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       tag: ${{ steps.release.outputs.tag }}
     steps:
+      # Mint a short-lived installation token from a GitHub App instead of a
+      # long-lived PAT. The App's private key doesn't silently expire the way a
+      # fine-grained PAT does (which is what took the release pipeline down), and
+      # the token it issues is scoped to this repo and lasts only for the run.
+      - name: Generate a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Scope the token to exactly what the release jobs need (push the
+          # version-bump commit + tag / lockfile sync, and let semantic-release
+          # comment on the released PRs). Avoids the blanket-permission token.
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
-          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@d31148d669074a8d0a63714ba94f3201e7020bc3 # v8.3.0
@@ -95,7 +111,7 @@ jobs:
         id: release
         uses: python-semantic-release/python-semantic-release@39dd2052f2ce8282a5d932c31d58a2ca06d2550e # v10.6.1
         with:
-          github_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
           verbosity: 2
 
       - name: Build client package
@@ -129,10 +145,22 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       tag: ${{ steps.release.outputs.tag }}
     steps:
+      - name: Generate a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Scope the token to exactly what the release jobs need (push the
+          # version-bump commit + tag / lockfile sync, and let semantic-release
+          # comment on the released PRs). Avoids the blanket-permission token.
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
-          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@d31148d669074a8d0a63714ba94f3201e7020bc3 # v8.3.0
@@ -164,7 +192,7 @@ jobs:
         id: release
         uses: python-semantic-release/python-semantic-release@39dd2052f2ce8282a5d932c31d58a2ca06d2550e # v10.6.1
         with:
-          github_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
           verbosity: 2
           directory: katana_mcp_server
 
@@ -249,11 +277,23 @@ jobs:
       # pyproject versions — re-locking there would be a no-op and the lock
       # would never catch up (#901). `ref: main` + an explicit reset to
       # origin/main guarantees we see the bumped versions before re-locking.
+      - name: Generate a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Scope the token to exactly what the release jobs need (push the
+          # version-bump commit + tag / lockfile sync, and let semantic-release
+          # comment on the released PRs). Avoids the blanket-permission token.
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           ref: main
-          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Fast-forward to the post-release tip of main
         run: |
