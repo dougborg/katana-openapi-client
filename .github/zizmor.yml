@@ -12,13 +12,13 @@ rules:
     # other (read-only) checkout in the tree.
     ignore:
       # release-client / release-mcp jobs: python-semantic-release pushes the
-      # version-bump commit and tag using SEMANTIC_RELEASE_TOKEN.
-      - release.yml:63
-      - release.yml:132
+      # version-bump commit and tag using the GitHub App token minted in-job.
+      - release.yml:79
+      - release.yml:160
       # sync-lockfile job: commits the regenerated uv.lock and pushes to main.
-      - release.yml:252
+      - release.yml:292
       # update-mcp-dependency: commits the client bump and pushes to main.
-      - update-mcp-dependency.yml:19
+      - update-mcp-dependency.yml:30
 
   dangerous-triggers:
     # update-mcp-dependency runs on `workflow_run` after the Release workflow
