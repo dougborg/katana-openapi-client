@@ -65,6 +65,16 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # @hey-api/openapi-ts is intentionally pinned to the `next` nightly: the
+      # stable line (0.99.0) calls the TypeScript Compiler API (`ts.SyntaxKind`),
+      # which tsgo removed, so it crashes `npm run generate` under TypeScript 7.
+      # The v1 line (nightly-only today) dropped that dependency. Without this
+      # ignore, Dependabot would "update" the locked nightly down to the 0.99.0
+      # `latest` tag — a downgrade that re-breaks the TS 7 build. Remove this and
+      # move the pin to ^1.0.0 once hey-api ships a stable v1
+      # (check: `npm view @hey-api/openapi-ts dist-tags`).
+      - dependency-name: "@hey-api/openapi-ts"
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
