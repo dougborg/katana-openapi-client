@@ -6,9 +6,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  DEFAULT_RETRY_CONFIG,
   calculateRetryDelay,
   createResilientFetch,
+  DEFAULT_RETRY_CONFIG,
   shouldRetry,
 } from '../../src/transport/resilient.js';
 

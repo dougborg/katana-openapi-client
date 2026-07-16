@@ -8,15 +8,15 @@
 import { createClient, createConfig } from './generated/client/index.js';
 import type { Client } from './generated/client/types.gen.js';
 import {
+  createPaginatedFetch,
   DEFAULT_PAGINATION_CONFIG,
   type PaginationConfig,
-  createPaginatedFetch,
 } from './transport/pagination.js';
-import { DEFAULT_RATE_LIMIT_CONFIG, createRateLimitedFetch } from './transport/rateLimit.js';
+import { createRateLimitedFetch, DEFAULT_RATE_LIMIT_CONFIG } from './transport/rateLimit.js';
 import {
+  createResilientFetch,
   DEFAULT_RETRY_CONFIG,
   type RetryConfig,
-  createResilientFetch,
 } from './transport/resilient.js';
 
 /**
