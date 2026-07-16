@@ -69,11 +69,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
-    "@hey-api/openapi-ts": "^0.99.0",
+    "@hey-api/openapi-ts": "next",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
     "tsdown": "^0.22.9",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.0.15"
   },
   "sideEffects": false
