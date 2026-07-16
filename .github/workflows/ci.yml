@@ -324,6 +324,14 @@ jobs:
         run: npm test
         working-directory: packages/katana-client
 
+      - name: Build committed client
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        # Exercise the tsdown build (bundle + oxc .d.ts emit). The build is not
+        # byte-checked, but a broken bundle or declaration emit fails here rather
+        # than surfacing only at publish time.
+        run: npm run build
+        working-directory: packages/katana-client
+
       - name: Regenerate from the spec and typecheck the result
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         run: |
