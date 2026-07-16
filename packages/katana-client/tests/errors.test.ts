@@ -7,10 +7,10 @@ import {
   AuthenticationError,
   KatanaError,
   NetworkError,
+  parseError,
   RateLimitError,
   ServerError,
   ValidationError,
-  parseError,
 } from '../src/errors.js';
 
 describe('Error Classes', () => {

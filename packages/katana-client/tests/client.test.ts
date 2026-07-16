@@ -35,7 +35,6 @@ describe('KatanaClient', () => {
     it('should throw descriptive error when no API key is available', async () => {
       // Temporarily remove env var if present
       const originalEnv = process.env.KATANA_API_KEY;
-      // biome-ignore lint/performance/noDelete: Need to actually remove env var, not set to "undefined" string
       delete process.env.KATANA_API_KEY;
 
       try {
@@ -61,7 +60,6 @@ describe('KatanaClient', () => {
         if (originalEnv) {
           process.env.KATANA_API_KEY = originalEnv;
         } else {
-          // biome-ignore lint/performance/noDelete: Need to actually remove env var, not set to "undefined" string
           delete process.env.KATANA_API_KEY;
         }
       }
