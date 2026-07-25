@@ -293,7 +293,9 @@ When adding new workflows:
 - Verify a new `client-v*` tag was created
 - Check if MCP dependency is already up to date
 - Review update-mcp-dependency workflow logs
-- Ensure `SEMANTIC_RELEASE_TOKEN` has `pull-requests: write` permission
+- Ensure the `dougborg-release-please` GitHub App token (minted via
+  `RELEASE_PLEASE_APP_ID` / `RELEASE_PLEASE_APP_PRIVATE_KEY`) has `contents: write`
+  permission
 
 **MCP release not triggering after dependency update:**
 
