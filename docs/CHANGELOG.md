@@ -2,6 +2,254 @@
 
 <!-- version list -->
 
+## v0.81.0 (2026-07-25)
+
+### Bug Fixes
+
+- **client**: Complete per-row location_id across purchase order row schemas
+  ([`64a6290`](https://github.com/dougborg/katana-openapi-client/commit/64a6290f96580b81cab38605e88821f301173c06))
+
+- **client**: Correct three drifted query-parameter enums
+  ([`9f1e2b2`](https://github.com/dougborg/katana-openapi-client/commit/9f1e2b2df04daab442962705e462db3ffa6e5866))
+
+- **client**: Tolerate Katana literal-"null"/"undefined" sentinel in from_attrs
+  ([`e3a57d0`](https://github.com/dougborg/katana-openapi-client/commit/e3a57d0c14db3b97dfdce94faddee292d87adc8a))
+
+- **mcp**: Address bin transfer review findings
+  ([`11cb2cc`](https://github.com/dougborg/katana-openapi-client/commit/11cb2cc712046155d02eb2f13bf5bfa4d9d5f074))
+
+- **mcp**: Address Copilot review on #949
+  ([`aa5384f`](https://github.com/dougborg/katana-openapi-client/commit/aa5384f6fbac402fa56611a9b20ffed09f11c75a))
+
+- **mcp**: Expand ~ in KATANA_CACHE_DIR override
+  ([#975](https://github.com/dougborg/katana-openapi-client/pull/975),
+  [`b0fcc9d`](https://github.com/dougborg/katana-openapi-client/commit/b0fcc9d7347d25346063b267e46f1ee4fe0983de))
+
+- **mcp**: Isolate malformed records in typed-cache batch sync
+  ([`e52e86a`](https://github.com/dougborg/katana-openapi-client/commit/e52e86a8c86bb06c2a73ee494f8030d4202693f5))
+
+- **mcp**: Keep authoritative SO row data in structured_content channel
+  ([#984](https://github.com/dougborg/katana-openapi-client/pull/984),
+  [`2c1e53e`](https://github.com/dougborg/katana-openapi-client/commit/2c1e53e55f138ed8ba928eeb287eb1eb624a72ed))
+
+- **mcp**: Keep SO row IDs + discounts in structured_content for host channel-drop
+  ([#984](https://github.com/dougborg/katana-openapi-client/pull/984),
+  [`2c1e53e`](https://github.com/dougborg/katana-openapi-client/commit/2c1e53e55f138ed8ba928eeb287eb1eb624a72ed))
+
+- **mcp**: Make shared typed-cache concurrency-safe + add KATANA_CACHE_DIR
+  ([#975](https://github.com/dougborg/katana-openapi-client/pull/975),
+  [`b0fcc9d`](https://github.com/dougborg/katana-openapi-client/commit/b0fcc9d7347d25346063b267e46f1ee4fe0983de))
+
+- **mcp**: Narrow bare-array unwrap via ErrorResponse exclusion for ty
+  ([`bde1ed3`](https://github.com/dougborg/katana-openapi-client/commit/bde1ed3d49c98cda4a32d8c8ee318c8b573450d0))
+
+- **mcp**: Preserve Field metadata when unpacking models into tool params
+  ([`2bd2038`](https://github.com/dougborg/katana-openapi-client/commit/2bd203839f297ea182a08c4e44ca11e39ab5c125))
+
+- **mcp**: Reflect post-apply total on the modify_purchase_order card
+  ([#982](https://github.com/dougborg/katana-openapi-client/pull/982),
+  [`38437e7`](https://github.com/dougborg/katana-openapi-client/commit/38437e7938945947d256de25b674c0060a76e9f0))
+
+- **mcp**: Strip whitespace from KATANA_API_KEY
+  ([#926](https://github.com/dougborg/katana-openapi-client/pull/926),
+  [`7bc58b2`](https://github.com/dougborg/katana-openapi-client/commit/7bc58b2457027050926dc3659c4959e75271915d))
+
+- **release**: Serialize release-client and release-mcp
+  ([#1001](https://github.com/dougborg/katana-openapi-client/pull/1001),
+  [`43afd55`](https://github.com/dougborg/katana-openapi-client/commit/43afd55052e3efb2ec893f03082bb064b8adbee6))
+
+### Build System
+
+- **client**: Migrate TS client bundler tsup -> tsdown with isolatedDeclarations
+  ([#991](https://github.com/dougborg/katana-openapi-client/pull/991),
+  [`6c3f362`](https://github.com/dougborg/katana-openapi-client/commit/6c3f3621f807ad4ecdd7f73fc198cefdc9e0a31c))
+
+### Chores
+
+- Sync uv.lock after release
+  ([`4d82ab0`](https://github.com/dougborg/katana-openapi-client/commit/4d82ab0fa233f15735fd4f3a8242cb5e315c46ce))
+
+- Sync uv.lock after release
+  ([`3c6e33a`](https://github.com/dougborg/katana-openapi-client/commit/3c6e33a07f47afd2e31241bf1e247896d7bd6323))
+
+- Sync uv.lock after release
+  ([`50557b7`](https://github.com/dougborg/katana-openapi-client/commit/50557b79545bff325dece2939852ed652fbc619a))
+
+- Sync uv.lock after release
+  ([`00d17e5`](https://github.com/dougborg/katana-openapi-client/commit/00d17e562c656646ed6ed3b2e394258a1fbae807))
+
+- Sync uv.lock after release
+  ([`9ed5ee7`](https://github.com/dougborg/katana-openapi-client/commit/9ed5ee74814c64703dbf37dc38e5faab3713aa61))
+
+- **actions)(deps**: Bump dependabot/fetch-metadata
+  ([#973](https://github.com/dougborg/katana-openapi-client/pull/973),
+  [`e62fad7`](https://github.com/dougborg/katana-openapi-client/commit/e62fad763973aeedb6df9581fc506f596f497c21))
+
+- **actions)(deps**: Bump the github-actions group across 1 directory with 10 updates
+  ([#966](https://github.com/dougborg/katana-openapi-client/pull/966),
+  [`8262421`](https://github.com/dougborg/katana-openapi-client/commit/8262421e9ebc361f7d37b8e8639690ed712920de))
+
+- **actions)(deps**: Bump the github-actions group with 2 updates
+  ([`542ae34`](https://github.com/dougborg/katana-openapi-client/commit/542ae34259329a864686adc9b2272c6cc6ea9e7f))
+
+- **ci**: Pin openapi-ts nightly against Dependabot downgrade churn
+  ([#994](https://github.com/dougborg/katana-openapi-client/pull/994),
+  [`0359c9a`](https://github.com/dougborg/katana-openapi-client/commit/0359c9ae8cd5a1c3ca83535c79e63cfaaac36beb))
+
+- **deps**: Upgrade TS client dev-deps (biome 2, TypeScript 6, @types/node 26)
+  ([#988](https://github.com/dougborg/katana-openapi-client/pull/988),
+  [`cd75a77`](https://github.com/dougborg/katana-openapi-client/commit/cd75a774fcae2ae4efa9832ffbe3a8e5baddcf1a))
+
+- **deps**: Upgrade TS client to TypeScript 7.0 (+ openapi-ts v1 nightly)
+  ([#993](https://github.com/dougborg/katana-openapi-client/pull/993),
+  [`afb795b`](https://github.com/dougborg/katana-openapi-client/commit/afb795b4ca396b215718772e8771083229536e50))
+
+- **deps)(deps**: Bump structlog from 25.5.0 to 26.1.0
+  ([`31cdfb2`](https://github.com/dougborg/katana-openapi-client/commit/31cdfb24ba7469a118468cf0c1ce7e2db84cb4ee))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 16 updates
+  ([#968](https://github.com/dougborg/katana-openapi-client/pull/968),
+  [`b46fd7e`](https://github.com/dougborg/katana-openapi-client/commit/b46fd7e55aefca8cc2551bc5a2b07ec0fcf0e4dd))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 5 updates
+  ([`d46d70e`](https://github.com/dougborg/katana-openapi-client/commit/d46d70e20cc29ea48888ecdc40531b510191ce8d))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 8 updates
+  ([`56bd780`](https://github.com/dougborg/katana-openapi-client/commit/56bd780c6a82916d5dd8bcb45cfe7618d4720a65))
+
+- **deps)(deps-dev**: Bump the npm-minor-patch group
+  ([#995](https://github.com/dougborg/katana-openapi-client/pull/995),
+  [`bdce483`](https://github.com/dougborg/katana-openapi-client/commit/bdce483d2599ddee575b6b5fa9bca21e15c868a9))
+
+- **deps)(deps-dev**: Bump the npm-minor-patch group
+  ([#969](https://github.com/dougborg/katana-openapi-client/pull/969),
+  [`f605777`](https://github.com/dougborg/katana-openapi-client/commit/f605777fca711e6482144711a5e181400208d5ef))
+
+- **mcp**: Update client dependency to v0.80.0
+  ([`3f587a1`](https://github.com/dougborg/katana-openapi-client/commit/3f587a18845739bae96b161a2ebd0c9bf0b6a72d))
+
+- **release**: Mcp v0.114.0
+  ([`c9e2570`](https://github.com/dougborg/katana-openapi-client/commit/c9e2570c846b747488fe9a8675a1a8da7618ec3c))
+
+- **release**: Mcp v0.114.1
+  ([`6e237d8`](https://github.com/dougborg/katana-openapi-client/commit/6e237d8789eb0040807de6ca9c0f5522c7b1d12c))
+
+- **release**: Mcp v0.114.2
+  ([`05e9a7d`](https://github.com/dougborg/katana-openapi-client/commit/05e9a7d39e8361d15684131e1b33bec1e252de0e))
+
+- **release**: Mcp v0.115.0
+  ([`84ad40d`](https://github.com/dougborg/katana-openapi-client/commit/84ad40dce891b594be3e0f02d9bdd9d3714629cd))
+
+- **ts-client**: Format codegen output with Biome, not ambient prettier
+  ([#976](https://github.com/dougborg/katana-openapi-client/pull/976),
+  [`da89528`](https://github.com/dougborg/katana-openapi-client/commit/da89528528e3d423314f174a123946c5fa307e3f))
+
+### Continuous Integration
+
+- Add dependabot cooldown + clarify semver-only auto-merge scope
+  ([#958](https://github.com/dougborg/katana-openapi-client/pull/958),
+  [`fc32b5b`](https://github.com/dougborg/katana-openapi-client/commit/fc32b5bf84413571413c337a2f075eeea6bc0a88))
+
+- Add npm Dependabot ecosystem and Dependabot auto-merge
+  ([#958](https://github.com/dougborg/katana-openapi-client/pull/958),
+  [`fc32b5b`](https://github.com/dougborg/katana-openapi-client/commit/fc32b5bf84413571413c337a2f075eeea6bc0a88))
+
+- Pin actions to SHAs and add zizmor workflow audit (#953, #954)
+  ([`23d4f69`](https://github.com/dougborg/katana-openapi-client/commit/23d4f69be9f874efb45b2ee3b9e5e2075716c818))
+
+- Replace SEMANTIC_RELEASE_TOKEN PAT with GitHub App installation tokens
+  ([#999](https://github.com/dougborg/katana-openapi-client/pull/999),
+  [`d23b26f`](https://github.com/dougborg/katana-openapi-client/commit/d23b26f476129e2a605c2caddbc71371d996174a))
+
+- Scope dependabot auto-merge trigger to open-PR events
+  ([#958](https://github.com/dougborg/katana-openapi-client/pull/958),
+  [`fc32b5b`](https://github.com/dougborg/katana-openapi-client/commit/fc32b5bf84413571413c337a2f075eeea6bc0a88))
+
+- **client**: Gate audit-spec-strict + wire validate-examples into poe check
+  ([`2e1241d`](https://github.com/dougborg/katana-openapi-client/commit/2e1241d3e2d09a9ea286a8bcd389262379c99c53))
+
+### Documentation
+
+- **mcp**: Add Bin Transfers section to help resource
+  ([`a26a1fc`](https://github.com/dougborg/katana-openapi-client/commit/a26a1fc91360d621d361cf5410aab2d0c588f879))
+
+- **mcp**: Add bin transfers to the transactional cache tier list
+  ([`0417da4`](https://github.com/dougborg/katana-openapi-client/commit/0417da4b62beda7a8cdba72a16dd074efdea2bf2))
+
+### Features
+
+- **client**: Add CachedBinTransfer + CachedBinTransferRow cache tables
+  ([`a74687a`](https://github.com/dougborg/katana-openapi-client/commit/a74687a9db94d66214a81a231dbb9389ec9e6601))
+
+- **client**: Add query-param + response-shape dimensions to audit-spec
+  ([`7d3146f`](https://github.com/dougborg/katana-openapi-client/commit/7d3146f87be02f0ec9c42b4eca183ca10b5fdf4e))
+
+- **client**: Add unified traceability input + reconcile spec with upstream
+  ([`410beb6`](https://github.com/dougborg/katana-openapi-client/commit/410beb6ce8d38fdeb28cd354e3c4779b181b34a4))
+
+- **client**: Expose 9 missing query-parameter filters
+  ([`a6aaf76`](https://github.com/dougborg/katana-openapi-client/commit/a6aaf761a4e464487ca75496ce322ef21c1615fa))
+
+- **client**: Reconcile bin transfers + PO row location_id from 2026-06-09 spec
+  ([`72a7693`](https://github.com/dougborg/katana-openapi-client/commit/72a76932af6d49356446476d4b6b4ccb6c08cdfa))
+
+- **client**: Spec-drift override registry for audit-spec
+  ([`e2b1c99`](https://github.com/dougborg/katana-openapi-client/commit/e2b1c996c619cd3f1c31747d246e068794c47d9f))
+
+- **mcp**: Add bin transfer + bin inventory foundation tools
+  ([`6c5ddba`](https://github.com/dougborg/katana-openapi-client/commit/6c5ddbab631e12bb93321223e1488557a4c45e60))
+
+- **mcp**: Add bin transfer entity spec to typed cache sync
+  ([`404b7e5`](https://github.com/dougborg/katana-openapi-client/commit/404b7e5229f429c6f684f1544bb84ba0acf0eba0))
+
+- **mcp**: Add bin transfer modify/delete Prefab card
+  ([`17440a1`](https://github.com/dougborg/katana-openapi-client/commit/17440a14fd5816492b7cdd62273e85a5a7a09828))
+
+- **mcp**: Attach serial numbers via traceability on create/fulfill/modify tools
+  ([`eabdac6`](https://github.com/dougborg/katana-openapi-client/commit/eabdac64be9a0edc7ff65ce4b31a8a635a20a141))
+
+- **mcp**: Isolate bulk cache work on an optional dedicated API key
+  ([`e0c5cfa`](https://github.com/dougborg/katana-openapi-client/commit/e0c5cfa3ac59ad1d9c09bd389b3d3221806ce6b8))
+
+- **mcp**: Surface 3 query filters in list/search tools
+  ([`804b03f`](https://github.com/dougborg/katana-openapi-client/commit/804b03fe574ef4229a8f9bc94c2ff6f454941f9f))
+
+- **mcp**: Surface per-row location_id in PO row + receive tools
+  ([`7b0d044`](https://github.com/dougborg/katana-openapi-client/commit/7b0d044b116460e2a745af88b2fb3df851d6cd7b))
+
+### Performance Improvements
+
+- **scripts**: Load large specs with libyaml CSafeLoader
+  ([`bd191a2`](https://github.com/dougborg/katana-openapi-client/commit/bd191a249bd5d498fa51c6dc3ecaf4e58ebbfe07))
+
+### Refactoring
+
+- **mcp**: Dedupe unpack sync/async wrappers into one reconstructor
+  ([`1bb1d28`](https://github.com/dougborg/katana-openapi-client/commit/1bb1d28e29c9c44dc4e330c9c3e2de833d90a758))
+
+- **mcp**: Extract with_display_rows guard + document channel-drop pitfall
+  ([#984](https://github.com/dougborg/katana-openapi-client/pull/984),
+  [`2c1e53e`](https://github.com/dougborg/katana-openapi-client/commit/2c1e53e55f138ed8ba928eeb287eb1eb624a72ed))
+
+- **mcp**: Harden unpack FieldInfo copy + refresh stale docstrings
+  ([`2b4ccbb`](https://github.com/dougborg/katana-openapi-client/commit/2b4ccbb801fd1e8102870a70340031d43e62fdb7))
+
+### Testing
+
+- Fix suites broken by ty 0.0.59 and httpx-retries 0.6 bumps
+  ([#968](https://github.com/dougborg/katana-openapi-client/pull/968),
+  [`b46fd7e`](https://github.com/dougborg/katana-openapi-client/commit/b46fd7e55aefca8cc2551bc5a2b07ec0fcf0e4dd))
+
+- **client**: Harden ecommerce PATCH-rejection parsing against missing info
+  ([`e8651ec`](https://github.com/dougborg/katana-openapi-client/commit/e8651ecd3cafacae73a58ecbd35926c8625d711c))
+
+- **mcp**: Cover bin transfer tools, cache sync, card, and live smoke
+  ([`7cfd4b7`](https://github.com/dougborg/katana-openapi-client/commit/7cfd4b7bfe3a6c27df81affd972828345d2e835d))
+
+- **mcp**: Force real write-lock contention in the cache-sharing test
+  ([#975](https://github.com/dougborg/katana-openapi-client/pull/975),
+  [`b0fcc9d`](https://github.com/dougborg/katana-openapi-client/commit/b0fcc9d7347d25346063b267e46f1ee4fe0983de))
+
 ## v0.80.0 (2026-06-05)
 
 ### Bug Fixes
