@@ -124,7 +124,12 @@ jobs:
           path: dist/
 
   release-mcp:
-    needs: test
+    # Depends on release-client (not just test) so the two python-semantic-release
+    # jobs never push to main concurrently. When they ran in parallel, whichever
+    # finished second aborted with "Upstream branch 'origin/main' has changed!"
+    # (run 30171587653) — PSR correctly refuses to release from a stale ref.
+    needs: [test, release-client]
+    if: always() && needs.test.result == 'success'
     runs-on: ubuntu-latest
     concurrency:
       group: release-mcp
@@ -148,6 +153,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          ref: main
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Install uv
@@ -156,6 +162,14 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
           python-version: "3.14"
+
+      # Same reasoning as sync-lockfile below (#901): release-client may have
+      # pushed a `chore(release)` bump to main after this run started, so the
+      # default checkout (github.sha) is stale and PSR aborts on a stale ref.
+      - name: Fast-forward to the post-release tip of main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: Install dependencies
         run: uv sync --all-extras
