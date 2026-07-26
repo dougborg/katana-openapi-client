@@ -1,318 +1,200 @@
 # Release Process
 
-This repository uses **monorepo semantic-release** to independently version and release
-two packages:
+This repository uses [release-please](https://github.com/googleapis/release-please) in
+**manifest mode** to independently version and release two packages:
 
 1. **katana-openapi-client** - The main Python API client
 1. **katana-mcp-server** - The Model Context Protocol server
 
-Each package is released independently based on **commit scopes**, allowing them to
-evolve at their own pace.
+Each package is released independently. release-please decides which package(s) to
+bump based on **which paths a commit touches**, not on commit scope - a commit that
+only touches `katana_mcp_server/` bumps only the MCP server; a commit touching the
+repo root (outside `katana_mcp_server/`) bumps the client; a commit touching both
+bumps both. Conventional-commit scopes (`(client)` / `(mcp)`) remain useful for
+changelog readability but are no longer load-bearing for version decisions.
 
-## Quick Reference
+## How releases work
 
-### For Client Package Releases
+### 1. Every push to `main` updates the release PR
+
+[`release-please.yml`](../.github/workflows/release-please.yml) is the **only**
+workflow that watches pushes to `main` for release purposes. On every push it runs
+[`googleapis/release-please-action`](https://github.com/googleapis/release-please-action)
+against [`release-please-config.json`](../release-please-config.json) /
+[`.release-please-manifest.json`](../.release-please-manifest.json) and either:
+
+- opens or updates **one aggregated release PR** covering both packages
+  (`separate-pull-requests: false`), or
+- if that release PR was just merged, creates the tag(s) + a **draft** GitHub Release
+  for each changed package at the merge commit.
+
+This workflow **never pushes to `main` itself** - it only writes to the release PR
+branch or creates tags/releases at a commit that already exists on `main`. There is no
+job here to race with another job over who pushes next.
+
+### 2. The release PR keeps itself internally consistent
+
+[`release-pr-prepare.yml`](../.github/workflows/release-pr-prepare.yml) runs only on
+release-please's own PR branch (matched by the `release-please--` prefix, and only for
+branches in this repository - never a fork). It:
+
+- keeps `katana_mcp_server/pyproject.toml`'s `katana-openapi-client>=X` floor equal to
+  the client version proposed by the release PR, and
+- re-runs `uv lock` so `uv.lock` matches the bumped versions.
+
+If either changed, it commits directly to the release PR branch. Because this lands on
+the PR branch, the fix merges **atomically** with the version bump in a single commit
+
+- there is no follow-up commit to `main` the way the old `sync-lockfile` job worked.
+
+### 3. Merging the release PR creates tags and draft releases
+
+Merging release-please's PR is the only thing that actually creates a release. At that
+point `release-please.yml` runs one more time, sees the merge, and creates
+`client-vX.Y.Z` / `mcp-vX.Y.Z` tags plus a **draft** GitHub Release for each package
+that changed.
+
+### 4. Tags trigger publishing
+
+[`publish.yml`](../.github/workflows/publish.yml) is the **only** workflow that builds
+and ships artifacts. It triggers exclusively on `client-v*` / `mcp-v*` tag pushes -
+never on a `main` push - and:
+
+1. builds the package (`uv build`)
+1. publishes it to PyPI via Trusted Publishing (OIDC, no tokens)
+1. attaches the built wheel/sdist to the **still-draft** release
+1. publishes the release (`gh release edit --draft=false`)
+
+For `mcp-v*` tags, a follow-on job also builds and pushes the multi-arch Docker image
+to `ghcr.io/dougborg/katana-mcp-server`.
+
+Releases are always finalized (published) only **after** their assets are attached.
+Draft releases accept asset uploads; once a release is published it becomes
+[immutable](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
+and permanently rejects further uploads, so building/publishing the registry package
+before finalizing the release avoids ever losing an asset.
+
+## Commit conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
-git commit -m "feat(client): add new domain helper classes"
-git commit -m "fix(client): resolve pagination edge case"
-```
-
-### For MCP Server Releases
-
-```bash
-git commit -m "feat(mcp): add inventory tools"
+git commit -m "feat(client): add domain helper classes"
 git commit -m "fix(mcp): correct stock level calculation"
+git commit -m "feat(client)!: redesign authentication flow"
 ```
 
-### No Release Needed
+| Commit type                                                        | Version bump |
+| ------------------------------------------------------------------ | ------------ |
+| `fix:`, `perf:`                                                    | PATCH        |
+| `feat:`                                                            | MINOR        |
+| `feat!:` / `BREAKING CHANGE:` footer                               | MAJOR        |
+| `docs:`, `chore:`, `test:`, `ci:`, `refactor:`, `style:`, `build:` | No bump      |
+
+Which package bumps is determined by **which files the commit touches**:
+
+- Changed files under `katana_mcp_server/`? The MCP server bumps.
+- Changed files anywhere else in the tree (client code, root `pyproject.toml`, etc.)?
+  The client bumps.
+- Changed both? Both bump.
+
+Scopes like `(client)`/`(mcp)` are still encouraged for changelog clarity, but no
+longer decide which package releases.
+
+## Tag format
+
+- **Client tags**: `client-v0.81.0`, `client-v0.82.0`, etc.
+- **MCP tags**: `mcp-v0.115.0`, `mcp-v0.116.0`, etc.
+
+`include-component-in-tag: true` in `release-please-config.json` preserves this exact
+format, so tag history from the previous python-semantic-release setup is continuous.
+
+## PyPI Trusted Publishers
+
+Both packages already have **active** PyPI Trusted Publishers configured, unchanged by
+this migration:
+
+- **katana-openapi-client**: published from the `publish-client-pypi` job in
+  `publish.yml`
+- **katana-mcp-server**: published from the `publish-mcp-pypi` job in `publish.yml`
+
+Neither job declares a GitHub Environment - the existing Trusted Publisher
+registrations on PyPI were made without an environment name, and the OIDC claim
+includes that name, so adding one now would break publishing. Configuration: PyPI
+Project Settings -> Publishing -> Trusted Publishers.
+
+## Manual release (emergency only)
+
+If `release-please.yml` or `publish.yml` is broken and a release must ship anyway:
 
 ```bash
-git commit -m "docs: update contributing guide"
-git commit -m "chore: update dependencies"
-git commit -m "test: add integration tests"
+# 1. Build and check the package
+uv build  # or: uv build --package katana-mcp-server
+
+# 2. Tag manually (must match the existing tag format)
+git tag client-v0.82.0   # or mcp-v0.116.0
+git push origin client-v0.82.0
+
+# 3. Publish to PyPI by hand, or re-run publish.yml's steps locally with
+#    twine/uv publish using a scoped API token (Trusted Publishing requires
+#    the tag-triggered workflow context, so a manual push needs a fallback
+#    token from PyPI).
+
+# 4. Create the GitHub release with the built assets attached
+gh release create client-v0.82.0 dist/* --title "client v0.82.0" --notes "See docs/CHANGELOG.md"
 ```
 
-## How Releases Work
-
-### Automated Release Workflow
-
-When a PR is merged to `main`, the `.github/workflows/release.yml` workflow runs **two
-independent semantic-release jobs**:
-
-1. **Client Release** (`release-client` job):
-
-   - Checks for commits with `feat(client):`, `fix(client):`, or no scope
-   - Calculates next version based on conventional commits
-   - Creates tag: `client-v{version}` (e.g., `client-v0.24.0`)
-   - Updates `pyproject.toml` and `__init__.py` versions
-   - Generates `docs/CHANGELOG.md` from commits
-   - Builds and publishes to PyPI as `katana-openapi-client`
-
-1. **MCP Server Release** (`release-mcp` job):
-
-   - Checks for commits with `feat(mcp):` or `fix(mcp):`
-   - Calculates next version based on conventional commits
-   - Creates tag: `mcp-v{version}` (e.g., `mcp-v0.1.0`)
-   - Updates `katana_mcp_server/pyproject.toml` version
-   - Generates `katana_mcp_server/CHANGELOG.md` from commits
-   - Builds and publishes to PyPI as `katana-mcp-server`
-
-Both jobs run **in parallel** and are **completely independent**.
-
-### Version Bumps
-
-| Commit Type                       | Example                         | Version Bump                   |
-| --------------------------------- | ------------------------------- | ------------------------------ |
-| `feat(scope):`                    | `feat(mcp): add search tool`    | MINOR (0.1.0 → 0.2.0)          |
-| `fix(scope):`                     | `fix(client): resolve auth bug` | PATCH (0.1.0 → 0.1.1)          |
-| `perf(scope):`                    | `perf(mcp): optimize queries`   | PATCH (0.1.0 → 0.1.1)          |
-| `feat(scope)!:` or Breaking       | `feat(client)!: redesign API`   | MAJOR (0.1.0 → 1.0.0)          |
-| Other (`docs:`, `chore:`, `test`) | `docs(mcp): update README`      | NO BUMP                        |
-| `feat:` (no scope)                | `feat: add pagination`          | Client MINOR (0.23.0 → 0.24.0) |
-
-## Commit Message Format
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/) with scopes:
-
-### Structure
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-### Examples
-
-**Client Package Release:**
-
-```bash
-feat(client): add Products domain helper class
-
-- Implement CRUD operations
-- Add search and filtering methods
-- Full test coverage
-```
-
-**MCP Server Release:**
-
-```bash
-feat(mcp): implement check_inventory tool
-
-- Add CheckInventoryRequest and StockInfo models
-- Implement tool using Products domain helper
-- Add comprehensive unit tests
-
-Closes #35
-```
-
-**Breaking Change (Major Version):**
-
-```bash
-feat(client)!: redesign authentication flow
-
-BREAKING CHANGE: Removed legacy BasicAuth class. Use KatanaClient with API key instead.
-```
-
-**Documentation (No Release):**
-
-```bash
-docs: update monorepo release documentation
-
-Added comprehensive guide for semantic-release with scopes.
-```
-
-## For Contributors
-
-**You don't need to do anything special!** Just:
-
-1. Write good commit messages following conventional commits **with scopes**
-1. Use `(client)` scope for client changes, `(mcp)` scope for MCP server changes
-1. Merge your PR to `main`
-1. The release workflow automatically handles versioning and publishing
-
-### Which Scope Should I Use?
-
-- **Changed files in `katana_public_api_client/`?** → Use `(client)` scope
-- **Changed files in `katana_mcp_server/`?** → Use `(mcp)` scope
-- **Changed both?** → Make two separate commits, one for each scope
-- **Changed only docs or CI?** → Use `docs:` or `ci:` (no scope, no release)
-
-## Release Workflow Steps
-
-### 1. CI Tests Run
-
-All tests must pass before release:
-
-- Code quality checks (ruff, ty)
-- Unit and integration tests
-- Security scans (CodeQL, Semgrep, Trivy)
-
-### 2. Semantic-Release Analysis (Per Package)
-
-For **each package**, semantic-release:
-
-- Analyzes commits since last release for that package
-- Determines if a release is needed
-- Calculates the next version number
-
-### 3. Version Updates (If Releasing)
-
-For each package being released:
-
-- Updates version in `pyproject.toml`
-- Updates version variables (`__init__.py` for client)
-- Generates/updates changelog
-- Creates release commit
-- Creates version tag
-
-### 4. Build and Publish
-
-For each package being released:
-
-- Builds Python wheel and source distribution
-- Publishes to PyPI using **Trusted Publisher** (OIDC, no API tokens)
-- Creates GitHub release with auto-generated notes
-
-## Current Versions
-
-- **katana-openapi-client**: See [PyPI](https://pypi.org/project/katana-openapi-client/)
-- **katana-mcp-server**: See [PyPI](https://pypi.org/project/katana-mcp-server/)
-
-## Tag Format
-
-- **Client tags**: `client-v0.23.0`, `client-v0.24.0`, etc.
-- **MCP tags**: `mcp-v0.1.0`, `mcp-v0.2.0`, etc.
-
-This prevents tag conflicts and makes it clear which package each tag refers to.
-
-## Manual Release (Emergency Only)
-
-If the automated workflow fails or you need to force a release:
-
-### Option 1: Trigger Workflow Manually
-
-```bash
-gh workflow run release.yml
-```
-
-This will analyze commits and release any packages with releasable changes.
-
-### Option 2: Manual Tag (Advanced)
-
-**For MCP Server only** (there's a backup workflow):
-
-```bash
-git tag mcp-v0.1.1
-git push origin mcp-v0.1.1
-```
-
-This triggers `.github/workflows/release-mcp.yml` which builds and publishes the MCP
-package directly.
+Only do this if the automated pipeline is broken. Prefer fixing the workflow.
 
 ## Troubleshooting
 
-### "No release will be made"
+### No release PR appearing
 
-**Cause**: No commits with `feat:`, `fix:`, or `perf:` since last release for that
-package.
+- Check that a commit since the last release actually has a releasable type
+  (`feat:`, `fix:`, `perf:`) touching a tracked path.
+- Check the `release-please` job logs in `release-please.yml`'s latest run.
+- release-please skips work with nothing to release - this is expected between
+  releases, not a failure.
 
-**Solution**: Ensure your commits follow conventional commit format with appropriate
-scopes:
+### `uv.lock` or the MCP client pin looks stale on the release PR
 
-- Use `feat(client):` or `fix(client):` for client releases
-- Use `feat(mcp):` or `fix(mcp):` for MCP releases
+- Check that `release-pr-prepare.yml` actually ran and pushed a commit - it only
+  triggers on `pull_request` events (`opened`, `synchronize`, `reopened`) for branches
+  matching `release-please--*` in this repository.
+- If release-please force-pushed the PR branch again after `release-pr-prepare.yml`
+  last ran, `synchronize` re-triggers it automatically; give it a minute.
 
-### Release not triggered?
+### Publish auth failures
 
-**Check**:
+- Verify the PyPI Trusted Publisher is still registered for `publish.yml` with **no**
+  environment name (see above) - a mismatch here is the most common cause of
+  `Non-user identities cannot create new projects` or `invalid-publisher` errors.
+- Confirm the tag actually matches `client-v*` or `mcp-v*` - `publish.yml` does not
+  trigger on anything else.
 
-- Are there `feat:` or `fix:` commits with the correct scope?
-- Did the test job pass? (release only runs after tests pass)
-- Check Actions tab for workflow run details
+### Release stuck in draft
 
-### Wrong package released?
+- Each `publish.yml` job publishes to PyPI, uploads build artifacts, and *then* runs
+  `gh release edit --draft=false`. If the job failed before that last step, the draft
+  release is expected to remain in draft - check the workflow run for the actual
+  failure and re-run the job; `gh release upload --clobber` and `gh release edit` are
+  both safe to re-run against a still-draft release.
 
-**Cause**: Missing or incorrect commit scope.
+## Branch protection interaction
 
-**Solution**:
+`main` is protected by the "Protect Main" ruleset (required PRs, linear history,
+required status checks, Copilot review). release-please satisfies the PR requirement
+by construction - it always opens a PR rather than pushing directly. The
+`dougborg-release-please` GitHub App's ruleset bypass (previously needed so
+python-semantic-release could push release commits straight to `main`) becomes
+optional under this design, needed only if the release PR should auto-merge without
+review (see #429). This PR does not change the ruleset itself.
 
-- Use `feat(client):` or `fix(client):` for client releases
-- Use `feat(mcp):` or `fix(mcp):` for MCP releases
-- Commits without scope default to client package
+## Further reading
 
-### Release created but PyPI publish failed?
-
-**Check**:
-
-- Verify PyPI Trusted Publisher is configured for the repository
-- Ensure workflow has `id-token: write` permission
-- Check PyPI status page for outages
-
-### Protected branch error?\*\*
-
-**Check**:
-
-- Verify `SEMANTIC_RELEASE_TOKEN` secret is set:
-  ```bash
-  gh secret list --repo dougborg/katana-openapi-client
-  ```
-- Ensure PAT has correct permissions (Contents: write, PRs: write)
-- Verify PAT hasn't expired
-
-### Version conflict?
-
-**Cause**: PyPI version already exists (can happen if manual release conflicts with
-automated).
-
-**Solution**: Semantic-release will skip the publish step. Wait for next release cycle.
-
-## Technical Details
-
-### Protected Branch Setup
-
-The `main` branch is protected with required status checks. The release workflow uses a
-Personal Access Token (`SEMANTIC_RELEASE_TOKEN`) to bypass protection and push release
-commits.
-
-### Workflow Configuration
-
-See `.github/workflows/release.yml` for the complete workflow configuration.
-
-### PyPI Trusted Publishers
-
-Both packages use PyPI Trusted Publishers for secure, tokenless authentication:
-
-- **katana-openapi-client**: Published from `release-client` job
-- **katana-mcp-server**: Published from `release-mcp` job
-
-Configuration: PyPI Project Settings → Publishing → Trusted Publishers
-
-### Semantic-Release Configuration
-
-Each package has its own semantic-release configuration:
-
-- **Client**: `pyproject.toml` (root) - `[tool.semantic_release]`
-- **MCP Server**: `katana_mcp_server/pyproject.toml` - `[tool.semantic_release]`
-
-Configuration includes:
-
-- Version file locations
-- Tag format
-- Commit message format
-- Changelog generation
-- Build commands
-
-## Further Reading
-
-- **[MONOREPO_SEMANTIC_RELEASE.md](MONOREPO_SEMANTIC_RELEASE.md)** - Comprehensive guide
-  with examples
-- **[Conventional Commits](https://www.conventionalcommits.org/)** - Commit message
+- [release-please documentation](https://github.com/googleapis/release-please)
+- [Conventional Commits](https://www.conventionalcommits.org/) - commit message
   specification
-- **[Python Semantic Release](https://python-semantic-release.readthedocs.io/)** -
-  Official documentation
-- **[PyPI Trusted Publishers](https://docs.pypi.org/trusted-publishers/)** - OIDC-based
+- [PyPI Trusted Publishers](https://docs.pypi.org/trusted-publishers/) - OIDC-based
   publishing
+- [GitHub immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)

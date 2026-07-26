@@ -188,8 +188,7 @@ list and stay current as ADRs are added or superseded.
 
 - **[Contributing Guide](docs/CONTRIBUTING.md)** — how to contribute
 - **[uv Usage Guide](docs/UV_USAGE.md)** — package manager guide
-- **[Monorepo Release Guide](docs/MONOREPO_SEMANTIC_RELEASE.md)** — semantic release
-  setup
+- **[Release Guide](docs/RELEASE.md)** — release-please setup and release process
 
 ## Development
 
@@ -235,7 +234,8 @@ uv run poe regenerate-client
 
 ### Commit Standards
 
-This project uses semantic-release with conventional commits:
+Conventional commits drive per-package release-please versioning (bump type from the
+commit type; which package(s) bump from which paths the commit touches):
 
 ```bash
 # Python client changes
@@ -246,14 +246,13 @@ git commit -m "fix(client): handle pagination edge case"
 git commit -m "feat(mcp): add manufacturing order tools"
 git commit -m "fix(mcp): improve error handling"
 
-# TypeScript client changes
-git commit -m "feat(ts): add browser support"
-
 # Documentation only (no release)
 git commit -m "docs: update README"
 ```
 
-See [MONOREPO_SEMANTIC_RELEASE.md](docs/MONOREPO_SEMANTIC_RELEASE.md) for details.
+Use `!` for breaking changes: `feat(client)!: drop Python 3.11 support`.
+
+See [RELEASE.md](docs/RELEASE.md) for details.
 
 ## License
 

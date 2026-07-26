@@ -40,7 +40,6 @@ docs/                                # Shared/monorepo documentation
 ├── index.md                         # Home page
 ├── CONTRIBUTING.md                  # Contributing guidelines
 ├── CODE_OF_CONDUCT.md              # Code of conduct
-├── MONOREPO_SEMANTIC_RELEASE.md    # Semantic release guide
 ├── UV_USAGE.md                     # uv package manager guide
 ├── PYPI_SETUP.md                   # PyPI publishing setup
 ├── RELEASE.md                      # Release documentation
@@ -84,11 +83,11 @@ packages/katana-client/docs/         # TypeScript client documentation
 
 ## Deployment
 
-Documentation is deployed automatically via `.github/workflows/release.yml`:
+Documentation is deployed automatically via `.github/workflows/docs.yml`:
 
-1. Triggered on release (semantic-release creates tags)
+1. Triggered on push to `main` when docs-related files change (or manual dispatch)
 1. Builds docs with `uv run poe docs-build`
-1. Deploys to `gh-pages` branch using peaceiris/actions-gh-pages
+1. Deploys to GitHub Pages
 1. Available at GitHub Pages URL
 
 ### Manual Deployment

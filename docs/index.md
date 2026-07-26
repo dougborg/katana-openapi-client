@@ -87,9 +87,8 @@ The current published version is on the
 
 - **[Contributing guide](CONTRIBUTING.md)** — development setup, code style, the "no
   hand-maintained drift-prone references" rule, spec-maintenance workflow.
-- **[Release guide](RELEASE.md)** /
-  **[Monorepo semantic-release](MONOREPO_SEMANTIC_RELEASE.md)** — how the
-  conventional-commit → release pipeline drives per-package versioning.
+- **[Release guide](RELEASE.md)** — how the conventional-commit → release-please
+  pipeline drives per-package versioning.
 - **[uv usage](UV_USAGE.md)** — the `uv` package manager and `poe` task conventions this
   repo uses.
 - **[Code of conduct](CODE_OF_CONDUCT.md)**.

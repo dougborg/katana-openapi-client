@@ -1,0 +1,91 @@
+name: Release PR Prepare
+
+# Glue that runs ONLY on release-please's own PR branch, never on main. It
+# resyncs uv.lock to the versions release-please just bumped and keeps the
+# MCP server's client-version floor (katana_mcp_server/pyproject.toml's
+# katana-openapi-client>=X) truthful. Both changes land as a commit on the
+# release PR branch, so they merge atomically with the version bump in a
+# single commit - nothing here ever touches main directly.
+#
+# This replaces release.yml's old sync-lockfile job (#901) and moves the
+# work off main entirely - see docs/RELEASE.md.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+concurrency:
+  group: release-pr-prepare-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    # release-please's manifest-mode branch name for a grouped PR is
+    # release-please--branches--<default-branch>; match by prefix so this
+    # doesn't silently stop working if the suffix ever changes. Guard against
+    # forks since we push a commit back to the PR branch.
+    if: |
+      startsWith(github.event.pull_request.head.ref, 'release-please--') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Mint GitHub App installation token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Checkout release PR branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d31148d669074a8d0a63714ba94f3201e7020bc3 # v8.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Sync MCP -> client dependency floor
+        run: |
+          set -euo pipefail
+          CLIENT_VERSION=$(python3 -c \
+            "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          CURRENT_FLOOR=$(grep -oE 'katana-openapi-client>=[0-9.]+' \
+            katana_mcp_server/pyproject.toml | head -n1 | sed 's/.*>=//')
+          echo "Client version on this release PR: $CLIENT_VERSION"
+          echo "Current MCP -> client floor: $CURRENT_FLOOR"
+          if [ "$CURRENT_FLOOR" != "$CLIENT_VERSION" ]; then
+            sed -i "s/katana-openapi-client>=[0-9.]\\+/katana-openapi-client>=$CLIENT_VERSION/" \
+              katana_mcp_server/pyproject.toml
+            echo "Updated floor to >=$CLIENT_VERSION"
+          else
+            echo "Floor already matches; nothing to do"
+          fi
+
+      - name: Resync uv.lock
+        run: uv lock
+
+      - name: Commit if changed
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- uv.lock katana_mcp_server/pyproject.toml; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git config user.name "dougborg-release-please[bot]"
+          git config user.email "309159260+dougborg-release-please[bot]@users.noreply.github.com"
+          git add uv.lock katana_mcp_server/pyproject.toml
+          git commit -m "chore(release): sync uv.lock and MCP client pin"
+          git push origin "HEAD:$HEAD_REF"

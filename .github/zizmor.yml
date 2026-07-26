@@ -11,26 +11,19 @@ rules:
     # pushes back to the repo. `persist-credentials: false` is set on every
     # other (read-only) checkout in the tree.
     ignore:
-      # release-client / release-mcp jobs: python-semantic-release pushes the
-      # version-bump commit and tag using the GitHub App token minted in-job.
-      - release.yml:71
-      - release.yml:153
-      # sync-lockfile job: commits the regenerated uv.lock and pushes to main.
-      - release.yml:290
-      # update-mcp-dependency: commits the client bump and pushes to main.
-      - update-mcp-dependency.yml:27
+      # release-pr-prepare's sync job: commits the uv.lock resync + MCP client
+      # pin bump and pushes to the release-please PR branch (never to main)
+      # using the GitHub App token minted in-job. Replaces the old
+      # release.yml release-client/release-mcp/sync-lockfile jobs and
+      # update-mcp-dependency.yml, all deleted by the release-please
+      # migration (see docs/RELEASE.md).
+      - release-pr-prepare.yml:44
 
   dangerous-triggers:
-    # update-mcp-dependency runs on `workflow_run` after the Release workflow
-    # completes on main. It does not check out or execute untrusted PR code —
-    # it only bumps the MCP client dependency on the already-trusted main ref.
-    # This is the documented way to chain a job after another workflow.
-    #
     # dependabot-auto-merge uses `pull_request_target` — the only trigger that
     # gives a Dependabot PR a write-scoped token to enable auto-merge. It never
     # checks out or runs PR code (API-only via gh), which is the documented safe
     # pattern. (That workflow lands in sibling PR #958; this entry is here so the
     # gate stays green once both merge — a no-op until the file exists.)
     ignore:
-      - update-mcp-dependency.yml:3
       - dependabot-auto-merge.yml:13
