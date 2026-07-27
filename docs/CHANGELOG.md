@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [0.82.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.81.0...client-v0.82.0) (2026-07-27)
+
+
+### Features
+
+* **release:** migrate to release-please manifest-mode release automation ([#1005](https://github.com/dougborg/katana-openapi-client/issues/1005)) ([ec4a0d0](https://github.com/dougborg/katana-openapi-client/commit/ec4a0d0fff8ed89f6a0a8f04dd43e704ebd73992))
+
+
+### Bug Fixes
+
+* **ci:** realign zizmor artipacked ignores after App-token migration ([#1003](https://github.com/dougborg/katana-openapi-client/issues/1003)) ([ee97394](https://github.com/dougborg/katana-openapi-client/commit/ee9739410d9ef1ed64c35ebe0271dfc382e64f9a))
+* **tests:** align MCP package asyncio_mode with the root ([#1004](https://github.com/dougborg/katana-openapi-client/issues/1004)) ([27ee3a1](https://github.com/dougborg/katana-openapi-client/commit/27ee3a1f3e2cd5c8581aed6d702a626ef35bb48f))
+
 ## v0.81.0 (2026-07-25)
 
 ### Bug Fixes
