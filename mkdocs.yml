@@ -165,7 +165,6 @@ nav:
   - Development:
       - Contributing: CONTRIBUTING.md
       - uv Package Manager: UV_USAGE.md
-      - Semantic Release: MONOREPO_SEMANTIC_RELEASE.md
       - PyPI Setup: PYPI_SETUP.md
       - Release Guide: RELEASE.md
   - Monorepo ADRs:

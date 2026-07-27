@@ -1,13 +1,16 @@
 # MCP Server Deployment Guide
 
 This document describes how the Katana MCP Server is released and published to PyPI
-using **automated semantic-release**.
+using **[release-please](https://github.com/googleapis/release-please)** (manifest
+mode). See [docs/RELEASE.md](../../docs/RELEASE.md) for the canonical, repo-wide
+reference.
 
 ## Overview
 
-Releases are **fully automated** using monorepo semantic-release. You don't manually
-update version numbers or publish to PyPI - the CI/CD pipeline handles everything based
-on conventional commits.
+Releases are **fully automated** via release-please. You don't manually update version
+numbers or publish to PyPI - the CI/CD pipeline handles everything based on
+conventional commits, gated behind a review step: merging a normal PR updates an
+aggregated release PR, and merging *that* release PR is what actually ships anything.
 
 ## How Releases Work
 
@@ -16,20 +19,23 @@ on conventional commits.
 When a PR is merged to `main` with MCP-related changes:
 
 1. **CI Tests Run**: All quality checks, tests, and security scans must pass
-1. **Semantic-Release Analysis**: Analyzes commits with `(mcp)` scope since last release
+1. **release-please Analysis**: `release-please.yml` (the only workflow watching
+   `main`) analyzes commits touching `katana_mcp_server/` since the last MCP release
 1. **Version Calculation**: Determines next version based on commit types:
    - `feat(mcp):` → MINOR bump (0.1.0 → 0.2.0)
    - `fix(mcp):` → PATCH bump (0.1.0 → 0.1.1)
    - `feat(mcp)!:` → MAJOR bump (0.1.0 → 1.0.0)
-1. **Automatic Updates**:
-   - Version updated in `pyproject.toml`
-   - Changelog generated/updated
-   - Git commit and tag created (`mcp-v{version}`)
-   - Changes pushed to main
-1. **Build and Publish**:
-   - Package built with `uv build`
+1. **Release PR Updated**: version in `katana_mcp_server/pyproject.toml`,
+   `CHANGELOG.md`, and the client-version floor + `uv.lock` (via
+   `release-pr-prepare.yml`) are all proposed on release-please's aggregated release
+   PR - nothing is pushed to `main` yet
+1. **On Merge**: `release-please.yml` creates the `mcp-v{version}` tag and a **draft**
+   GitHub Release at the merge commit
+1. **Build and Publish** (triggered by the tag, via `publish.yml`):
+   - Package built with `uv build --package katana-mcp-server`
    - Published to PyPI using Trusted Publisher (OIDC, no tokens)
-   - GitHub release created with auto-generated notes
+   - Docker image built and pushed to GHCR
+   - Assets attached to the draft release, then the release is published
 
 ## For Developers
 
@@ -184,20 +190,17 @@ If the automated workflow fails, you can trigger a manual release:
 ### Option 1: Re-run GitHub Workflow
 
 ```bash
-# Re-run the most recent workflow
-gh workflow run release.yml
-
-# Or check workflow runs and re-run a specific one
-gh run list --workflow=release.yml
+# Re-run the most recent publish run (e.g. after a transient PyPI failure)
+gh run list --workflow=publish.yml
 gh run rerun <run-id> --failed
 ```
 
 ### Option 2: Manual Tag (Last Resort)
 
-Only use if semantic-release is completely broken:
+Only use if release-please or `publish.yml` is completely broken:
 
 ```bash
-# WARNING: This bypasses semantic-release and version management!
+# WARNING: This bypasses release-please and version management!
 # Only use in emergencies after coordinating with maintainers
 
 # Manually update version in pyproject.toml first
@@ -205,7 +208,10 @@ Only use if semantic-release is completely broken:
 git tag mcp-v0.1.0
 git push origin mcp-v0.1.0
 
-# This triggers the backup release-mcp.yml workflow
+# This triggers publish.yml directly (build + PyPI publish + Docker),
+# but does NOT create a GitHub Release for the tag - create one by hand
+# (gh release create mcp-v0.1.0 ...) if publish.yml's asset-upload step
+# has nothing to attach to.
 ```
 
 **Note**: Manual tags bypass changelog generation and version file updates. Use
@@ -273,34 +279,41 @@ sparingly.
 
 **Solutions**:
 
-1. This shouldn't happen with semantic-release (it always increments)
+1. This shouldn't happen with release-please (it always increments)
 1. If it does, check if someone manually published that version
 1. Force next version with additional commit: `fix(mcp): force version bump`
 
 ## Release Workflow Details
 
-### Semantic-Release Configuration
+### release-please Configuration
 
-Located in `katana_mcp_server/pyproject.toml`:
+Located in `release-please-config.json` at the repo root (component `mcp`, path
+`katana_mcp_server`):
 
-```toml
-[tool.semantic_release]
-version_toml = ["katana_mcp_server/pyproject.toml:project.version"]
-tag_format = "mcp-v{version}"
-commit_message = "chore(release): mcp v{version}"
-build_command = "cd katana_mcp_server && uv build"
-# Only processes commits with (mcp) scope
+```jsonc
+"katana_mcp_server": {
+  "release-type": "python",
+  "component": "mcp",
+  "package-name": "katana-mcp-server",
+  "changelog-path": "CHANGELOG.md"
+}
 ```
 
-### GitHub Workflow
+`include-component-in-tag: true` preserves the `mcp-v{version}` tag format. The
+current version is tracked in `.release-please-manifest.json`, not in a
+`[tool.semantic_release]` block (that block was removed from
+`katana_mcp_server/pyproject.toml`).
 
-Located in `.github/workflows/release.yml`:
+### GitHub Workflows
 
-- **Trigger**: Every push to `main` branch
-- **Jobs**:
-  1. `test` - Runs full CI pipeline
-  1. `release-mcp` - Semantic-release for MCP server
-  1. `publish-mcp-pypi` - Publishes to PyPI if released
+- **`.github/workflows/release-please.yml`** - the only workflow watching `main`.
+  Opens/updates the aggregated release PR; on merge, creates the `mcp-v{version}` tag
+  - draft GitHub Release.
+- **`.github/workflows/release-pr-prepare.yml`** - runs only on release-please's PR
+  branch; keeps `uv.lock` and the MCP server's `katana-openapi-client>=X` floor in
+  sync with the proposed client version.
+- **`.github/workflows/publish.yml`** - triggered by the `mcp-v*` tag push. Jobs:
+  `publish-mcp-pypi` (PyPI) and `publish-mcp-docker` (GHCR, needs `publish-mcp-pypi`).
 
 ### PyPI Trusted Publisher
 
@@ -308,9 +321,11 @@ Configured at: https://pypi.org/manage/project/katana-mcp-server/settings/publis
 
 - **Owner**: `dougborg`
 - **Repository**: `katana-openapi-client`
-- **Workflow**: `release.yml`
+- **Workflow**: `publish.yml`
 - **Job**: `publish-mcp-pypi`
-- **Environment**: (none)
+- **Environment**: (none) - unchanged by this migration; `publish.yml` intentionally
+  does not scope this job to a GitHub Environment, matching how the publisher was
+  originally registered
 
 ## Version Numbering
 
@@ -370,10 +385,7 @@ After PR is merged:
 ## Related Documentation
 
 - **Main Release Guide**: [docs/RELEASE.md](../docs/RELEASE.md) - Monorepo release
-  process
-- **Monorepo Semantic-Release**:
-  [docs/MONOREPO_SEMANTIC_RELEASE.md](../docs/MONOREPO_SEMANTIC_RELEASE.md) -
-  Comprehensive guide
+  process (release-please, manifest mode)
 - **Contributing**: [docs/CONTRIBUTING.md](../docs/CONTRIBUTING.md) - Commit message
   format
 - **MCP Documentation Index**: [docs/mcp-server/README.md](../docs/mcp-server/README.md)

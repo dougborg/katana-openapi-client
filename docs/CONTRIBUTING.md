@@ -169,7 +169,8 @@ git commit -m "feat(mcp): implement check_inventory tool"
 git commit -m "docs: update README with new examples"
 ```
 
-**Important:** Use the correct scope based on what you're changing:
+**Important:** Which package release-please bumps depends on which paths your commit
+touches, not the scope you use - but the scope still matters for changelog clarity:
 
 - Files in `katana_public_api_client/` → use `(client)` scope
 - Files in `katana_mcp_server/` → use `(mcp)` scope
@@ -350,15 +351,18 @@ regen. Everything else under `katana_public_api_client/` (including the rest of
 
 ## Release Process
 
-Releases are fully automated using python-semantic-release. See [RELEASE.md](RELEASE.md)
-for complete documentation.
+Releases are automated using [release-please](https://github.com/googleapis/release-please)
+in manifest mode. See [RELEASE.md](RELEASE.md) for complete documentation.
 
 **Quick summary for contributors:**
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) format
-- `feat:` commits trigger minor version bump (0.x.0)
-- `fix:` commits trigger patch version bump (0.0.x)
-- Releases happen automatically when PR is merged to `main`
+- `feat:` commits trigger a minor version bump (0.x.0); `fix:`/`perf:` trigger a patch
+  bump (0.0.x); which package(s) bump depends on which paths your commit touches
+- Merging a normal PR to `main` updates (or opens) release-please's aggregated release
+  PR - it does not publish anything by itself
+- Merging *that* release PR is what creates tags, GitHub Releases, and triggers
+  publishing
 
 ## Getting Help
 

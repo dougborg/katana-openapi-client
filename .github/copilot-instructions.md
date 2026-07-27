@@ -314,15 +314,19 @@ ______________________________________________________________________
 
 ## Conventional Commits (CRITICAL)
 
-This project uses **semantic-release** with conventional commits and **scopes** for
-monorepo versioning.
+This project uses **release-please** (manifest mode) with conventional commits.
+Version bump *type* comes from the commit type (`feat`/`fix`/`perf`/`!`); *which*
+package(s) bump is decided by which paths the commit touches, not by scope — but
+scopes are still expected for changelog clarity. See [docs/RELEASE.md](../docs/RELEASE.md).
 
 ### Commit Scopes for Package Releases
 
-- **`feat(client):`** / **`fix(client):`** - Releases **katana-openapi-client**
-  (MINOR/PATCH)
-- **`feat(mcp):`** / **`fix(mcp):`** - Releases **katana-mcp-server** (MINOR/PATCH)
-- **`feat:`** / **`fix:`** (no scope) - Releases **katana-openapi-client** (default)
+- **`feat(client):`** / **`fix(client):`** - touches client code → releases
+  **katana-openapi-client** (MINOR/PATCH)
+- **`feat(mcp):`** / **`fix(mcp):`** - touches `katana_mcp_server/` → releases
+  **katana-mcp-server** (MINOR/PATCH)
+- **`feat:`** / **`fix:`** (no scope) - releases whichever package(s) the changed
+  files belong to (typically **katana-openapi-client** for root-level changes)
 
 ### Other Commit Types (No Version Bump)
 

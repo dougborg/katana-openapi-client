@@ -1,7 +1,10 @@
 # Commit Standards
 
-This project uses **semantic-release** with **conventional commits** and **scopes** for
-monorepo versioning. Proper commit formatting is critical for automated releases.
+This project uses **release-please** (manifest mode) with **conventional commits**.
+Commit *type* decides the version bump; which package(s) bump is decided by which
+paths a commit touches, not by scope — but scopes below are still expected for
+changelog clarity. Proper commit formatting is critical for automated releases. See
+[docs/RELEASE.md](../../../../docs/RELEASE.md).
 
 ## Quick Reference
 
@@ -18,7 +21,7 @@ monorepo versioning. Proper commit formatting is critical for automated releases
 ## Monorepo Structure
 
 The repository contains three packages — only the two Python ones release through
-semantic-release with the scopes below:
+release-please with the scopes below:
 
 1. **`katana_public_api_client/`** → scope `(client)`, releases as
    `katana-openapi-client` on PyPI.
@@ -309,7 +312,7 @@ When a local branch was created via `git checkout -b <name> origin/main`, its up
 is set to `origin/main`. A subsequent under-specified push (bare `git push`, or
 `git push -u origin` with no refspec, or commands implicitly affected by
 `push.default = upstream`) can resolve to that tracked upstream and **push the local tip
-straight to `main`** — bypassing PR review and triggering semantic-release.
+straight to `main`** — bypassing PR review and triggering release-please.
 
 Even though `git push -u origin <branch-name>` with an explicit branch-name refspec *is*
 safe by itself, relying on it requires every contributor's git config and push habits to
@@ -411,7 +414,8 @@ feat(client): add pagination and fix auth bug  # Should be 2 commits
 
 ### Pre-Commit Validation
 
-The project uses semantic-release to validate commit messages automatically in CI.
+The project uses release-please to parse commit messages for version-bump decisions
+in CI (not a commit-message linter — malformed types simply don't trigger a bump).
 
 ### Manual Validation
 
@@ -441,14 +445,17 @@ git push --force-with-lease
 
 ### Automated Releases
 
-When commits are merged to `main`:
+When commits are merged to `main`, release-please updates (or opens) one aggregated
+release PR. Merging *that* PR is what actually releases anything:
 
-1. **semantic-release analyzes commits** since last release
-1. **Determines version bump** based on commit types
-1. **Generates CHANGELOG.md** from commit messages
-1. **Creates git tag** with new version
-1. **Publishes packages** to PyPI (if configured)
-1. **Creates GitHub release** with notes
+1. **release-please analyzes commits** since last release, per package path
+1. **Determines version bump(s)** based on commit types touching each package's path
+1. **Generates CHANGELOG.md** from commit messages, on the release PR
+1. **On merge:** creates git tag(s) + draft GitHub Release(s) at the merge commit
+1. **Tag push triggers `publish.yml`**, which publishes to PyPI and un-drafts the
+   release once assets are attached
+
+See [docs/RELEASE.md](../../../../docs/RELEASE.md) for the full flow.
 
 ### Monitoring Releases
 
@@ -470,8 +477,10 @@ git tag -l
 - **[Spec Authoring Guide](../../../../katana_public_api_client/docs/spec-authoring.md)**
   — OpenAPI 3.1 conventions, `ListResponse` schema, use-site descriptions, the
   regen-in-same-PR rule.
-- **[Release Process Guide](../devops/RELEASE_PROCESS.md)** — semantic-release
+- **[Release Process Guide](../devops/RELEASE_PROCESS.md)** — release-please
   configuration and operational details.
+- **[docs/RELEASE.md](../../../../docs/RELEASE.md)** — the canonical release-topology
+  reference (workflows, tag format, PyPI Trusted Publishers, troubleshooting).
 - **[Conventional Commits](https://www.conventionalcommits.org/)** — official
   specification.
 - **[Semantic Versioning](https://semver.org/)** — versioning specification.

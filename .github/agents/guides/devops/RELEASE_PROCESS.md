@@ -1,6 +1,15 @@
 # Release Process Guide
 
-Guide for managing releases with semantic-release in this monorepo.
+Guide for managing releases with [release-please](https://github.com/googleapis/release-please)
+(manifest mode) in this monorepo. Canonical reference:
+[docs/RELEASE.md](../../../../docs/RELEASE.md).
+
+**Key difference from the old python-semantic-release setup this replaced:** nothing
+pushes directly to `main` anymore. Every commit merged to `main` updates one
+aggregated release PR; merging *that* PR is what creates tags, draft GitHub Releases,
+and (via a tag-triggered `publish.yml`) PyPI/GHCR publishes. Version-bump *type*
+still comes from the commit type below, but *which* package bumps is now decided by
+which paths a commit touches, not its scope.
 
 ## Quick Reference
 
@@ -59,13 +68,16 @@ ______________________________________________________________________
 
 **Steps:**
 
-1. semantic-release analyzes commits since last release
-1. Determines version bump based on commit types
-1. Updates version in `pyproject.toml`
-1. Generates CHANGELOG.md
-1. Creates git tag
-1. Creates GitHub release
-1. (Optional) Publishes to PyPI
+1. `release-please.yml` (the only workflow watching `main`) analyzes commits since
+   the last release, per package path
+1. Opens or updates **one aggregated release PR** with the computed version bump(s)
+   and changelog entries
+1. `release-pr-prepare.yml` keeps the release PR's `uv.lock` and MCP→client pin
+   truthful as commits land on the PR branch
+1. **Merging that release PR** is what actually releases: `release-please.yml` runs
+   once more and creates a tag + draft GitHub Release per changed package
+1. The tag push triggers `publish.yml`, which builds, publishes to PyPI, attaches
+   assets to the draft release, and un-drafts it
 
 ### Manual Verification
 
@@ -277,7 +289,7 @@ ______________________________________________________________________
 
 ### Automatic Generation
 
-**semantic-release generates:**
+**release-please generates:**
 
 - CHANGELOG.md in each package directory
 - Organized by release version
@@ -320,7 +332,7 @@ gh release view client-v0.31.0 --web
 
 ```bash
 # Check workflow runs
-gh run list --workflow=release.yml
+gh run list --workflow=release-please.yml
 
 # View specific run
 gh run view <run-id>
@@ -360,8 +372,8 @@ gh release create client-v0.31.0 \
   --notes "See CHANGELOG.md"
 ```
 
-**Note:** Only do this if semantic-release is broken. Otherwise, let automation handle
-it.
+**Note:** Only do this if release-please or publish.yml is broken. Otherwise, let
+automation handle it.
 
 ______________________________________________________________________
 
@@ -377,7 +389,7 @@ ______________________________________________________________________
 
 ### After Merge
 
-- [ ] semantic-release workflow completed
+- [ ] release-please workflow completed
 - [ ] New version tag created
 - [ ] GitHub release published
 - [ ] CHANGELOG.md updated
@@ -393,14 +405,14 @@ ______________________________________________________________________
 
 1. Are commits using `feat:` or `fix:`?
 1. Are non-release types used? (`docs:`, `chore:`, etc.)
-1. Did semantic-release workflow run?
+1. Did release-please workflow run?
 
 ```bash
 # View workflow runs
-gh run list --workflow=release.yml
+gh run list --workflow=release-please.yml
 
 # If no runs, check workflow file
-cat .github/workflows/release.yml
+cat .github/workflows/release-please.yml
 ```
 
 ### Wrong Version Bump
@@ -446,7 +458,7 @@ ______________________________________________________________________
 
 - **Don't merge without proper commit format**
 - **Don't forget scope** for multi-package changes
-- **Don't manually edit versions** (let semantic-release handle it)
+- **Don't manually edit versions** (let release-please handle it)
 - **Don't force push to main**
 - **Don't skip CI checks**
 
@@ -455,7 +467,7 @@ ______________________________________________________________________
 ## Related Documentation
 
 - [COMMIT_STANDARDS.md](../shared/COMMIT_STANDARDS.md) - Conventional commits
-- [docs/MONOREPO_SEMANTIC_RELEASE.md](../../../../docs/MONOREPO_SEMANTIC_RELEASE.md) -
+- [docs/RELEASE.md](../../../../docs/RELEASE.md) -
   Complete guide
 - [Semantic Versioning](https://semver.org/) - Version specification
 
@@ -474,7 +486,7 @@ ______________________________________________________________________
 
 1. Write conventional commits
 1. Merge to main
-1. semantic-release automates everything
+1. release-please automates everything
 1. Monitor with `gh release list`
 
 **Remember:** Trust the automation. Manual releases only in emergencies!
