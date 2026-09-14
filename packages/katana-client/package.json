@@ -71,7 +71,7 @@
     "@biomejs/biome": "^2.5.12",
     "@hey-api/openapi-ts": "next",
     "@types/node": "^26.4.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "tsdown": "^0.23.0",
     "typescript": "^7.0.2",
     "vitest": "^4.0.15"
