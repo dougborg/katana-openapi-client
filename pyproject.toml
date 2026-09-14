@@ -124,8 +124,8 @@ dev = [
   # drift to 0.58.0 and silently change InventoryMovement timestamp types (#874).
   # Bump deliberately: change the pin, run `uv run poe regenerate-all`, commit the
   # regenerated diff. The regen-freshness CI check guards this.
-  "openapi-python-client==0.29.0",
-  "datamodel-code-generator==0.68.1",
+  "openapi-python-client==0.29.1",
+  "datamodel-code-generator==0.76.2",
   # MCP server (workspace member) — needed to run katana_mcp_server/tests/
   "katana-mcp-server",
 ]
