@@ -297,12 +297,18 @@ import type {
   GetAllInventoryPointData,
   GetAllInventoryPointErrors,
   GetAllInventoryPointResponses,
+  GetAllInventorySignalsData,
+  GetAllInventorySignalsErrors,
+  GetAllInventorySignalsResponses,
   GetAllLocationsData,
   GetAllLocationsErrors,
   GetAllLocationsResponses,
   GetAllManufacturingOrderOperationRowsData,
   GetAllManufacturingOrderOperationRowsErrors,
   GetAllManufacturingOrderOperationRowsResponses,
+  GetAllManufacturingOrderProductionIngredientsData,
+  GetAllManufacturingOrderProductionIngredientsErrors,
+  GetAllManufacturingOrderProductionIngredientsResponses,
   GetAllManufacturingOrderProductionsData,
   GetAllManufacturingOrderProductionsErrors,
   GetAllManufacturingOrderProductionsResponses,
@@ -1122,6 +1128,29 @@ export const getAllInventoryMovements = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List inventory replenishment signals
+ *
+ * Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
+ * across all locations.
+ *
+ * Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
+ * than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
+ * full listing.
+ */
+export const getAllInventorySignals = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAllInventorySignalsData, ThrowOnError>
+): RequestResult<GetAllInventorySignalsResponses, GetAllInventorySignalsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    GetAllInventorySignalsResponses,
+    GetAllInventorySignalsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/inventory_signals',
+    ...options,
+  });
+
+/**
  * Create or update the safety stock level
  *
  * Create or update an item's safety stock level within a certain location and variant combination.
@@ -1477,6 +1506,29 @@ export const updateManufacturingOrderProduction = <ThrowOnError extends boolean 
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * List all manufacturing order production ingredients
+ *
+ * Returns a list of ingredient consumption records across manufacturing order productions.
+ * Each record ties a consumed ingredient variant to the production batch and recipe row it was used for.
+ */
+export const getAllManufacturingOrderProductionIngredients = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAllManufacturingOrderProductionIngredientsData, ThrowOnError>
+): RequestResult<
+  GetAllManufacturingOrderProductionIngredientsResponses,
+  GetAllManufacturingOrderProductionIngredientsErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    GetAllManufacturingOrderProductionIngredientsResponses,
+    GetAllManufacturingOrderProductionIngredientsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/manufacturing_order_production_ingredients',
+    ...options,
   });
 
 /**

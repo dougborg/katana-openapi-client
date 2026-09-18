@@ -965,6 +965,15 @@ class ManufacturingOrderListResponse(KatanaPydanticBase):
     ] = None
 
 
+class ManufacturingOrderProductionIngredientListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[ManufacturingOrderProductionIngredientResponse] | None,
+        Field(
+            description="Array of ingredient consumption records for manufacturing order productions"
+        ),
+    ] = None
+
+
 class ManufacturingOrderOperationRowListResponse(KatanaPydanticBase):
     data: Annotated[
         list[ManufacturingOrderOperationRow] | None,

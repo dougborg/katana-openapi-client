@@ -811,20 +811,6 @@ overrides:
       fully-specified filter object, so this should follow upstream's shape
       rather than a local $ref.
 
-  - endpoint: "GET /inventory_signals"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
-    reason: >-
-      New read endpoint with no local counterpart.
-
-  - endpoint: "GET /manufacturing_order_production_ingredients"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
-    reason: >-
-      New read endpoint with no local counterpart.
-
   # --- rerank endpoints: nested component naming ----------------------------
   # Same shape, different component name. Our house convention strips the
   # upstream `Dto` suffix (CreateCustomerDto -> CreateCustomerRequest); the

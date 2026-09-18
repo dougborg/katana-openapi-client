@@ -771,6 +771,15 @@ components:
         items:
           type: integer
       in: query
+    production_ids:
+      name: production_ids
+      required: false
+      description: Filters manufacturing order production ingredients by production ids.
+      schema:
+        type: array
+        items:
+          type: integer
+      in: query
     return_order_no:
       name: return_order_no
       in: query
@@ -3738,6 +3747,119 @@ components:
         location_id: 1
         variant_id: 3001
         value: "25.0"
+    InventorySignalLeadTimeSource:
+      type: string
+      description: Which source supplied the lead time used in a replenishment calculation
+      enum:
+        - sku
+        - system_po
+        - system_mo
+        - fallback
+
+    InventorySignal:
+      description:
+        Replenishment signal for a single variant, summed across all locations. Derived nightly from the last 30
+        days of demand.
+      type: object
+      properties:
+        variant_id:
+          type: integer
+          description: The variant the signal describes. One row per variant, summed across all locations.
+        avg_daily_demand_30d:
+          type: string
+          description: Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC.
+        reorder_point:
+          type:
+            - string
+            - "null"
+          description:
+            Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on
+            /inventory. Null while demand has not yet been calculated.
+        days_of_stock_left:
+          type:
+            - integer
+            - "null"
+          description:
+            floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand
+            has not yet been calculated.
+        stock_risk:
+          type:
+            - integer
+            - "null"
+          description:
+            Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been
+            calculated.
+        in_stock:
+          type: string
+          description: Quantity on hand, summed across all locations
+        committed:
+          type: string
+          description: Quantity claimed by open sales and manufacturing orders
+        safety_stock_breach_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Projected date stock falls below safety stock. Set on high and critical rows only.
+        expected_before_safety_stock_breach:
+          type:
+            - string
+            - "null"
+          description: Incoming quantity that stock_risk counted as landing in time
+        safety_stock:
+          type: string
+          description: The safety stock level set for the variant
+        lead_time_used:
+          type: integer
+          description: Lead time in days used in the calculations
+        lead_time_source:
+          description: Which source supplied lead_time_used
+          $ref: "#/components/schemas/InventorySignalLeadTimeSource"
+        demand_calculated_at:
+          type: string
+          format: date-time
+          description: When avg_daily_demand_30d was last calculated
+      example:
+        variant_id: 1
+        avg_daily_demand_30d: "3.50000000000000000000"
+        reorder_point: "49.00000000000000000000"
+        days_of_stock_left: 12
+        stock_risk: 1
+        in_stock: "42.00000000000000000000"
+        committed: "0.00000000000000000000"
+        safety_stock_breach_at: "2026-08-24T00:00:00.000Z"
+        expected_before_safety_stock_breach: "30.00000000000000000000"
+        safety_stock: "0.00000000000000000000"
+        lead_time_used: 14
+        lead_time_source: sku
+        demand_calculated_at: "2026-08-12T07:00:00.000Z"
+
+    InventorySignalListResponse:
+      description: |
+        Response containing a list of inventory replenishment signals with pagination support.
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of per-variant replenishment signals
+          items:
+            $ref: "#/components/schemas/InventorySignal"
+      example:
+        data:
+          - variant_id: 1
+            avg_daily_demand_30d: "3.50000000000000000000"
+            reorder_point: "49.00000000000000000000"
+            days_of_stock_left: 12
+            stock_risk: 1
+            in_stock: "42.00000000000000000000"
+            committed: "0.00000000000000000000"
+            safety_stock_breach_at: "2026-08-24T00:00:00.000Z"
+            expected_before_safety_stock_breach: "30.00000000000000000000"
+            safety_stock: "0.00000000000000000000"
+            lead_time_used: 14
+            lead_time_source: sku
+            demand_calculated_at: "2026-08-12T07:00:00.000Z"
+
     InventorySafetyStockLevelResponse:
       description: Complete safety stock level configuration with metadata including timestamps and deletion status
       allOf:
@@ -4965,6 +5087,32 @@ components:
           description: ID of the sales order row to unlink from the manufacturing order
       example:
         sales_order_row_id: 2501
+    ManufacturingOrderProductionIngredientListResponse:
+      description: |
+        Response containing a list of ingredient consumption records across manufacturing order productions, with
+        pagination support.
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of ingredient consumption records for manufacturing order productions
+          items:
+            $ref: "#/components/schemas/ManufacturingOrderProductionIngredientResponse"
+      example:
+        data:
+          - id: 252
+            location_id: 321
+            variant_id: 24764
+            manufacturing_order_id: 21400
+            manufacturing_order_recipe_row_id: 20300
+            production_id: 21300
+            quantity: 4
+            production_date: "2023-02-10T10:06:13.047Z"
+            cost: 1
+            created_at: "2023-02-10T10:06:14.435Z"
+            updated_at: "2023-02-10T10:06:15.070Z"
+            deleted_at: null
+
     ManufacturingOrderProductionIngredientResponse:
       description: Response containing ingredient consumption data for a manufacturing order production batch
       type: object
@@ -15376,6 +15524,82 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /inventory_signals:
+    get:
+      summary: List inventory replenishment signals
+      tags:
+        - Inventory
+      description: |-
+        Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
+          across all locations.
+
+          Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
+          than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
+          full listing.
+      operationId: getAllInventorySignals
+      parameters:
+        - name: variant_id
+          in: query
+          required: false
+          description:
+            Filters signals by valid variant ids. A variant with no demand in the 30-day window has no row, so the
+            response can contain fewer rows than ids requested.
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: stock_risk
+          in: query
+          required: false
+          description: Filters signals by risk level - 0 low, 1 high, 2 critical, 3 stockout. Any other value is a 400.
+          schema:
+            type: integer
+            enum:
+              - 0
+              - 1
+              - 2
+              - 3
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+      responses:
+        "200":
+          description: List all inventory replenishment signals
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventorySignalListResponse"
+              example:
+                data:
+                  - variant_id: 1
+                    avg_daily_demand_30d: "3.50000000000000000000"
+                    reorder_point: "49.00000000000000000000"
+                    days_of_stock_left: 12
+                    stock_risk: 1
+                    in_stock: "42.00000000000000000000"
+                    committed: "0.00000000000000000000"
+                    safety_stock_breach_at: "2026-08-24T00:00:00.000Z"
+                    expected_before_safety_stock_breach: "30.00000000000000000000"
+                    safety_stock: "0.00000000000000000000"
+                    lead_time_used: 14
+                    lead_time_source: sku
+                    demand_calculated_at: "2026-08-12T07:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /inventory_safety_stock_levels:
     post:
       summary: Create or update the safety stock level
@@ -16236,6 +16460,62 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /manufacturing_order_production_ingredients:
+    get:
+      summary: List all manufacturing order production ingredients
+      tags:
+        - Manufacturing order production ingredient
+      description: |-
+        Returns a list of ingredient consumption records across manufacturing order productions.
+          Each record ties a consumed ingredient variant to the production batch and recipe row it was used for.
+      operationId: getAllManufacturingOrderProductionIngredients
+      parameters:
+        - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/manufacturing_order_ids"
+        - $ref: "#/components/parameters/production_ids"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/created_at_min"
+        - $ref: "#/components/parameters/created_at_max"
+        - $ref: "#/components/parameters/updated_at_min"
+        - $ref: "#/components/parameters/updated_at_max"
+        - $ref: "#/components/parameters/include_deleted"
+      responses:
+        "200":
+          description: List all manufacturing order production ingredients
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManufacturingOrderProductionIngredientListResponse"
+              example:
+                data:
+                  - id: 252
+                    location_id: 321
+                    variant_id: 24764
+                    manufacturing_order_id: 21400
+                    manufacturing_order_recipe_row_id: 20300
+                    production_id: 21300
+                    quantity: 4
+                    production_date: "2023-02-10T10:06:13.047Z"
+                    cost: 1
+                    created_at: "2023-02-10T10:06:14.435Z"
+                    updated_at: "2023-02-10T10:06:15.070Z"
+                    deleted_at: null
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":

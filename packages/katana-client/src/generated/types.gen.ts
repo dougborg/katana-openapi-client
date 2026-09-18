@@ -1923,6 +1923,80 @@ export type InventorySafetyStockLevel = {
 };
 
 /**
+ * Which source supplied the lead time used in a replenishment calculation
+ */
+export type InventorySignalLeadTimeSource = 'sku' | 'system_po' | 'system_mo' | 'fallback';
+
+/**
+ * Replenishment signal for a single variant, summed across all locations. Derived nightly from the last 30 days of demand.
+ */
+export type InventorySignal = {
+  /**
+   * The variant the signal describes. One row per variant, summed across all locations.
+   */
+  variant_id?: number;
+  /**
+   * Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC.
+   */
+  avg_daily_demand_30d?: string;
+  /**
+   * Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on /inventory. Null while demand has not yet been calculated.
+   */
+  reorder_point?: string | null;
+  /**
+   * floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand has not yet been calculated.
+   */
+  days_of_stock_left?: number | null;
+  /**
+   * Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been calculated.
+   */
+  stock_risk?: number | null;
+  /**
+   * Quantity on hand, summed across all locations
+   */
+  in_stock?: string;
+  /**
+   * Quantity claimed by open sales and manufacturing orders
+   */
+  committed?: string;
+  /**
+   * Projected date stock falls below safety stock. Set on high and critical rows only.
+   */
+  safety_stock_breach_at?: string | null;
+  /**
+   * Incoming quantity that stock_risk counted as landing in time
+   */
+  expected_before_safety_stock_breach?: string | null;
+  /**
+   * The safety stock level set for the variant
+   */
+  safety_stock?: string;
+  /**
+   * Lead time in days used in the calculations
+   */
+  lead_time_used?: number;
+  /**
+   * Which source supplied lead_time_used
+   */
+  lead_time_source?: InventorySignalLeadTimeSource;
+  /**
+   * When avg_daily_demand_30d was last calculated
+   */
+  demand_calculated_at?: string;
+};
+
+/**
+ * Response containing a list of inventory replenishment signals with pagination support.
+ *
+ */
+export type InventorySignalListResponse = {
+  /**
+   * Array of per-variant replenishment signals
+   */
+  data?: Array<InventorySignal>;
+};
+
+/**
  * Complete safety stock level configuration with metadata including timestamps and deletion status
  */
 export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel & DeletableEntity;
@@ -2783,6 +2857,18 @@ export type UnlinkManufacturingOrderRequest = {
    * ID of the sales order row to unlink from the manufacturing order
    */
   sales_order_row_id: number;
+};
+
+/**
+ * Response containing a list of ingredient consumption records across manufacturing order productions, with
+ * pagination support.
+ *
+ */
+export type ManufacturingOrderProductionIngredientListResponse = {
+  /**
+   * Array of ingredient consumption records for manufacturing order productions
+   */
+  data?: Array<ManufacturingOrderProductionIngredientResponse>;
 };
 
 /**
@@ -10177,6 +10263,11 @@ export type IsLinkedToSalesOrder = boolean;
 export type ManufacturingOrderIds = Array<number>;
 
 /**
+ * Filters manufacturing order production ingredients by production ids.
+ */
+export type ProductionIds = Array<number>;
+
+/**
  * Filters sales returns by an order number
  */
 export type ReturnOrderNo = string;
@@ -11520,6 +11611,62 @@ export type GetAllInventoryMovementsResponses = {
 export type GetAllInventoryMovementsResponse =
   GetAllInventoryMovementsResponses[keyof GetAllInventoryMovementsResponses];
 
+export type GetAllInventorySignalsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Filters signals by valid variant ids. A variant with no demand in the 30-day window has no row, so the response can contain fewer rows than ids requested.
+     */
+    variant_id?: Array<number>;
+    /**
+     * Filters signals by risk level - 0 low, 1 high, 2 critical, 3 stockout. Any other value is a 400.
+     */
+    stock_risk?: 0 | 1 | 2 | 3;
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+  };
+  url: '/inventory_signals';
+};
+
+export type GetAllInventorySignalsErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllInventorySignalsError =
+  GetAllInventorySignalsErrors[keyof GetAllInventorySignalsErrors];
+
+export type GetAllInventorySignalsResponses = {
+  /**
+   * List all inventory replenishment signals
+   */
+  200: InventorySignalListResponse;
+};
+
+export type GetAllInventorySignalsResponse =
+  GetAllInventorySignalsResponses[keyof GetAllInventorySignalsResponses];
+
 export type CreateInventorySafetyStockLevelData = {
   /**
    * Safety stock level details to set (create or update).
@@ -12340,6 +12487,82 @@ export type UpdateManufacturingOrderProductionResponses = {
 
 export type UpdateManufacturingOrderProductionResponse =
   UpdateManufacturingOrderProductionResponses[keyof UpdateManufacturingOrderProductionResponses];
+
+export type GetAllManufacturingOrderProductionIngredientsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Filters results by an array of IDs.
+     */
+    ids?: Array<number>;
+    /**
+     * Filters manufacturing order productions by manufacturing order ids.
+     */
+    manufacturing_order_ids?: Array<number>;
+    /**
+     * Filters manufacturing order production ingredients by production ids.
+     */
+    production_ids?: Array<number>;
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+    /**
+     * Minimum creation date (ISO 8601 format).
+     */
+    created_at_min?: string;
+    /**
+     * Maximum creation date (ISO 8601 format).
+     */
+    created_at_max?: string;
+    /**
+     * Minimum update date (ISO 8601 format).
+     */
+    updated_at_min?: string;
+    /**
+     * Maximum update date (ISO 8601 format).
+     */
+    updated_at_max?: string;
+    /**
+     * Soft-deleted data is excluded from result set by default. Set to true to include it.
+     */
+    include_deleted?: boolean;
+  };
+  url: '/manufacturing_order_production_ingredients';
+};
+
+export type GetAllManufacturingOrderProductionIngredientsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllManufacturingOrderProductionIngredientsError =
+  GetAllManufacturingOrderProductionIngredientsErrors[keyof GetAllManufacturingOrderProductionIngredientsErrors];
+
+export type GetAllManufacturingOrderProductionIngredientsResponses = {
+  /**
+   * List all manufacturing order production ingredients
+   */
+  200: ManufacturingOrderProductionIngredientListResponse;
+};
+
+export type GetAllManufacturingOrderProductionIngredientsResponse =
+  GetAllManufacturingOrderProductionIngredientsResponses[keyof GetAllManufacturingOrderProductionIngredientsResponses];
 
 export type UpdateManufacturingOrderProductionIngredientData = {
   /**
