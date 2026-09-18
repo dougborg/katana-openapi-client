@@ -400,6 +400,103 @@ class TestApplyOverrides:
 # ----------------------------------------------------------------------
 
 
+class TestOnlyLiveEndpointOverride:
+    """The `only_live_endpoint` kind defers a whole endpoint upstream publishes.
+
+    Unlike the field-level kinds there is nothing to pin beyond the endpoint
+    string, so these tests focus on the two properties that keep the escape
+    hatch honest: a listed endpoint is suppressed, and an *unlisted* one still
+    fails the gate.
+    """
+
+    def _write(self, tmp_path: Path, entries: list[dict]) -> Path:
+        p = tmp_path / "ov.yaml"
+        p.write_text(yaml.safe_dump({"overrides": entries}), encoding="utf-8")
+        return p
+
+    def _report(self) -> Any:
+        """Live publishes two endpoints; local models neither."""
+        local = _spec("Req", {"type": "object"}, path="/known", method="post")
+        live = _spec("LiveReq", {"type": "object"}, path="/known", method="post")
+        live["paths"]["/inventory_signals"] = {"get": {"responses": {}}}
+        live["paths"]["/variants/search"] = {"post": {"responses": {}}}
+        return audit(local, live)
+
+    def _entry(self, endpoint: str) -> dict:
+        return {
+            "endpoint": endpoint,
+            "kind": "only_live_endpoint",
+            "category": "upstream_correct_local_wrong",
+            "fix_tracked_in": "#1032",
+            "reason": "deferred pending local modelling",
+        }
+
+    def test_listed_endpoint_is_suppressed(self, tmp_path: Path) -> None:
+        report = self._report()
+        assert len(report.paths_only_in_live) == 2
+
+        apply_overrides(
+            report,
+            load_overrides(
+                self._write(
+                    tmp_path,
+                    [
+                        self._entry("GET /inventory_signals"),
+                        self._entry("POST /variants/search"),
+                    ],
+                )
+            ),
+        )
+
+        assert report.paths_only_in_live == []
+        assert report.total_drift_count == 0
+        assert len(report.suppressed) == 2
+        assert report.stale_overrides == []
+
+    def test_unlisted_endpoint_still_fails_the_gate(self, tmp_path: Path) -> None:
+        report = self._report()
+
+        apply_overrides(
+            report,
+            load_overrides(
+                self._write(tmp_path, [self._entry("GET /inventory_signals")])
+            ),
+        )
+
+        # Only the listed one is suppressed; the other still counts as drift.
+        assert report.paths_only_in_live == [("/variants/search", "post")]
+        assert report.total_drift_count == 1
+
+    def test_override_for_modelled_endpoint_goes_stale(self, tmp_path: Path) -> None:
+        """Once the endpoint is added locally, its deferral must be removed."""
+        report = self._report()
+
+        apply_overrides(
+            report,
+            load_overrides(
+                self._write(
+                    tmp_path,
+                    [
+                        self._entry("GET /inventory_signals"),
+                        self._entry("POST /variants/search"),
+                        # never matches — local already models /known
+                        self._entry("POST /known"),
+                    ],
+                )
+            ),
+        )
+
+        assert report.paths_only_in_live == []
+        assert [o.endpoint for o in report.stale_overrides] == ["POST /known"]
+        assert report.total_drift_count == 1  # the stale entry itself
+
+    def test_category_requires_fix_tracked_in(self, tmp_path: Path) -> None:
+        entry = self._entry("GET /inventory_signals")
+        del entry["fix_tracked_in"]
+        with pytest.raises(ValueError, match="requires `fix_tracked_in`"):
+            load_overrides(self._write(tmp_path, [entry]))
+
+
 class TestCommittedRegistry:
     def test_registry_is_valid(self) -> None:
         overrides = load_overrides(DEFAULT_OVERRIDES)

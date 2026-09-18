@@ -473,12 +473,12 @@ class CreateStockAdjustmentRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_adjustment_number: Annotated[
-        str,
+        str | None,
         Field(
             description="Human-readable reference number for tracking and audit purposes",
             min_length=1,
         ),
-    ]
+    ] = None
     stock_adjustment_date: Annotated[
         AwareDatetime | None,
         Field(description="Date and time when the adjustment was performed"),
@@ -878,9 +878,9 @@ class CreateStockTransferRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_transfer_number: Annotated[
-        str,
+        str | None,
         Field(description="Unique stock transfer number for tracking", min_length=1),
-    ]
+    ] = None
     source_location_id: Annotated[
         int, Field(description="Source location ID where items are transferred from")
     ]

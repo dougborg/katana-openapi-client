@@ -98,7 +98,8 @@ def sync_detailed(
         id (int):
         body (UpdatePurchaseOrderAdditionalCostRowRequest): Request payload for updating an
             existing additional cost line item on a purchase order Example: {'additional_cost_id': 1,
-            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}.
+            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE', 'reference': 'Customs
+            invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +138,8 @@ def sync(
         id (int):
         body (UpdatePurchaseOrderAdditionalCostRowRequest): Request payload for updating an
             existing additional cost line item on a purchase order Example: {'additional_cost_id': 1,
-            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}.
+            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE', 'reference': 'Customs
+            invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +173,8 @@ async def asyncio_detailed(
         id (int):
         body (UpdatePurchaseOrderAdditionalCostRowRequest): Request payload for updating an
             existing additional cost line item on a purchase order Example: {'additional_cost_id': 1,
-            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}.
+            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE', 'reference': 'Customs
+            invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -208,7 +211,8 @@ async def asyncio(
         id (int):
         body (UpdatePurchaseOrderAdditionalCostRowRequest): Request payload for updating an
             existing additional cost line item on a purchase order Example: {'additional_cost_id': 1,
-            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}.
+            'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE', 'reference': 'Customs
+            invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

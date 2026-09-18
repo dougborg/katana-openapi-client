@@ -3763,6 +3763,10 @@ export type CreatePurchaseOrderAdditionalCostRowRequest = {
    * How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
    */
   distribution_method?: CostDistributionMethod;
+  /**
+   * Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge
+   */
+  reference?: string | null;
 };
 
 /**
@@ -3785,6 +3789,10 @@ export type PurchaseOrderAdditionalCostRow = {
    * Name or description of the additional cost
    */
   name?: string;
+  /**
+   * Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge
+   */
+  reference?: string | null;
   /**
    * Method used for distributing this cost across purchase order items
    */
@@ -3849,6 +3857,10 @@ export type UpdatePurchaseOrderAdditionalCostRowRequest = {
    * How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
    */
   distribution_method?: CostDistributionMethod;
+  /**
+   * Free-text label describing what this cost row is; pass null to clear it
+   */
+  reference?: string | null;
 };
 
 /**
@@ -4651,7 +4663,8 @@ export type UnlinkVariantBinLocationListRequest = Array<UnlinkVariantBinLocation
 
 /**
  * Available webhook events for real-time notifications.
- * Complete list of all 61 supported events as documented in the Katana API.
+ * Mirrors the event list the live gateway accepts; see the Katana API
+ * changelog for newly added events.
  */
 export type WebhookEvent =
   | 'sales_order.created'
@@ -4660,6 +4673,7 @@ export type WebhookEvent =
   | 'sales_order.deleted'
   | 'sales_order.packed'
   | 'sales_order.delivered'
+  | 'sales_order.invoiced'
   | 'sales_order.availability_updated'
   | 'purchase_order.created'
   | 'purchase_order.approved'
@@ -4667,6 +4681,7 @@ export type WebhookEvent =
   | 'purchase_order.deleted'
   | 'purchase_order.partially_received'
   | 'purchase_order.received'
+  | 'purchase_order.billed'
   | 'purchase_order_row.created'
   | 'purchase_order_row.updated'
   | 'purchase_order_row.deleted'
@@ -4704,11 +4719,15 @@ export type WebhookEvent =
   | 'product_recipe_row.created'
   | 'product_recipe_row.updated'
   | 'product_recipe_row.deleted'
+  | 'bom_row.created'
+  | 'bom_row.updated'
+  | 'bom_row.deleted'
   | 'outsourced_purchase_order.created'
   | 'outsourced_purchase_order.approved'
   | 'outsourced_purchase_order.updated'
   | 'outsourced_purchase_order.deleted'
   | 'outsourced_purchase_order.received'
+  | 'outsourced_purchase_order.billed'
   | 'outsourced_purchase_order_row.created'
   | 'outsourced_purchase_order_row.updated'
   | 'outsourced_purchase_order_row.deleted'
@@ -4868,6 +4887,7 @@ export type WebhookLogsExportRequest = {
     | 'sales_order.approved'
     | 'sales_order.packed'
     | 'sales_order.delivered'
+    | 'sales_order.invoiced'
     | 'sales_order.updated'
     | 'sales_order.deleted'
     | 'sales_order.availability_updated'
@@ -4877,6 +4897,7 @@ export type WebhookLogsExportRequest = {
     | 'purchase_order.deleted'
     | 'purchase_order.partially_received'
     | 'purchase_order.received'
+    | 'purchase_order.billed'
     | 'purchase_order_row.created'
     | 'purchase_order_row.received'
     | 'purchase_order_row.updated'
@@ -4886,6 +4907,7 @@ export type WebhookLogsExportRequest = {
     | 'outsourced_purchase_order.updated'
     | 'outsourced_purchase_order.deleted'
     | 'outsourced_purchase_order.received'
+    | 'outsourced_purchase_order.billed'
     | 'outsourced_purchase_order_row.created'
     | 'outsourced_purchase_order_row.updated'
     | 'outsourced_purchase_order_row.deleted'
@@ -4925,6 +4947,9 @@ export type WebhookLogsExportRequest = {
     | 'variant.deleted'
     | 'product_recipe_row.created'
     | 'product_recipe_row.deleted'
+    | 'bom_row.created'
+    | 'bom_row.updated'
+    | 'bom_row.deleted'
     | 'product_recipe_row.updated';
   /**
    * Filter logs by HTTP status code
@@ -6750,7 +6775,7 @@ export type CreateStockAdjustmentRequest = {
   /**
    * Human-readable reference number for tracking and audit purposes
    */
-  stock_adjustment_number: string;
+  stock_adjustment_number?: string;
   /**
    * Date and time when the adjustment was performed
    */
@@ -9465,7 +9490,7 @@ export type CreateStockTransferRequest = {
   /**
    * Unique stock transfer number for tracking
    */
-  stock_transfer_number: string;
+  stock_transfer_number?: string;
   /**
    * Source location ID where items are transferred from
    */

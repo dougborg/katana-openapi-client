@@ -2,6 +2,9 @@ from enum import StrEnum
 
 
 class WebhookEvent(StrEnum):
+    BOM_ROW_CREATED = "bom_row.created"
+    BOM_ROW_DELETED = "bom_row.deleted"
+    BOM_ROW_UPDATED = "bom_row.updated"
     CURRENT_INVENTORY_MATERIAL_OUT_OF_STOCK = "current_inventory.material_out_of_stock"
     CURRENT_INVENTORY_MATERIAL_UPDATED = "current_inventory.material_updated"
     CURRENT_INVENTORY_PRODUCT_OUT_OF_STOCK = "current_inventory.product_out_of_stock"
@@ -43,6 +46,7 @@ class WebhookEvent(StrEnum):
     MATERIAL_DELETED = "material.deleted"
     MATERIAL_UPDATED = "material.updated"
     OUTSOURCED_PURCHASE_ORDER_APPROVED = "outsourced_purchase_order.approved"
+    OUTSOURCED_PURCHASE_ORDER_BILLED = "outsourced_purchase_order.billed"
     OUTSOURCED_PURCHASE_ORDER_CREATED = "outsourced_purchase_order.created"
     OUTSOURCED_PURCHASE_ORDER_DELETED = "outsourced_purchase_order.deleted"
     OUTSOURCED_PURCHASE_ORDER_RECEIVED = "outsourced_purchase_order.received"
@@ -67,6 +71,7 @@ class WebhookEvent(StrEnum):
     PRODUCT_RECIPE_ROW_UPDATED = "product_recipe_row.updated"
     PRODUCT_UPDATED = "product.updated"
     PURCHASE_ORDER_APPROVED = "purchase_order.approved"
+    PURCHASE_ORDER_BILLED = "purchase_order.billed"
     PURCHASE_ORDER_CREATED = "purchase_order.created"
     PURCHASE_ORDER_DELETED = "purchase_order.deleted"
     PURCHASE_ORDER_PARTIALLY_RECEIVED = "purchase_order.partially_received"
@@ -81,6 +86,7 @@ class WebhookEvent(StrEnum):
     SALES_ORDER_CREATED = "sales_order.created"
     SALES_ORDER_DELETED = "sales_order.deleted"
     SALES_ORDER_DELIVERED = "sales_order.delivered"
+    SALES_ORDER_INVOICED = "sales_order.invoiced"
     SALES_ORDER_PACKED = "sales_order.packed"
     SALES_ORDER_UPDATED = "sales_order.updated"
     VARIANT_CREATED = "variant.created"
