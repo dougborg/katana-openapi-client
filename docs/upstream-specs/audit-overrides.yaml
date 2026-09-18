@@ -825,16 +825,31 @@ overrides:
     reason: >-
       New read endpoint with no local counterpart.
 
+  # --- rerank endpoints: nested component naming ----------------------------
+  # Same shape, different component name. Our house convention strips the
+  # upstream `Dto` suffix (CreateCustomerDto -> CreateCustomerRequest); the
+  # audit resolves that mapping for top-level request DTOs but compares
+  # nested `$ref` targets by literal name, so the rename surfaces as drift.
   - endpoint: "POST /manufacturing_order_rerank"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
+    kind: type_diff
+    field: place
+    live: "$ref:RerankPlaceDto"
+    local: "$ref:RerankPlace"
+    category: intentional_local_divergence
     reason: >-
-      Changes an order's position in the planning sequence.
+      Structurally identical to upstream's RerankPlaceDto; renamed to
+      RerankPlace per our convention of dropping the `Dto` suffix. The audit
+      compares nested $ref targets by name, so the rename reads as a type
+      diff.
 
   - endpoint: "POST /sales_order_rerank"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
+    kind: type_diff
+    field: place
+    live: "$ref:RerankPlaceDto"
+    local: "$ref:RerankPlace"
+    category: intentional_local_divergence
     reason: >-
-      Changes an order's position in the planning sequence.
+      Structurally identical to upstream's RerankPlaceDto; renamed to
+      RerankPlace per our convention of dropping the `Dto` suffix. The audit
+      compares nested $ref targets by name, so the rename reads as a type
+      diff.

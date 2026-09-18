@@ -1,0 +1,241 @@
+from http import HTTPStatus
+from typing import Any, cast
+
+import httpx
+
+from ... import errors
+from ...client import AuthenticatedClient, Client
+from ...client_types import Response
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
+from ...models.rerank_manufacturing_order_request import RerankManufacturingOrderRequest
+
+
+def _get_kwargs(
+    *,
+    body: RerankManufacturingOrderRequest,
+) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+
+    _kwargs: dict[str, Any] = {
+        "method": "post",
+        "url": "/manufacturing_order_rerank",
+    }
+
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
+
+
+def _parse_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
+    if response.status_code == 204:
+        response_204 = cast(Any, None)
+        return response_204
+
+    if response.status_code == 401:
+        response_401 = ErrorResponse.from_dict(response.json())
+
+        return response_401
+
+    if response.status_code == 404:
+        response_404 = ErrorResponse.from_dict(response.json())
+
+        return response_404
+
+    if response.status_code == 422:
+        response_422 = DetailedErrorResponse.from_dict(response.json())
+
+        return response_422
+
+    if response.status_code == 429:
+        response_429 = ErrorResponse.from_dict(response.json())
+
+        return response_429
+
+    if response.status_code == 500:
+        response_500 = ErrorResponse.from_dict(response.json())
+
+        return response_500
+
+    if client.raise_on_unexpected_status:
+        raise errors.UnexpectedStatus(response.status_code, response.content)
+    else:
+        return None
+
+
+def _build_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+    return Response(
+        status_code=HTTPStatus(response.status_code),
+        content=response.content,
+        headers=response.headers,
+        parsed=_parse_response(client=client, response=response),
+    )
+
+
+def sync_detailed(
+    *,
+    client: AuthenticatedClient | Client,
+    body: RerankManufacturingOrderRequest,
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+    """Change a manufacturing order's rank
+
+     Repositions a manufacturing order in the production schedule relative to another manufacturing
+    order.
+
+    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
+    target
+    order.
+
+    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
+    order, all
+    related manufacturing orders are repositioned together.
+
+    Args:
+        body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
+            order in the production schedule, relative to another manufacturing order Example:
+            {'order_ids': [1], 'place': {'before_id': 4}}.
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+
+    Returns:
+        Response[Any | DetailedErrorResponse | ErrorResponse]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = client.get_httpx_client().request(
+        **kwargs,
+    )
+
+    return _build_response(client=client, response=response)
+
+
+def sync(
+    *,
+    client: AuthenticatedClient | Client,
+    body: RerankManufacturingOrderRequest,
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
+    """Change a manufacturing order's rank
+
+     Repositions a manufacturing order in the production schedule relative to another manufacturing
+    order.
+
+    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
+    target
+    order.
+
+    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
+    order, all
+    related manufacturing orders are repositioned together.
+
+    Args:
+        body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
+            order in the production schedule, relative to another manufacturing order Example:
+            {'order_ids': [1], 'place': {'before_id': 4}}.
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+
+    Returns:
+        Any | DetailedErrorResponse | ErrorResponse
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: AuthenticatedClient | Client,
+    body: RerankManufacturingOrderRequest,
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+    """Change a manufacturing order's rank
+
+     Repositions a manufacturing order in the production schedule relative to another manufacturing
+    order.
+
+    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
+    target
+    order.
+
+    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
+    order, all
+    related manufacturing orders are repositioned together.
+
+    Args:
+        body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
+            order in the production schedule, relative to another manufacturing order Example:
+            {'order_ids': [1], 'place': {'before_id': 4}}.
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+
+    Returns:
+        Response[Any | DetailedErrorResponse | ErrorResponse]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    *,
+    client: AuthenticatedClient | Client,
+    body: RerankManufacturingOrderRequest,
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
+    """Change a manufacturing order's rank
+
+     Repositions a manufacturing order in the production schedule relative to another manufacturing
+    order.
+
+    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
+    target
+    order.
+
+    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
+    order, all
+    related manufacturing orders are repositioned together.
+
+    Args:
+        body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
+            order in the production schedule, relative to another manufacturing order Example:
+            {'order_ids': [1], 'place': {'before_id': 4}}.
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+
+    Returns:
+        Any | DetailedErrorResponse | ErrorResponse
+    """
+
+    return (
+        await asyncio_detailed(
+            client=client,
+            body=body,
+        )
+    ).parsed

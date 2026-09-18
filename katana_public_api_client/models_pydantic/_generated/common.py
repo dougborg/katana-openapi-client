@@ -647,6 +647,64 @@ class EntityType1(StrEnum):
     outsourced_1 = "outsourced"
 
 
+class RerankPlace(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    before_id: Annotated[
+        int,
+        Field(
+            description="ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.",
+            ge=1,
+            le=2147483647,
+        ),
+    ]
+
+
+class OrderId(RootModel[int]):
+    root: Annotated[int, Field(ge=1, le=2147483647)]
+
+
+class RerankManufacturingOrderRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    order_ids: Annotated[
+        list[OrderId],
+        Field(
+            description="Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
+            max_length=1,
+            min_length=1,
+        ),
+    ]
+    place: Annotated[
+        RerankPlace,
+        Field(
+            description="Where to place the reranked order, relative to another manufacturing order"
+        ),
+    ]
+
+
+class RerankSalesOrderRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    order_ids: Annotated[
+        list[OrderId],
+        Field(
+            description="Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
+            max_length=1,
+            min_length=1,
+        ),
+    ]
+    place: Annotated[
+        RerankPlace,
+        Field(
+            description="Where to place the reranked order, relative to another sales order"
+        ),
+    ]
+
+
 class CreateTaxRateRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",

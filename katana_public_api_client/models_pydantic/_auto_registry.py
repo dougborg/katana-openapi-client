@@ -494,6 +494,13 @@ from katana_public_api_client.models.regular_purchase_order import (
 from katana_public_api_client.models.required_validation_error import (
     RequiredValidationError as AttrsRequiredValidationError,
 )
+from katana_public_api_client.models.rerank_manufacturing_order_request import (
+    RerankManufacturingOrderRequest as AttrsRerankManufacturingOrderRequest,
+)
+from katana_public_api_client.models.rerank_place import RerankPlace as AttrsRerankPlace
+from katana_public_api_client.models.rerank_sales_order_request import (
+    RerankSalesOrderRequest as AttrsRerankSalesOrderRequest,
+)
 from katana_public_api_client.models.returnable_item import (
     ReturnableItem as AttrsReturnableItem,
 )
@@ -873,6 +880,9 @@ from ._generated.common import (
     ProductOperationRerankRequest as PydanticProductOperationRerankRequest,
     ProductOperationRow as PydanticProductOperationRow,
     ProductOperationRowListResponse as PydanticProductOperationRowListResponse,
+    RerankManufacturingOrderRequest as PydanticRerankManufacturingOrderRequest,
+    RerankPlace as PydanticRerankPlace,
+    RerankSalesOrderRequest as PydanticRerankSalesOrderRequest,
     SearchComparator as PydanticSearchComparator,
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
@@ -1411,6 +1421,11 @@ def register_all_models() -> None:
     register(AttrsRecipeListResponse, PydanticRecipeListResponse)
     register(AttrsRegularPurchaseOrder, PydanticRegularPurchaseOrder)
     register(AttrsRequiredValidationError, PydanticRequiredValidationError)
+    register(
+        AttrsRerankManufacturingOrderRequest, PydanticRerankManufacturingOrderRequest
+    )
+    register(AttrsRerankPlace, PydanticRerankPlace)
+    register(AttrsRerankSalesOrderRequest, PydanticRerankSalesOrderRequest)
     register(AttrsReturnableItem, PydanticReturnableItem)
     register(AttrsSalesOrder, PydanticSalesOrder)
     register(AttrsSalesOrderAccountingMetadata, PydanticSalesOrderAccountingMetadata)
