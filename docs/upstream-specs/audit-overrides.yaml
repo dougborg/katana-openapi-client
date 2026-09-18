@@ -711,69 +711,6 @@ overrides:
   # serial_number_id). The field set varies per endpoint via upstream's
   # Omit<> annotations, so this needs a base component plus narrowed
   # variants rather than one shared $ref.
-  - endpoint: "POST /manufacturing_orders"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
-  - endpoint: "PATCH /manufacturing_orders/{id}"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
-  - endpoint: "POST /manufacturing_order_recipe_rows"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
-  - endpoint: "PATCH /manufacturing_order_recipe_rows/{id}"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
-  - endpoint: "POST /manufacturing_order_productions"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
-  - endpoint: "PATCH /manufacturing_order_productions/{id}"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
-  - endpoint: "PATCH /manufacturing_order_production_ingredients/{id}"
-    kind: only_live
-    field: traceability
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1031"
-    reason: >-
-      Live gateway accepts a `traceability` array here; local request DTO
-      omits it, so batch/bin/serial traceability can't be supplied.
-
   # --- Deferred: endpoints upstream publishes and we don't model (#1032) ---
   # `only_live_endpoint` defers one known new endpoint each. Anything NOT
   # listed here still fails the gate, so upstream growth is still caught.

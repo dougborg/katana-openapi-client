@@ -351,6 +351,9 @@ from katana_public_api_client.models.make_to_order_manufacturing_order_request i
 from katana_public_api_client.models.manufacturing_order import (
     ManufacturingOrder as AttrsManufacturingOrder,
 )
+from katana_public_api_client.models.manufacturing_order_ingredient_traceability_request import (
+    ManufacturingOrderIngredientTraceabilityRequest as AttrsManufacturingOrderIngredientTraceabilityRequest,
+)
 from katana_public_api_client.models.manufacturing_order_list_response import (
     ManufacturingOrderListResponse as AttrsManufacturingOrderListResponse,
 )
@@ -389,6 +392,9 @@ from katana_public_api_client.models.manufacturing_order_search_filter import (
 )
 from katana_public_api_client.models.manufacturing_order_search_request import (
     ManufacturingOrderSearchRequest as AttrsManufacturingOrderSearchRequest,
+)
+from katana_public_api_client.models.manufacturing_order_traceability_request import (
+    ManufacturingOrderTraceabilityRequest as AttrsManufacturingOrderTraceabilityRequest,
 )
 from katana_public_api_client.models.material import Material as AttrsMaterial
 from katana_public_api_client.models.material_config import (
@@ -1036,6 +1042,7 @@ from ._generated.manufacturing import (
     CreateRecipesRequest as PydanticCreateRecipesRequest,
     MakeToOrderManufacturingOrderRequest as PydanticMakeToOrderManufacturingOrderRequest,
     ManufacturingOrder as PydanticManufacturingOrder,
+    ManufacturingOrderIngredientTraceabilityRequest as PydanticManufacturingOrderIngredientTraceabilityRequest,
     ManufacturingOrderListResponse as PydanticManufacturingOrderListResponse,
     ManufacturingOrderOperationProduction as PydanticManufacturingOrderOperationProduction,
     ManufacturingOrderOperationRow as PydanticManufacturingOrderOperationRow,
@@ -1049,6 +1056,7 @@ from ._generated.manufacturing import (
     ManufacturingOrderRecipeRowListResponse as PydanticManufacturingOrderRecipeRowListResponse,
     ManufacturingOrderSearchFilter as PydanticManufacturingOrderSearchFilter,
     ManufacturingOrderSearchRequest as PydanticManufacturingOrderSearchRequest,
+    ManufacturingOrderTraceabilityRequest as PydanticManufacturingOrderTraceabilityRequest,
     Recipe as PydanticRecipe,
     RecipeListResponse as PydanticRecipeListResponse,
     UnlinkManufacturingOrderRequest as PydanticUnlinkManufacturingOrderRequest,
@@ -1368,6 +1376,10 @@ def register_all_models() -> None:
     )
     register(AttrsManufacturingOrder, PydanticManufacturingOrder)
     register(
+        AttrsManufacturingOrderIngredientTraceabilityRequest,
+        PydanticManufacturingOrderIngredientTraceabilityRequest,
+    )
+    register(
         AttrsManufacturingOrderListResponse, PydanticManufacturingOrderListResponse
     )
     register(
@@ -1408,6 +1420,10 @@ def register_all_models() -> None:
     )
     register(
         AttrsManufacturingOrderSearchRequest, PydanticManufacturingOrderSearchRequest
+    )
+    register(
+        AttrsManufacturingOrderTraceabilityRequest,
+        PydanticManufacturingOrderTraceabilityRequest,
     )
     register(AttrsMaterial, PydanticMaterial)
     register(AttrsMaterialConfig, PydanticMaterialConfig)

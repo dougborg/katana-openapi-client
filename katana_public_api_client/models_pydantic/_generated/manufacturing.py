@@ -51,6 +51,52 @@ class ManufacturingOrderStatus(StrEnum):
     done = "DONE"
 
 
+class ManufacturingOrderTraceabilityRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the batch to allocate the produced quantity to, or null."
+        ),
+    ] = None
+    serial_number_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the serial number to attach to the produced quantity, or null."
+        ),
+    ] = None
+    quantity: Annotated[
+        float | None,
+        Field(
+            description="Quantity allocated to this axis. Must be non-zero when supplied."
+        ),
+    ] = None
+
+
+class ManufacturingOrderIngredientTraceabilityRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int | None,
+        Field(description="ID of the batch to draw the ingredient from, or null."),
+    ] = None
+    bin_location_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the bin location to draw the ingredient from, or null."
+        ),
+    ] = None
+    quantity: Annotated[
+        float | None,
+        Field(
+            description="Quantity allocated to this axis. Must be non-zero when supplied."
+        ),
+    ] = None
+
+
 class CreateManufacturingOrderRequest(KatanaPydanticBase):
     status: Annotated[
         Status | None,
@@ -96,6 +142,12 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
     batch_transactions: Annotated[
         list[BatchTransaction] | None,
         Field(description="Batch transactions for produced items"),
+    ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderTraceabilityRequest] | None,
+        Field(
+            description="Batch / serial allocations for the quantity this manufacturing order will produce."
+        ),
     ] = None
 
 
@@ -154,12 +206,24 @@ class UpdateManufacturingOrderRequest(KatanaPydanticBase):
             description="Serial number IDs allocated to the produced units of this manufacturing order. Required when the MO's finished-good variant is serial-tracked; the count must equal `actual_quantity`."
         ),
     ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderTraceabilityRequest] | None,
+        Field(
+            description="Updated batch / serial allocations for the produced quantity."
+        ),
+    ] = None
 
 
 class UpdateManufacturingOrderProductionRequest(KatanaPydanticBase):
     production_date: Annotated[
         AwareDatetime | None,
         Field(description="Updated date and time when the production was completed"),
+    ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderTraceabilityRequest] | None,
+        Field(
+            description="Updated batch / serial allocations for the completed quantity."
+        ),
     ] = None
 
 
@@ -180,6 +244,12 @@ class UpdateManufacturingOrderProductionIngredientRequest(KatanaPydanticBase):
         list[BatchTransaction] | None,
         Field(
             description="Batch transactions for tracking ingredient consumption from specific batches"
+        ),
+    ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderIngredientTraceabilityRequest] | None,
+        Field(
+            description="Updated batch / bin allocations for the ingredient quantity consumed."
         ),
     ] = None
 
@@ -219,6 +289,12 @@ class CreateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
         list[BatchTransaction1] | None,
         Field(description="Batch tracking transactions for this ingredient"),
     ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderIngredientTraceabilityRequest] | None,
+        Field(
+            description="Batch / bin allocations for the ingredient quantity consumed by this recipe row."
+        ),
+    ] = None
 
 
 class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
@@ -242,6 +318,12 @@ class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
     batch_transactions: Annotated[
         list[BatchTransaction2] | None,
         Field(description="Updated batch tracking transactions for this ingredient"),
+    ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderIngredientTraceabilityRequest] | None,
+        Field(
+            description="Updated batch / bin allocations for the consumed ingredient quantity."
+        ),
     ] = None
 
 
@@ -1173,6 +1255,12 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
         list[int] | None,
         Field(
             description="Pre-existing SerialNumber IDs (integers) to assign to the units produced in this production run. Required when the manufacturing order's finished-good variant is serial-tracked. Katana silently drops IDs that do not exist — callers must mint via `POST /serial_numbers` first."
+        ),
+    ] = None
+    traceability: Annotated[
+        list[ManufacturingOrderTraceabilityRequest] | None,
+        Field(
+            description="Batch / serial allocations for the quantity completed in this production run."
         ),
     ] = None
 

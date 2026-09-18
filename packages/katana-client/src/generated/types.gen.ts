@@ -1349,6 +1349,56 @@ export type BinTransferTraceabilityRequest = {
 };
 
 /**
+ * Batch / serial allocation supplied on a manufacturing order or a
+ * production — the **output** side of manufacturing. Narrows
+ * ``TraceabilityRequest`` by dropping ``bin_location_id``: you are
+ * allocating finished goods to a batch and/or serial number, not
+ * drawing them from a bin. Upstream models this as
+ * ``Omit<TraceabilityInputItemDto, 'bin_location_id'>`` and rejects
+ * the extra property, hence a distinct component rather than a reuse
+ * of the four-field base.
+ */
+export type ManufacturingOrderTraceabilityRequest = {
+  /**
+   * ID of the batch to allocate the produced quantity to, or null.
+   */
+  batch_id?: number | null;
+  /**
+   * ID of the serial number to attach to the produced quantity, or null.
+   */
+  serial_number_id?: number | null;
+  /**
+   * Quantity allocated to this axis. Must be non-zero when supplied.
+   */
+  quantity?: number;
+};
+
+/**
+ * Batch / bin allocation supplied on a manufacturing order recipe row
+ * or a production ingredient — the **input** side of manufacturing.
+ * Narrows ``TraceabilityRequest`` by dropping ``serial_number_id``:
+ * you are consuming ingredients from a batch in a bin, and serial
+ * attachment belongs to the produced output rather than the
+ * ingredient. Upstream models this as
+ * ``Omit<TraceabilityInputItemDto, 'serial_number_id'>`` and rejects
+ * the extra property.
+ */
+export type ManufacturingOrderIngredientTraceabilityRequest = {
+  /**
+   * ID of the batch to draw the ingredient from, or null.
+   */
+  batch_id?: number | null;
+  /**
+   * ID of the bin location to draw the ingredient from, or null.
+   */
+  bin_location_id?: number | null;
+  /**
+   * Quantity allocated to this axis. Must be non-zero when supplied.
+   */
+  quantity?: number;
+};
+
+/**
  * Batch / serial / bin allocation supplied on a create-or-update row to
  * trace the moved quantity to a specific batch, serial number, and/or
  * bin location. Mirrors Katana's ``TraceabilityInputItemDto`` — the
@@ -2052,6 +2102,10 @@ export type CreateManufacturingOrderRequest = {
    * Batch transactions for produced items
    */
   batch_transactions?: Array<BatchTransaction>;
+  /**
+   * Batch / serial allocations for the quantity this manufacturing order will produce.
+   */
+  traceability?: Array<ManufacturingOrderTraceabilityRequest>;
 };
 
 /**
@@ -2217,6 +2271,10 @@ export type UpdateManufacturingOrderRequest = {
    * Serial number IDs allocated to the produced units of this manufacturing order. Required when the MO's finished-good variant is serial-tracked; the count must equal `actual_quantity`.
    */
   serial_numbers?: Array<number>;
+  /**
+   * Updated batch / serial allocations for the produced quantity.
+   */
+  traceability?: Array<ManufacturingOrderTraceabilityRequest>;
 };
 
 /**
@@ -2255,6 +2313,10 @@ export type CreateManufacturingOrderProductionRequest = {
    * Pre-existing SerialNumber IDs (integers) to assign to the units produced in this production run. Required when the manufacturing order's finished-good variant is serial-tracked. Katana silently drops IDs that do not exist — callers must mint via `POST /serial_numbers` first.
    */
   serial_numbers?: Array<number>;
+  /**
+   * Batch / serial allocations for the quantity completed in this production run.
+   */
+  traceability?: Array<ManufacturingOrderTraceabilityRequest>;
 };
 
 /**
@@ -2265,6 +2327,10 @@ export type UpdateManufacturingOrderProductionRequest = {
    * Updated date and time when the production was completed
    */
   production_date?: string;
+  /**
+   * Updated batch / serial allocations for the completed quantity.
+   */
+  traceability?: Array<ManufacturingOrderTraceabilityRequest>;
 };
 
 /**
@@ -2336,6 +2402,10 @@ export type UpdateManufacturingOrderProductionIngredientRequest = {
    * Batch transactions for tracking ingredient consumption from specific batches
    */
   batch_transactions?: Array<BatchTransaction>;
+  /**
+   * Updated batch / bin allocations for the ingredient quantity consumed.
+   */
+  traceability?: Array<ManufacturingOrderIngredientTraceabilityRequest>;
 };
 
 /**
@@ -2626,6 +2696,10 @@ export type CreateManufacturingOrderRecipeRowRequest = {
      */
     quantity: number;
   }>;
+  /**
+   * Batch / bin allocations for the ingredient quantity consumed by this recipe row.
+   */
+  traceability?: Array<ManufacturingOrderIngredientTraceabilityRequest>;
 };
 
 /**
@@ -2661,6 +2735,10 @@ export type UpdateManufacturingOrderRecipeRowRequest = {
      */
     quantity?: number;
   }>;
+  /**
+   * Updated batch / bin allocations for the consumed ingredient quantity.
+   */
+  traceability?: Array<ManufacturingOrderIngredientTraceabilityRequest>;
 };
 
 /**
