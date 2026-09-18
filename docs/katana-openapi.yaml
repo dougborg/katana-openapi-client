@@ -10086,6 +10086,457 @@ components:
           type: string
           maxLength: 256
           description: Pattern match, case-insensitive (see ``like``).
+    CustomerSearchFilter:
+      description: |
+        Filter clause for ``POST /customers/search``. Only the fields listed
+        here may appear; unknown fields are rejected with 422. Custom field
+        values are addressable via ``custom_fields.<uuid>`` keys.
+      type: object
+      additionalProperties: true
+      properties:
+        and:
+          type: array
+          description: Logical AND - every nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        or:
+          type: array
+          description: Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        category:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Customer category for segmentation and reporting"
+        comment:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Internal notes and comments about the customer"
+        company:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Company name for business customers"
+        created_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the record was created."
+        currency:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Default currency code for all transactions with this customer"
+        default_billing_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ID of the default billing address for this customer"
+        default_shipping_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ID of the default shipping address for this customer"
+        email:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Primary email address for communication and order notifications"
+        first_name:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Customer's first name for individual contacts"
+        id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Record id."
+        last_name:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Customer's last name for individual contacts"
+        name:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Customer display name, either individual name or company name"
+        phone:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Primary phone number for customer contact"
+        reference_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "External reference ID for integration with other systems"
+        updated_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the record was last updated."
+
+    VariantSearchFilter:
+      description: |
+        Filter clause for ``POST /variants/search``. Only the fields listed
+        here may appear; unknown fields are rejected with 422. Custom field
+        values are addressable via ``custom_fields.<uuid>`` keys.
+      type: object
+      additionalProperties: true
+      properties:
+        and:
+          type: array
+          description: Logical AND - every nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        or:
+          type: array
+          description: Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        abc_classification:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ABC inventory classification."
+        created_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ISO 8601 timestamp the variant was created."
+        id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Variant id."
+        internal_barcode:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Internal barcode."
+        item_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Id of the product, material, or service this variant belongs to."
+        item_type:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Kind of item the variant belongs to."
+        lead_time:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Lead time in days."
+        minimum_order_quantity:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Minimum order quantity."
+        purchase_price:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Purchase price."
+        registered_barcode:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Registered (GTIN/EAN/UPC) barcode."
+        sales_price:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Sales price."
+        sku:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Stock keeping unit."
+        supplier_item_codes:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Supplier item code."
+        updated_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ISO 8601 timestamp the variant was last updated."
+
+    ManufacturingOrderSearchFilter:
+      description: |
+        Filter clause for ``POST /manufacturing_orders/search``. Only the fields listed
+        here may appear; unknown fields are rejected with 422. Custom field
+        values are addressable via ``custom_fields.<uuid>`` keys.
+      type: object
+      additionalProperties: true
+      properties:
+        and:
+          type: array
+          description: Logical AND - every nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        or:
+          type: array
+          description: Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        actual_quantity:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Actual quantity produced, null if production not completed"
+        completed_quantity:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Total quantity completed so far (including partial completions)"
+        created_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the record was created."
+        done_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the manufacturing order was completed"
+        id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Record id."
+        includes_partial_completions:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Whether this order has been partially completed"
+        ingredient_availability:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Status of material ingredient availability for production"
+        is_linked_to_sales_order:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Whether this manufacturing order is linked to a sales order"
+        location_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ID of the factory location where production takes place"
+        order_created_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Date and time when the manufacturing order was created"
+        order_no:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Unique manufacturing order number for tracking and reference"
+        planned_quantity:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Originally planned quantity to produce"
+        production_deadline_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Target deadline for completing production (null when none is set)"
+        remaining_quantity:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Remaining quantity to produce (planned - completed)"
+        status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Current production status of the manufacturing order"
+        total_cost:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Total cost of the manufacturing order including all materials and operations"
+        updated_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the record was last updated."
+        variant_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ID of the product variant being manufactured"
+
+    PurchaseOrderSearchFilter:
+      description: |
+        Filter clause for ``POST /purchase_orders/search``. Only the fields listed
+        here may appear; unknown fields are rejected with 422. Custom field
+        values are addressable via ``custom_fields.<uuid>`` keys.
+      type: object
+      additionalProperties: true
+      properties:
+        and:
+          type: array
+          description: Logical AND - every nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        or:
+          type: array
+          description: Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        billing_status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks Online. \"PARTIALLY_BILLED\" does not apply..."
+        created_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the record was created."
+        currency:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Currency of the purchase order. Filled with supplier currency by default."
+        default_group_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Default grouping identifier for organizational purposes"
+        entity_type:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Either \"regular\" or \"outsourced\", depending on the purchase order type."
+        expected_arrival_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "The timestamp when the items are expected to arrive (in full) in your warehouse."
+        id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Record id."
+        last_document_status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Status of the last e-mail sent from (O)PO card."
+        location_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "The ID of the location to which items are received."
+        order_created_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "The timestamp of creating the document."
+        order_no:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "A unique, identifying string used in the UI and controlled by the user."
+        status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Status of the order."
+        supplier_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "ID of the supplier who this order belongs to."
+        tracking_location_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Regular orders do not have tracking locations"
+        updated_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: "Timestamp when the record was last updated."
+
+    CustomerSearchRequest:
+      description: |
+        Structured search body for ``POST /customers/search``. Returns the
+        same paginated ``{"data": [...]}`` shape as the corresponding list
+        endpoint, plus an ``X-Pagination`` header.
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          $ref: "#/components/schemas/CustomerSearchFilter"
+        order:
+          description: |
+            Sort directive(s). Each entry is ``<field> ASC|DESC``
+            (direction defaults to ASC). Only filterable fields may be
+            used; ``custom_fields.<uuid>`` paths are orderable.
+          anyOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        limit:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: |
+            Page size; maximum 200. Omit to let the server apply its
+            default of 50.
+        page:
+          type: integer
+          minimum: 1
+          description: |
+            1-based page number. Omit to let the server default to 1.
+      example:
+        filter:
+          and:
+            - category:
+              eq: "Wholesale"
+        order:
+          - name ASC
+        limit: 50
+        page: 1
+
+    VariantSearchRequest:
+      description: |
+        Structured search body for ``POST /variants/search``. Returns the
+        same paginated ``{"data": [...]}`` shape as the corresponding list
+        endpoint, plus an ``X-Pagination`` header.
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          $ref: "#/components/schemas/VariantSearchFilter"
+        order:
+          description: |
+            Sort directive(s). Each entry is ``<field> ASC|DESC``
+            (direction defaults to ASC). Only filterable fields may be
+            used; ``custom_fields.<uuid>`` paths are orderable.
+          anyOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        limit:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: |
+            Page size; maximum 200. Omit to let the server apply its
+            default of 50.
+        page:
+          type: integer
+          minimum: 1
+          description: |
+            1-based page number. Omit to let the server default to 1.
+        include:
+          type: array
+          description: |
+            Related data to include, and result-set widening. ``item``
+            enriches each variant with its parent item under ``item``;
+            ``archived`` and ``deleted`` include otherwise-excluded
+            variants in the results.
+          items:
+            type: string
+            enum:
+              - item
+              - archived
+              - deleted
+      example:
+        filter:
+          and:
+            - item_type:
+              eq: "product"
+        order:
+          - sku ASC
+        limit: 50
+        page: 1
+
+    ManufacturingOrderSearchRequest:
+      description: |
+        Structured search body for ``POST /manufacturing_orders/search``. Returns the
+        same paginated ``{"data": [...]}`` shape as the corresponding list
+        endpoint, plus an ``X-Pagination`` header.
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          $ref: "#/components/schemas/ManufacturingOrderSearchFilter"
+        order:
+          description: |
+            Sort directive(s). Each entry is ``<field> ASC|DESC``
+            (direction defaults to ASC). Only filterable fields may be
+            used; ``custom_fields.<uuid>`` paths are orderable.
+          anyOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        limit:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: |
+            Page size; maximum 200. Omit to let the server apply its
+            default of 50.
+        page:
+          type: integer
+          minimum: 1
+          description: |
+            1-based page number. Omit to let the server default to 1.
+      example:
+        filter:
+          and:
+            - status:
+              inq: ["NOT_STARTED", "IN_PROGRESS"]
+        order:
+          - order_no ASC
+        limit: 50
+        page: 1
+
+    PurchaseOrderSearchRequest:
+      description: |
+        Structured search body for ``POST /purchase_orders/search``. Returns the
+        same paginated ``{"data": [...]}`` shape as the corresponding list
+        endpoint, plus an ``X-Pagination`` header.
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          $ref: "#/components/schemas/PurchaseOrderSearchFilter"
+        order:
+          description: |
+            Sort directive(s). Each entry is ``<field> ASC|DESC``
+            (direction defaults to ASC). Only filterable fields may be
+            used; ``custom_fields.<uuid>`` paths are orderable.
+          anyOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        limit:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: |
+            Page size; maximum 200. Omit to let the server apply its
+            default of 50.
+        page:
+          type: integer
+          minimum: 1
+          description: |
+            1-based page number. Omit to let the server default to 1.
+      example:
+        filter:
+          and:
+            - status:
+              inq: ["NOT_RECEIVED"]
+        order:
+          - order_no ASC
+        limit: 50
+        page: 1
+
     SearchPredicate:
       description: |
         A single ``where`` predicate: either a bare ``SearchScalarValue``
@@ -10104,27 +10555,6 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/SalesOrderSearchFilter"
-      example:
-        filter:
-          where:
-            and:
-              - status:
-                  inq: [NOT_SHIPPED, PACKED]
-              - created_at:
-                  gte: "2026-01-01T00:00:00.000Z"
-              - custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef: 2
-          order:
-            - created_at DESC
-            - id DESC
-          limit: 50
-          page: 1
-    SalesOrderSearchFilter:
-      description: Filter envelope for ``POST /sales_orders/search``.
-      type: object
-      additionalProperties: false
-      properties:
-        where:
-          $ref: "#/components/schemas/SalesOrderSearchWhere"
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -10149,9 +10579,22 @@ components:
           minimum: 1
           description: |
             1-based page number. Omit to let the server default to 1.
-    SalesOrderSearchWhere:
+      example:
+        filter:
+          and:
+            - status:
+                inq: [NOT_SHIPPED, PACKED]
+            - created_at:
+                gte: "2026-01-01T00:00:00.000Z"
+            - custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef: 2
+        order:
+          - created_at DESC
+          - id DESC
+        limit: 50
+        page: 1
+    SalesOrderSearchFilter:
       description: |
-        ``where`` clause for ``POST /sales_orders/search``. Only the fields
+        ``filter`` clause for ``POST /sales_orders/search``. Only the fields
         listed here may appear; unknown fields are rejected with 422.
         Custom field values are addressable via additional
         ``custom_fields.<uuid>`` keys (snake_case, matching the
@@ -10261,27 +10704,6 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/SalesOrderRowSearchFilter"
-      example:
-        filter:
-          where:
-            and:
-              - sales_order_id:
-                  inq: [12345, 12346, 12347]
-              - quantity:
-                  gt: 0
-              - product_availability: IN_STOCK
-          order:
-            - delivery_date ASC
-            - id ASC
-          limit: 100
-          page: 1
-    SalesOrderRowSearchFilter:
-      description: Filter envelope for ``POST /sales_order_rows/search``.
-      type: object
-      additionalProperties: false
-      properties:
-        where:
-          $ref: "#/components/schemas/SalesOrderRowSearchWhere"
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -10306,9 +10728,22 @@ components:
           minimum: 1
           description: |
             1-based page number. Omit to let the server default to 1.
-    SalesOrderRowSearchWhere:
+      example:
+        filter:
+          and:
+            - sales_order_id:
+                inq: [12345, 12346, 12347]
+            - quantity:
+                gt: 0
+            - product_availability: IN_STOCK
+        order:
+          - delivery_date ASC
+          - id ASC
+        limit: 100
+        page: 1
+    SalesOrderRowSearchFilter:
       description: |
-        ``where`` clause for ``POST /sales_order_rows/search``. Only the
+        ``filter`` clause for ``POST /sales_order_rows/search``. Only the
         fields listed here may appear; unknown fields are rejected with
         422. Custom field values are addressable via additional
         ``custom_fields.<uuid>`` keys (snake_case), where ``<uuid>`` is the
@@ -15715,6 +16150,52 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /manufacturing_orders/search:
+    post:
+      summary: Search manufacturing orders
+      tags:
+        - Manufacturing order
+      description: |
+        Searches manufacturing orders using a structured filter body with nested
+        logical operators (``and`` / ``or``) and per-field comparators.
+        Only the fields in the filter schema may appear; unknown fields
+        return 422. Custom field values are addressable via
+        ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+        ``GET /manufacturing_orders`` — a paginated list of records.
+      operationId: searchManufacturingOrders
+      requestBody:
+        description: Structured search body. See the schema for the field allowlist, operators, and caps.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManufacturingOrderSearchRequest"
+      responses:
+        "200":
+          description: Matching manufacturing orders
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManufacturingOrderListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /manufacturing_orders:
     post:
       summary: Create a manufacturing order
@@ -17917,6 +18398,52 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /purchase_orders/search:
+    post:
+      summary: Search purchase orders
+      tags:
+        - Purchase order
+      description: |
+        Searches purchase orders using a structured filter body with nested
+        logical operators (``and`` / ``or``) and per-field comparators.
+        Only the fields in the filter schema may appear; unknown fields
+        return 422. Custom field values are addressable via
+        ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+        ``GET /purchase_orders`` — a paginated list of records.
+      operationId: searchPurchaseOrders
+      requestBody:
+        description: Structured search body. See the schema for the field allowlist, operators, and caps.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseOrderSearchRequest"
+      responses:
+        "200":
+          description: Matching purchase orders
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseOrderListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /purchase_orders:
     post:
       summary: Create a purchase order
@@ -19340,6 +19867,52 @@ paths:
                     updated_at: "2020-10-23T10:37:05.085Z"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /variants/search:
+    post:
+      summary: Search variants
+      tags:
+        - Variant
+      description: |
+        Searches variants using a structured filter body with nested
+        logical operators (``and`` / ``or``) and per-field comparators.
+        Only the fields in the filter schema may appear; unknown fields
+        return 422. Custom field values are addressable via
+        ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+        ``GET /variants`` — a paginated list of records.
+      operationId: searchVariants
+      requestBody:
+        description: Structured search body. See the schema for the field allowlist, operators, and caps.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VariantSearchRequest"
+      responses:
+        "200":
+          description: Matching variants
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariantListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -21164,6 +21737,52 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /customers/search:
+    post:
+      summary: Search customers
+      tags:
+        - Customer
+      description: |
+        Searches customers using a structured filter body with nested
+        logical operators (``and`` / ``or``) and per-field comparators.
+        Only the fields in the filter schema may appear; unknown fields
+        return 422. Custom field values are addressable via
+        ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+        ``GET /customers`` — a paginated list of records.
+      operationId: searchCustomers
+      requestBody:
+        description: Structured search body. See the schema for the field allowlist, operators, and caps.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerSearchRequest"
+      responses:
+        "200":
+          description: Matching customers
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":

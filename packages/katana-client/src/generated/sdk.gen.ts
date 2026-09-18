@@ -546,12 +546,24 @@ import type {
   RerankSalesOrderData,
   RerankSalesOrderErrors,
   RerankSalesOrderResponses,
+  SearchCustomersData,
+  SearchCustomersErrors,
+  SearchCustomersResponses,
+  SearchManufacturingOrdersData,
+  SearchManufacturingOrdersErrors,
+  SearchManufacturingOrdersResponses,
+  SearchPurchaseOrdersData,
+  SearchPurchaseOrdersErrors,
+  SearchPurchaseOrdersResponses,
   SearchSalesOrderRowsData,
   SearchSalesOrderRowsErrors,
   SearchSalesOrderRowsResponses,
   SearchSalesOrdersData,
   SearchSalesOrdersErrors,
   SearchSalesOrdersResponses,
+  SearchVariantsData,
+  SearchVariantsErrors,
+  SearchVariantsResponses,
   UnlinkManufacturingOrderData,
   UnlinkManufacturingOrderErrors,
   UnlinkManufacturingOrderResponses,
@@ -1203,6 +1215,38 @@ export const getLocation = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/locations/{id}',
     ...options,
+  });
+
+/**
+ * Search manufacturing orders
+ *
+ * Searches manufacturing orders using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /manufacturing_orders`` — a paginated list of records.
+ *
+ */
+export const searchManufacturingOrders = <ThrowOnError extends boolean = false>(
+  options: Options<SearchManufacturingOrdersData, ThrowOnError>
+): RequestResult<
+  SearchManufacturingOrdersResponses,
+  SearchManufacturingOrdersErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    SearchManufacturingOrdersResponses,
+    SearchManufacturingOrdersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/manufacturing_orders/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**
@@ -1986,6 +2030,34 @@ export const updateProduct = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Search purchase orders
+ *
+ * Searches purchase orders using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /purchase_orders`` — a paginated list of records.
+ *
+ */
+export const searchPurchaseOrders = <ThrowOnError extends boolean = false>(
+  options: Options<SearchPurchaseOrdersData, ThrowOnError>
+): RequestResult<SearchPurchaseOrdersResponses, SearchPurchaseOrdersErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    SearchPurchaseOrdersResponses,
+    SearchPurchaseOrdersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/purchase_orders/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * List all purchase orders
  *
  * Returns a list of purchase orders you've previously created. The purchase orders are returned in sorted
@@ -2511,6 +2583,30 @@ export const createTaxRate = <ThrowOnError extends boolean = false>(
   (options.client ?? client).post<CreateTaxRateResponses, CreateTaxRateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/tax_rates',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Search variants
+ *
+ * Searches variants using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /variants`` — a paginated list of records.
+ *
+ */
+export const searchVariants = <ThrowOnError extends boolean = false>(
+  options: Options<SearchVariantsData, ThrowOnError>
+): RequestResult<SearchVariantsResponses, SearchVariantsErrors, ThrowOnError> =>
+  (options.client ?? client).post<SearchVariantsResponses, SearchVariantsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/variants/search',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -3327,6 +3423,30 @@ export const getSalesOrderReturnableItems = <ThrowOnError extends boolean = fals
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/sales_orders/{id}/returnable_items',
     ...options,
+  });
+
+/**
+ * Search customers
+ *
+ * Searches customers using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /customers`` — a paginated list of records.
+ *
+ */
+export const searchCustomers = <ThrowOnError extends boolean = false>(
+  options: Options<SearchCustomersData, ThrowOnError>
+): RequestResult<SearchCustomersResponses, SearchCustomersErrors, ThrowOnError> =>
+  (options.client ?? client).post<SearchCustomersResponses, SearchCustomersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/customers/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

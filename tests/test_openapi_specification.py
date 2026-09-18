@@ -348,18 +348,29 @@ class TestCustomFieldsSurfaceAlignment:
         assert so.endswith("/SalesOrderSearchRequest")
         assert row.endswith("/SalesOrderRowSearchRequest")
 
-    def test_search_where_uses_snake_case_custom_fields_path(
+    def test_search_filter_uses_snake_case_custom_fields_path(
         self, schemas: dict[str, Any]
     ):
         """Pin the live-verified snake_case ``custom_fields.<uuid>`` search path.
 
-        Verified live (2026-06-02): the API accepts ``custom_fields.<uuid>`` in
-        ``where`` and rejects camelCase ``customFields.<uuid>`` as an unknown
-        field. The where schemas allow the dynamic UUID keys via
+        Verified live (2026-06-02): the API accepts ``custom_fields.<uuid>``
+        inside the filter clause and rejects camelCase ``customFields.<uuid>``
+        as an unknown field. The filter schemas allow the dynamic UUID keys via
         ``additionalProperties: true`` and must NOT declare a ``customFields``
         property (which would reintroduce the pre-GA camelCase footgun).
+
+        Covers all six search endpoints. (These schemas were named
+        ``...SearchWhere`` until the request envelope was corrected in #1040 —
+        the wire calls this clause ``filter``, with no ``where`` level.)
         """
-        for name in ("SalesOrderSearchWhere", "SalesOrderRowSearchWhere"):
+        for name in (
+            "SalesOrderSearchFilter",
+            "SalesOrderRowSearchFilter",
+            "CustomerSearchFilter",
+            "VariantSearchFilter",
+            "ManufacturingOrderSearchFilter",
+            "PurchaseOrderSearchFilter",
+        ):
             where = schemas[name]
             assert where["additionalProperties"] is True, (
                 f"{name} must allow custom_fields.<uuid> dynamic keys"

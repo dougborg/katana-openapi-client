@@ -1296,6 +1296,12 @@ class SearchComparator(KatanaPydanticBase):
     ] = None
 
 
+class IncludeEnum(StrEnum):
+    item = "item"
+    archived = "archived"
+    deleted = "deleted"
+
+
 class Attribute3(KatanaPydanticBase):
     key: Annotated[str | None, Field(description="Attribute name")] = None
     value: Annotated[str | None, Field(description="Attribute value")] = None
@@ -1684,6 +1690,126 @@ class ProductOperationRowListResponse(KatanaPydanticBase):
         list[ProductOperationRow] | None,
         Field(
             description="Array of product operation rows returned by this page of the list response"
+        ),
+    ] = None
+
+
+class VariantSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND - every nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR - at least one nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    abc_classification: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="ABC inventory classification."),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the variant was created.",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Variant id."),
+    ] = None
+    internal_barcode: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Internal barcode."),
+    ] = None
+    item_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Id of the product, material, or service this variant belongs to.",
+        ),
+    ] = None
+    item_type: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Kind of item the variant belongs to.",
+        ),
+    ] = None
+    lead_time: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Lead time in days."),
+    ] = None
+    minimum_order_quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Minimum order quantity."),
+    ] = None
+    purchase_price: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Purchase price."),
+    ] = None
+    registered_barcode: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Registered (GTIN/EAN/UPC) barcode.", union_mode="left_to_right"
+        ),
+    ] = None
+    sales_price: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Sales price."),
+    ] = None
+    sku: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Stock keeping unit."),
+    ] = None
+    supplier_item_codes: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Supplier item code."),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the variant was last updated.",
+        ),
+    ] = None
+
+
+class VariantSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: VariantSearchFilter | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50.\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
+        ),
+    ] = None
+    include: Annotated[
+        list[IncludeEnum] | None,
+        Field(
+            description="Related data to include, and result-set widening. ``item``\nenriches each variant with its parent item under ``item``;\n``archived`` and ``deleted`` include otherwise-excluded\nvariants in the results.\n"
         ),
     ] = None
 

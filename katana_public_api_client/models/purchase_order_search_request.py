@@ -8,45 +8,36 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.sales_order_search_filter import SalesOrderSearchFilter
+    from ..models.purchase_order_search_filter import PurchaseOrderSearchFilter
 
 
-T = TypeVar("T", bound="SalesOrderSearchRequest")
+T = TypeVar("T", bound="PurchaseOrderSearchRequest")
 
 
 @_attrs_define
-class SalesOrderSearchRequest:
-    """Structured filter body for ``POST /sales_orders/search``. Returns
-    the same paginated ``{"data": [...]}`` shape as
-    ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
-    request/response shape may evolve before GA.
+class PurchaseOrderSearchRequest:
+    """Structured search body for ``POST /purchase_orders/search``. Returns the
+    same paginated ``{"data": [...]}`` shape as the corresponding list
+    endpoint, plus an ``X-Pagination`` header.
 
         Example:
-            {'filter': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}}, {'created_at': {'gte':
-                '2026-01-01T00:00:00.000Z'}}, {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at
-                DESC', 'id DESC'], 'limit': 50, 'page': 1}
+            {'filter': {'and': [{'status': None, 'inq': ['NOT_RECEIVED']}]}, 'order': ['order_no ASC'], 'limit': 50, 'page':
+                1}
 
         Attributes:
-            filter_ (SalesOrderSearchFilter | Unset): ``filter`` clause for ``POST /sales_orders/search``. Only the fields
-                listed here may appear; unknown fields are rejected with 422.
-                Custom field values are addressable via additional
-                ``custom_fields.<uuid>`` keys (snake_case, matching the
-                request/response body), where ``<uuid>`` is the custom field
-                definition id — its value is a bare value or a ``SearchComparator``
-                like any other predicate (for ``singleSelect`` the value is the
-                integer choice ``id``). Compose with ``and`` / ``or`` (max nesting
-                depth 2).
+            filter_ (PurchaseOrderSearchFilter | Unset): Filter clause for ``POST /purchase_orders/search``. Only the fields
+                listed
+                here may appear; unknown fields are rejected with 422. Custom field
+                values are addressable via ``custom_fields.<uuid>`` keys.
             order (list[str] | str | Unset): Sort directive(s). Each entry is ``<field> ASC|DESC``
                 (direction defaults to ASC). Only filterable fields may be
                 used; ``custom_fields.<uuid>`` paths are orderable.
             limit (int | Unset): Page size; maximum 200. Omit to let the server apply its
-                default of 50 (the client omits the key when unset rather than
-                sending a default, so direct construction and round-tripped
-                ``from_dict`` payloads behave identically).
+                default of 50.
             page (int | Unset): 1-based page number. Omit to let the server default to 1.
     """
 
-    filter_: SalesOrderSearchFilter | Unset = UNSET
+    filter_: PurchaseOrderSearchFilter | Unset = UNSET
     order: list[str] | str | Unset = UNSET
     limit: int | Unset = UNSET
     page: int | Unset = UNSET
@@ -85,17 +76,17 @@ class SalesOrderSearchRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_search_filter import (
-            SalesOrderSearchFilter,
+        from ..models.purchase_order_search_filter import (
+            PurchaseOrderSearchFilter,
         )
 
         d = dict(src_dict)
         _filter_ = d.pop("filter", UNSET)
-        filter_: SalesOrderSearchFilter | Unset
+        filter_: PurchaseOrderSearchFilter | Unset
         if isinstance(_filter_, Unset):
             filter_ = UNSET
         else:
-            filter_ = SalesOrderSearchFilter.from_dict(_filter_)
+            filter_ = PurchaseOrderSearchFilter.from_dict(_filter_)
 
         def _parse_order(data: object) -> list[str] | str | Unset:
             if isinstance(data, Unset):
@@ -116,11 +107,11 @@ class SalesOrderSearchRequest:
 
         page = d.pop("page", UNSET)
 
-        sales_order_search_request = cls(
+        purchase_order_search_request = cls(
             filter_=filter_,
             order=order,
             limit=limit,
             page=page,
         )
 
-        return sales_order_search_request
+        return purchase_order_search_request
