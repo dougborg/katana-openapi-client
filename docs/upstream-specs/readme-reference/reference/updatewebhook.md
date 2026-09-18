@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a webhook
 
@@ -80,7 +82,9 @@ Updates the specified webhook by setting the values of the parameters passed.
                         "sales_order.created",
                         "sales_order.packed",
                         "sales_order.delivered",
+                        "sales_order.invoiced",
                         "sales_order.updated",
+                        "sales_order.approved",
                         "sales_order.deleted",
                         "sales_order.availability_updated",
                         "purchase_order.created",
@@ -88,6 +92,8 @@ Updates the specified webhook by setting the values of the parameters passed.
                         "purchase_order.deleted",
                         "purchase_order.partially_received",
                         "purchase_order.received",
+                        "purchase_order.billed",
+                        "purchase_order.approved",
                         "purchase_order_row.created",
                         "purchase_order_row.received",
                         "purchase_order_row.updated",
@@ -96,6 +102,8 @@ Updates the specified webhook by setting the values of the parameters passed.
                         "outsourced_purchase_order.updated",
                         "outsourced_purchase_order.deleted",
                         "outsourced_purchase_order.received",
+                        "outsourced_purchase_order.billed",
+                        "outsourced_purchase_order.approved",
                         "outsourced_purchase_order_row.created",
                         "outsourced_purchase_order_row.updated",
                         "outsourced_purchase_order_row.deleted",

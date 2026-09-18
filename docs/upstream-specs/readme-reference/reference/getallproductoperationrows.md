@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all product operations
 
@@ -231,6 +233,10 @@ Returns a list of product operation rows you’ve previously created.
                       "planned_time_parameter": 7200,
                       "rank": 1000,
                       "group_boundary": 1000,
+                      "custom_fields": {
+                        "37460d24-ea57-416d-888e-bea7c0505642": "CNC mill",
+                        "6afe78d2-2b95-4d71-92f5-1bc2be852afe": 5
+                      },
                       "created_at": "2021-04-05T12:00:00.000Z",
                       "updated_at": "2021-04-05T12:00:00.000Z"
                     }

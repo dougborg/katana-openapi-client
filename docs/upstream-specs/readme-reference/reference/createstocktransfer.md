@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a stock transfer
 
@@ -52,7 +54,6 @@ Creates a stock transfer object.
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "stock_transfer_number",
                   "source_location_id",
                   "target_location_id",
                   "stock_transfer_rows"
@@ -105,6 +106,8 @@ Creates a stock transfer object.
                         "batch_transactions": {
                           "type": "array",
                           "minItems": 1,
+                          "deprecated": true,
+                          "description": "Batch-level breakdown of the stock transfer row quantity. The sum of batch transaction quantities must not exceed the row quantity. **Deprecated** — will be phased out; prefer `traceability`. When both `traceability` and `batch_transactions` are sent, `traceability` wins.",
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
@@ -115,11 +118,49 @@ Creates a stock transfer object.
                             "properties": {
                               "batch_id": {
                                 "type": "integer",
-                                "maximum": 2147483647
+                                "nullable": true,
+                                "maximum": 2147483647,
+                                "description": "ID of the batch to transfer stock for. Use `null` to transfer unbatched (untraced) stock."
                               },
                               "quantity": {
                                 "type": "number",
                                 "maximum": 100000000000000000
+                              }
+                            }
+                          }
+                        },
+                        "traceability": {
+                          "type": "array",
+                          "description": "Unified allocation breakdown of the row quantity (batch / serial / bin). Preferred over `batch_transactions`; when both are sent, `traceability` wins.",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "One allocation entry. A row's `traceability` is an array; entries together cover the row's quantity.\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.\n- **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.\n\nA variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.",
+                            "properties": {
+                              "batch_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Batch id. Mutually exclusive with `serial_number_id`."
+                              },
+                              "serial_number_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Serial number id. Mutually exclusive with `batch_id`."
+                              },
+                              "bin_location_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Bin location id the allocation is drawn from / moved to. Optional."
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "description": "Decimal string quantity for this allocation entry. Optional for most domains; stock adjustments require it (see `stockAdjustmentTraceabilityInputItem`). Serial entries are implicit `'1'` (the server stores and returns `'1'`), but send it explicitly when known."
                               }
                             }
                           }
@@ -128,6 +169,31 @@ Creates a stock transfer object.
                     }
                   }
                 }
+              },
+              "example": {
+                "stock_transfer_number": "ST-1",
+                "source_location_id": 1,
+                "target_location_id": 2,
+                "stock_transfer_rows": [
+                  {
+                    "variant_id": 1,
+                    "quantity": "100",
+                    "traceability": [
+                      {
+                        "batch_id": 1,
+                        "serial_number_id": null,
+                        "bin_location_id": 5,
+                        "quantity": "50"
+                      },
+                      {
+                        "batch_id": null,
+                        "serial_number_id": null,
+                        "bin_location_id": null,
+                        "quantity": "50"
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -176,6 +242,14 @@ Creates a stock transfer object.
                         {
                           "batch_id": 1,
                           "quantity": 3
+                        }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 5,
+                          "quantity": "3"
                         }
                       ],
                       "deleted_at": null

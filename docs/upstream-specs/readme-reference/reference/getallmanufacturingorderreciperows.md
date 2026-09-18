@@ -1,11 +1,12 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all manufacturing order recipe rows
 
-Returns a list of manufacturing order recipe rows you’ve previously created. The manufacturing order
-  recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing first.
+Returns a list of manufacturing order recipe rows, sorted with the most recent first.
 
 # OpenAPI definition
 
@@ -42,7 +43,7 @@ Returns a list of manufacturing order recipe rows you’ve previously created. T
         "tags": [
           "Manufacturing order recipe"
         ],
-        "description": "Returns a list of manufacturing order recipe rows you’ve previously created. The manufacturing order\n  recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing first.",
+        "description": "Returns a list of manufacturing order recipe rows, sorted with the most recent first.",
         "operationId": "getAllManufacturingOrderRecipeRows",
         "parameters": [
           {
@@ -60,7 +61,7 @@ Returns a list of manufacturing order recipe rows you’ve previously created. T
           {
             "name": "manufacturing_order_id",
             "required": false,
-            "description": "Filters manufacturing orders recipe rows by manufacturing order id.",
+            "description": "Filters recipe rows by manufacturing order id.",
             "schema": {
               "type": "number"
             },
@@ -69,7 +70,7 @@ Returns a list of manufacturing order recipe rows you’ve previously created. T
           {
             "name": "variant_id",
             "required": false,
-            "description": "Filters manufacturing orders recipe rows by variant id.",
+            "description": "Filters recipe rows by variant id.",
             "schema": {
               "type": "number"
             },
@@ -78,7 +79,7 @@ Returns a list of manufacturing order recipe rows you’ve previously created. T
           {
             "name": "ingredient_availability",
             "required": false,
-            "description": "Filters manufacturing orders by an ingredient availability.",
+            "description": "Filters recipe rows by ingredient availability.",
             "schema": {
               "enum": [
                 "PROCESSED",
@@ -225,6 +226,13 @@ Returns a list of manufacturing order recipe rows you’ve previously created. T
                         {
                           "batch_id": 12,
                           "quantity": 4.6
+                        }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "bin_location_id": null,
+                          "quantity": "2"
                         }
                       ],
                       "cost": 50.4,

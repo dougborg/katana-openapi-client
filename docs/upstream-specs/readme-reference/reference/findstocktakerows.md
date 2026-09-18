@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all stocktake rows
 
@@ -84,6 +86,15 @@ Returns a list of stocktake rows you’ve previously created.
             "description": "Filters stocktake rows by batch id",
             "schema": {
               "type": "number"
+            },
+            "in": "query"
+          },
+          {
+            "name": "bin_location_id",
+            "required": false,
+            "description": "Filters stocktake rows by bin location id",
+            "schema": {
+              "type": "integer"
             },
             "in": "query"
           },
@@ -217,6 +228,7 @@ Returns a list of stocktake rows you’ve previously created.
                       "id": 14,
                       "variant_id": 21002,
                       "batch_id": null,
+                      "bin_location_id": null,
                       "stocktake_id": 2,
                       "notes": null,
                       "in_stock_quantity": 10,

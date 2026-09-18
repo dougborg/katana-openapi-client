@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a stocktake row
 
@@ -73,6 +75,12 @@ Updates the specified stocktake row by setting the values of the parameters pass
                     "maximum": 2147483647,
                     "nullable": true
                   },
+                  "bin_location_id": {
+                    "type": "integer",
+                    "maximum": 2147483647,
+                    "nullable": true,
+                    "description": "Bin location the counted row applies to. Optional."
+                  },
                   "notes": {
                     "type": "string",
                     "nullable": true,
@@ -117,6 +125,7 @@ Updates the specified stocktake row by setting the values of the parameters pass
                   "id": 90,
                   "variant_id": 21002,
                   "batch_id": null,
+                  "bin_location_id": null,
                   "stocktake_id": 2,
                   "notes": "test 2",
                   "in_stock_quantity": null,

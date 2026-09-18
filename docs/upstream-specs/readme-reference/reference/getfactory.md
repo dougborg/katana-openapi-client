@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Retrieve the current factory
 
@@ -82,6 +84,7 @@ Returns the general information about the factory.
                   "base_currency_code": "USD",
                   "default_so_delivery_time": "2021-10-13T15:31:48.490Z",
                   "default_po_lead_time": "2021-10-13T15:31:48.490Z",
+                  "default_mo_lead_time": "2021-10-13T15:31:48.490Z",
                   "default_manufacturing_location_id": 1,
                   "default_purchases_location_id": 1,
                   "default_sales_location_id": 1,

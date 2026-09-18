@@ -1,11 +1,12 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all manufacturing orders
 
-Returns a list of manufacturing orders you’ve previously created.
-  The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing first.
+Returns a list of manufacturing orders, sorted with the most recent first.
 
 # OpenAPI definition
 
@@ -42,7 +43,7 @@ Returns a list of manufacturing orders you’ve previously created.
         "tags": [
           "Manufacturing order"
         ],
-        "description": "Returns a list of manufacturing orders you’ve previously created.\n  The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing first.",
+        "description": "Returns a list of manufacturing orders, sorted with the most recent first.",
         "operationId": "getAllManufacturingOrders",
         "parameters": [
           {
@@ -92,7 +93,7 @@ Returns a list of manufacturing orders you’ve previously created.
           {
             "name": "is_linked_to_sales_order",
             "required": false,
-            "description": "Filters based on whether a manufacturing order is linked to a sales order or not.",
+            "description": "Filters by whether the manufacturing order is linked to a sales order.",
             "schema": {
               "type": "boolean"
             },
@@ -245,11 +246,19 @@ Returns a list of manufacturing orders you’ve previously created.
                       "serial_numbers": [
                         {
                           "id": 1,
-                          "transaction_id": "eb4da756-0842-4495-9118-f8135f681234",
+                          "transaction_id": null,
                           "serial_number": "SN1",
-                          "resource_type": "Production",
-                          "resource_id": 2,
-                          "transaction_date": "2023-02-10T10:06:14.435Z"
+                          "resource_type": "ManufacturingOrder",
+                          "resource_id": 21400,
+                          "transaction_date": "2023-02-10T10:06:14.435Z",
+                          "quantity_change": 1
+                        }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "quantity": "2"
                         }
                       ]
                     }
