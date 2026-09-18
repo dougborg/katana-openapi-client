@@ -49,14 +49,14 @@ ______________________________________________________________________
 ```python
 from katana_mcp.server import get_services
 
+
 @mcp.tool()
 async def check_inventory(sku: str) -> str:
     """Check inventory for a product SKU."""
     services = get_services()
     # Use services.katana_client for API calls
     response = await get_variant_by_sku.asyncio_detailed(
-        client=services.katana_client,
-        sku=sku
+        client=services.katana_client, sku=sku
     )
     return f"Stock level: {response.parsed.stock_on_hand}"
 ```
@@ -97,6 +97,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @mcp.tool()
 async def process_data(data: str) -> str:
     """Process data."""
@@ -135,9 +136,11 @@ async def process_data(data: str) -> str:
 ```python
 from pydantic import BaseModel, Field
 
+
 class SearchParams(BaseModel):
     query: str = Field(description="Search query")
     category: str | None = Field(default=None, description="Optional category filter")
+
 
 @mcp.tool()
 def search_products(params: SearchParams) -> list[dict]:
@@ -153,10 +156,10 @@ def search_products(params: SearchParams) -> list[dict]:
 from mcp.server.fastmcp import Context
 from mcp.server.session import ServerSession
 
+
 @mcp.tool()
 async def process_orders(
-    order_ids: list[str],
-    ctx: Context[ServerSession, None]
+    order_ids: list[str], ctx: Context[ServerSession, None]
 ) -> str:
     """Process multiple orders."""
     total = len(order_ids)

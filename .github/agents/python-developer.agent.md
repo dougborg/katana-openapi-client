@@ -55,6 +55,7 @@ provided" and "explicitly set to None".
 ```python
 from katana_public_api_client.client_types import UNSET
 
+
 def update_product(name: str = UNSET, price: float = UNSET):
     if name is not UNSET:
         # User explicitly provided a name
@@ -141,10 +142,9 @@ from typing import Optional, List
 from katana_public_api_client.client_types import Response
 from pydantic import BaseModel
 
+
 async def get_products(
-    client: KatanaClient,
-    limit: int = 50,
-    category: Optional[str] = None
+    client: KatanaClient, limit: int = 50, category: Optional[str] = None
 ) -> Response[List[Product]]:
     """Get products with optional category filter."""
     ...
@@ -212,6 +212,7 @@ uv run poe test-coverage
 import pytest
 from katana_public_api_client import KatanaClient
 
+
 @pytest.mark.asyncio
 async def test_get_product_success():
     # Arrange
@@ -220,8 +221,7 @@ async def test_get_product_success():
 
         # Act
         response = await get_product.asyncio_detailed(
-            client=client,
-            product_id=expected_id
+            client=client, product_id=expected_id
         )
 
         # Assert
@@ -274,11 +274,14 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
 class CreateOrderParams(BaseModel):
     """Parameters for creating an order."""
+
     customer_id: str = Field(description="Customer ID")
     items: list[str] = Field(description="List of item IDs")
     confirm: bool = Field(default=False, description="Confirm creation")
+
 
 @mcp.tool()
 async def create_order(params: CreateOrderParams) -> str:
@@ -304,7 +307,7 @@ async def create_order(params: CreateOrderParams) -> str:
         response = await create_sales_order_api.asyncio_detailed(
             client=services.katana_client,
             customer_id=params.customer_id,
-            items=params.items
+            items=params.items,
         )
 
         order = unwrap_as(response, SalesOrder)
@@ -327,10 +330,9 @@ from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
 from katana_public_api_client.domain.product import Product
 
+
 async def get_products_by_category(
-    client: KatanaClient,
-    category: str,
-    limit: Optional[int] = None
+    client: KatanaClient, category: str, limit: Optional[int] = None
 ) -> AsyncIterator[Product]:
     """Get all products in a category.
 
@@ -345,9 +347,7 @@ async def get_products_by_category(
         Product objects matching the category
     """
     response = await get_all_products.asyncio_detailed(
-        client=client,
-        category=category,
-        limit=limit or 100
+        client=client, category=category, limit=limit or 100
     )
 
     if response.status_code == 200 and response.parsed:

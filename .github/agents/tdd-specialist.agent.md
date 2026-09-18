@@ -170,14 +170,12 @@ def test_get_product_by_id():
 ```python
 import pytest
 
+
 @pytest.mark.asyncio
 async def test_async_get_products():
     """Test async product fetching."""
     async with KatanaClient() as client:
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=10
-        )
+        response = await get_all_products.asyncio_detailed(client=client, limit=10)
 
         assert response.status_code == 200
         assert len(response.parsed.data) <= 10
@@ -188,12 +186,15 @@ async def test_async_get_products():
 Test multiple scenarios efficiently:
 
 ```python
-@pytest.mark.parametrize("input_sku,expected_valid", [
-    ("VALID-SKU", True),
-    ("invalid", False),
-    ("", False),
-    (None, False),
-])
+@pytest.mark.parametrize(
+    "input_sku,expected_valid",
+    [
+        ("VALID-SKU", True),
+        ("invalid", False),
+        ("", False),
+        (None, False),
+    ],
+)
 def test_sku_validation(input_sku, expected_valid):
     """Test SKU validation with various inputs."""
     result = validate_sku(input_sku)
@@ -225,6 +226,7 @@ For custom response handlers, create a handler and wire it into a KatanaClient:
 @pytest.mark.asyncio
 async def test_api_with_custom_handler(mock_api_credentials):
     """Test with a custom mock transport handler."""
+
     # Arrange - custom handler returning specific data
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"data": [{"id": 1, "name": "Test"}]})
@@ -250,6 +252,7 @@ Always test error scenarios with complete examples:
 @pytest.mark.asyncio
 async def test_api_unauthorized_error(mock_api_credentials):
     """Test handling of 401 Unauthorized."""
+
     # Arrange - handler returning 401
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(401, json={"error": "Unauthorized"})
@@ -296,16 +299,19 @@ def test_process_items_edge_cases():
 import pytest
 from katana_public_api_client import KatanaClient
 
+
 @pytest.fixture
 def katana_client():
     """Provide a test KatanaClient instance."""
     return KatanaClient(api_key="test-api-key")
+
 
 @pytest.fixture
 async def async_client():
     """Provide an async KatanaClient context."""
     async with KatanaClient(api_key="test-api-key") as client:
         yield client
+
 
 @pytest.fixture
 def mock_product_data():
@@ -315,8 +321,9 @@ def mock_product_data():
         "name": "Test Product",
         "sku": "TEST-001",
         "price": 99.99,
-        "category": "Electronics"
+        "category": "Electronics",
     }
+
 
 @pytest.fixture
 def mock_error_response():
@@ -324,7 +331,7 @@ def mock_error_response():
     return {
         "error": "Not Found",
         "message": "Resource does not exist",
-        "status_code": 404
+        "status_code": 404,
     }
 ```
 
@@ -338,10 +345,13 @@ def assert_valid_product(product):
     assert "sku" in product
     assert isinstance(product.get("price"), (int, float))
 
+
 def create_mock_handler(status_code: int, data: dict):
     """Create a mock transport handler returning the given response."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(status_code, json=data)
+
     return httpx.MockTransport(handler)
 ```
 
@@ -423,18 +433,13 @@ import os
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
 
+
 @pytest.mark.integration
-@pytest.mark.skipif(
-    not os.getenv("KATANA_API_KEY"),
-    reason="KATANA_API_KEY not set"
-)
+@pytest.mark.skipif(not os.getenv("KATANA_API_KEY"), reason="KATANA_API_KEY not set")
 async def test_real_api_product_fetch():
     """Test fetching products from real Katana API."""
     async with KatanaClient() as client:
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=5
-        )
+        response = await get_all_products.asyncio_detailed(client=client, limit=5)
 
         # Verify real API response
         assert response.status_code == 200
@@ -462,6 +467,7 @@ from katana_mcp.tools.foundation.inventory import check_inventory, CheckInventor
 from katana_mcp.server import get_services
 from unittest.mock import AsyncMock, patch
 
+
 @pytest.mark.asyncio
 async def test_check_inventory_tool():
     """Test inventory checking tool."""
@@ -469,7 +475,7 @@ async def test_check_inventory_tool():
     params = CheckInventoryParams(sku="TEST-001")
 
     # Mock the KatanaClient response
-    with patch('katana_mcp.server.get_services') as mock_get_services:
+    with patch("katana_mcp.server.get_services") as mock_get_services:
         mock_services = AsyncMock()
         mock_services.katana_client = AsyncMock()
         mock_get_services.return_value = mock_services
@@ -568,6 +574,7 @@ def test_expensive_operation():
     """Long-running test."""
     # Expensive computation or I/O
     pass
+
 
 # Skip slow tests during development
 # pytest -m "not slow"

@@ -40,7 +40,7 @@ class CreateMaterialRequest:
     purchase_uom: str | Unset = UNSET
     purchase_uom_conversion_rate: float | Unset = UNSET
     configs: list[MaterialConfig] | Unset = UNSET
-    custom_field_collection_id: int | None | Unset = UNSET
+    custom_field_collection_id: int | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -73,7 +73,7 @@ class CreateMaterialRequest:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        custom_field_collection_id: int | None | Unset
+        custom_field_collection_id: int | Unset | None
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -112,7 +112,9 @@ class CreateMaterialRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_variant_request import CreateVariantRequest
+        from ..models.create_variant_request import (
+            CreateVariantRequest,
+        )
         from ..models.material_config import MaterialConfig
 
         d = dict(src_dict)
@@ -154,12 +156,12 @@ class CreateMaterialRequest:
 
                 configs.append(configs_item)
 
-        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
+        def _parse_custom_field_collection_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

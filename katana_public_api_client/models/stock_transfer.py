@@ -38,12 +38,12 @@ class StockTransfer:
     target_location_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     status: str | Unset = UNSET
     transfer_date: datetime.datetime | Unset = UNSET
-    order_created_date: datetime.datetime | None | Unset = UNSET
-    expected_arrival_date: datetime.datetime | None | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
+    order_created_date: datetime.datetime | Unset | None = UNSET
+    expected_arrival_date: datetime.datetime | Unset | None = UNSET
+    additional_info: str | Unset | None = UNSET
     stock_transfer_rows: list[StockTransferRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -64,7 +64,7 @@ class StockTransfer:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -78,7 +78,7 @@ class StockTransfer:
         if not isinstance(self.transfer_date, Unset):
             transfer_date = self.transfer_date.isoformat()
 
-        order_created_date: None | str | Unset
+        order_created_date: str | Unset | None
         if isinstance(self.order_created_date, Unset):
             order_created_date = UNSET
         elif isinstance(self.order_created_date, datetime.datetime):
@@ -86,7 +86,7 @@ class StockTransfer:
         else:
             order_created_date = self.order_created_date
 
-        expected_arrival_date: None | str | Unset
+        expected_arrival_date: str | Unset | None
         if isinstance(self.expected_arrival_date, Unset):
             expected_arrival_date = UNSET
         elif isinstance(self.expected_arrival_date, datetime.datetime):
@@ -94,7 +94,7 @@ class StockTransfer:
         else:
             expected_arrival_date = self.expected_arrival_date
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
@@ -165,7 +165,7 @@ class StockTransfer:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -178,7 +178,7 @@ class StockTransfer:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -191,7 +191,7 @@ class StockTransfer:
         else:
             transfer_date = datetime.datetime.fromisoformat(_transfer_date)
 
-        def _parse_order_created_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_order_created_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -204,7 +204,7 @@ class StockTransfer:
                 return order_created_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         order_created_date = _parse_order_created_date(
             d.pop("order_created_date", UNSET)
@@ -212,7 +212,7 @@ class StockTransfer:
 
         def _parse_expected_arrival_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -225,18 +225,18 @@ class StockTransfer:
                 return expected_arrival_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         expected_arrival_date = _parse_expected_arrival_date(
             d.pop("expected_arrival_date", UNSET)
         )
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

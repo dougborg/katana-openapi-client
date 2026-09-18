@@ -225,9 +225,12 @@ async def _check_inventory_impl(
     services = get_services(context)
     # ... fetch variants from cache, look up stock per variant ...
 
+
 # After (add logging - save file - test immediately!)
 from katana_mcp.logging import get_logger
+
 logger = get_logger(__name__)
+
 
 async def _check_inventory_impl(
     request: CheckInventoryRequest, context: Context
@@ -235,7 +238,9 @@ async def _check_inventory_impl(
     logger.info(
         "inventory_check_started",
         sku_count=sum(1 for x in request.skus_or_variant_ids if isinstance(x, str)),
-        variant_id_count=sum(1 for x in request.skus_or_variant_ids if isinstance(x, int)),
+        variant_id_count=sum(
+            1 for x in request.skus_or_variant_ids if isinstance(x, int)
+        ),
     )
     services = get_services(context)
     # ... rest of function

@@ -95,29 +95,29 @@ class SalesOrderRow:
     variant_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     sales_order_id: int | Unset = UNSET
-    tax_rate_id: int | None | Unset = UNSET
-    tax_rate: float | None | Unset = UNSET
-    location_id: int | None | Unset = UNSET
-    product_availability: None | ProductAvailability | Unset = UNSET
-    product_expected_date: datetime.datetime | None | Unset = UNSET
+    tax_rate_id: int | Unset | None = UNSET
+    tax_rate: float | Unset | None = UNSET
+    location_id: int | Unset | None = UNSET
+    product_availability: ProductAvailability | Unset | None = UNSET
+    product_expected_date: datetime.datetime | Unset | None = UNSET
     price_per_unit: str | Unset = UNSET
     price_per_unit_in_base_currency: float | Unset = UNSET
     total: float | Unset = UNSET
     total_in_base_currency: float | Unset = UNSET
-    total_discount: None | str | Unset = UNSET
-    cogs_value: None | str | Unset = UNSET
+    total_discount: str | Unset | None = UNSET
+    cogs_value: str | Unset | None = UNSET
     attributes: list[SalesOrderRowAttributesItem] | Unset = UNSET
     batch_transactions: list[SalesOrderRowBatchTransactionsItem] | Unset = UNSET
     serial_numbers: list[int] | Unset = UNSET
     serial_number_transactions: (
         list[SalesOrderRowSerialNumberTransactionsItem] | Unset
     ) = UNSET
-    linked_manufacturing_order_id: int | None | Unset = UNSET
-    conversion_rate: float | None | Unset = UNSET
-    conversion_date: datetime.datetime | None | Unset = UNSET
-    custom_fields: None | SalesOrderRowCustomFieldsType0 | Unset = UNSET
+    linked_manufacturing_order_id: int | Unset | None = UNSET
+    conversion_rate: float | Unset | None = UNSET
+    conversion_date: datetime.datetime | Unset | None = UNSET
+    custom_fields: SalesOrderRowCustomFieldsType0 | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -139,7 +139,7 @@ class SalesOrderRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -149,25 +149,25 @@ class SalesOrderRow:
 
         sales_order_id = self.sales_order_id
 
-        tax_rate_id: int | None | Unset
+        tax_rate_id: int | Unset | None
         if isinstance(self.tax_rate_id, Unset):
             tax_rate_id = UNSET
         else:
             tax_rate_id = self.tax_rate_id
 
-        tax_rate: float | None | Unset
+        tax_rate: float | Unset | None
         if isinstance(self.tax_rate, Unset):
             tax_rate = UNSET
         else:
             tax_rate = self.tax_rate
 
-        location_id: int | None | Unset
+        location_id: int | Unset | None
         if isinstance(self.location_id, Unset):
             location_id = UNSET
         else:
             location_id = self.location_id
 
-        product_availability: None | str | Unset
+        product_availability: str | Unset | None
         if isinstance(self.product_availability, Unset):
             product_availability = UNSET
         elif isinstance(self.product_availability, ProductAvailability):
@@ -175,7 +175,7 @@ class SalesOrderRow:
         else:
             product_availability = self.product_availability
 
-        product_expected_date: None | str | Unset
+        product_expected_date: str | Unset | None
         if isinstance(self.product_expected_date, Unset):
             product_expected_date = UNSET
         elif isinstance(self.product_expected_date, datetime.datetime):
@@ -191,13 +191,13 @@ class SalesOrderRow:
 
         total_in_base_currency = self.total_in_base_currency
 
-        total_discount: None | str | Unset
+        total_discount: str | Unset | None
         if isinstance(self.total_discount, Unset):
             total_discount = UNSET
         else:
             total_discount = self.total_discount
 
-        cogs_value: None | str | Unset
+        cogs_value: str | Unset | None
         if isinstance(self.cogs_value, Unset):
             cogs_value = UNSET
         else:
@@ -230,19 +230,19 @@ class SalesOrderRow:
                 )
                 serial_number_transactions.append(serial_number_transactions_item)
 
-        linked_manufacturing_order_id: int | None | Unset
+        linked_manufacturing_order_id: int | Unset | None
         if isinstance(self.linked_manufacturing_order_id, Unset):
             linked_manufacturing_order_id = UNSET
         else:
             linked_manufacturing_order_id = self.linked_manufacturing_order_id
 
-        conversion_rate: float | None | Unset
+        conversion_rate: float | Unset | None
         if isinstance(self.conversion_rate, Unset):
             conversion_rate = UNSET
         else:
             conversion_rate = self.conversion_rate
 
-        conversion_date: None | str | Unset
+        conversion_date: str | Unset | None
         if isinstance(self.conversion_date, Unset):
             conversion_date = UNSET
         elif isinstance(self.conversion_date, datetime.datetime):
@@ -250,7 +250,7 @@ class SalesOrderRow:
         else:
             conversion_date = self.conversion_date
 
-        custom_fields: dict[str, Any] | None | Unset
+        custom_fields: dict[str, Any] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(self.custom_fields, SalesOrderRowCustomFieldsType0):
@@ -320,7 +320,9 @@ class SalesOrderRow:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_row_attributes_item import SalesOrderRowAttributesItem
+        from ..models.sales_order_row_attributes_item import (
+            SalesOrderRowAttributesItem,
+        )
         from ..models.sales_order_row_batch_transactions_item import (
             SalesOrderRowBatchTransactionsItem,
         )
@@ -352,7 +354,7 @@ class SalesOrderRow:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -365,42 +367,42 @@ class SalesOrderRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         sales_order_id = d.pop("sales_order_id", UNSET)
 
-        def _parse_tax_rate_id(data: object) -> int | None | Unset:
+        def _parse_tax_rate_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
 
-        def _parse_tax_rate(data: object) -> float | None | Unset:
+        def _parse_tax_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         tax_rate = _parse_tax_rate(d.pop("tax_rate", UNSET))
 
-        def _parse_location_id(data: object) -> int | None | Unset:
+        def _parse_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 
         def _parse_product_availability(
             data: object,
-        ) -> None | ProductAvailability | Unset:
+        ) -> ProductAvailability | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -413,7 +415,7 @@ class SalesOrderRow:
                 return product_availability_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | ProductAvailability | Unset, data)
+            return cast(ProductAvailability | Unset | None, data)
 
         product_availability = _parse_product_availability(
             d.pop("product_availability", UNSET)
@@ -421,7 +423,7 @@ class SalesOrderRow:
 
         def _parse_product_expected_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -434,7 +436,7 @@ class SalesOrderRow:
                 return product_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         product_expected_date = _parse_product_expected_date(
             d.pop("product_expected_date", UNSET)
@@ -450,21 +452,21 @@ class SalesOrderRow:
 
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
-        def _parse_total_discount(data: object) -> None | str | Unset:
+        def _parse_total_discount(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         total_discount = _parse_total_discount(d.pop("total_discount", UNSET))
 
-        def _parse_cogs_value(data: object) -> None | str | Unset:
+        def _parse_cogs_value(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         cogs_value = _parse_cogs_value(d.pop("cogs_value", UNSET))
 
@@ -507,27 +509,27 @@ class SalesOrderRow:
 
                 serial_number_transactions.append(serial_number_transactions_item)
 
-        def _parse_linked_manufacturing_order_id(data: object) -> int | None | Unset:
+        def _parse_linked_manufacturing_order_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         linked_manufacturing_order_id = _parse_linked_manufacturing_order_id(
             d.pop("linked_manufacturing_order_id", UNSET)
         )
 
-        def _parse_conversion_rate(data: object) -> float | None | Unset:
+        def _parse_conversion_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
-        def _parse_conversion_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_conversion_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -540,13 +542,13 @@ class SalesOrderRow:
                 return conversion_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
         def _parse_custom_fields(
             data: object,
-        ) -> None | SalesOrderRowCustomFieldsType0 | Unset:
+        ) -> SalesOrderRowCustomFieldsType0 | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -564,7 +566,7 @@ class SalesOrderRow:
                 return custom_fields_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderRowCustomFieldsType0 | Unset, data)
+            return cast(SalesOrderRowCustomFieldsType0 | Unset | None, data)
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 

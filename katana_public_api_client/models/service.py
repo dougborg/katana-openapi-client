@@ -36,15 +36,15 @@ class Service:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    archived_at: datetime.datetime | None | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    archived_at: datetime.datetime | Unset | None = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     name: str | Unset = UNSET
     uom: str | Unset = UNSET
     category_name: str | Unset = UNSET
     is_sellable: bool | Unset = UNSET
     type_: ServiceType | Unset = UNSET
     additional_info: str | Unset = UNSET
-    custom_field_collection_id: int | None | Unset = UNSET
+    custom_field_collection_id: int | Unset | None = UNSET
     variants: list[ServiceVariant] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -59,7 +59,7 @@ class Service:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | str | Unset
+        archived_at: str | Unset | None
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -67,7 +67,7 @@ class Service:
         else:
             archived_at = self.archived_at
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -89,7 +89,7 @@ class Service:
 
         additional_info = self.additional_info
 
-        custom_field_collection_id: int | None | Unset
+        custom_field_collection_id: int | Unset | None
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -157,7 +157,7 @@ class Service:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_archived_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -170,11 +170,11 @@ class Service:
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -187,7 +187,7 @@ class Service:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -208,12 +208,12 @@ class Service:
 
         additional_info = d.pop("additional_info", UNSET)
 
-        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
+        def _parse_custom_field_collection_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

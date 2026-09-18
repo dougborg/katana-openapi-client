@@ -146,12 +146,12 @@ The `KatanaClient` supports various configuration options:
 
 ```python
 client = KatanaClient(
-    api_key="your_key",           # Or set KATANA_API_KEY env var
-    base_url="https://...",       # Custom base URL
-    timeout=30.0,                 # Request timeout in seconds
-    max_retries=5,                # Maximum retry attempts
-    max_pages=100,                # Maximum pages for auto-pagination
-    logger=custom_logger,         # Custom logger instance
+    api_key="your_key",  # Or set KATANA_API_KEY env var
+    base_url="https://...",  # Custom base URL
+    timeout=30.0,  # Request timeout in seconds
+    max_retries=5,  # Maximum retry attempts
+    max_pages=100,  # Maximum pages for auto-pagination
+    logger=custom_logger,  # Custom logger instance
 )
 ```
 
@@ -177,7 +177,7 @@ async with KatanaClient() as client:
     # Pass client directly - no .client property needed
     response = await get_all_products.asyncio_detailed(
         client=client,
-        limit=50  # Automatically paginates if more data available
+        limit=50,  # Automatically paginates if more data available
     )
 ```
 

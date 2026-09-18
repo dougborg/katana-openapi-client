@@ -34,6 +34,7 @@ at `katana_mcp_server/src/katana_mcp/typed_cache/queries.py`.
 ```python
 _TOKEN_RE = re.compile(r"\W+")
 
+
 def _tokenize_query(query: str) -> list[str]:
     return [tok for tok in _TOKEN_RE.split(query.strip()) if tok]
 ```

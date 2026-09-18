@@ -77,7 +77,9 @@ class CreateStockTransferRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.stock_transfer_row_request import StockTransferRowRequest
+        from ..models.stock_transfer_row_request import (
+            StockTransferRowRequest,
+        )
 
         d = dict(src_dict)
         stock_transfer_number = d.pop("stock_transfer_number")

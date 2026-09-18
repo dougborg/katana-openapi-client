@@ -31,11 +31,16 @@ Pydantic models define tool parameters with full type safety and validation:
 ```python
 class CreatePurchaseOrderRequest(BaseModel):
     """Request to create a purchase order."""
+
     supplier_id: int = Field(..., description="Supplier ID")
-    location_id: int = Field(..., description="Location ID where items will be received")
+    location_id: int = Field(
+        ..., description="Location ID where items will be received"
+    )
     order_number: str = Field(..., description="Purchase order number")
     items: list[PurchaseOrderItem] = Field(..., description="Line items", min_length=1)
-    confirm: bool = Field(False, description="If false, returns preview. If true, creates order.")
+    confirm: bool = Field(
+        False, description="If false, returns preview. If true, creates order."
+    )
 ```
 
 #### 2. Unpack Decorator
@@ -46,8 +51,7 @@ Flattens nested models for FastMCP compatibility:
 @observe_tool
 @unpack_pydantic_params
 async def create_purchase_order(
-    request: Annotated[CreatePurchaseOrderRequest, Unpack()],
-    context: Context
+    request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
 ) -> PurchaseOrderResponse:
     """Create a new purchase order with user confirmation."""
     ...
@@ -60,6 +64,7 @@ Structured responses with success/failure states:
 ```python
 class PurchaseOrderResponse(BaseModel):
     """Response from creating a purchase order."""
+
     id: int | None = None
     order_number: str
     supplier_id: int
@@ -106,6 +111,7 @@ Common schemas are extracted to `katana_mcp/tools/schemas.py` to avoid duplicati
 # katana_mcp/tools/schemas.py
 class ConfirmationSchema(BaseModel):
     """Schema for user confirmation elicitation."""
+
     confirm: bool = Field(..., description="True to proceed, False to cancel")
 ```
 
@@ -153,9 +159,8 @@ async def create_purchase_order(
     location_id: int,
     order_number: str,
     items: list[dict],  # ❌ Not type-safe
-    context: Context
-) -> dict:
-    ...
+    context: Context,
+) -> dict: ...
 ```
 
 **Why rejected**: No validation, not type-safe, hard to document nested structures
@@ -165,9 +170,8 @@ async def create_purchase_order(
 ```python
 async def create_purchase_order(
     params: dict,  # ❌ No type safety
-    context: Context
-) -> dict:
-    ...
+    context: Context,
+) -> dict: ...
 ```
 
 **Why rejected**: No IDE support, no validation, no documentation

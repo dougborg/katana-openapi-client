@@ -43,11 +43,11 @@ class Inventory:
     quantity_committed: str
     quantity_expected: str
     quantity_missing_or_excess: str
-    quantity_potential: None | str
+    quantity_potential: str | None
     variant: Variant | Unset = UNSET
     location: Location | Unset = UNSET
-    archived_at: datetime.datetime | None | Unset = UNSET
-    default_storage_bin: None | Unset | VariantDefaultStorageBinLinkResponse = UNSET
+    archived_at: datetime.datetime | Unset | None = UNSET
+    default_storage_bin: Unset | VariantDefaultStorageBinLinkResponse | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -75,7 +75,7 @@ class Inventory:
 
         quantity_missing_or_excess = self.quantity_missing_or_excess
 
-        quantity_potential: None | str
+        quantity_potential: str | None
         quantity_potential = self.quantity_potential
 
         variant: dict[str, Any] | Unset = UNSET
@@ -86,7 +86,7 @@ class Inventory:
         if not isinstance(self.location, Unset):
             location = self.location.to_dict()
 
-        archived_at: None | str | Unset
+        archived_at: str | Unset | None
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -94,7 +94,7 @@ class Inventory:
         else:
             archived_at = self.archived_at
 
-        default_storage_bin: dict[str, Any] | None | Unset
+        default_storage_bin: dict[str, Any] | Unset | None
         if isinstance(self.default_storage_bin, Unset):
             default_storage_bin = UNSET
         elif isinstance(self.default_storage_bin, VariantDefaultStorageBinLinkResponse):
@@ -159,10 +159,10 @@ class Inventory:
 
         quantity_missing_or_excess = d.pop("quantity_missing_or_excess")
 
-        def _parse_quantity_potential(data: object) -> None | str:
+        def _parse_quantity_potential(data: object) -> str | None:
             if data is None:
                 return data
-            return cast(None | str, data)
+            return cast(str | None, data)
 
         quantity_potential = _parse_quantity_potential(d.pop("quantity_potential"))
 
@@ -180,7 +180,7 @@ class Inventory:
         else:
             location = Location.from_dict(_location)
 
-        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_archived_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -193,13 +193,13 @@ class Inventory:
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
         def _parse_default_storage_bin(
             data: object,
-        ) -> None | Unset | VariantDefaultStorageBinLinkResponse:
+        ) -> Unset | VariantDefaultStorageBinLinkResponse | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -219,7 +219,7 @@ class Inventory:
                 return default_storage_bin_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | VariantDefaultStorageBinLinkResponse, data)
+            return cast(Unset | VariantDefaultStorageBinLinkResponse | None, data)
 
         default_storage_bin = _parse_default_storage_bin(
             d.pop("default_storage_bin", UNSET)

@@ -46,7 +46,9 @@ class SalesOrderRowSearchRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_row_search_filter import SalesOrderRowSearchFilter
+        from ..models.sales_order_row_search_filter import (
+            SalesOrderRowSearchFilter,
+        )
 
         d = dict(src_dict)
         _filter_ = d.pop("filter", UNSET)

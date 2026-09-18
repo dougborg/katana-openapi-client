@@ -53,7 +53,9 @@ class UpdateSalesReturnRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.batch_transaction_request import BatchTransactionRequest
+        from ..models.batch_transaction_request import (
+            BatchTransactionRequest,
+        )
 
         d = dict(src_dict)
         quantity = d.pop("quantity", UNSET)

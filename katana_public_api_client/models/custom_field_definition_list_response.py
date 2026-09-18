@@ -49,7 +49,9 @@ class CustomFieldDefinitionListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_field_definition import CustomFieldDefinition
+        from ..models.custom_field_definition import (
+            CustomFieldDefinition,
+        )
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)

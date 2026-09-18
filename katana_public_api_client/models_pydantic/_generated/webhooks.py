@@ -202,8 +202,8 @@ class UpdateWebhookRequest(KatanaPydanticBase):
 
 class Webhook(UpdatableEntity):
     id: Annotated[
-        int | None, Field(description="Unique identifier for the webhook subscription")
-    ] = None
+        int, Field(description="Unique identifier for the webhook subscription")
+    ]
     url: Annotated[
         str | None,
         Field(description="HTTPS endpoint URL where webhook events will be sent"),

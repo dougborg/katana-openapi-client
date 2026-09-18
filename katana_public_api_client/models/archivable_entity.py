@@ -26,7 +26,7 @@ class ArchivableEntity:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    archived_at: datetime.datetime | None | Unset = UNSET
+    archived_at: datetime.datetime | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,7 +40,7 @@ class ArchivableEntity:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | str | Unset
+        archived_at: str | Unset | None
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -83,7 +83,7 @@ class ArchivableEntity:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_archived_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -96,7 +96,7 @@ class ArchivableEntity:
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 

@@ -41,7 +41,9 @@ from katana_public_api_client.models import StockAdjustment
 from katana_public_api_client.utils import unwrap_as, unwrap_data
 
 
-async def sync_inventory_from_warehouse(warehouse_data: list[dict[str, Any]]) -> dict[str, int]:
+async def sync_inventory_from_warehouse(
+    warehouse_data: list[dict[str, Any]],
+) -> dict[str, int]:
     """
     Sync inventory levels from external warehouse system.
 
@@ -70,7 +72,9 @@ async def sync_inventory_from_warehouse(warehouse_data: list[dict[str, Any]]) ->
         sku_to_variant = {v.sku: v for v in variants if v.sku}
 
         # Update inventory for each warehouse item
-        from katana_public_api_client.api.stock_adjustment import create_stock_adjustment
+        from katana_public_api_client.api.stock_adjustment import (
+            create_stock_adjustment,
+        )
         from katana_public_api_client.models import CreateStockAdjustmentRequest
 
         for item in warehouse_data:
@@ -89,12 +93,11 @@ async def sync_inventory_from_warehouse(warehouse_data: list[dict[str, Any]]) ->
                     variant_id=variant.id,
                     adjustment_type="set",  # Set to absolute value
                     quantity=new_quantity,
-                    note=f"Synced from warehouse system"
+                    note=f"Synced from warehouse system",
                 )
 
                 response = await create_stock_adjustment.asyncio_detailed(
-                    client=client,
-                    body=adjustment
+                    client=client, body=adjustment
                 )
 
                 try:
@@ -163,21 +166,22 @@ async def get_low_stock_alerts(threshold: int = 10) -> list[dict[str, Any]]:
             if inv_point.in_stock < threshold:
                 # Get variant details
                 variant_response = await get_variant.asyncio_detailed(
-                    client=client,
-                    id=inv_point.variant_id
+                    client=client, id=inv_point.variant_id
                 )
 
                 if variant_response.parsed:
                     variant = variant_response.parsed
 
-                    low_stock_items.append({
-                        "sku": variant.sku,
-                        "name": variant.name,
-                        "current_stock": inv_point.in_stock,
-                        "location": inv_point.location_name,
-                        "reorder_point": getattr(inv_point, "reorder_point", None),
-                        "variant_id": variant.id,
-                    })
+                    low_stock_items.append(
+                        {
+                            "sku": variant.sku,
+                            "name": variant.name,
+                            "current_stock": inv_point.in_stock,
+                            "location": inv_point.location_name,
+                            "reorder_point": getattr(inv_point, "reorder_point", None),
+                            "variant_id": variant.id,
+                        }
+                    )
 
     return low_stock_items
 
@@ -217,13 +221,15 @@ async def monitor_negative_stock() -> list[dict]:
 
         issues = []
         for item in negative_items:
-            issues.append({
-                "variant_sku": item.variant_sku,
-                "variant_name": item.variant_name,
-                "location": item.location_name,
-                "quantity": item.in_stock,  # Negative value
-                "timestamp": datetime.now().isoformat(),
-            })
+            issues.append(
+                {
+                    "variant_sku": item.variant_sku,
+                    "variant_name": item.variant_name,
+                    "location": item.location_name,
+                    "quantity": item.in_stock,  # Negative value
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
         return issues
 
@@ -235,7 +241,9 @@ if __name__ == "__main__":
     if negative_stock:
         print(f"⚠️  WARNING: {len(negative_stock)} items with negative stock!\n")
         for item in negative_stock:
-            print(f"  {item['variant_sku']}: {item['quantity']} units at {item['location']}")
+            print(
+                f"  {item['variant_sku']}: {item['quantity']} units at {item['location']}"
+            )
     else:
         print("✓ No negative stock issues")
 ```
@@ -257,7 +265,7 @@ from katana_public_api_client.utils import unwrap_as
 
 
 async def process_bulk_orders(
-    orders: list[dict[str, Any]]
+    orders: list[dict[str, Any]],
 ) -> tuple[list[int], list[dict]]:
     """
     Process a batch of sales orders efficiently.
@@ -298,8 +306,7 @@ async def process_bulk_orders(
                 )
 
                 response = await create_sales_order.asyncio_detailed(
-                    client=client,
-                    body=sales_order
+                    client=client, body=sales_order
                 )
 
                 try:
@@ -307,16 +314,15 @@ async def process_bulk_orders(
                     successful.append(created.id)
                     print(f"✓ Created order {created.id}")
                 except APIError as e:
-                    failed.append({
-                        "order": order_data,
-                        "error": str(e),
-                    })
+                    failed.append(
+                        {
+                            "order": order_data,
+                            "error": str(e),
+                        }
+                    )
 
             except Exception as e:
-                failed.append({
-                    "order": order_data,
-                    "error": str(e)
-                })
+                failed.append({"order": order_data, "error": str(e)})
                 print(f"✗ Error creating order: {e}")
 
     return successful, failed
@@ -331,7 +337,7 @@ if __name__ == "__main__":
                 {"variant_id": 456, "quantity": 5, "price": 29.99},
                 {"variant_id": 457, "quantity": 2, "price": 49.99},
             ],
-            "notes": "Express shipping requested"
+            "notes": "Express shipping requested",
         },
         {
             "customer_id": 124,
@@ -372,7 +378,7 @@ async def check_overdue_orders(days_overdue: int = 0) -> list[dict]:
         # Get all open/in-progress orders
         response = await get_all_sales_orders.asyncio_detailed(
             client=client,
-            status="open"  # or "in_progress"
+            status="open",  # or "in_progress"
         )
 
         orders = unwrap_data(response)
@@ -381,7 +387,10 @@ async def check_overdue_orders(days_overdue: int = 0) -> list[dict]:
 
         overdue = []
         for order in orders:
-            if hasattr(order, 'expected_delivery_date') and order.expected_delivery_date:
+            if (
+                hasattr(order, "expected_delivery_date")
+                and order.expected_delivery_date
+            ):
                 # Parse the delivery date
                 delivery_date = order.expected_delivery_date
                 if isinstance(delivery_date, str):
@@ -389,13 +398,15 @@ async def check_overdue_orders(days_overdue: int = 0) -> list[dict]:
 
                 if delivery_date <= cutoff_date:
                     days_late = (today - delivery_date).days
-                    overdue.append({
-                        "order_id": order.id,
-                        "customer_name": getattr(order, "customer_name", "Unknown"),
-                        "expected_date": delivery_date.isoformat(),
-                        "days_late": days_late,
-                        "status": order.status,
-                    })
+                    overdue.append(
+                        {
+                            "order_id": order.id,
+                            "customer_name": getattr(order, "customer_name", "Unknown"),
+                            "expected_date": delivery_date.isoformat(),
+                            "days_late": days_late,
+                            "status": order.status,
+                        }
+                    )
 
         return sorted(overdue, key=lambda x: x["days_late"], reverse=True)
 
@@ -425,7 +436,9 @@ import asyncio
 from collections import defaultdict
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.api.manufacturing_order import get_all_manufacturing_orders
+from katana_public_api_client.api.manufacturing_order import (
+    get_all_manufacturing_orders,
+)
 from katana_public_api_client.utils import unwrap_data
 
 
@@ -465,7 +478,9 @@ Automatically create manufacturing orders when sales orders are received.
 import asyncio
 
 from katana_public_api_client import APIError, KatanaClient
-from katana_public_api_client.api.manufacturing_order import make_to_order_manufacturing_order
+from katana_public_api_client.api.manufacturing_order import (
+    make_to_order_manufacturing_order,
+)
 from katana_public_api_client.models import (
     MakeToOrderManufacturingOrderRequest,
     ManufacturingOrder,
@@ -490,13 +505,14 @@ async def create_manufacturing_from_sales(sales_order_id: int) -> int | None:
             )
 
             response = await make_to_order_manufacturing_order.asyncio_detailed(
-                client=client,
-                body=request
+                client=client, body=request
             )
 
             try:
                 mo = unwrap_as(response, ManufacturingOrder)
-                print(f"✓ Created manufacturing order {mo.id} for sales order {sales_order_id}")
+                print(
+                    f"✓ Created manufacturing order {mo.id} for sales order {sales_order_id}"
+                )
                 return mo.id
             except APIError as e:
                 print(f"✗ Failed to create MO: {e}")
@@ -529,7 +545,7 @@ import httpx
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.utils import unwrap_as
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 async def retry_with_backoff(
@@ -583,8 +599,7 @@ async def create_order_with_retry(order_data: dict[str, Any]):
         async def create_op():
             request = CreateSalesOrderRequest(**order_data)
             response = await create_sales_order.asyncio_detailed(
-                client=client,
-                body=request
+                client=client, body=request
             )
             # unwrap_as raises APIError on non-2xx — retry_with_backoff catches
             # the exception and retries. On success returns the typed model.
@@ -596,9 +611,7 @@ async def create_order_with_retry(order_data: dict[str, Any]):
 if __name__ == "__main__":
     order = {
         "customer_id": 123,
-        "sales_order_rows": [
-            {"variant_id": 456, "quantity": 5, "price": 29.99}
-        ]
+        "sales_order_rows": [{"variant_id": 456, "quantity": 5, "price": 29.99}],
     }
 
     result = asyncio.run(create_order_with_retry(order))
@@ -702,11 +715,7 @@ def verify_webhook_signature(payload: bytes, signature: str) -> bool:
     Returns:
         True if signature is valid
     """
-    expected = hmac.new(
-        WEBHOOK_SECRET.encode(),
-        payload,
-        hashlib.sha256
-    ).hexdigest()
+    expected = hmac.new(WEBHOOK_SECRET.encode(), payload, hashlib.sha256).hexdigest()
 
     return hmac.compare_digest(expected, signature)
 
@@ -746,8 +755,7 @@ def handle_sales_order_created(event: dict[str, Any]) -> None:
     async def process_order():
         async with KatanaClient() as client:
             response = await get_sales_order.asyncio_detailed(
-                client=client,
-                id=order_id
+                client=client, id=order_id
             )
 
             if response.parsed:
@@ -821,8 +829,7 @@ async def sync_recent_orders_to_external_system(hours_back: int = 24) -> dict[st
     async with KatanaClient() as client:
         # Get recent orders
         response = await get_all_sales_orders.asyncio_detailed(
-            client=client,
-            created_after=cutoff_time.isoformat()
+            client=client, created_after=cutoff_time.isoformat()
         )
 
         orders = unwrap_data(response)
@@ -830,9 +837,9 @@ async def sync_recent_orders_to_external_system(hours_back: int = 24) -> dict[st
         for order in orders:
             try:
                 # Check if already synced
-                if hasattr(order, 'custom_fields'):
+                if hasattr(order, "custom_fields"):
                     synced = any(
-                        cf.get('name') == 'external_sync' and cf.get('value') == 'true'
+                        cf.get("name") == "external_sync" and cf.get("value") == "true"
                         for cf in (order.custom_fields or [])
                     )
                     if synced:
@@ -840,12 +847,16 @@ async def sync_recent_orders_to_external_system(hours_back: int = 24) -> dict[st
                         continue
 
                 # Sync to external system
-                await push_to_external_system({
-                    "order_id": order.id,
-                    "customer": order.customer_name if hasattr(order, 'customer_name') else None,
-                    "total": order.total if hasattr(order, 'total') else 0,
-                    "status": order.status,
-                })
+                await push_to_external_system(
+                    {
+                        "order_id": order.id,
+                        "customer": order.customer_name
+                        if hasattr(order, "customer_name")
+                        else None,
+                        "total": order.total if hasattr(order, "total") else 0,
+                        "status": order.status,
+                    }
+                )
 
                 # Mark as synced (you'd use update_sales_order API here)
                 stats["synced"] += 1
@@ -871,7 +882,9 @@ async def run_scheduled_sync():
 
     stats = await sync_recent_orders_to_external_system(hours_back=24)
 
-    print(f"Sync complete: {stats['synced']} synced, {stats['skipped']} skipped, {stats['failed']} failed")
+    print(
+        f"Sync complete: {stats['synced']} synced, {stats['skipped']} skipped, {stats['failed']} failed"
+    )
 
 
 # Usage with scheduler (e.g., APScheduler)
@@ -1146,8 +1159,7 @@ from katana_public_api_client.utils import unwrap_data
 
 
 async def fetch_all_orders_efficiently(
-    page_size: int = 100,
-    max_pages: int | None = None
+    page_size: int = 100, max_pages: int | None = None
 ) -> list[Any]:
     """
     Fetch all orders with efficient pagination.
@@ -1169,7 +1181,7 @@ async def fetch_all_orders_efficiently(
         # Use limit parameter to control page size
         response = await get_all_sales_orders.asyncio_detailed(
             client=client,
-            limit=page_size  # Fetch 100 items per page
+            limit=page_size,  # Fetch 100 items per page
         )
 
         orders = unwrap_data(response)
@@ -1177,7 +1189,7 @@ async def fetch_all_orders_efficiently(
         print(f"Fetched {len(orders)} orders total")
 
         # Pagination info is available in response object
-        if hasattr(response, 'pagination_info'):
+        if hasattr(response, "pagination_info"):
             info = response.pagination_info
             print(f"Pages: {info.get('page', 'N/A')}/{info.get('total_pages', 'N/A')}")
 
@@ -1193,15 +1205,12 @@ async def process_orders_in_batches(batch_size: int = 50):
     """
     async with KatanaClient() as client:
         # Fetch all orders
-        response = await get_all_sales_orders.asyncio_detailed(
-            client=client,
-            limit=100
-        )
+        response = await get_all_sales_orders.asyncio_detailed(client=client, limit=100)
         all_orders = unwrap_data(response)
 
         # Process in batches
         for i in range(0, len(all_orders), batch_size):
-            batch = all_orders[i:i + batch_size]
+            batch = all_orders[i : i + batch_size]
 
             print(f"Processing batch {i // batch_size + 1}: {len(batch)} orders")
 
@@ -1261,7 +1270,7 @@ async def fetch_multiple_products_concurrent(product_ids: list[int]) -> list[Any
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
                 print(f"✗ Failed to fetch product {product_ids[i]}: {response}")
-            elif hasattr(response, 'parsed') and response.parsed:
+            elif hasattr(response, "parsed") and response.parsed:
                 products.append(response.parsed)
 
         print(f"Successfully fetched {len(products)}/{len(product_ids)} products")
@@ -1290,7 +1299,7 @@ async def fetch_variants_for_products(product_ids: list[int]) -> dict[int, list[
         variants_by_product = {pid: [] for pid in product_ids}
 
         for variant in all_variants:
-            if hasattr(variant, 'product_id') and variant.product_id in product_ids:
+            if hasattr(variant, "product_id") and variant.product_id in product_ids:
                 variants_by_product[variant.product_id].append(variant)
 
         return variants_by_product
@@ -1319,7 +1328,7 @@ async def parallel_data_enrichment(order_ids: list[int]):
         # Wait for all to complete
         results = await asyncio.gather(*order_tasks, customers_task)
 
-        orders = [r.parsed for r in results[:-1] if hasattr(r, 'parsed') and r.parsed]
+        orders = [r.parsed for r in results[:-1] if hasattr(r, "parsed") and r.parsed]
         customers_response = results[-1]
 
         print(f"Fetched {len(orders)} orders with customer data")
@@ -1439,7 +1448,9 @@ async def get_products_cached(ttl_seconds: int = 3600) -> list[Any]:
         return products_data
 
 
-async def get_product_by_sku_cached(sku: str, ttl_seconds: int = 3600) -> Optional[dict]:
+async def get_product_by_sku_cached(
+    sku: str, ttl_seconds: int = 3600
+) -> Optional[dict]:
     """
     Get product by SKU with caching.
 
@@ -1510,10 +1521,12 @@ async def test_product_fetch_with_mock():
 
     # Patch the API function
     with patch(
-        'katana_public_api_client.api.product.get_all_products.asyncio_detailed',
-        new=AsyncMock(return_value=mock_response)
+        "katana_public_api_client.api.product.get_all_products.asyncio_detailed",
+        new=AsyncMock(return_value=mock_response),
     ):
-        async with KatanaClient(api_key="test-key", base_url="https://test.api") as client:
+        async with KatanaClient(
+            api_key="test-key", base_url="https://test.api"
+        ) as client:
             response = await get_all_products.asyncio_detailed(client=client)
 
             assert response.status_code == 200
@@ -1527,10 +1540,12 @@ async def test_error_handling_with_mock():
 
     # Mock an error response
     with patch(
-        'katana_public_api_client.api.product.get_all_products.asyncio_detailed',
-        new=AsyncMock(side_effect=httpx.TimeoutException("Request timeout"))
+        "katana_public_api_client.api.product.get_all_products.asyncio_detailed",
+        new=AsyncMock(side_effect=httpx.TimeoutException("Request timeout")),
     ):
-        async with KatanaClient(api_key="test-key", base_url="https://test.api") as client:
+        async with KatanaClient(
+            api_key="test-key", base_url="https://test.api"
+        ) as client:
             with pytest.raises(httpx.TimeoutException):
                 await get_all_products.asyncio_detailed(client=client)
 
@@ -1549,10 +1564,12 @@ async def test_rate_limit_handling():
     mock_200.parsed = []
 
     with patch(
-        'katana_public_api_client.api.product.get_all_products.asyncio_detailed',
-        new=AsyncMock(side_effect=[mock_429, mock_200])
+        "katana_public_api_client.api.product.get_all_products.asyncio_detailed",
+        new=AsyncMock(side_effect=[mock_429, mock_200]),
     ):
-        async with KatanaClient(api_key="test-key", base_url="https://test.api") as client:
+        async with KatanaClient(
+            api_key="test-key", base_url="https://test.api"
+        ) as client:
             # Client should automatically retry after 429
             response = await get_all_products.asyncio_detailed(client=client)
             assert response.status_code == 200
@@ -1574,8 +1591,7 @@ from katana_public_api_client.utils import unwrap_data
 
 # Skip integration tests if no API key
 pytestmark = pytest.mark.skipif(
-    not os.getenv("KATANA_API_KEY"),
-    reason="KATANA_API_KEY not set"
+    not os.getenv("KATANA_API_KEY"), reason="KATANA_API_KEY not set"
 )
 
 
@@ -1601,8 +1617,8 @@ async def test_fetch_products_integration(katana_client):
     # Validate data structure if products exist
     if products:
         product = products[0]
-        assert hasattr(product, 'id')
-        assert hasattr(product, 'name')
+        assert hasattr(product, "id")
+        assert hasattr(product, "name")
 
 
 @pytest.mark.integration
@@ -1612,7 +1628,7 @@ async def test_pagination_integration(katana_client):
     # Fetch with small page size
     response = await get_all_products.asyncio_detailed(
         client=katana_client,
-        limit=10  # Small page size
+        limit=10,  # Small page size
     )
 
     products = unwrap_data(response)
@@ -1653,8 +1669,7 @@ class TestHelpers:
     def create_mock_client() -> KatanaClient:
         """Create a mock KatanaClient for testing."""
         return KatanaClient(
-            api_key="test-api-key",
-            base_url="https://test.api.katanamrp.com/v1"
+            api_key="test-api-key", base_url="https://test.api.katanamrp.com/v1"
         )
 
     @staticmethod

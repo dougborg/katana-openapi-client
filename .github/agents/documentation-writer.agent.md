@@ -147,10 +147,7 @@ from katana_public_api_client.api.product import get_all_products
 # Working, tested example
 async with KatanaClient() as client:
     # Automatic retries, rate limiting, pagination
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=50
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=50)
 
     # Expected output when helpful
     if response.status_code == 200:

@@ -32,7 +32,7 @@ class User:
     updated_at: datetime.datetime | Unset = UNSET
     role: str | Unset = UNSET
     status: str | Unset = UNSET
-    last_login_at: datetime.datetime | None | Unset = UNSET
+    last_login_at: datetime.datetime | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -56,7 +56,7 @@ class User:
 
         status = self.status
 
-        last_login_at: None | str | Unset
+        last_login_at: str | Unset | None
         if isinstance(self.last_login_at, Unset):
             last_login_at = UNSET
         elif isinstance(self.last_login_at, datetime.datetime):
@@ -116,7 +116,7 @@ class User:
 
         status = d.pop("status", UNSET)
 
-        def _parse_last_login_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_last_login_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -129,7 +129,7 @@ class User:
                 return last_login_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         last_login_at = _parse_last_login_at(d.pop("last_login_at", UNSET))
 

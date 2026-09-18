@@ -30,10 +30,10 @@ class UpdateServiceRequest:
     additional_info: str | Unset = UNSET
     is_sellable: bool | Unset = UNSET
     is_archived: bool | Unset = UNSET
-    sales_price: float | None | Unset = UNSET
-    default_cost: float | None | Unset = UNSET
+    sales_price: float | Unset | None = UNSET
+    default_cost: float | Unset | None = UNSET
     sku: str | Unset = UNSET
-    custom_field_collection_id: int | None | Unset = UNSET
+    custom_field_collection_id: int | Unset | None = UNSET
     custom_fields: list[CustomFieldValue] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,13 +49,13 @@ class UpdateServiceRequest:
 
         is_archived = self.is_archived
 
-        sales_price: float | None | Unset
+        sales_price: float | Unset | None
         if isinstance(self.sales_price, Unset):
             sales_price = UNSET
         else:
             sales_price = self.sales_price
 
-        default_cost: float | None | Unset
+        default_cost: float | Unset | None
         if isinstance(self.default_cost, Unset):
             default_cost = UNSET
         else:
@@ -63,7 +63,7 @@ class UpdateServiceRequest:
 
         sku = self.sku
 
-        custom_field_collection_id: int | None | Unset
+        custom_field_collection_id: int | Unset | None
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -121,32 +121,32 @@ class UpdateServiceRequest:
 
         is_archived = d.pop("is_archived", UNSET)
 
-        def _parse_sales_price(data: object) -> float | None | Unset:
+        def _parse_sales_price(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
-        def _parse_default_cost(data: object) -> float | None | Unset:
+        def _parse_default_cost(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 
         sku = d.pop("sku", UNSET)
 
-        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
+        def _parse_custom_field_collection_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

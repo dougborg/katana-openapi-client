@@ -54,6 +54,7 @@ Generate complete test coverage for a component following pytest and project sta
        result = process_items([])
        assert result == []
 
+
    def test_process_items_with_none():
        """Test handling of None input."""
        with pytest.raises(ValueError):
@@ -74,13 +75,14 @@ Generate complete test coverage for a component following pytest and project sta
    ```python
    import responses
 
+
    @responses.activate
    def test_api_call():
        responses.add(
            responses.GET,
            "https://api.katanamrp.com/v1/endpoint",
            json={"data": []},
-           status=200
+           status=200,
        )
        # Test code...
    ```
@@ -142,10 +144,13 @@ class TestProductsList:
         with pytest.raises(APIError):
             await products.get(99999)
 
-    @pytest.mark.parametrize("query,expected_min", [
-        ("widget", 1),
-        ("nonexistent-xyz", 0),
-    ])
+    @pytest.mark.parametrize(
+        "query,expected_min",
+        [
+            ("widget", 1),
+            ("nonexistent-xyz", 0),
+        ],
+    )
     async def test_search_with_queries(self, query, expected_min):
         """Test search with various queries."""
         client = Mock()

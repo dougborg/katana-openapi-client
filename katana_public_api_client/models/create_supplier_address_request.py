@@ -21,42 +21,42 @@ class CreateSupplierAddressRequest:
 
     supplier_id: int
     line_1: str | Unset = UNSET
-    line_2: None | str | Unset = UNSET
-    city: None | str | Unset = UNSET
-    state: None | str | Unset = UNSET
-    zip_: None | str | Unset = UNSET
-    country: None | str | Unset = UNSET
+    line_2: str | Unset | None = UNSET
+    city: str | Unset | None = UNSET
+    state: str | Unset | None = UNSET
+    zip_: str | Unset | None = UNSET
+    country: str | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         supplier_id = self.supplier_id
 
         line_1 = self.line_1
 
-        line_2: None | str | Unset
+        line_2: str | Unset | None
         if isinstance(self.line_2, Unset):
             line_2 = UNSET
         else:
             line_2 = self.line_2
 
-        city: None | str | Unset
+        city: str | Unset | None
         if isinstance(self.city, Unset):
             city = UNSET
         else:
             city = self.city
 
-        state: None | str | Unset
+        state: str | Unset | None
         if isinstance(self.state, Unset):
             state = UNSET
         else:
             state = self.state
 
-        zip_: None | str | Unset
+        zip_: str | Unset | None
         if isinstance(self.zip_, Unset):
             zip_ = UNSET
         else:
             zip_ = self.zip_
 
-        country: None | str | Unset
+        country: str | Unset | None
         if isinstance(self.country, Unset):
             country = UNSET
         else:
@@ -91,48 +91,48 @@ class CreateSupplierAddressRequest:
 
         line_1 = d.pop("line_1", UNSET)
 
-        def _parse_line_2(data: object) -> None | str | Unset:
+        def _parse_line_2(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
-        def _parse_city(data: object) -> None | str | Unset:
+        def _parse_city(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         city = _parse_city(d.pop("city", UNSET))
 
-        def _parse_state(data: object) -> None | str | Unset:
+        def _parse_state(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         state = _parse_state(d.pop("state", UNSET))
 
-        def _parse_zip_(data: object) -> None | str | Unset:
+        def _parse_zip_(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
-        def _parse_country(data: object) -> None | str | Unset:
+        def _parse_country(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         country = _parse_country(d.pop("country", UNSET))
 

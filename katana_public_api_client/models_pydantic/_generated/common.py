@@ -637,10 +637,14 @@ class Config2(KatanaPydanticBase):
 
 class EntityType(StrEnum):
     regular = "regular"
+    outsourced = "outsourced"
+    regular_1 = "regular"
 
 
 class EntityType1(StrEnum):
+    regular = "regular"
     outsourced = "outsourced"
+    outsourced_1 = "outsourced"
 
 
 class CreateTaxRateRequest(KatanaPydanticBase):
@@ -665,9 +669,7 @@ class CreateTaxRateRequest(KatanaPydanticBase):
 
 
 class TaxRate(UpdatableEntity):
-    id: Annotated[
-        int | None, Field(description="Unique identifier for the tax rate")
-    ] = None
+    id: Annotated[int, Field(description="Unique identifier for the tax rate")]
     name: Annotated[
         str | None,
         Field(
@@ -780,9 +782,8 @@ class VariantDefaultStorageBinLink(KatanaPydanticBase):
 
 class VariantDefaultStorageBinLinkResponse(DeletableEntity):
     id: Annotated[
-        int | None,
-        Field(description="Unique identifier for the variant-storage bin link"),
-    ] = None
+        int, Field(description="Unique identifier for the variant-storage bin link")
+    ]
     bin_name: Annotated[
         str | None, Field(description="Name of the storage bin linked to this variant")
     ] = None
@@ -1302,7 +1303,7 @@ class Factory(KatanaPydanticBase):
 
 
 class Operator(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     operator_name: str
 
 

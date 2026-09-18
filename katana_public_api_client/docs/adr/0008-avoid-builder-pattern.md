@@ -20,7 +20,7 @@ response = await get_all_products.asyncio_detailed(
     created_at_min=datetime(2024, 1, 1),
     created_at_max=datetime(2024, 12, 31),
     limit=100,
-    page=1
+    page=1,
 )
 ```
 
@@ -119,10 +119,7 @@ query = (
 products = await ProductQuery(client).sellable().all()
 
 # Direct: Clear what's happening
-response = await get_all_products.asyncio_detailed(
-    client=client,
-    is_sellable=True
-)
+response = await get_all_products.asyncio_detailed(client=client, is_sellable=True)
 products = unwrap_data(response)
 ```
 
@@ -227,7 +224,7 @@ response = await get_all_products.asyncio_detailed(
     is_producible=True,
     created_at_min=datetime(2024, 1, 1),
     created_at_max=datetime(2024, 12, 31),
-    limit=250  # Use max limit for efficiency
+    limit=250,  # Use max limit for efficiency
 )
 products = unwrap_data(response)
 ```

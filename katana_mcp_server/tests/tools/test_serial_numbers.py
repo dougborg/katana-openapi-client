@@ -61,9 +61,9 @@ def _make_serial_number(
     id: int = 1001,
     serial_number: str = "TEST-001",
     resource_type: SerialNumberResourceType = SerialNumberResourceType.MANUFACTURINGORDER,
-    resource_id: int | None | Unset = 100,
-    transaction_id: str | None | Unset = "txn-1",
-    transaction_date: _datetime.datetime | None | Unset = UNSET,
+    resource_id: int | Unset | None = 100,
+    transaction_id: str | Unset | None = "txn-1",
+    transaction_date: _datetime.datetime | Unset | None = UNSET,
     quantity_change: int = 0,
 ) -> SerialNumber:
     """Build an attrs SerialNumber for tests.

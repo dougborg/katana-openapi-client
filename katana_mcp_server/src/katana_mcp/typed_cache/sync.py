@@ -327,7 +327,7 @@ def _validate_dependency_graph(specs: Iterable[EntitySpec]) -> None:
         dfs(spec.entity_key)
 
 
-def _resolve_purchase_order_class(attrs_po: Any) -> type:
+def _resolve_purchase_order_class(attrs_po: Any) -> type[_FromAttrs]:
     """Pick the right pydantic subclass for a purchase-order attrs object.
 
     ``RegularPurchaseOrder`` and ``OutsourcedPurchaseOrder`` share

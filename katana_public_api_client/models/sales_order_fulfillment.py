@@ -42,16 +42,16 @@ class SalesOrderFulfillment:
     sales_order_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    picked_date: datetime.datetime | None | Unset = UNSET
+    picked_date: datetime.datetime | Unset | None = UNSET
     status: SalesOrderFulfillmentStatus | Unset = UNSET
-    invoice_status: None | SalesOrderFulfillmentInvoiceStatus | Unset = UNSET
-    conversion_rate: float | None | Unset = UNSET
-    conversion_date: datetime.datetime | None | Unset = UNSET
-    tracking_number: None | str | Unset = UNSET
-    tracking_url: None | str | Unset = UNSET
-    tracking_carrier: None | str | Unset = UNSET
-    tracking_method: None | str | Unset = UNSET
-    packer_id: int | None | Unset = UNSET
+    invoice_status: SalesOrderFulfillmentInvoiceStatus | Unset | None = UNSET
+    conversion_rate: float | Unset | None = UNSET
+    conversion_date: datetime.datetime | Unset | None = UNSET
+    tracking_number: str | Unset | None = UNSET
+    tracking_url: str | Unset | None = UNSET
+    tracking_carrier: str | Unset | None = UNSET
+    tracking_method: str | Unset | None = UNSET
+    packer_id: int | Unset | None = UNSET
     sales_order_fulfillment_rows: (
         list[SalesOrderFulfillmentSalesOrderFulfillmentRowsItem] | Unset
     ) = UNSET
@@ -70,7 +70,7 @@ class SalesOrderFulfillment:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        picked_date: None | str | Unset
+        picked_date: str | Unset | None
         if isinstance(self.picked_date, Unset):
             picked_date = UNSET
         elif isinstance(self.picked_date, datetime.datetime):
@@ -82,7 +82,7 @@ class SalesOrderFulfillment:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        invoice_status: None | str | Unset
+        invoice_status: str | Unset | None
         if isinstance(self.invoice_status, Unset):
             invoice_status = UNSET
         elif isinstance(self.invoice_status, SalesOrderFulfillmentInvoiceStatus):
@@ -90,13 +90,13 @@ class SalesOrderFulfillment:
         else:
             invoice_status = self.invoice_status
 
-        conversion_rate: float | None | Unset
+        conversion_rate: float | Unset | None
         if isinstance(self.conversion_rate, Unset):
             conversion_rate = UNSET
         else:
             conversion_rate = self.conversion_rate
 
-        conversion_date: None | str | Unset
+        conversion_date: str | Unset | None
         if isinstance(self.conversion_date, Unset):
             conversion_date = UNSET
         elif isinstance(self.conversion_date, datetime.datetime):
@@ -104,31 +104,31 @@ class SalesOrderFulfillment:
         else:
             conversion_date = self.conversion_date
 
-        tracking_number: None | str | Unset
+        tracking_number: str | Unset | None
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_url: None | str | Unset
+        tracking_url: str | Unset | None
         if isinstance(self.tracking_url, Unset):
             tracking_url = UNSET
         else:
             tracking_url = self.tracking_url
 
-        tracking_carrier: None | str | Unset
+        tracking_carrier: str | Unset | None
         if isinstance(self.tracking_carrier, Unset):
             tracking_carrier = UNSET
         else:
             tracking_carrier = self.tracking_carrier
 
-        tracking_method: None | str | Unset
+        tracking_method: str | Unset | None
         if isinstance(self.tracking_method, Unset):
             tracking_method = UNSET
         else:
             tracking_method = self.tracking_method
 
-        packer_id: int | None | Unset
+        packer_id: int | Unset | None
         if isinstance(self.packer_id, Unset):
             packer_id = UNSET
         else:
@@ -207,7 +207,7 @@ class SalesOrderFulfillment:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_picked_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_picked_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -220,7 +220,7 @@ class SalesOrderFulfillment:
                 return picked_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
 
@@ -233,7 +233,7 @@ class SalesOrderFulfillment:
 
         def _parse_invoice_status(
             data: object,
-        ) -> None | SalesOrderFulfillmentInvoiceStatus | Unset:
+        ) -> SalesOrderFulfillmentInvoiceStatus | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -246,20 +246,20 @@ class SalesOrderFulfillment:
                 return invoice_status_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderFulfillmentInvoiceStatus | Unset, data)
+            return cast(SalesOrderFulfillmentInvoiceStatus | Unset | None, data)
 
         invoice_status = _parse_invoice_status(d.pop("invoice_status", UNSET))
 
-        def _parse_conversion_rate(data: object) -> float | None | Unset:
+        def _parse_conversion_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
-        def _parse_conversion_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_conversion_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -272,52 +272,52 @@ class SalesOrderFulfillment:
                 return conversion_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
-        def _parse_tracking_number(data: object) -> None | str | Unset:
+        def _parse_tracking_number(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_url(data: object) -> None | str | Unset:
+        def _parse_tracking_url(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_url = _parse_tracking_url(d.pop("tracking_url", UNSET))
 
-        def _parse_tracking_carrier(data: object) -> None | str | Unset:
+        def _parse_tracking_carrier(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_carrier = _parse_tracking_carrier(d.pop("tracking_carrier", UNSET))
 
-        def _parse_tracking_method(data: object) -> None | str | Unset:
+        def _parse_tracking_method(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_method = _parse_tracking_method(d.pop("tracking_method", UNSET))
 
-        def _parse_packer_id(data: object) -> int | None | Unset:
+        def _parse_packer_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         packer_id = _parse_packer_id(d.pop("packer_id", UNSET))
 

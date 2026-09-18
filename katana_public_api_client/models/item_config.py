@@ -24,8 +24,8 @@ class ItemConfig:
     id: int
     name: str
     values: list[str]
-    product_id: int | None | Unset = UNSET
-    material_id: int | None | Unset = UNSET
+    product_id: int | Unset | None = UNSET
+    material_id: int | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,13 +35,13 @@ class ItemConfig:
 
         values = self.values
 
-        product_id: int | None | Unset
+        product_id: int | Unset | None
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        material_id: int | None | Unset
+        material_id: int | Unset | None
         if isinstance(self.material_id, Unset):
             material_id = UNSET
         else:
@@ -72,21 +72,21 @@ class ItemConfig:
 
         values = cast(list[str], d.pop("values"))
 
-        def _parse_product_id(data: object) -> int | None | Unset:
+        def _parse_product_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
-        def _parse_material_id(data: object) -> int | None | Unset:
+        def _parse_material_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 

@@ -33,17 +33,17 @@ class Factory:
     display_name: str
     base_currency_code: str
     name: str | Unset = UNSET
-    address: None | str | Unset = UNSET
+    address: str | Unset | None = UNSET
     currency: str | Unset = UNSET
     timezone: str | Unset = UNSET
     legal_address: FactoryLegalAddress | Unset = UNSET
     legal_name: str | Unset = UNSET
-    default_so_delivery_time: None | str | Unset = UNSET
-    default_po_lead_time: None | str | Unset = UNSET
+    default_so_delivery_time: str | Unset | None = UNSET
+    default_po_lead_time: str | Unset | None = UNSET
     default_manufacturing_location_id: int | Unset = UNSET
     default_purchases_location_id: int | Unset = UNSET
     default_sales_location_id: int | Unset = UNSET
-    inventory_closing_date: datetime.datetime | None | Unset = UNSET
+    inventory_closing_date: datetime.datetime | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,7 +53,7 @@ class Factory:
 
         name = self.name
 
-        address: None | str | Unset
+        address: str | Unset | None
         if isinstance(self.address, Unset):
             address = UNSET
         else:
@@ -69,13 +69,13 @@ class Factory:
 
         legal_name = self.legal_name
 
-        default_so_delivery_time: None | str | Unset
+        default_so_delivery_time: str | Unset | None
         if isinstance(self.default_so_delivery_time, Unset):
             default_so_delivery_time = UNSET
         else:
             default_so_delivery_time = self.default_so_delivery_time
 
-        default_po_lead_time: None | str | Unset
+        default_po_lead_time: str | Unset | None
         if isinstance(self.default_po_lead_time, Unset):
             default_po_lead_time = UNSET
         else:
@@ -87,7 +87,7 @@ class Factory:
 
         default_sales_location_id = self.default_sales_location_id
 
-        inventory_closing_date: None | str | Unset
+        inventory_closing_date: str | Unset | None
         if isinstance(self.inventory_closing_date, Unset):
             inventory_closing_date = UNSET
         elif isinstance(self.inventory_closing_date, datetime.datetime):
@@ -143,12 +143,12 @@ class Factory:
 
         name = d.pop("name", UNSET)
 
-        def _parse_address(data: object) -> None | str | Unset:
+        def _parse_address(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         address = _parse_address(d.pop("address", UNSET))
 
@@ -165,23 +165,23 @@ class Factory:
 
         legal_name = d.pop("legal_name", UNSET)
 
-        def _parse_default_so_delivery_time(data: object) -> None | str | Unset:
+        def _parse_default_so_delivery_time(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         default_so_delivery_time = _parse_default_so_delivery_time(
             d.pop("default_so_delivery_time", UNSET)
         )
 
-        def _parse_default_po_lead_time(data: object) -> None | str | Unset:
+        def _parse_default_po_lead_time(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         default_po_lead_time = _parse_default_po_lead_time(
             d.pop("default_po_lead_time", UNSET)
@@ -197,7 +197,7 @@ class Factory:
 
         def _parse_inventory_closing_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -210,7 +210,7 @@ class Factory:
                 return inventory_closing_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         inventory_closing_date = _parse_inventory_closing_date(
             d.pop("inventory_closing_date", UNSET)

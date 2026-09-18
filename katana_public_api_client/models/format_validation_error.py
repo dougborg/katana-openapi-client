@@ -53,7 +53,9 @@ class FormatValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.format_validation_error_info import FormatValidationErrorInfo
+        from ..models.format_validation_error_info import (
+            FormatValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

@@ -119,9 +119,8 @@ class PurchaseOrderRowRequest(KatanaPydanticBase):
 
 class PurchaseOrderRow(DeletableEntity):
     id: Annotated[
-        int | None,
-        Field(description="Unique identifier for this purchase order line item"),
-    ] = None
+        int, Field(description="Unique identifier for this purchase order line item")
+    ]
     quantity: Annotated[
         float | None, Field(description="The quantity of items for the order line.")
     ] = None
@@ -310,9 +309,8 @@ class CreatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
 
 class PurchaseOrderAdditionalCostRow(DeletableEntity):
     id: Annotated[
-        int | None,
-        Field(description="Unique identifier for this additional cost line item"),
-    ] = None
+        int, Field(description="Unique identifier for this additional cost line item")
+    ]
     additional_cost_id: Annotated[
         int | None,
         Field(
@@ -655,7 +653,7 @@ class PurchaseOrderAccountingMetadataListResponse(KatanaPydanticBase):
 
 
 class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     purchase_order_id: Annotated[
         int | None, Field(description="The purchase order this recipe row belongs to")
     ] = None

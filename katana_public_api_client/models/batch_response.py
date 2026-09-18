@@ -29,7 +29,7 @@ class BatchResponse:
     id: int
     expiration_date: datetime.datetime | Unset = UNSET
     batch_created_date: datetime.datetime | Unset = UNSET
-    batch_barcode: None | str | Unset = UNSET
+    batch_barcode: str | Unset | None = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -49,7 +49,7 @@ class BatchResponse:
         if not isinstance(self.batch_created_date, Unset):
             batch_created_date = self.batch_created_date.isoformat()
 
-        batch_barcode: None | str | Unset
+        batch_barcode: str | Unset | None
         if isinstance(self.batch_barcode, Unset):
             batch_barcode = UNSET
         else:
@@ -108,12 +108,12 @@ class BatchResponse:
         else:
             batch_created_date = datetime.datetime.fromisoformat(_batch_created_date)
 
-        def _parse_batch_barcode(data: object) -> None | str | Unset:
+        def _parse_batch_barcode(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

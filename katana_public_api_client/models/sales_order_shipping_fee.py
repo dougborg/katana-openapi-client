@@ -26,7 +26,7 @@ class SalesOrderShippingFee:
     sales_order_id: int
     amount: str
     tax_rate_id: int | Unset = UNSET
-    description: None | str | Unset = UNSET
+    description: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +38,7 @@ class SalesOrderShippingFee:
 
         tax_rate_id = self.tax_rate_id
 
-        description: None | str | Unset
+        description: str | Unset | None
         if isinstance(self.description, Unset):
             description = UNSET
         else:
@@ -71,12 +71,12 @@ class SalesOrderShippingFee:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        def _parse_description(data: object) -> None | str | Unset:
+        def _parse_description(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         description = _parse_description(d.pop("description", UNSET))
 

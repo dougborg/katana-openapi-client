@@ -71,7 +71,9 @@ class CreateSupplierRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.supplier_address_request import SupplierAddressRequest
+        from ..models.supplier_address_request import (
+            SupplierAddressRequest,
+        )
 
         d = dict(src_dict)
         name = d.pop("name")

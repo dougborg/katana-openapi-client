@@ -30,18 +30,18 @@ class SerialNumber:
     """
 
     id: int | Unset = UNSET
-    transaction_id: None | str | Unset = UNSET
+    transaction_id: str | Unset | None = UNSET
     serial_number: str | Unset = UNSET
     resource_type: SerialNumberResourceType | Unset = UNSET
-    resource_id: int | None | Unset = UNSET
-    transaction_date: datetime.datetime | None | Unset = UNSET
+    resource_id: int | Unset | None = UNSET
+    transaction_date: datetime.datetime | Unset | None = UNSET
     quantity_change: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        transaction_id: None | str | Unset
+        transaction_id: str | Unset | None
         if isinstance(self.transaction_id, Unset):
             transaction_id = UNSET
         else:
@@ -53,13 +53,13 @@ class SerialNumber:
         if not isinstance(self.resource_type, Unset):
             resource_type = self.resource_type.value
 
-        resource_id: int | None | Unset
+        resource_id: int | Unset | None
         if isinstance(self.resource_id, Unset):
             resource_id = UNSET
         else:
             resource_id = self.resource_id
 
-        transaction_date: None | str | Unset
+        transaction_date: str | Unset | None
         if isinstance(self.transaction_date, Unset):
             transaction_date = UNSET
         elif isinstance(self.transaction_date, datetime.datetime):
@@ -94,12 +94,12 @@ class SerialNumber:
         d = dict(src_dict)
         id = d.pop("id", UNSET)
 
-        def _parse_transaction_id(data: object) -> None | str | Unset:
+        def _parse_transaction_id(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         transaction_id = _parse_transaction_id(d.pop("transaction_id", UNSET))
 
@@ -112,16 +112,16 @@ class SerialNumber:
         else:
             resource_type = SerialNumberResourceType(_resource_type)
 
-        def _parse_resource_id(data: object) -> int | None | Unset:
+        def _parse_resource_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
 
-        def _parse_transaction_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_transaction_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -134,7 +134,7 @@ class SerialNumber:
                 return transaction_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         transaction_date = _parse_transaction_date(d.pop("transaction_date", UNSET))
 

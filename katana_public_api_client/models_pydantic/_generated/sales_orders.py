@@ -915,7 +915,7 @@ class UpdateSalesReturnRequest(KatanaPydanticBase):
 
 
 class SalesReturnRow(UpdatableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     sales_return_id: Annotated[
         int, Field(description="The sales return this line item belongs to")
     ]

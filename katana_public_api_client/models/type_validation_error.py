@@ -53,7 +53,9 @@ class TypeValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.type_validation_error_info import TypeValidationErrorInfo
+        from ..models.type_validation_error_info import (
+            TypeValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

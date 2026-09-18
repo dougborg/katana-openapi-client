@@ -568,7 +568,7 @@ class BatchTransaction8(KatanaPydanticBase):
 
 
 class Stocktake(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     stocktake_number: Annotated[
         str, Field(description="A string used to identify the stocktake")
     ]
@@ -616,7 +616,7 @@ class Stocktake(DeletableEntity):
 
 
 class StocktakeRow(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     stocktake_id: Annotated[
         int, Field(description="The stocktake process this row belongs to")
     ]

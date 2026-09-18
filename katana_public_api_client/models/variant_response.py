@@ -45,22 +45,22 @@ class VariantResponse:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
-    sku: None | str | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
+    sku: str | Unset | None = UNSET
     sales_price: float | Unset = UNSET
     purchase_price: float | Unset = UNSET
-    product_id: int | None | Unset = UNSET
-    material_id: int | None | Unset = UNSET
+    product_id: int | Unset | None = UNSET
+    material_id: int | Unset | None = UNSET
     type_: VariantType | Unset = UNSET
-    internal_barcode: None | str | Unset = UNSET
-    registered_barcode: None | str | Unset = UNSET
+    internal_barcode: str | Unset | None = UNSET
+    registered_barcode: str | Unset | None = UNSET
     supplier_item_codes: list[str] | Unset = UNSET
-    lead_time: int | None | Unset = UNSET
-    minimum_order_quantity: float | None | Unset = UNSET
-    config_attributes: list[VariantResponseConfigAttributesType0Item] | None | Unset = (
+    lead_time: int | Unset | None = UNSET
+    minimum_order_quantity: float | Unset | None = UNSET
+    config_attributes: list[VariantResponseConfigAttributesType0Item] | Unset | None = (
         UNSET
     )
-    custom_fields: list[VariantResponseCustomFieldsType0Item] | None | Unset = UNSET
+    custom_fields: list[VariantResponseCustomFieldsType0Item] | Unset | None = UNSET
     product_or_material: Material | Product | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -77,7 +77,7 @@ class VariantResponse:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -85,7 +85,7 @@ class VariantResponse:
         else:
             deleted_at = self.deleted_at
 
-        sku: None | str | Unset
+        sku: str | Unset | None
         if isinstance(self.sku, Unset):
             sku = UNSET
         else:
@@ -95,13 +95,13 @@ class VariantResponse:
 
         purchase_price = self.purchase_price
 
-        product_id: int | None | Unset
+        product_id: int | Unset | None
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        material_id: int | None | Unset
+        material_id: int | Unset | None
         if isinstance(self.material_id, Unset):
             material_id = UNSET
         else:
@@ -111,13 +111,13 @@ class VariantResponse:
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
-        internal_barcode: None | str | Unset
+        internal_barcode: str | Unset | None
         if isinstance(self.internal_barcode, Unset):
             internal_barcode = UNSET
         else:
             internal_barcode = self.internal_barcode
 
-        registered_barcode: None | str | Unset
+        registered_barcode: str | Unset | None
         if isinstance(self.registered_barcode, Unset):
             registered_barcode = UNSET
         else:
@@ -127,19 +127,19 @@ class VariantResponse:
         if not isinstance(self.supplier_item_codes, Unset):
             supplier_item_codes = self.supplier_item_codes
 
-        lead_time: int | None | Unset
+        lead_time: int | Unset | None
         if isinstance(self.lead_time, Unset):
             lead_time = UNSET
         else:
             lead_time = self.lead_time
 
-        minimum_order_quantity: float | None | Unset
+        minimum_order_quantity: float | Unset | None
         if isinstance(self.minimum_order_quantity, Unset):
             minimum_order_quantity = UNSET
         else:
             minimum_order_quantity = self.minimum_order_quantity
 
-        config_attributes: list[dict[str, Any]] | None | Unset
+        config_attributes: list[dict[str, Any]] | Unset | None
         if isinstance(self.config_attributes, Unset):
             config_attributes = UNSET
         elif isinstance(self.config_attributes, list):
@@ -153,7 +153,7 @@ class VariantResponse:
         else:
             config_attributes = self.config_attributes
 
-        custom_fields: list[dict[str, Any]] | None | Unset
+        custom_fields: list[dict[str, Any]] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(self.custom_fields, list):
@@ -245,7 +245,7 @@ class VariantResponse:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -258,16 +258,16 @@ class VariantResponse:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        def _parse_sku(data: object) -> None | str | Unset:
+        def _parse_sku(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         sku = _parse_sku(d.pop("sku", UNSET))
 
@@ -275,21 +275,21 @@ class VariantResponse:
 
         purchase_price = d.pop("purchase_price", UNSET)
 
-        def _parse_product_id(data: object) -> int | None | Unset:
+        def _parse_product_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
-        def _parse_material_id(data: object) -> int | None | Unset:
+        def _parse_material_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -300,21 +300,21 @@ class VariantResponse:
         else:
             type_ = VariantType(_type_)
 
-        def _parse_internal_barcode(data: object) -> None | str | Unset:
+        def _parse_internal_barcode(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         internal_barcode = _parse_internal_barcode(d.pop("internal_barcode", UNSET))
 
-        def _parse_registered_barcode(data: object) -> None | str | Unset:
+        def _parse_registered_barcode(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         registered_barcode = _parse_registered_barcode(
             d.pop("registered_barcode", UNSET)
@@ -322,21 +322,21 @@ class VariantResponse:
 
         supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
 
-        def _parse_lead_time(data: object) -> int | None | Unset:
+        def _parse_lead_time(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
-        def _parse_minimum_order_quantity(data: object) -> float | None | Unset:
+        def _parse_minimum_order_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)
@@ -344,7 +344,7 @@ class VariantResponse:
 
         def _parse_config_attributes(
             data: object,
-        ) -> list[VariantResponseConfigAttributesType0Item] | None | Unset:
+        ) -> list[VariantResponseConfigAttributesType0Item] | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -370,14 +370,14 @@ class VariantResponse:
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(
-                list[VariantResponseConfigAttributesType0Item] | None | Unset, data
+                list[VariantResponseConfigAttributesType0Item] | Unset | None, data
             )
 
         config_attributes = _parse_config_attributes(d.pop("config_attributes", UNSET))
 
         def _parse_custom_fields(
             data: object,
-        ) -> list[VariantResponseCustomFieldsType0Item] | None | Unset:
+        ) -> list[VariantResponseCustomFieldsType0Item] | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -402,7 +402,7 @@ class VariantResponse:
                 return custom_fields_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(list[VariantResponseCustomFieldsType0Item] | None | Unset, data)
+            return cast(list[VariantResponseCustomFieldsType0Item] | Unset | None, data)
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 

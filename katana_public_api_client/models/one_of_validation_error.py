@@ -55,7 +55,9 @@ class OneOfValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.one_of_validation_error_info import OneOfValidationErrorInfo
+        from ..models.one_of_validation_error_info import (
+            OneOfValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

@@ -25,15 +25,15 @@ class Stocktake:
     status: StocktakeStatus
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     stocktake_created_date: datetime.datetime | Unset = UNSET
-    started_date: datetime.datetime | None | Unset = UNSET
-    completed_date: datetime.datetime | None | Unset = UNSET
+    started_date: datetime.datetime | Unset | None = UNSET
+    completed_date: datetime.datetime | Unset | None = UNSET
     status_update_in_progress: bool | Unset = UNSET
     set_remaining_items_as_counted: bool | Unset = UNSET
-    stock_adjustment_id: int | None | Unset = UNSET
-    reason: None | str | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
+    stock_adjustment_id: int | Unset | None = UNSET
+    reason: str | Unset | None = UNSET
+    additional_info: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,7 +53,7 @@ class Stocktake:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -65,7 +65,7 @@ class Stocktake:
         if not isinstance(self.stocktake_created_date, Unset):
             stocktake_created_date = self.stocktake_created_date.isoformat()
 
-        started_date: None | str | Unset
+        started_date: str | Unset | None
         if isinstance(self.started_date, Unset):
             started_date = UNSET
         elif isinstance(self.started_date, datetime.datetime):
@@ -73,7 +73,7 @@ class Stocktake:
         else:
             started_date = self.started_date
 
-        completed_date: None | str | Unset
+        completed_date: str | Unset | None
         if isinstance(self.completed_date, Unset):
             completed_date = UNSET
         elif isinstance(self.completed_date, datetime.datetime):
@@ -85,19 +85,19 @@ class Stocktake:
 
         set_remaining_items_as_counted = self.set_remaining_items_as_counted
 
-        stock_adjustment_id: int | None | Unset
+        stock_adjustment_id: int | Unset | None
         if isinstance(self.stock_adjustment_id, Unset):
             stock_adjustment_id = UNSET
         else:
             stock_adjustment_id = self.stock_adjustment_id
 
-        reason: None | str | Unset
+        reason: str | Unset | None
         if isinstance(self.reason, Unset):
             reason = UNSET
         else:
             reason = self.reason
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
@@ -165,7 +165,7 @@ class Stocktake:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -178,7 +178,7 @@ class Stocktake:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -191,7 +191,7 @@ class Stocktake:
                 _stocktake_created_date
             )
 
-        def _parse_started_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_started_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -204,11 +204,11 @@ class Stocktake:
                 return started_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         started_date = _parse_started_date(d.pop("started_date", UNSET))
 
-        def _parse_completed_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_completed_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -221,7 +221,7 @@ class Stocktake:
                 return completed_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         completed_date = _parse_completed_date(d.pop("completed_date", UNSET))
 
@@ -229,32 +229,32 @@ class Stocktake:
 
         set_remaining_items_as_counted = d.pop("set_remaining_items_as_counted", UNSET)
 
-        def _parse_stock_adjustment_id(data: object) -> int | None | Unset:
+        def _parse_stock_adjustment_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         stock_adjustment_id = _parse_stock_adjustment_id(
             d.pop("stock_adjustment_id", UNSET)
         )
 
-        def _parse_reason(data: object) -> None | str | Unset:
+        def _parse_reason(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         reason = _parse_reason(d.pop("reason", UNSET))
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

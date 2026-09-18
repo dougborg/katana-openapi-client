@@ -37,18 +37,18 @@ class ManufacturingOrderRecipeRow:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     manufacturing_order_id: int | Unset = UNSET
     variant_id: int | Unset = UNSET
     notes: str | Unset = UNSET
     planned_quantity_per_unit: str | Unset = UNSET
-    total_actual_quantity: None | str | Unset = UNSET
+    total_actual_quantity: str | Unset | None = UNSET
     ingredient_availability: IngredientAvailability | Unset = UNSET
-    ingredient_expected_date: datetime.datetime | None | Unset = UNSET
+    ingredient_expected_date: datetime.datetime | Unset | None = UNSET
     batch_transactions: (
         list[ManufacturingOrderRecipeRowBatchTransactionsItem] | Unset
     ) = UNSET
-    cost: None | str | Unset = UNSET
+    cost: str | Unset | None = UNSET
     total_consumed_quantity: float | Unset = UNSET
     total_remaining_quantity: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -64,7 +64,7 @@ class ManufacturingOrderRecipeRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -80,7 +80,7 @@ class ManufacturingOrderRecipeRow:
 
         planned_quantity_per_unit = self.planned_quantity_per_unit
 
-        total_actual_quantity: None | str | Unset
+        total_actual_quantity: str | Unset | None
         if isinstance(self.total_actual_quantity, Unset):
             total_actual_quantity = UNSET
         else:
@@ -90,7 +90,7 @@ class ManufacturingOrderRecipeRow:
         if not isinstance(self.ingredient_availability, Unset):
             ingredient_availability = self.ingredient_availability.value
 
-        ingredient_expected_date: None | str | Unset
+        ingredient_expected_date: str | Unset | None
         if isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
         elif isinstance(self.ingredient_expected_date, datetime.datetime):
@@ -105,7 +105,7 @@ class ManufacturingOrderRecipeRow:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        cost: None | str | Unset
+        cost: str | Unset | None
         if isinstance(self.cost, Unset):
             cost = UNSET
         else:
@@ -176,7 +176,7 @@ class ManufacturingOrderRecipeRow:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -189,7 +189,7 @@ class ManufacturingOrderRecipeRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -201,12 +201,12 @@ class ManufacturingOrderRecipeRow:
 
         planned_quantity_per_unit = d.pop("planned_quantity_per_unit", UNSET)
 
-        def _parse_total_actual_quantity(data: object) -> None | str | Unset:
+        def _parse_total_actual_quantity(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         total_actual_quantity = _parse_total_actual_quantity(
             d.pop("total_actual_quantity", UNSET)
@@ -221,7 +221,7 @@ class ManufacturingOrderRecipeRow:
 
         def _parse_ingredient_expected_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -234,7 +234,7 @@ class ManufacturingOrderRecipeRow:
                 return ingredient_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
@@ -255,12 +255,12 @@ class ManufacturingOrderRecipeRow:
 
                 batch_transactions.append(batch_transactions_item)
 
-        def _parse_cost(data: object) -> None | str | Unset:
+        def _parse_cost(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         cost = _parse_cost(d.pop("cost", UNSET))
 
