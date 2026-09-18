@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from ..models.manufacturing_order_production_ingredient import (
         ManufacturingOrderProductionIngredient,
     )
+    from ..models.manufacturing_order_traceability_request import (
+        ManufacturingOrderTraceabilityRequest,
+    )
 
 
 T = TypeVar("T", bound="CreateManufacturingOrderProductionRequest")
@@ -45,6 +48,7 @@ class CreateManufacturingOrderProductionRequest:
     ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
     operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
     serial_numbers: list[int] | Unset = UNSET
+    traceability: list[ManufacturingOrderTraceabilityRequest] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -80,6 +84,13 @@ class CreateManufacturingOrderProductionRequest:
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = self.serial_numbers
 
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -100,6 +111,8 @@ class CreateManufacturingOrderProductionRequest:
             field_dict["operations"] = operations
         if serial_numbers is not UNSET:
             field_dict["serial_numbers"] = serial_numbers
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
 
         return field_dict
 
@@ -111,6 +124,9 @@ class CreateManufacturingOrderProductionRequest:
         )
         from ..models.manufacturing_order_production_ingredient import (
             ManufacturingOrderProductionIngredient,
+        )
+        from ..models.manufacturing_order_traceability_request import (
+            ManufacturingOrderTraceabilityRequest,
         )
 
         d = dict(src_dict)
@@ -158,6 +174,17 @@ class CreateManufacturingOrderProductionRequest:
 
         serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
 
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[ManufacturingOrderTraceabilityRequest] | Unset = UNSET
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = ManufacturingOrderTraceabilityRequest.from_dict(
+                    cast(Mapping[str, Any], traceability_item_data)
+                )
+
+                traceability.append(traceability_item)
+
         create_manufacturing_order_production_request = cls(
             manufacturing_order_id=manufacturing_order_id,
             completed_quantity=completed_quantity,
@@ -167,6 +194,7 @@ class CreateManufacturingOrderProductionRequest:
             ingredients=ingredients,
             operations=operations,
             serial_numbers=serial_numbers,
+            traceability=traceability,
         )
 
         create_manufacturing_order_production_request.additional_properties = d

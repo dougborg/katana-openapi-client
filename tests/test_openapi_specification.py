@@ -11,7 +11,7 @@ Consolidates:
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 import yaml
@@ -455,3 +455,86 @@ class TestSpecSourceHygiene:
             "shorter value than was written. Quote the value to keep it:\n"
             + "\n".join(offenders)
         )
+
+
+class TestManufacturingOrderTraceability:
+    """Pin the MO traceability item shapes against upstream (#1031).
+
+    Upstream narrows its shared ``TraceabilityInputItemDto`` per endpoint via
+    TypeScript ``Omit<>`` annotations, and sets ``additionalProperties:
+    false`` — so sending the omitted axis is rejected. We model the two
+    resulting shapes as distinct components.
+
+    The drift audit cannot check this. It descends one level into request
+    *objects* (#1043), but ``traceability`` is an **array**, and array item
+    schemas are not compared — so a wrong item shape here would pass
+    ``audit-spec-strict`` silently. Hence a direct test.
+    """
+
+    # The two shapes upstream narrows to, and which request uses which.
+    OUTPUT_SIDE: ClassVar[set[str]] = {"batch_id", "serial_number_id", "quantity"}
+    INPUT_SIDE: ClassVar[set[str]] = {"batch_id", "bin_location_id", "quantity"}
+
+    EXPECTED: ClassVar[dict[str, set[str]]] = {
+        "CreateManufacturingOrderRequest": OUTPUT_SIDE,
+        "UpdateManufacturingOrderRequest": OUTPUT_SIDE,
+        "CreateManufacturingOrderProductionRequest": OUTPUT_SIDE,
+        "UpdateManufacturingOrderProductionRequest": OUTPUT_SIDE,
+        "CreateManufacturingOrderRecipeRowRequest": INPUT_SIDE,
+        "UpdateManufacturingOrderRecipeRowRequest": INPUT_SIDE,
+        "UpdateManufacturingOrderProductionIngredientRequest": INPUT_SIDE,
+    }
+
+    @pytest.fixture
+    def schemas(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        return openapi_spec["components"]["schemas"]
+
+    @pytest.mark.parametrize("request_schema", sorted(EXPECTED))
+    def test_traceability_item_shape(
+        self, schemas: dict[str, Any], request_schema: str
+    ) -> None:
+        """Each MO request's traceability items carry exactly the right axes."""
+        prop = schemas[request_schema]["properties"]["traceability"]
+        assert prop["type"] == "array"
+
+        ref = prop["items"]["$ref"].rsplit("/", 1)[-1]
+        fields = set(schemas[ref].get("properties", {}))
+
+        assert fields == self.EXPECTED[request_schema], (
+            f"{request_schema}.traceability items ({ref}) have {sorted(fields)}; "
+            f"upstream declares {sorted(self.EXPECTED[request_schema])}"
+        )
+
+    @pytest.mark.parametrize(
+        "component",
+        [
+            "ManufacturingOrderTraceabilityRequest",
+            "ManufacturingOrderIngredientTraceabilityRequest",
+        ],
+    )
+    def test_narrowed_components_reject_the_omitted_axis(
+        self, schemas: dict[str, Any], component: str
+    ) -> None:
+        """``additionalProperties: false`` is what makes the narrowing real.
+
+        Without it the omitted axis would simply be accepted and forwarded,
+        and the API would reject the call — the narrowing would be cosmetic.
+        """
+        assert schemas[component]["additionalProperties"] is False
+
+    def test_the_two_shapes_are_actually_different(
+        self, schemas: dict[str, Any]
+    ) -> None:
+        """Guard against both refs collapsing onto one component.
+
+        The split is semantic — output-side allocations carry a serial
+        number, input-side ones carry a bin location — so a refactor that
+        merged them would quietly re-introduce the axis upstream rejects.
+        """
+        output = set(schemas["ManufacturingOrderTraceabilityRequest"]["properties"])
+        ingredient = set(
+            schemas["ManufacturingOrderIngredientTraceabilityRequest"]["properties"]
+        )
+
+        assert "serial_number_id" in output and "bin_location_id" not in output
+        assert "bin_location_id" in ingredient and "serial_number_id" not in ingredient

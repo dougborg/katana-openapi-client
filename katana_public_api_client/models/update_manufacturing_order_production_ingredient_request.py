@@ -12,6 +12,9 @@ from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.batch_transaction import BatchTransaction
+    from ..models.manufacturing_order_ingredient_traceability_request import (
+        ManufacturingOrderIngredientTraceabilityRequest,
+    )
 
 
 T = TypeVar("T", bound="UpdateManufacturingOrderProductionIngredientRequest")
@@ -26,6 +29,7 @@ class UpdateManufacturingOrderProductionIngredientRequest:
     """
 
     batch_transactions: list[BatchTransaction] | Unset = UNSET
+    traceability: list[ManufacturingOrderIngredientTraceabilityRequest] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,17 +40,29 @@ class UpdateManufacturingOrderProductionIngredientRequest:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.batch_transaction import BatchTransaction
+        from ..models.manufacturing_order_ingredient_traceability_request import (
+            ManufacturingOrderIngredientTraceabilityRequest,
+        )
 
         d = dict(src_dict)
         _batch_transactions = d.pop("batch_transactions", UNSET)
@@ -60,8 +76,24 @@ class UpdateManufacturingOrderProductionIngredientRequest:
 
                 batch_transactions.append(batch_transactions_item)
 
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[ManufacturingOrderIngredientTraceabilityRequest] | Unset = (
+            UNSET
+        )
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = (
+                    ManufacturingOrderIngredientTraceabilityRequest.from_dict(
+                        cast(Mapping[str, Any], traceability_item_data)
+                    )
+                )
+
+                traceability.append(traceability_item)
+
         update_manufacturing_order_production_ingredient_request = cls(
             batch_transactions=batch_transactions,
+            traceability=traceability,
         )
 
         update_manufacturing_order_production_ingredient_request.additional_properties = d

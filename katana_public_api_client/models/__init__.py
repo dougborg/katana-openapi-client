@@ -270,6 +270,9 @@ from .make_to_order_manufacturing_order_request import (
 from .manufacturing_operation_status import ManufacturingOperationStatus
 from .manufacturing_operation_type import ManufacturingOperationType
 from .manufacturing_order import ManufacturingOrder
+from .manufacturing_order_ingredient_traceability_request import (
+    ManufacturingOrderIngredientTraceabilityRequest,
+)
 from .manufacturing_order_list_response import ManufacturingOrderListResponse
 from .manufacturing_order_operation_production import (
     ManufacturingOrderOperationProduction,
@@ -307,6 +310,9 @@ from .manufacturing_order_search_filter_or_item import (
 )
 from .manufacturing_order_search_request import ManufacturingOrderSearchRequest
 from .manufacturing_order_status import ManufacturingOrderStatus
+from .manufacturing_order_traceability_request import (
+    ManufacturingOrderTraceabilityRequest,
+)
 from .material import Material
 from .material_config import MaterialConfig
 from .material_list_response import MaterialListResponse
@@ -846,6 +852,7 @@ __all__ = (
     "ManufacturingOperationStatus",
     "ManufacturingOperationType",
     "ManufacturingOrder",
+    "ManufacturingOrderIngredientTraceabilityRequest",
     "ManufacturingOrderListResponse",
     "ManufacturingOrderOperationProduction",
     "ManufacturingOrderOperationRow",
@@ -863,6 +870,7 @@ __all__ = (
     "ManufacturingOrderSearchFilterOrItem",
     "ManufacturingOrderSearchRequest",
     "ManufacturingOrderStatus",
+    "ManufacturingOrderTraceabilityRequest",
     "Material",
     "MaterialConfig",
     "MaterialListResponse",
