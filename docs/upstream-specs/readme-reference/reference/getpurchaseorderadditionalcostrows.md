@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all purchase order additional cost rows
 
@@ -235,6 +237,7 @@ Returns a list of purchase order additional cost rows you’ve previously create
                       "currency": "EUR",
                       "currency_conversion_rate": 1.1,
                       "currency_conversion_rate_fix_date": "2023-10-01T10:37:05.085Z",
+                      "reference": "Customs invoice #123",
                       "updated_at": "2023-10-01T10:37:05.085Z",
                       "created_at": "2023-10-21T10:37:05.085Z",
                       "deleted_at": null

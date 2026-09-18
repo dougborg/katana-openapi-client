@@ -6535,12 +6535,19 @@ components:
         distribution_method:
           description: How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
           $ref: "#/components/schemas/CostDistributionMethod"
+        reference:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+          description: Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge
       example:
         additional_cost_id: 1
         group_id: 1
         tax_rate_id: 1
         price: 125.0
         distribution_method: BY_VALUE
+        reference: "Customs invoice #123"
     PurchaseOrderAdditionalCostRow:
       description:
         Additional cost line item within a purchase order, representing charges like shipping, duties, or handling
@@ -6560,6 +6567,11 @@ components:
             name:
               type: string
               description: Name or description of the additional cost
+            reference:
+              type:
+                - string
+                - "null"
+              description: Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge
             distribution_method:
               type: string
               description: Method used for distributing this cost across purchase order items
@@ -6625,6 +6637,7 @@ components:
             additional_cost_id: 1
             group_id: 1
             name: International Shipping
+            reference: "Customs invoice #123"
             distribution_method: BY_VALUE
             tax_rate_id: 1
             tax_rate: 8.5
@@ -6638,6 +6651,7 @@ components:
             additional_cost_id: 2
             group_id: 1
             name: Import Duty
+            reference: null
             distribution_method: BY_VALUE
             tax_rate_id: 1
             tax_rate: 8.5
@@ -6668,11 +6682,18 @@ components:
         distribution_method:
           description: How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
           $ref: "#/components/schemas/CostDistributionMethod"
+        reference:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+          description: Free-text label describing what this cost row is; pass null to clear it
       example:
         additional_cost_id: 1
         tax_rate_id: 1
         price: 150.0
         distribution_method: BY_VALUE
+        reference: "Customs invoice #123"
     PurchaseOrderReceiveRow:
       description: Row-level data for receiving items against a purchase order, including quantity and batch details
       type: object
@@ -7864,7 +7885,8 @@ components:
       type: string
       description: |-
         Available webhook events for real-time notifications.
-        Complete list of all 61 supported events as documented in the Katana API.
+        Mirrors the event list the live gateway accepts; see the Katana API
+        changelog for newly added events.
       enum:
         - sales_order.created
         - sales_order.approved
@@ -7872,6 +7894,7 @@ components:
         - sales_order.deleted
         - sales_order.packed
         - sales_order.delivered
+        - sales_order.invoiced
         - sales_order.availability_updated
         - purchase_order.created
         - purchase_order.approved
@@ -7879,6 +7902,7 @@ components:
         - purchase_order.deleted
         - purchase_order.partially_received
         - purchase_order.received
+        - purchase_order.billed
         - purchase_order_row.created
         - purchase_order_row.updated
         - purchase_order_row.deleted
@@ -7916,11 +7940,15 @@ components:
         - product_recipe_row.created
         - product_recipe_row.updated
         - product_recipe_row.deleted
+        - bom_row.created
+        - bom_row.updated
+        - bom_row.deleted
         - outsourced_purchase_order.created
         - outsourced_purchase_order.approved
         - outsourced_purchase_order.updated
         - outsourced_purchase_order.deleted
         - outsourced_purchase_order.received
+        - outsourced_purchase_order.billed
         - outsourced_purchase_order_row.created
         - outsourced_purchase_order_row.updated
         - outsourced_purchase_order_row.deleted
@@ -8151,6 +8179,7 @@ components:
             - sales_order.approved
             - sales_order.packed
             - sales_order.delivered
+            - sales_order.invoiced
             - sales_order.updated
             - sales_order.deleted
             - sales_order.availability_updated
@@ -8160,6 +8189,7 @@ components:
             - purchase_order.deleted
             - purchase_order.partially_received
             - purchase_order.received
+            - purchase_order.billed
             - purchase_order_row.created
             - purchase_order_row.received
             - purchase_order_row.updated
@@ -8169,6 +8199,7 @@ components:
             - outsourced_purchase_order.updated
             - outsourced_purchase_order.deleted
             - outsourced_purchase_order.received
+            - outsourced_purchase_order.billed
             - outsourced_purchase_order_row.created
             - outsourced_purchase_order_row.updated
             - outsourced_purchase_order_row.deleted
@@ -8208,6 +8239,9 @@ components:
             - variant.deleted
             - product_recipe_row.created
             - product_recipe_row.deleted
+            - bom_row.created
+            - bom_row.updated
+            - bom_row.deleted
             - product_recipe_row.updated
         status_code:
           type: integer
@@ -10677,7 +10711,6 @@ components:
       additionalProperties: false
       required:
         - location_id
-        - stock_adjustment_number
         - stock_adjustment_rows
       properties:
         stock_adjustment_number:
@@ -14258,7 +14291,6 @@ components:
       required:
         - source_location_id
         - target_location_id
-        - stock_transfer_number
         - stock_transfer_rows
       properties:
         stock_transfer_number:

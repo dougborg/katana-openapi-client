@@ -1,10 +1,12 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a manufacturing order
 
-Creates a new manufacturing order object. Manufacturing order recipe and
+Creates a new manufacturing order. Manufacturing order recipe and
   operation rows are created automatically based on the product recipe and operations.
 
 # OpenAPI definition
@@ -42,7 +44,7 @@ Creates a new manufacturing order object. Manufacturing order recipe and
         "tags": [
           "Manufacturing order"
         ],
-        "description": "Creates a new manufacturing order object. Manufacturing order recipe and\n  operation rows are created automatically based on the product recipe and operations.",
+        "description": "Creates a new manufacturing order. Manufacturing order recipe and\n  operation rows are created automatically based on the product recipe and operations.",
         "operationId": "createManufacturingOrder",
         "requestBody": {
           "description": "new manufacturing order details",
@@ -53,7 +55,6 @@ Creates a new manufacturing order object. Manufacturing order recipe and
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "order_no",
                   "variant_id",
                   "location_id",
                   "planned_quantity"
@@ -92,6 +93,8 @@ Creates a new manufacturing order object. Manufacturing order recipe and
                   },
                   "batch_transactions": {
                     "type": "array",
+                    "deprecated": true,
+                    "description": "Deprecated in favor of `traceability`.",
                     "items": {
                       "type": "object",
                       "additionalProperties": false,
@@ -102,6 +105,35 @@ Creates a new manufacturing order object. Manufacturing order recipe and
                         },
                         "batch_id": {
                           "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "traceability": {
+                    "type": "array",
+                    "description": "Pre-assigned traceability for the order output. Produced traceability is moved to the production.",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "One allocation entry for the produced output. `traceability` is an array because the two tracking modes need different cardinality — a variant is tracked one way, so an output is either all-batch or all-serial, never mixed:\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — the entire produced quantity goes to a **single batch**, so send exactly **one** entry with its `batch_id`. Only one batch is ever honored per output; extra batch entries are not applied. `quantity` is not used here — the batch takes the whole output and is never split across batches.\n- **Serial-tracked** — each produced unit is its own serial number, so send **one entry per serial number** (`serial_number_id`). This is the case the array shape exists for. The number of entries may not exceed the produced quantity (422 otherwise).",
+                      "properties": {
+                        "batch_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Batch id. Mutually exclusive with `serial_number_id`. At most one batch per output — the whole produced quantity is assigned to it."
+                        },
+                        "serial_number_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Serial number id. Mutually exclusive with `batch_id`. One entry per produced unit."
+                        },
+                        "quantity": {
+                          "type": "string",
+                          "description": "Ignored for produced output: a batch entry takes the entire produced quantity and each serial entry is one unit. Accepted for shape compatibility but has no effect."
                         }
                       }
                     }
@@ -166,11 +198,19 @@ Creates a new manufacturing order object. Manufacturing order recipe and
                   "serial_numbers": [
                     {
                       "id": 1,
-                      "transaction_id": "eb4da756-0842-4495-9118-f8135f681234",
+                      "transaction_id": null,
                       "serial_number": "SN1",
-                      "resource_type": "Production",
-                      "resource_id": 2,
-                      "transaction_date": "2023-02-10T10:06:14.435Z"
+                      "resource_type": "ManufacturingOrder",
+                      "resource_id": 21400,
+                      "transaction_date": "2023-02-10T10:06:14.435Z",
+                      "quantity_change": 1
+                    }
+                  ],
+                  "traceability": [
+                    {
+                      "batch_id": 1,
+                      "serial_number_id": null,
+                      "quantity": "2"
                     }
                   ]
                 }

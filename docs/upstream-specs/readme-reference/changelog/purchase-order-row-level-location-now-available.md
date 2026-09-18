@@ -1,6 +1,4 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Purchase Order Row level location now available
 
@@ -12,11 +10,11 @@ Previously, every row on a purchase order inherited the order-level location and
 
 This applies to endpoints that create, update, filter, or return purchase order rows, and to the receive endpoint:
 
-* POST [https://api.katanamrp.com/v1/purchase\_order\_rows](https://api.katanamrp.com/v1/purchase_order_rows)
-* PATCH [https://api.katanamrp.com/v1/purchase\_order\_rows/\{id}](https://api.katanamrp.com/v1/purchase_order_rows/\{id})
-* GET [https://api.katanamrp.com/v1/purchase\_order\_rows](https://api.katanamrp.com/v1/purchase_order_rows)
-* GET [https://api.katanamrp.com/v1/purchase\_order\_rows/\{id}](https://api.katanamrp.com/v1/purchase_order_rows/\{id})
-* POST [https://api.katanamrp.com/v1/purchase\_order\_receive](https://api.katanamrp.com/v1/purchase_order_receive)
+* POST <https://api.katanamrp.com/v1/purchase_order_rows>
+* PATCH <https://api.katanamrp.com/v1/purchase_order_rows/{id}>
+* GET <https://api.katanamrp.com/v1/purchase_order_rows>
+* GET <https://api.katanamrp.com/v1/purchase_order_rows/{id}>
+* POST <https://api.katanamrp.com/v1/purchase_order_receive>
 
 `GET /purchase_order_rows` also accepts `location_id` as a query filter to list rows for a specific location. On `PATCH /purchase_order_rows/{id}`, `location_id` is updatable only while `received_date` is `null`, in line with the other editable fields on a row.
 

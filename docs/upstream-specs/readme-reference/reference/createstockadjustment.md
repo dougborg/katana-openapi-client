@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a stock adjustment
 
@@ -52,7 +54,6 @@ Creates a stock adjustment object.
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "stock_adjustment_number",
                   "location_id",
                   "stock_adjustment_rows"
                 ],
@@ -102,7 +103,8 @@ Creates a stock adjustment object.
                         "batch_transactions": {
                           "type": "array",
                           "minItems": 1,
-                          "description": "Batch-level breakdown of the stock adjustment row quantity. The sum of batch transaction quantities must equal the row quantity.",
+                          "deprecated": true,
+                          "description": "Batch-level breakdown of the stock adjustment row quantity. The sum of batch transaction quantities must equal the row quantity. **Deprecated** — will be phased out; prefer `traceability`. When both `traceability` and `batch_transactions` are sent, `traceability` wins.",
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
@@ -122,6 +124,45 @@ Creates a stock adjustment object.
                                 "maximum": 100000000000000000
                               }
                             }
+                          }
+                        },
+                        "traceability": {
+                          "type": "array",
+                          "description": "Unified allocation breakdown of the row quantity (batch / serial / bin). Preferred over `batch_transactions`; when both are sent, `traceability` wins. Each entry requires an explicit `quantity` (the service does not default it).",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "One allocation entry. A row's `traceability` is an array; entries together cover the row's quantity.\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.\n- **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.\n\nA variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.",
+                            "properties": {
+                              "batch_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Batch id. Mutually exclusive with `serial_number_id`."
+                              },
+                              "serial_number_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Serial number id. Mutually exclusive with `batch_id`."
+                              },
+                              "bin_location_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Bin location id the allocation is drawn from / moved to. Optional."
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "description": "Decimal string. **Required** for stock adjustments: the service does not default it, so a missing `quantity` is rejected. Serial entries are implicit `'1'` but the value must still be sent."
+                              }
+                            },
+                            "required": [
+                              "quantity"
+                            ]
                           }
                         }
                       }
@@ -179,6 +220,20 @@ Creates a stock adjustment object.
                           "batch_id": null,
                           "quantity": 50
                         }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 7,
+                          "quantity": "50"
+                        },
+                        {
+                          "batch_id": null,
+                          "serial_number_id": null,
+                          "bin_location_id": null,
+                          "quantity": "50"
+                        }
                       ]
                     },
                     {
@@ -190,6 +245,14 @@ Creates a stock adjustment object.
                         {
                           "batch_id": 3,
                           "quantity": 150
+                        }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 3,
+                          "serial_number_id": null,
+                          "bin_location_id": null,
+                          "quantity": "150"
                         }
                       ]
                     }

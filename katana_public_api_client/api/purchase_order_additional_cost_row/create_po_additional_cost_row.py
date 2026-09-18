@@ -91,7 +91,7 @@ def sync_detailed(
         body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
             costs (shipping, duties, handling fees) to a purchase order Example:
             {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
-            'distribution_method': 'BY_VALUE'}.
+            'distribution_method': 'BY_VALUE', 'reference': 'Customs invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -126,7 +126,7 @@ def sync(
         body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
             costs (shipping, duties, handling fees) to a purchase order Example:
             {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
-            'distribution_method': 'BY_VALUE'}.
+            'distribution_method': 'BY_VALUE', 'reference': 'Customs invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -156,7 +156,7 @@ async def asyncio_detailed(
         body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
             costs (shipping, duties, handling fees) to a purchase order Example:
             {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
-            'distribution_method': 'BY_VALUE'}.
+            'distribution_method': 'BY_VALUE', 'reference': 'Customs invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -189,7 +189,7 @@ async def asyncio(
         body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
             costs (shipping, duties, handling fees) to a purchase order Example:
             {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
-            'distribution_method': 'BY_VALUE'}.
+            'distribution_method': 'BY_VALUE', 'reference': 'Customs invoice #123'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

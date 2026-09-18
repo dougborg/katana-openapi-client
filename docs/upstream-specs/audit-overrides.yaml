@@ -152,27 +152,6 @@ overrides:
       Typed $ref:BatchTransaction vs upstream's free-form `object`. Local is
       strictly more precise (#528 A1).
 
-  # --- *_search filters: typed $ref vs upstream's opaque `object` -----------
-  - endpoint: "POST /sales_order_rows/search"
-    kind: type_diff
-    field: filter
-    live: "object"
-    local: "$ref:SalesOrderRowSearchFilter"
-    category: intentional_local_divergence
-    reason: >-
-      We model the search filter as a typed $ref for discoverable query
-      construction; upstream declares an opaque `object`. Local more precise.
-
-  - endpoint: "POST /sales_orders/search"
-    kind: type_diff
-    field: filter
-    live: "object"
-    local: "$ref:SalesOrderSearchFilter"
-    category: intentional_local_divergence
-    reason: >-
-      Typed $ref:SalesOrderSearchFilter vs upstream's opaque `object`. Local
-      more precise.
-
   # --- sales_return_rows.quantity: upstream under-documents the type --------
   - endpoint: "POST /sales_return_rows"
     kind: type_diff
@@ -511,3 +490,351 @@ overrides:
       Local response is wrapped; the readme-portal example is bare.
       Verified against the live tenant 2026-06-08: our spec matches the
       real wire contract; the portal example is a documentation artefact.
+
+
+  # --- Deferred: `custom_fields` on create/update DTOs (#1030) --------------
+  # Upstream accepts `custom_fields` on these request bodies; we don't model
+  # it. Upstream's shape is a free-form nullable object, while several local
+  # entities use the legacy typed [{field_name, field_value}] array, so the
+  # right shape per endpoint is an open question — see the issue.
+  - endpoint: "POST /bom_rows"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's BomRowCreateDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /bom_rows/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's BomRowUpdateDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /customers"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CreateCustomerDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /customers/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CustomerUpdateDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /manufacturing_order_operation_rows"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CreateManufacturingOrderOperationRowDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's UpdateManufacturingOrderOperationRowDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /manufacturing_order_recipe_rows"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CreateManufacturingOrderRecipeRowDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /manufacturing_order_recipe_rows/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's UpdateManufacturingOrderRecipeRowDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /manufacturing_orders"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CreateManufacturingOrderDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /manufacturing_orders/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's UpdateManufacturingOrderDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /product_operation_rows/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's ProductOperationRowUpdateDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /purchase_order_rows"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CreatePurchaseOrderRowWithPurchaseOrderIdDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /purchase_order_rows/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's UpdatePurchaseOrderRowDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /purchase_orders"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's CreatePurchaseOrderDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /purchase_orders/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's UpdatePurchaseOrderDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "POST /suppliers"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's SupplierCreateDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  - endpoint: "PATCH /suppliers/{id}"
+    kind: only_live
+    field: custom_fields
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Live gateway's SupplierUpdateDto accepts `custom_fields`; local request DTO omits
+      it, so callers can't set custom field values here. Deferred pending a
+      decision on the dict-vs-legacy-array shape.
+
+  # --- Deferred: `custom_fields` typed locally, untyped upstream (#1030) ---
+  - endpoint: "PATCH /services/{id}"
+    kind: type_diff
+    field: custom_fields
+    live: "?"
+    local: "array"
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Local types `custom_fields` as the legacy array; the live gateway
+      leaves it untyped. Grouped with the rest of the custom-fields shape
+      decision rather than guessed at here.
+
+  - endpoint: "POST /variants"
+    kind: type_diff
+    field: custom_fields
+    live: "?"
+    local: "array"
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Local types `custom_fields` as the legacy array; the live gateway
+      leaves it untyped. Grouped with the rest of the custom-fields shape
+      decision rather than guessed at here.
+
+  - endpoint: "PATCH /variants/{id}"
+    kind: type_diff
+    field: custom_fields
+    live: "?"
+    local: "array"
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1030"
+    reason: >-
+      Local types `custom_fields` as the legacy array; the live gateway
+      leaves it untyped. Grouped with the rest of the custom-fields shape
+      decision rather than guessed at here.
+
+  # --- Deferred: `traceability` on manufacturing-order DTOs (#1031) --------
+  # Array of traceability input items (batch_id / quantity / bin_location_id /
+  # serial_number_id). The field set varies per endpoint via upstream's
+  # Omit<> annotations, so this needs a base component plus narrowed
+  # variants rather than one shared $ref.
+  - endpoint: "POST /manufacturing_orders"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  - endpoint: "PATCH /manufacturing_orders/{id}"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  - endpoint: "POST /manufacturing_order_recipe_rows"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  - endpoint: "PATCH /manufacturing_order_recipe_rows/{id}"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  - endpoint: "POST /manufacturing_order_productions"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  - endpoint: "PATCH /manufacturing_order_productions/{id}"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  - endpoint: "PATCH /manufacturing_order_production_ingredients/{id}"
+    kind: only_live
+    field: traceability
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1031"
+    reason: >-
+      Live gateway accepts a `traceability` array here; local request DTO
+      omits it, so batch/bin/serial traceability can't be supplied.
+
+  # --- Deferred: endpoints upstream publishes and we don't model (#1032) ---
+  # `only_live_endpoint` defers one known new endpoint each. Anything NOT
+  # listed here still fails the gate, so upstream growth is still caught.
+  - endpoint: "POST /customers/search"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      Extends the POST /<entity>/search family. Upstream now publishes a
+      fully-specified filter object, so this should follow upstream's shape
+      rather than a local $ref.
+
+  - endpoint: "POST /manufacturing_orders/search"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      Extends the POST /<entity>/search family. Upstream now publishes a
+      fully-specified filter object, so this should follow upstream's shape
+      rather than a local $ref.
+
+  - endpoint: "POST /purchase_orders/search"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      Extends the POST /<entity>/search family. Upstream now publishes a
+      fully-specified filter object, so this should follow upstream's shape
+      rather than a local $ref.
+
+  - endpoint: "POST /variants/search"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      Extends the POST /<entity>/search family. Upstream now publishes a
+      fully-specified filter object, so this should follow upstream's shape
+      rather than a local $ref.
+
+  - endpoint: "GET /inventory_signals"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      New read endpoint with no local counterpart.
+
+  - endpoint: "GET /manufacturing_order_production_ingredients"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      New read endpoint with no local counterpart.
+
+  - endpoint: "POST /manufacturing_order_rerank"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      Changes an order's position in the planning sequence.
+
+  - endpoint: "POST /sales_order_rerank"
+    kind: only_live_endpoint
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1032"
+    reason: >-
+      Changes an order's position in the planning sequence.

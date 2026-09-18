@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Retrieve a sales order row
 
@@ -123,11 +125,29 @@ Retrieves the details of an existing sales order row.
                   "batch_transactions": [
                     {
                       "batch_id": 1,
-                      "quantity": 10
+                      "quantity": 5
+                    },
+                    {
+                      "batch_id": null,
+                      "quantity": 5
                     }
                   ],
                   "serial_numbers": [
                     1
+                  ],
+                  "traceability": [
+                    {
+                      "batch_id": 1,
+                      "serial_number_id": null,
+                      "bin_location_id": 3,
+                      "quantity": "5"
+                    },
+                    {
+                      "batch_id": null,
+                      "serial_number_id": null,
+                      "bin_location_id": null,
+                      "quantity": "5"
+                    }
                   ],
                   "custom_fields": {
                     "37460d24-ea57-416d-888e-bea7c0505642": "note for picker"

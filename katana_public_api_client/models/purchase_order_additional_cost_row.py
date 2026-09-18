@@ -32,6 +32,7 @@ class PurchaseOrderAdditionalCostRow:
     additional_cost_id: int | Unset = UNSET
     group_id: int | Unset = UNSET
     name: str | Unset = UNSET
+    reference: str | Unset | None = UNSET
     distribution_method: str | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
     tax_rate: float | Unset | None = UNSET
@@ -66,6 +67,12 @@ class PurchaseOrderAdditionalCostRow:
         group_id = self.group_id
 
         name = self.name
+
+        reference: str | Unset | None
+        if isinstance(self.reference, Unset):
+            reference = UNSET
+        else:
+            reference = self.reference
 
         distribution_method = self.distribution_method
 
@@ -122,6 +129,8 @@ class PurchaseOrderAdditionalCostRow:
             field_dict["group_id"] = group_id
         if name is not UNSET:
             field_dict["name"] = name
+        if reference is not UNSET:
+            field_dict["reference"] = reference
         if distribution_method is not UNSET:
             field_dict["distribution_method"] = distribution_method
         if tax_rate_id is not UNSET:
@@ -184,6 +193,15 @@ class PurchaseOrderAdditionalCostRow:
         group_id = d.pop("group_id", UNSET)
 
         name = d.pop("name", UNSET)
+
+        def _parse_reference(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        reference = _parse_reference(d.pop("reference", UNSET))
 
         distribution_method = d.pop("distribution_method", UNSET)
 
@@ -253,6 +271,7 @@ class PurchaseOrderAdditionalCostRow:
             additional_cost_id=additional_cost_id,
             group_id=group_id,
             name=name,
+            reference=reference,
             distribution_method=distribution_method,
             tax_rate_id=tax_rate_id,
             tax_rate=tax_rate,

@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all stock adjustments
 
@@ -215,6 +217,20 @@ Returns a list of stock adjustments you’ve previously created.
                               "batch_id": null,
                               "quantity": 50
                             }
+                          ],
+                          "traceability": [
+                            {
+                              "batch_id": 1,
+                              "serial_number_id": null,
+                              "bin_location_id": 7,
+                              "quantity": "50"
+                            },
+                            {
+                              "batch_id": null,
+                              "serial_number_id": null,
+                              "bin_location_id": null,
+                              "quantity": "50"
+                            }
                           ]
                         },
                         {
@@ -226,6 +242,14 @@ Returns a list of stock adjustments you’ve previously created.
                             {
                               "batch_id": 3,
                               "quantity": 150
+                            }
+                          ],
+                          "traceability": [
+                            {
+                              "batch_id": 3,
+                              "serial_number_id": null,
+                              "bin_location_id": null,
+                              "quantity": "150"
                             }
                           ]
                         }

@@ -305,6 +305,13 @@ class CreatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
             description="How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)"
         ),
     ] = None
+    reference: Annotated[
+        str | None,
+        Field(
+            description="Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge",
+            max_length=255,
+        ),
+    ] = None
 
 
 class PurchaseOrderAdditionalCostRow(DeletableEntity):
@@ -323,6 +330,12 @@ class PurchaseOrderAdditionalCostRow(DeletableEntity):
     ] = None
     name: Annotated[
         str | None, Field(description="Name or description of the additional cost")
+    ] = None
+    reference: Annotated[
+        str | None,
+        Field(
+            description="Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge"
+        ),
     ] = None
     distribution_method: Annotated[
         str | None,
@@ -397,6 +410,13 @@ class UpdatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
         CostDistributionMethod | None,
         Field(
             description="How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)"
+        ),
+    ] = None
+    reference: Annotated[
+        str | None,
+        Field(
+            description="Free-text label describing what this cost row is; pass null to clear it",
+            max_length=255,
         ),
     ] = None
 

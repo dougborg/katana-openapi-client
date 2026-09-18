@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-15T11:18:44.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Search sales order rows with advanced filters
 
@@ -8,7 +10,7 @@
 
 Searches sales order rows using a structured filter body with nested logical operators (`and`, `or`) and per-field comparators. Use this when the flat query parameters on `GET /sales_order_rows` aren’t expressive enough. The response payload matches `GET /sales_order_rows`.
 
-Only the fields listed in the request schema may appear in `where` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths.
+Only the fields listed in the request schema may appear in `filter` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths.
 
 # OpenAPI definition
 
@@ -45,7 +47,7 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
         "tags": [
           "Sales order row"
         ],
-        "description": "> 🚧 **Beta — subject to change.** This endpoint is publicly available, but its request/response shape may evolve before General Availability as we incorporate early feedback.\n\nSearches sales order rows using a structured filter body with nested logical operators (`and`, `or`) and per-field comparators. Use this when the flat query parameters on `GET /sales_order_rows` aren’t expressive enough. The response payload matches `GET /sales_order_rows`.\n\nOnly the fields listed in the request schema may appear in `where` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths.",
+        "description": "> 🚧 **Beta — subject to change.** This endpoint is publicly available, but its request/response shape may evolve before General Availability as we incorporate early feedback.\n\nSearches sales order rows using a structured filter body with nested logical operators (`and`, `or`) and per-field comparators. Use this when the flat query parameters on `GET /sales_order_rows` aren’t expressive enough. The response payload matches `GET /sales_order_rows`.\n\nOnly the fields listed in the request schema may appear in `filter` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths.",
         "operationId": "searchSalesOrderRows",
         "requestBody": {
           "description": "Structured filter body. See the schema for the field allowlist, the operator allowlist, and value caps.",
@@ -58,29 +60,398 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                 "properties": {
                   "filter": {
                     "type": "object",
-                    "additionalProperties": false,
+                    "description": "Filter clause. Only the fields listed below may appear here — unknown fields are rejected with 422. Custom field values can also be addressed via `custom_fields.<uuid>` nested keys, where `<uuid>` is the custom field definition id.",
                     "properties": {
-                      "where": {
-                        "type": "object",
-                        "description": "Filter clause. Only the fields listed below may appear here — unknown fields are rejected with 422. Custom field values can also be addressed via `custom_fields.<uuid>` nested keys, where `<uuid>` is the custom field definition id.",
-                        "properties": {
-                          "and": {
-                            "type": "array",
-                            "description": "Logical AND — every nested clause must match. Maximum nesting depth: 2.",
-                            "items": {
-                              "type": "object"
+                      "and": {
+                        "type": "array",
+                        "description": "Logical AND — every nested clause must match. Maximum nesting depth: 2.",
+                        "items": {
+                          "type": "object"
+                        }
+                      },
+                      "or": {
+                        "type": "array",
+                        "description": "Logical OR — at least one nested clause must match. Maximum nesting depth: 2.",
+                        "items": {
+                          "type": "object"
+                        }
+                      },
+                      "id": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
                             }
+                          }
+                        ],
+                        "description": "Sales order row id."
+                      },
+                      "sales_order_id": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
                           },
-                          "or": {
-                            "type": "array",
-                            "description": "Logical OR — at least one nested clause must match. Maximum nesting depth: 2.",
-                            "items": {
-                              "type": "object"
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
                             }
-                          },
-                          "id": {
+                          }
+                        ],
+                        "description": "Parent sales order id."
+                      },
+                      "variant_id": {
+                        "anyOf": [
+                          {
                             "anyOf": [
                               {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -93,171 +464,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Not equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Sales order row id."
-                          },
-                          "sales_order_id": {
-                            "anyOf": [
-                              {
+                              "gt": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -270,171 +480,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Greater than"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Parent sales order id."
-                          },
-                          "variant_id": {
-                            "anyOf": [
-                              {
+                              "gte": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -447,171 +496,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Greater than or equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Variant id sold on this row."
-                          },
-                          "location_id": {
-                            "anyOf": [
-                              {
+                              "lt": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -624,171 +512,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Less than"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Location id this row ships from."
-                          },
-                          "tax_rate_id": {
-                            "anyOf": [
-                              {
+                              "lte": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -801,171 +528,107 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Less than or equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
                                     },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
+                                    {
+                                      "type": "number"
                                     },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
                                     },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
                               }
-                            ],
-                            "description": "Tax rate id applied to this row."
-                          },
-                          "quantity": {
+                            }
+                          }
+                        ],
+                        "description": "Variant id sold on this row."
+                      },
+                      "location_id": {
+                        "anyOf": [
+                          {
                             "anyOf": [
                               {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -978,171 +641,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Not equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Ordered quantity."
-                          },
-                          "price_per_unit": {
-                            "anyOf": [
-                              {
+                              "gt": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -1155,171 +657,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Greater than"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Unit price."
-                          },
-                          "total_discount": {
-                            "anyOf": [
-                              {
+                              "gte": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -1332,171 +673,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Greater than or equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Total discount applied to this row."
-                          },
-                          "tax_rate": {
-                            "anyOf": [
-                              {
+                              "lt": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -1509,171 +689,10 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Less than"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Tax rate percentage applied to this row."
-                          },
-                          "currency": {
-                            "anyOf": [
-                              {
+                              "lte": {
                                 "anyOf": [
                                   {
                                     "type": "string",
@@ -1686,171 +705,1165 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                     "type": "boolean"
                                   }
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Less than or equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
                                     },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
+                                    {
+                                      "type": "number"
                                     },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
                                     },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
                               }
-                            ],
-                            "description": "ISO 4217 currency code."
-                          },
-                          "product_availability": {
+                            }
+                          }
+                        ],
+                        "description": "Location id this row ships from."
+                      },
+                      "tax_rate_id": {
+                        "anyOf": [
+                          {
                             "anyOf": [
                               {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Tax rate id applied to this row."
+                      },
+                      "quantity": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Ordered quantity."
+                      },
+                      "price_per_unit": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Unit price."
+                      },
+                      "total_discount": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Total discount applied to this row."
+                      },
+                      "tax_rate": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Tax rate percentage applied to this row."
+                      },
+                      "currency": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "ISO 4217 currency code."
+                      },
+                      "product_availability": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "IN_STOCK",
+                              "EXPECTED",
+                              "PICKED",
+                              "NOT_AVAILABLE",
+                              "NOT_APPLICABLE"
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
                                 "type": "string",
                                 "enum": [
                                   "IN_STOCK",
@@ -1859,907 +1872,888 @@ Only the fields listed in the request schema may appear in `where` and `order`; 
                                   "NOT_AVAILABLE",
                                   "NOT_APPLICABLE"
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Not equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IN_STOCK",
-                                      "EXPECTED",
-                                      "PICKED",
-                                      "NOT_AVAILABLE",
-                                      "NOT_APPLICABLE"
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IN_STOCK",
-                                      "EXPECTED",
-                                      "PICKED",
-                                      "NOT_AVAILABLE",
-                                      "NOT_APPLICABLE"
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IN_STOCK",
-                                      "EXPECTED",
-                                      "PICKED",
-                                      "NOT_AVAILABLE",
-                                      "NOT_APPLICABLE"
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IN_STOCK",
-                                      "EXPECTED",
-                                      "PICKED",
-                                      "NOT_AVAILABLE",
-                                      "NOT_APPLICABLE"
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IN_STOCK",
-                                      "EXPECTED",
-                                      "PICKED",
-                                      "NOT_AVAILABLE",
-                                      "NOT_APPLICABLE"
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "enum": [
-                                        "IN_STOCK",
-                                        "EXPECTED",
-                                        "PICKED",
-                                        "NOT_AVAILABLE",
-                                        "NOT_APPLICABLE"
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "enum": [
-                                        "IN_STOCK",
-                                        "EXPECTED",
-                                        "PICKED",
-                                        "NOT_AVAILABLE",
-                                        "NOT_APPLICABLE"
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "enum": [
-                                        "IN_STOCK",
-                                        "EXPECTED",
-                                        "PICKED",
-                                        "NOT_AVAILABLE",
-                                        "NOT_APPLICABLE"
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Product availability rollup."
-                          },
-                          "created_at": {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 256
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                              "gt": {
+                                "type": "string",
+                                "enum": [
+                                  "IN_STOCK",
+                                  "EXPECTED",
+                                  "PICKED",
+                                  "NOT_AVAILABLE",
+                                  "NOT_APPLICABLE"
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Greater than"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "ISO 8601 timestamp the row was created."
-                          },
-                          "updated_at": {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 256
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                              "gte": {
+                                "type": "string",
+                                "enum": [
+                                  "IN_STOCK",
+                                  "EXPECTED",
+                                  "PICKED",
+                                  "NOT_AVAILABLE",
+                                  "NOT_APPLICABLE"
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Greater than or equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "ISO 8601 timestamp the row was last updated."
-                          },
-                          "delivery_date": {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 256
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                              "lt": {
+                                "type": "string",
+                                "enum": [
+                                  "IN_STOCK",
+                                  "EXPECTED",
+                                  "PICKED",
+                                  "NOT_AVAILABLE",
+                                  "NOT_APPLICABLE"
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Less than"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
-                              }
-                            ],
-                            "description": "Planned delivery date for this row."
-                          },
-                          "shipping_date": {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 256
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                              "lte": {
+                                "type": "string",
+                                "enum": [
+                                  "IN_STOCK",
+                                  "EXPECTED",
+                                  "PICKED",
+                                  "NOT_AVAILABLE",
+                                  "NOT_APPLICABLE"
                                 ],
-                                "nullable": true
+                                "nullable": true,
+                                "description": "Less than or equal"
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "neq": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Not equal"
-                                  },
-                                  "gt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than"
-                                  },
-                                  "gte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Greater than or equal"
-                                  },
-                                  "lt": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than"
-                                  },
-                                  "lte": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "maxLength": 256
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ],
-                                    "nullable": true,
-                                    "description": "Less than or equal"
-                                  },
-                                  "inq": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is in this list (max 100 entries)."
-                                  },
-                                  "nin": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "maxItems": 100,
-                                    "description": "Value is not in this list (max 100 entries)."
-                                  },
-                                  "between": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 256
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ],
-                                      "nullable": true
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                    "description": "Inclusive range `[low, high]`."
-                                  },
-                                  "like": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
-                                  },
-                                  "ilike": {
-                                    "type": "string",
-                                    "maxLength": 256,
-                                    "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
-                                  }
-                                }
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "IN_STOCK",
+                                    "EXPECTED",
+                                    "PICKED",
+                                    "NOT_AVAILABLE",
+                                    "NOT_APPLICABLE"
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "IN_STOCK",
+                                    "EXPECTED",
+                                    "PICKED",
+                                    "NOT_AVAILABLE",
+                                    "NOT_APPLICABLE"
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "IN_STOCK",
+                                    "EXPECTED",
+                                    "PICKED",
+                                    "NOT_AVAILABLE",
+                                    "NOT_APPLICABLE"
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
                               }
-                            ],
-                            "description": "Actual shipping date for this row."
-                          }
-                        }
-                      },
-                      "order": {
-                        "description": "Sort directive(s). Each entry is `<field> ASC|DESC` (direction defaults to ASC). Only filterable fields may be used here. `custom_fields.<uuid>` nested paths are orderable.",
-                        "oneOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
                             }
                           }
-                        ]
+                        ],
+                        "description": "Product availability rollup."
                       },
-                      "limit": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 200,
-                        "default": 50,
-                        "description": "Page size. Defaults to 50 when omitted. Maximum 200."
+                      "created_at": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "ISO 8601 timestamp the row was created."
                       },
-                      "page": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "default": 1,
-                        "description": "1-based page number. Defaults to 1 when omitted. Pagination follows the same convention as every other paginated endpoint in the public API."
+                      "updated_at": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "ISO 8601 timestamp the row was last updated."
+                      },
+                      "delivery_date": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Planned delivery date for this row."
+                      },
+                      "shipping_date": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "neq": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Not equal"
+                              },
+                              "gt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than"
+                              },
+                              "gte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Greater than or equal"
+                              },
+                              "lt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than"
+                              },
+                              "lte": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 256
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ],
+                                "nullable": true,
+                                "description": "Less than or equal"
+                              },
+                              "inq": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is in this list (max 100 entries)."
+                              },
+                              "nin": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "maxItems": 100,
+                                "description": "Value is not in this list (max 100 entries)."
+                              },
+                              "between": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ],
+                                  "nullable": true
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "description": "Inclusive range `[low, high]`."
+                              },
+                              "like": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-sensitive. Use `%` for any sequence and `_` for any single character."
+                              },
+                              "ilike": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "description": "Pattern match, case-insensitive. Use `%` for any sequence and `_` for any single character."
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Actual shipping date for this row."
                       }
                     }
+                  },
+                  "order": {
+                    "description": "Sort directive(s). Each entry is `<field> ASC|DESC` (direction defaults to ASC). Only filterable fields may be used here. `custom_fields.<uuid>` nested paths are orderable.",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 200,
+                    "default": 50,
+                    "description": "Page size. Defaults to 50 when omitted. Maximum 200."
+                  },
+                  "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1,
+                    "description": "1-based page number. Defaults to 1 when omitted. Pagination follows the same convention as every other paginated endpoint in the public API."
                   }
                 }
               },
               "example": {
                 "filter": {
-                  "where": {
-                    "and": [
-                      {
-                        "sales_order_id": {
-                          "inq": [
-                            12345,
-                            12346,
-                            12347
-                          ]
-                        }
-                      },
-                      {
-                        "quantity": {
-                          "gt": 0
-                        }
-                      },
-                      {
-                        "product_availability": "IN_STOCK"
+                  "and": [
+                    {
+                      "sales_order_id": {
+                        "inq": [
+                          12345,
+                          12346,
+                          12347
+                        ]
                       }
-                    ]
-                  },
-                  "order": [
-                    "delivery_date ASC",
-                    "id ASC"
-                  ],
-                  "limit": 100,
-                  "page": 1
-                }
+                    },
+                    {
+                      "quantity": {
+                        "gt": 0
+                      }
+                    },
+                    {
+                      "product_availability": "IN_STOCK"
+                    }
+                  ]
+                },
+                "order": [
+                  "delivery_date ASC",
+                  "id ASC"
+                ],
+                "limit": 100,
+                "page": 1
               }
             }
           }

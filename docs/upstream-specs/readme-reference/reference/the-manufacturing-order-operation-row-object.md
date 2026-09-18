@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2025-09-04T07:57:02.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # The manufacturing order operation row object
 
@@ -194,11 +196,11 @@
       </td>
 
       <td style={{ textAlign: "left" }}>
-        Different operation types allow you to use different cost calculations depending on the type of product operation
+        Different operation types allow you to use different cost calculations depending on the type of product operation  
 
-        * \*process\*\*: The process operation type is best for when products are individually built and time is the main driver of cost.
-        * \*setup\*\*: The setup operation type is best for setting up a machine for production where the production quantity doesn't affect cost.
-        * \*perUnit\*\*: The per unit operation type is best when cost of time isn't a factor, but only the quantity of product made.
+        * \*process\*\*: The process operation type is best for when products are individually built and time is the main driver of cost.  
+        * \*setup\*\*: The setup operation type is best for setting up a machine for production where the production quantity doesn't affect cost.  
+        * \*perUnit\*\*: The per unit operation type is best when cost of time isn't a factor, but only the quantity of product made.  
         * \*fixed\*\*: The fixed cost operation type is useful for adding the expected extra costs that go into producing a product.
       </td>
     </tr>
@@ -259,11 +261,11 @@
       </td>
 
       <td style={{ textAlign: "left" }}>
-        (This field is deprecated in favor of cost\_parameter) The expected cost of an operation, either total or per hour/unit of product (based on type). Total cost of the operation on a manufacturing order is calculated as follows:
+        (This field is deprecated in favor of cost\_parameter) The expected cost of an operation, either total or per hour/unit of product (based on type). Total cost of the operation on a manufacturing order is calculated as follows:  
 
-        * \*process\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours) x product quantity
-        * \*setup\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours)
-        * \*perUnit\*\*: cost = cost\_parameter x product quantity
+        * \*process\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours) x product quantity  
+        * \*setup\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours)  
+        * \*perUnit\*\*: cost = cost\_parameter x product quantity  
         * \*fixed\*\*: cost = cost\_parameter
       </td>
     </tr>
@@ -274,11 +276,11 @@
       </td>
 
       <td style={{ textAlign: "left" }}>
-        The expected cost of an operation, either total or per hour/unit of product (based on type). Total cost of the operation on a manufacturing order is calculated as follows:
+        The expected cost of an operation, either total or per hour/unit of product (based on type). Total cost of the operation on a manufacturing order is calculated as follows:  
 
-        * \*process\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours) x product quantity
-        * \*setup\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours)
-        * \*perUnit\*\*: cost = cost\_parameter x product quantity
+        * \*process\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours) x product quantity  
+        * \*setup\*\*: cost = cost\_parameter x planned\_time\_parameter (in hours)  
+        * \*perUnit\*\*: cost = cost\_parameter x product quantity  
         * \*fixed\*\*: cost = cost\_parameter
       </td>
     </tr>
