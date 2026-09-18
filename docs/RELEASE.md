@@ -88,8 +88,18 @@ git commit -m "feat(client)!: redesign authentication flow"
 | ------------------------------------------------------------------ | ------------ |
 | `fix:`, `perf:`                                                    | PATCH        |
 | `feat:`                                                            | MINOR        |
-| `feat!:` / `BREAKING CHANGE:` footer                               | MAJOR        |
+| `feat!:` / `BREAKING CHANGE:` footer                               | MINOR\*      |
 | `docs:`, `chore:`, `test:`, `ci:`, `refactor:`, `style:`, `build:` | No bump      |
+
+\* **While both packages are pre-1.0**, a breaking change bumps the MINOR version
+(`0.81.0` -> `0.82.0`), not the major. This is `"bump-minor-pre-major": true` in
+`release-please-config.json`.
+
+Without that flag, release-please's default takes the first breaking change straight to
+`1.0.0` — which happened in #1006, where a narrow request-model fix proposed a `1.0.0`
+release. Going 1.0 is a deliberate statement about API stability, not something a commit
+footer should decide. Keep marking breaking changes honestly with `!` /
+`BREAKING CHANGE:`; the changelog needs them. When you *do* want 1.0, remove the flag.
 
 Which package bumps is determined by **which files the commit touches**:
 
