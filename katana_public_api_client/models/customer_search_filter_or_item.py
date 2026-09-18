@@ -8,11 +8,11 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="SalesOrderRowSearchWhereOrItem")
+T = TypeVar("T", bound="CustomerSearchFilterOrItem")
 
 
 @_attrs_define
-class SalesOrderRowSearchWhereOrItem:
+class CustomerSearchFilterOrItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -25,10 +25,10 @@ class SalesOrderRowSearchWhereOrItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        sales_order_row_search_where_or_item = cls()
+        customer_search_filter_or_item = cls()
 
-        sales_order_row_search_where_or_item.additional_properties = d
-        return sales_order_row_search_where_or_item
+        customer_search_filter_or_item.additional_properties = d
+        return customer_search_filter_or_item
 
     @property
     def additional_keys(self) -> list[str]:

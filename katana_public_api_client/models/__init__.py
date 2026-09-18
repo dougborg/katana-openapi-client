@@ -186,6 +186,10 @@ from .customer import Customer
 from .customer_address import CustomerAddress
 from .customer_address_list_response import CustomerAddressListResponse
 from .customer_list_response import CustomerListResponse
+from .customer_search_filter import CustomerSearchFilter
+from .customer_search_filter_and_item import CustomerSearchFilterAndItem
+from .customer_search_filter_or_item import CustomerSearchFilterOrItem
+from .customer_search_request import CustomerSearchRequest
 from .deletable_entity import DeletableEntity
 from .delete_serial_numbers_request import DeleteSerialNumbersRequest
 from .demand_forecast_period import DemandForecastPeriod
@@ -294,6 +298,14 @@ from .manufacturing_order_recipe_row_batch_transactions_item import (
 from .manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse,
 )
+from .manufacturing_order_search_filter import ManufacturingOrderSearchFilter
+from .manufacturing_order_search_filter_and_item import (
+    ManufacturingOrderSearchFilterAndItem,
+)
+from .manufacturing_order_search_filter_or_item import (
+    ManufacturingOrderSearchFilterOrItem,
+)
+from .manufacturing_order_search_request import ManufacturingOrderSearchRequest
 from .manufacturing_order_status import ManufacturingOrderStatus
 from .material import Material
 from .material_config import MaterialConfig
@@ -391,6 +403,10 @@ from .purchase_order_row_batch_transactions_item import (
 )
 from .purchase_order_row_list_response import PurchaseOrderRowListResponse
 from .purchase_order_row_request import PurchaseOrderRowRequest
+from .purchase_order_search_filter import PurchaseOrderSearchFilter
+from .purchase_order_search_filter_and_item import PurchaseOrderSearchFilterAndItem
+from .purchase_order_search_filter_or_item import PurchaseOrderSearchFilterOrItem
+from .purchase_order_search_request import PurchaseOrderSearchRequest
 from .purchase_order_status import PurchaseOrderStatus
 from .recipe import Recipe
 from .recipe_list_response import RecipeListResponse
@@ -434,10 +450,9 @@ from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransacti
 from .sales_order_row_custom_fields_type_0 import SalesOrderRowCustomFieldsType0
 from .sales_order_row_list_response import SalesOrderRowListResponse
 from .sales_order_row_search_filter import SalesOrderRowSearchFilter
+from .sales_order_row_search_filter_and_item import SalesOrderRowSearchFilterAndItem
+from .sales_order_row_search_filter_or_item import SalesOrderRowSearchFilterOrItem
 from .sales_order_row_search_request import SalesOrderRowSearchRequest
-from .sales_order_row_search_where import SalesOrderRowSearchWhere
-from .sales_order_row_search_where_and_item import SalesOrderRowSearchWhereAndItem
-from .sales_order_row_search_where_or_item import SalesOrderRowSearchWhereOrItem
 from .sales_order_row_serial_number_transactions_item import (
     SalesOrderRowSerialNumberTransactionsItem,
 )
@@ -445,10 +460,9 @@ from .sales_order_row_serial_number_transactions_item_quantity import (
     SalesOrderRowSerialNumberTransactionsItemQuantity,
 )
 from .sales_order_search_filter import SalesOrderSearchFilter
+from .sales_order_search_filter_and_item import SalesOrderSearchFilterAndItem
+from .sales_order_search_filter_or_item import SalesOrderSearchFilterOrItem
 from .sales_order_search_request import SalesOrderSearchRequest
-from .sales_order_search_where import SalesOrderSearchWhere
-from .sales_order_search_where_and_item import SalesOrderSearchWhereAndItem
-from .sales_order_search_where_or_item import SalesOrderSearchWhereOrItem
 from .sales_order_shipping_fee import SalesOrderShippingFee
 from .sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
 from .sales_order_status import SalesOrderStatus
@@ -612,6 +626,11 @@ from .variant_response_config_attributes_type_0_item import (
 from .variant_response_custom_fields_type_0_item import (
     VariantResponseCustomFieldsType0Item,
 )
+from .variant_search_filter import VariantSearchFilter
+from .variant_search_filter_and_item import VariantSearchFilterAndItem
+from .variant_search_filter_or_item import VariantSearchFilterOrItem
+from .variant_search_request import VariantSearchRequest
+from .variant_search_request_include_item import VariantSearchRequestIncludeItem
 from .variant_type import VariantType
 from .webhook import Webhook
 from .webhook_event import WebhookEvent
@@ -753,6 +772,10 @@ __all__ = (
     "CustomerAddress",
     "CustomerAddressListResponse",
     "CustomerListResponse",
+    "CustomerSearchFilter",
+    "CustomerSearchFilterAndItem",
+    "CustomerSearchFilterOrItem",
+    "CustomerSearchRequest",
     "DeletableEntity",
     "DeleteSerialNumbersRequest",
     "DemandForecastPeriod",
@@ -835,6 +858,10 @@ __all__ = (
     "ManufacturingOrderRecipeRow",
     "ManufacturingOrderRecipeRowBatchTransactionsItem",
     "ManufacturingOrderRecipeRowListResponse",
+    "ManufacturingOrderSearchFilter",
+    "ManufacturingOrderSearchFilterAndItem",
+    "ManufacturingOrderSearchFilterOrItem",
+    "ManufacturingOrderSearchRequest",
     "ManufacturingOrderStatus",
     "Material",
     "MaterialConfig",
@@ -912,6 +939,10 @@ __all__ = (
     "PurchaseOrderRowBatchTransactionsItem",
     "PurchaseOrderRowListResponse",
     "PurchaseOrderRowRequest",
+    "PurchaseOrderSearchFilter",
+    "PurchaseOrderSearchFilterAndItem",
+    "PurchaseOrderSearchFilterOrItem",
+    "PurchaseOrderSearchRequest",
     "PurchaseOrderStatus",
     "Recipe",
     "RecipeListResponse",
@@ -947,17 +978,15 @@ __all__ = (
     "SalesOrderRowCustomFieldsType0",
     "SalesOrderRowListResponse",
     "SalesOrderRowSearchFilter",
+    "SalesOrderRowSearchFilterAndItem",
+    "SalesOrderRowSearchFilterOrItem",
     "SalesOrderRowSearchRequest",
-    "SalesOrderRowSearchWhere",
-    "SalesOrderRowSearchWhereAndItem",
-    "SalesOrderRowSearchWhereOrItem",
     "SalesOrderRowSerialNumberTransactionsItem",
     "SalesOrderRowSerialNumberTransactionsItemQuantity",
     "SalesOrderSearchFilter",
+    "SalesOrderSearchFilterAndItem",
+    "SalesOrderSearchFilterOrItem",
     "SalesOrderSearchRequest",
-    "SalesOrderSearchWhere",
-    "SalesOrderSearchWhereAndItem",
-    "SalesOrderSearchWhereOrItem",
     "SalesOrderShippingFee",
     "SalesOrderShippingFeeListResponse",
     "SalesOrderStatus",
@@ -1081,6 +1110,11 @@ __all__ = (
     "VariantResponse",
     "VariantResponseConfigAttributesType0Item",
     "VariantResponseCustomFieldsType0Item",
+    "VariantSearchFilter",
+    "VariantSearchFilterAndItem",
+    "VariantSearchFilterOrItem",
+    "VariantSearchRequest",
+    "VariantSearchRequestIncludeItem",
     "VariantType",
     "Webhook",
     "WebhookEvent",

@@ -263,6 +263,12 @@ from katana_public_api_client.models.customer_address_list_response import (
 from katana_public_api_client.models.customer_list_response import (
     CustomerListResponse as AttrsCustomerListResponse,
 )
+from katana_public_api_client.models.customer_search_filter import (
+    CustomerSearchFilter as AttrsCustomerSearchFilter,
+)
+from katana_public_api_client.models.customer_search_request import (
+    CustomerSearchRequest as AttrsCustomerSearchRequest,
+)
 from katana_public_api_client.models.deletable_entity import (
     DeletableEntity as AttrsDeletableEntity,
 )
@@ -377,6 +383,12 @@ from katana_public_api_client.models.manufacturing_order_recipe_row import (
 )
 from katana_public_api_client.models.manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse as AttrsManufacturingOrderRecipeRowListResponse,
+)
+from katana_public_api_client.models.manufacturing_order_search_filter import (
+    ManufacturingOrderSearchFilter as AttrsManufacturingOrderSearchFilter,
+)
+from katana_public_api_client.models.manufacturing_order_search_request import (
+    ManufacturingOrderSearchRequest as AttrsManufacturingOrderSearchRequest,
 )
 from katana_public_api_client.models.material import Material as AttrsMaterial
 from katana_public_api_client.models.material_config import (
@@ -493,6 +505,12 @@ from katana_public_api_client.models.purchase_order_row_list_response import (
 from katana_public_api_client.models.purchase_order_row_request import (
     PurchaseOrderRowRequest as AttrsPurchaseOrderRowRequest,
 )
+from katana_public_api_client.models.purchase_order_search_filter import (
+    PurchaseOrderSearchFilter as AttrsPurchaseOrderSearchFilter,
+)
+from katana_public_api_client.models.purchase_order_search_request import (
+    PurchaseOrderSearchRequest as AttrsPurchaseOrderSearchRequest,
+)
 from katana_public_api_client.models.recipe import Recipe as AttrsRecipe
 from katana_public_api_client.models.recipe_list_response import (
     RecipeListResponse as AttrsRecipeListResponse,
@@ -550,17 +568,11 @@ from katana_public_api_client.models.sales_order_row_search_filter import (
 from katana_public_api_client.models.sales_order_row_search_request import (
     SalesOrderRowSearchRequest as AttrsSalesOrderRowSearchRequest,
 )
-from katana_public_api_client.models.sales_order_row_search_where import (
-    SalesOrderRowSearchWhere as AttrsSalesOrderRowSearchWhere,
-)
 from katana_public_api_client.models.sales_order_search_filter import (
     SalesOrderSearchFilter as AttrsSalesOrderSearchFilter,
 )
 from katana_public_api_client.models.sales_order_search_request import (
     SalesOrderSearchRequest as AttrsSalesOrderSearchRequest,
-)
-from katana_public_api_client.models.sales_order_search_where import (
-    SalesOrderSearchWhere as AttrsSalesOrderSearchWhere,
 )
 from katana_public_api_client.models.sales_order_shipping_fee import (
     SalesOrderShippingFee as AttrsSalesOrderShippingFee,
@@ -826,6 +838,12 @@ from katana_public_api_client.models.variant_list_response import (
 from katana_public_api_client.models.variant_response import (
     VariantResponse as AttrsVariantResponse,
 )
+from katana_public_api_client.models.variant_search_filter import (
+    VariantSearchFilter as AttrsVariantSearchFilter,
+)
+from katana_public_api_client.models.variant_search_request import (
+    VariantSearchRequest as AttrsVariantSearchRequest,
+)
 from katana_public_api_client.models.webhook import Webhook as AttrsWebhook
 from katana_public_api_client.models.webhook_event_payload import (
     WebhookEventPayload as AttrsWebhookEventPayload,
@@ -908,6 +926,8 @@ from ._generated.common import (
     UserListResponse as PydanticUserListResponse,
     VariantDefaultStorageBinLink as PydanticVariantDefaultStorageBinLink,
     VariantDefaultStorageBinLinkResponse as PydanticVariantDefaultStorageBinLinkResponse,
+    VariantSearchFilter as PydanticVariantSearchFilter,
+    VariantSearchRequest as PydanticVariantSearchRequest,
 )
 from ._generated.contacts import (
     CreateCustomerAddressRequest as PydanticCreateCustomerAddressRequest,
@@ -921,6 +941,8 @@ from ._generated.contacts import (
     CustomerAddress as PydanticCustomerAddress,
     CustomerAddressListResponse as PydanticCustomerAddressListResponse,
     CustomerListResponse as PydanticCustomerListResponse,
+    CustomerSearchFilter as PydanticCustomerSearchFilter,
+    CustomerSearchRequest as PydanticCustomerSearchRequest,
     PriceList as PydanticPriceList,
     PriceListCustomer as PydanticPriceListCustomer,
     PriceListCustomerListResponse as PydanticPriceListCustomerListResponse,
@@ -1025,6 +1047,8 @@ from ._generated.manufacturing import (
     ManufacturingOrderProductionListResponse as PydanticManufacturingOrderProductionListResponse,
     ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
     ManufacturingOrderRecipeRowListResponse as PydanticManufacturingOrderRecipeRowListResponse,
+    ManufacturingOrderSearchFilter as PydanticManufacturingOrderSearchFilter,
+    ManufacturingOrderSearchRequest as PydanticManufacturingOrderSearchRequest,
     Recipe as PydanticRecipe,
     RecipeListResponse as PydanticRecipeListResponse,
     UnlinkManufacturingOrderRequest as PydanticUnlinkManufacturingOrderRequest,
@@ -1054,6 +1078,8 @@ from ._generated.purchase_orders import (
     PurchaseOrderRow as PydanticPurchaseOrderRow,
     PurchaseOrderRowListResponse as PydanticPurchaseOrderRowListResponse,
     PurchaseOrderRowRequest as PydanticPurchaseOrderRowRequest,
+    PurchaseOrderSearchFilter as PydanticPurchaseOrderSearchFilter,
+    PurchaseOrderSearchRequest as PydanticPurchaseOrderSearchRequest,
     RegularPurchaseOrder as PydanticRegularPurchaseOrder,
     UpdateOutsourcedPurchaseOrderRecipeRowRequest as PydanticUpdateOutsourcedPurchaseOrderRecipeRowRequest,
     UpdatePurchaseOrderAdditionalCostRowRequest as PydanticUpdatePurchaseOrderAdditionalCostRowRequest,
@@ -1082,10 +1108,8 @@ from ._generated.sales_orders import (
     SalesOrderRowListResponse as PydanticSalesOrderRowListResponse,
     SalesOrderRowSearchFilter as PydanticSalesOrderRowSearchFilter,
     SalesOrderRowSearchRequest as PydanticSalesOrderRowSearchRequest,
-    SalesOrderRowSearchWhere as PydanticSalesOrderRowSearchWhere,
     SalesOrderSearchFilter as PydanticSalesOrderSearchFilter,
     SalesOrderSearchRequest as PydanticSalesOrderSearchRequest,
-    SalesOrderSearchWhere as PydanticSalesOrderSearchWhere,
     SalesOrderShippingFee as PydanticSalesOrderShippingFee,
     SalesOrderShippingFeeListResponse as PydanticSalesOrderShippingFeeListResponse,
     SalesReturn as PydanticSalesReturn,
@@ -1301,6 +1325,8 @@ def register_all_models() -> None:
     register(AttrsCustomerAddress, PydanticCustomerAddress)
     register(AttrsCustomerAddressListResponse, PydanticCustomerAddressListResponse)
     register(AttrsCustomerListResponse, PydanticCustomerListResponse)
+    register(AttrsCustomerSearchFilter, PydanticCustomerSearchFilter)
+    register(AttrsCustomerSearchRequest, PydanticCustomerSearchRequest)
     register(AttrsDeletableEntity, PydanticDeletableEntity)
     register(AttrsDeleteSerialNumbersRequest, PydanticDeleteSerialNumbersRequest)
     register(AttrsDemandForecastPeriod, PydanticDemandForecastPeriod)
@@ -1377,6 +1403,12 @@ def register_all_models() -> None:
         AttrsManufacturingOrderRecipeRowListResponse,
         PydanticManufacturingOrderRecipeRowListResponse,
     )
+    register(
+        AttrsManufacturingOrderSearchFilter, PydanticManufacturingOrderSearchFilter
+    )
+    register(
+        AttrsManufacturingOrderSearchRequest, PydanticManufacturingOrderSearchRequest
+    )
     register(AttrsMaterial, PydanticMaterial)
     register(AttrsMaterialConfig, PydanticMaterialConfig)
     register(AttrsMaterialListResponse, PydanticMaterialListResponse)
@@ -1435,6 +1467,8 @@ def register_all_models() -> None:
     register(AttrsPurchaseOrderRow, PydanticPurchaseOrderRow)
     register(AttrsPurchaseOrderRowListResponse, PydanticPurchaseOrderRowListResponse)
     register(AttrsPurchaseOrderRowRequest, PydanticPurchaseOrderRowRequest)
+    register(AttrsPurchaseOrderSearchFilter, PydanticPurchaseOrderSearchFilter)
+    register(AttrsPurchaseOrderSearchRequest, PydanticPurchaseOrderSearchRequest)
     register(AttrsRecipe, PydanticRecipe)
     register(AttrsRecipeListResponse, PydanticRecipeListResponse)
     register(AttrsRegularPurchaseOrder, PydanticRegularPurchaseOrder)
@@ -1466,10 +1500,8 @@ def register_all_models() -> None:
     register(AttrsSalesOrderRowListResponse, PydanticSalesOrderRowListResponse)
     register(AttrsSalesOrderRowSearchFilter, PydanticSalesOrderRowSearchFilter)
     register(AttrsSalesOrderRowSearchRequest, PydanticSalesOrderRowSearchRequest)
-    register(AttrsSalesOrderRowSearchWhere, PydanticSalesOrderRowSearchWhere)
     register(AttrsSalesOrderSearchFilter, PydanticSalesOrderSearchFilter)
     register(AttrsSalesOrderSearchRequest, PydanticSalesOrderSearchRequest)
-    register(AttrsSalesOrderSearchWhere, PydanticSalesOrderSearchWhere)
     register(AttrsSalesOrderShippingFee, PydanticSalesOrderShippingFee)
     register(
         AttrsSalesOrderShippingFeeListResponse,
@@ -1618,6 +1650,8 @@ def register_all_models() -> None:
     )
     register(AttrsVariantListResponse, PydanticVariantListResponse)
     register(AttrsVariantResponse, PydanticVariantResponse)
+    register(AttrsVariantSearchFilter, PydanticVariantSearchFilter)
+    register(AttrsVariantSearchRequest, PydanticVariantSearchRequest)
     register(AttrsWebhook, PydanticWebhook)
     register(AttrsWebhookEventPayload, PydanticWebhookEventPayload)
     register(AttrsWebhookListResponse, PydanticWebhookListResponse)

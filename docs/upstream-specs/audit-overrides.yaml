@@ -775,42 +775,6 @@ overrides:
   # --- Deferred: endpoints upstream publishes and we don't model (#1032) ---
   # `only_live_endpoint` defers one known new endpoint each. Anything NOT
   # listed here still fails the gate, so upstream growth is still caught.
-  - endpoint: "POST /customers/search"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
-    reason: >-
-      Extends the POST /<entity>/search family. Upstream now publishes a
-      fully-specified filter object, so this should follow upstream's shape
-      rather than a local $ref.
-
-  - endpoint: "POST /manufacturing_orders/search"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
-    reason: >-
-      Extends the POST /<entity>/search family. Upstream now publishes a
-      fully-specified filter object, so this should follow upstream's shape
-      rather than a local $ref.
-
-  - endpoint: "POST /purchase_orders/search"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
-    reason: >-
-      Extends the POST /<entity>/search family. Upstream now publishes a
-      fully-specified filter object, so this should follow upstream's shape
-      rather than a local $ref.
-
-  - endpoint: "POST /variants/search"
-    kind: only_live_endpoint
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1032"
-    reason: >-
-      Extends the POST /<entity>/search family. Upstream now publishes a
-      fully-specified filter object, so this should follow upstream's shape
-      rather than a local $ref.
-
   # --- rerank endpoints: nested component naming ----------------------------
   # Same shape, different component name. Our house convention strips the
   # upstream `Dto` suffix (CreateCustomerDto -> CreateCustomerRequest); the

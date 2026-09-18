@@ -7,7 +7,7 @@ To regenerate, run:
 """
 
 from enum import StrEnum
-from typing import Annotated, ClassVar
+from typing import Annotated, Any, ClassVar
 
 from pydantic import ConfigDict, EmailStr, Field, RootModel
 from sqlalchemy import Column
@@ -20,7 +20,12 @@ from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Address, AddressEntityType
+from .common import (
+    Address,
+    AddressEntityType,
+    SearchComparator,
+    SearchScalarValue1,
+)
 
 
 class PriceListAdjustmentMethod(StrEnum):
@@ -692,6 +697,142 @@ class Customer(DeletableEntity):
 class CustomerListResponse(KatanaPydanticBase):
     data: Annotated[
         list[Customer] | None, Field(description="Array of customer entities")
+    ] = None
+
+
+class CustomerSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND - every nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR - at least one nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    category: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Customer category for segmentation and reporting",
+        ),
+    ] = None
+    comment: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Internal notes and comments about the customer",
+        ),
+    ] = None
+    company: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Company name for business customers",
+        ),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the record was created.",
+        ),
+    ] = None
+    currency: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Default currency code for all transactions with this customer",
+        ),
+    ] = None
+    default_billing_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ID of the default billing address for this customer",
+        ),
+    ] = None
+    default_shipping_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ID of the default shipping address for this customer",
+        ),
+    ] = None
+    email: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Primary email address for communication and order notifications",
+        ),
+    ] = None
+    first_name: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Customer's first name for individual contacts",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Record id."),
+    ] = None
+    last_name: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Customer's last name for individual contacts",
+        ),
+    ] = None
+    name: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Customer display name, either individual name or company name",
+        ),
+    ] = None
+    phone: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Primary phone number for customer contact",
+        ),
+    ] = None
+    reference_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="External reference ID for integration with other systems",
+        ),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the record was last updated.",
+        ),
+    ] = None
+
+
+class CustomerSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: CustomerSearchFilter | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50.\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
+        ),
     ] = None
 
 

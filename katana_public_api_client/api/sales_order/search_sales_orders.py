@@ -102,10 +102,10 @@ def sync_detailed(
             the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+             Example: {'filter': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
             {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
             {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
-            'id DESC'], 'limit': 50, 'page': 1}}.
+            'id DESC'], 'limit': 50, 'page': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -148,10 +148,10 @@ def sync(
             the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+             Example: {'filter': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
             {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
             {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
-            'id DESC'], 'limit': 50, 'page': 1}}.
+            'id DESC'], 'limit': 50, 'page': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -189,10 +189,10 @@ async def asyncio_detailed(
             the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+             Example: {'filter': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
             {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
             {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
-            'id DESC'], 'limit': 50, 'page': 1}}.
+            'id DESC'], 'limit': 50, 'page': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -233,10 +233,10 @@ async def asyncio(
             the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+             Example: {'filter': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
             {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
             {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
-            'id DESC'], 'limit': 50, 'page': 1}}.
+            'id DESC'], 'limit': 50, 'page': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

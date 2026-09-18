@@ -6204,6 +6204,462 @@ export type SearchComparator = {
 };
 
 /**
+ * Filter clause for ``POST /customers/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type CustomerSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Customer category for segmentation and reporting
+   */
+  category?: SearchPredicate;
+  /**
+   * Internal notes and comments about the customer
+   */
+  comment?: SearchPredicate;
+  /**
+   * Company name for business customers
+   */
+  company?: SearchPredicate;
+  /**
+   * Timestamp when the record was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Default currency code for all transactions with this customer
+   */
+  currency?: SearchPredicate;
+  /**
+   * ID of the default billing address for this customer
+   */
+  default_billing_id?: SearchPredicate;
+  /**
+   * ID of the default shipping address for this customer
+   */
+  default_shipping_id?: SearchPredicate;
+  /**
+   * Primary email address for communication and order notifications
+   */
+  email?: SearchPredicate;
+  /**
+   * Customer's first name for individual contacts
+   */
+  first_name?: SearchPredicate;
+  /**
+   * Record id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Customer's last name for individual contacts
+   */
+  last_name?: SearchPredicate;
+  /**
+   * Customer display name, either individual name or company name
+   */
+  name?: SearchPredicate;
+  /**
+   * Primary phone number for customer contact
+   */
+  phone?: SearchPredicate;
+  /**
+   * External reference ID for integration with other systems
+   */
+  reference_id?: SearchPredicate;
+  /**
+   * Timestamp when the record was last updated.
+   */
+  updated_at?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Filter clause for ``POST /variants/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type VariantSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * ABC inventory classification.
+   */
+  abc_classification?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the variant was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Variant id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Internal barcode.
+   */
+  internal_barcode?: SearchPredicate;
+  /**
+   * Id of the product, material, or service this variant belongs to.
+   */
+  item_id?: SearchPredicate;
+  /**
+   * Kind of item the variant belongs to.
+   */
+  item_type?: SearchPredicate;
+  /**
+   * Lead time in days.
+   */
+  lead_time?: SearchPredicate;
+  /**
+   * Minimum order quantity.
+   */
+  minimum_order_quantity?: SearchPredicate;
+  /**
+   * Purchase price.
+   */
+  purchase_price?: SearchPredicate;
+  /**
+   * Registered (GTIN/EAN/UPC) barcode.
+   */
+  registered_barcode?: SearchPredicate;
+  /**
+   * Sales price.
+   */
+  sales_price?: SearchPredicate;
+  /**
+   * Stock keeping unit.
+   */
+  sku?: SearchPredicate;
+  /**
+   * Supplier item code.
+   */
+  supplier_item_codes?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the variant was last updated.
+   */
+  updated_at?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Filter clause for ``POST /manufacturing_orders/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type ManufacturingOrderSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Actual quantity produced, null if production not completed
+   */
+  actual_quantity?: SearchPredicate;
+  /**
+   * Total quantity completed so far (including partial completions)
+   */
+  completed_quantity?: SearchPredicate;
+  /**
+   * Timestamp when the record was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Timestamp when the manufacturing order was completed
+   */
+  done_date?: SearchPredicate;
+  /**
+   * Record id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Whether this order has been partially completed
+   */
+  includes_partial_completions?: SearchPredicate;
+  /**
+   * Status of material ingredient availability for production
+   */
+  ingredient_availability?: SearchPredicate;
+  /**
+   * Whether this manufacturing order is linked to a sales order
+   */
+  is_linked_to_sales_order?: SearchPredicate;
+  /**
+   * ID of the factory location where production takes place
+   */
+  location_id?: SearchPredicate;
+  /**
+   * Date and time when the manufacturing order was created
+   */
+  order_created_date?: SearchPredicate;
+  /**
+   * Unique manufacturing order number for tracking and reference
+   */
+  order_no?: SearchPredicate;
+  /**
+   * Originally planned quantity to produce
+   */
+  planned_quantity?: SearchPredicate;
+  /**
+   * Target deadline for completing production (null when none is set)
+   */
+  production_deadline_date?: SearchPredicate;
+  /**
+   * Remaining quantity to produce (planned - completed)
+   */
+  remaining_quantity?: SearchPredicate;
+  /**
+   * Current production status of the manufacturing order
+   */
+  status?: SearchPredicate;
+  /**
+   * Total cost of the manufacturing order including all materials and operations
+   */
+  total_cost?: SearchPredicate;
+  /**
+   * Timestamp when the record was last updated.
+   */
+  updated_at?: SearchPredicate;
+  /**
+   * ID of the product variant being manufactured
+   */
+  variant_id?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Filter clause for ``POST /purchase_orders/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type PurchaseOrderSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply...
+   */
+  billing_status?: SearchPredicate;
+  /**
+   * Timestamp when the record was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Currency of the purchase order. Filled with supplier currency by default.
+   */
+  currency?: SearchPredicate;
+  /**
+   * Default grouping identifier for organizational purposes
+   */
+  default_group_id?: SearchPredicate;
+  /**
+   * Either "regular" or "outsourced", depending on the purchase order type.
+   */
+  entity_type?: SearchPredicate;
+  /**
+   * The timestamp when the items are expected to arrive (in full) in your warehouse.
+   */
+  expected_arrival_date?: SearchPredicate;
+  /**
+   * Record id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Status of the last e-mail sent from (O)PO card.
+   */
+  last_document_status?: SearchPredicate;
+  /**
+   * The ID of the location to which items are received.
+   */
+  location_id?: SearchPredicate;
+  /**
+   * The timestamp of creating the document.
+   */
+  order_created_date?: SearchPredicate;
+  /**
+   * A unique, identifying string used in the UI and controlled by the user.
+   */
+  order_no?: SearchPredicate;
+  /**
+   * Status of the order.
+   */
+  status?: SearchPredicate;
+  /**
+   * ID of the supplier who this order belongs to.
+   */
+  supplier_id?: SearchPredicate;
+  /**
+   * Regular orders do not have tracking locations
+   */
+  tracking_location_id?: SearchPredicate;
+  /**
+   * Timestamp when the record was last updated.
+   */
+  updated_at?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Structured search body for ``POST /customers/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type CustomerSearchRequest = {
+  filter?: CustomerSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
+ * Structured search body for ``POST /variants/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type VariantSearchRequest = {
+  filter?: VariantSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+  /**
+   * Related data to include, and result-set widening. ``item``
+   * enriches each variant with its parent item under ``item``;
+   * ``archived`` and ``deleted`` include otherwise-excluded
+   * variants in the results.
+   *
+   */
+  include?: Array<'item' | 'archived' | 'deleted'>;
+};
+
+/**
+ * Structured search body for ``POST /manufacturing_orders/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type ManufacturingOrderSearchRequest = {
+  filter?: ManufacturingOrderSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
+ * Structured search body for ``POST /purchase_orders/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type PurchaseOrderSearchRequest = {
+  filter?: PurchaseOrderSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
  * A single ``where`` predicate: either a bare ``SearchScalarValue``
  * (equality) or a ``SearchComparator`` operator object.
  *
@@ -6219,13 +6675,6 @@ export type SearchPredicate = SearchScalarValue | SearchComparator;
  */
 export type SalesOrderSearchRequest = {
   filter?: SalesOrderSearchFilter;
-};
-
-/**
- * Filter envelope for ``POST /sales_orders/search``.
- */
-export type SalesOrderSearchFilter = {
-  where?: SalesOrderSearchWhere;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
    * (direction defaults to ASC). Only filterable fields may be
@@ -6249,7 +6698,7 @@ export type SalesOrderSearchFilter = {
 };
 
 /**
- * ``where`` clause for ``POST /sales_orders/search``. Only the fields
+ * ``filter`` clause for ``POST /sales_orders/search``. Only the fields
  * listed here may appear; unknown fields are rejected with 422.
  * Custom field values are addressable via additional
  * ``custom_fields.<uuid>`` keys (snake_case, matching the
@@ -6260,7 +6709,7 @@ export type SalesOrderSearchFilter = {
  * depth 2).
  *
  */
-export type SalesOrderSearchWhere = {
+export type SalesOrderSearchFilter = {
   /**
    * Logical AND — every nested where-clause must match. Max nesting depth 2.
    */
@@ -6381,13 +6830,6 @@ export type SalesOrderSearchWhere = {
  */
 export type SalesOrderRowSearchRequest = {
   filter?: SalesOrderRowSearchFilter;
-};
-
-/**
- * Filter envelope for ``POST /sales_order_rows/search``.
- */
-export type SalesOrderRowSearchFilter = {
-  where?: SalesOrderRowSearchWhere;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
    * (direction defaults to ASC). Only filterable fields may be
@@ -6411,7 +6853,7 @@ export type SalesOrderRowSearchFilter = {
 };
 
 /**
- * ``where`` clause for ``POST /sales_order_rows/search``. Only the
+ * ``filter`` clause for ``POST /sales_order_rows/search``. Only the
  * fields listed here may appear; unknown fields are rejected with
  * 422. Custom field values are addressable via additional
  * ``custom_fields.<uuid>`` keys (snake_case), where ``<uuid>`` is the
@@ -6419,7 +6861,7 @@ export type SalesOrderRowSearchFilter = {
  * nesting depth 2).
  *
  */
-export type SalesOrderRowSearchWhere = {
+export type SalesOrderRowSearchFilter = {
   /**
    * Logical AND — every nested where-clause must match. Max nesting depth 2.
    */
@@ -11849,6 +12291,52 @@ export type GetLocationResponses = {
 
 export type GetLocationResponse = GetLocationResponses[keyof GetLocationResponses];
 
+export type SearchManufacturingOrdersData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: ManufacturingOrderSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/manufacturing_orders/search';
+};
+
+export type SearchManufacturingOrdersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchManufacturingOrdersError =
+  SearchManufacturingOrdersErrors[keyof SearchManufacturingOrdersErrors];
+
+export type SearchManufacturingOrdersResponses = {
+  /**
+   * Matching manufacturing orders
+   */
+  200: ManufacturingOrderListResponse;
+};
+
+export type SearchManufacturingOrdersResponse =
+  SearchManufacturingOrdersResponses[keyof SearchManufacturingOrdersResponses];
+
 export type GetAllManufacturingOrdersData = {
   body?: never;
   path?: never;
@@ -13746,6 +14234,52 @@ export type UpdateProductResponses = {
 
 export type UpdateProductResponse = UpdateProductResponses[keyof UpdateProductResponses];
 
+export type SearchPurchaseOrdersData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: PurchaseOrderSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/purchase_orders/search';
+};
+
+export type SearchPurchaseOrdersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchPurchaseOrdersError =
+  SearchPurchaseOrdersErrors[keyof SearchPurchaseOrdersErrors];
+
+export type SearchPurchaseOrdersResponses = {
+  /**
+   * Matching purchase orders
+   */
+  200: PurchaseOrderListResponse;
+};
+
+export type SearchPurchaseOrdersResponse =
+  SearchPurchaseOrdersResponses[keyof SearchPurchaseOrdersResponses];
+
 export type FindPurchaseOrdersData = {
   body?: never;
   path?: never;
@@ -15211,6 +15745,50 @@ export type CreateTaxRateResponses = {
 };
 
 export type CreateTaxRateResponse = CreateTaxRateResponses[keyof CreateTaxRateResponses];
+
+export type SearchVariantsData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: VariantSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/variants/search';
+};
+
+export type SearchVariantsErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchVariantsError = SearchVariantsErrors[keyof SearchVariantsErrors];
+
+export type SearchVariantsResponses = {
+  /**
+   * Matching variants
+   */
+  200: VariantListResponse;
+};
+
+export type SearchVariantsResponse = SearchVariantsResponses[keyof SearchVariantsResponses];
 
 export type GetAllVariantsData = {
   body?: never;
@@ -17466,6 +18044,50 @@ export type GetSalesOrderReturnableItemsResponses = {
 
 export type GetSalesOrderReturnableItemsResponse =
   GetSalesOrderReturnableItemsResponses[keyof GetSalesOrderReturnableItemsResponses];
+
+export type SearchCustomersData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: CustomerSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/customers/search';
+};
+
+export type SearchCustomersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchCustomersError = SearchCustomersErrors[keyof SearchCustomersErrors];
+
+export type SearchCustomersResponses = {
+  /**
+   * Matching customers
+   */
+  200: CustomerListResponse;
+};
+
+export type SearchCustomersResponse = SearchCustomersResponses[keyof SearchCustomersResponses];
 
 export type GetAllCustomersData = {
   body?: never;

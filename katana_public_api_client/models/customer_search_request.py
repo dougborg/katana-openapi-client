@@ -8,45 +8,34 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.sales_order_search_filter import SalesOrderSearchFilter
+    from ..models.customer_search_filter import CustomerSearchFilter
 
 
-T = TypeVar("T", bound="SalesOrderSearchRequest")
+T = TypeVar("T", bound="CustomerSearchRequest")
 
 
 @_attrs_define
-class SalesOrderSearchRequest:
-    """Structured filter body for ``POST /sales_orders/search``. Returns
-    the same paginated ``{"data": [...]}`` shape as
-    ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
-    request/response shape may evolve before GA.
+class CustomerSearchRequest:
+    """Structured search body for ``POST /customers/search``. Returns the
+    same paginated ``{"data": [...]}`` shape as the corresponding list
+    endpoint, plus an ``X-Pagination`` header.
 
         Example:
-            {'filter': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}}, {'created_at': {'gte':
-                '2026-01-01T00:00:00.000Z'}}, {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at
-                DESC', 'id DESC'], 'limit': 50, 'page': 1}
+            {'filter': {'and': [{'category': None, 'eq': 'Wholesale'}]}, 'order': ['name ASC'], 'limit': 50, 'page': 1}
 
         Attributes:
-            filter_ (SalesOrderSearchFilter | Unset): ``filter`` clause for ``POST /sales_orders/search``. Only the fields
-                listed here may appear; unknown fields are rejected with 422.
-                Custom field values are addressable via additional
-                ``custom_fields.<uuid>`` keys (snake_case, matching the
-                request/response body), where ``<uuid>`` is the custom field
-                definition id — its value is a bare value or a ``SearchComparator``
-                like any other predicate (for ``singleSelect`` the value is the
-                integer choice ``id``). Compose with ``and`` / ``or`` (max nesting
-                depth 2).
+            filter_ (CustomerSearchFilter | Unset): Filter clause for ``POST /customers/search``. Only the fields listed
+                here may appear; unknown fields are rejected with 422. Custom field
+                values are addressable via ``custom_fields.<uuid>`` keys.
             order (list[str] | str | Unset): Sort directive(s). Each entry is ``<field> ASC|DESC``
                 (direction defaults to ASC). Only filterable fields may be
                 used; ``custom_fields.<uuid>`` paths are orderable.
             limit (int | Unset): Page size; maximum 200. Omit to let the server apply its
-                default of 50 (the client omits the key when unset rather than
-                sending a default, so direct construction and round-tripped
-                ``from_dict`` payloads behave identically).
+                default of 50.
             page (int | Unset): 1-based page number. Omit to let the server default to 1.
     """
 
-    filter_: SalesOrderSearchFilter | Unset = UNSET
+    filter_: CustomerSearchFilter | Unset = UNSET
     order: list[str] | str | Unset = UNSET
     limit: int | Unset = UNSET
     page: int | Unset = UNSET
@@ -85,17 +74,17 @@ class SalesOrderSearchRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_search_filter import (
-            SalesOrderSearchFilter,
+        from ..models.customer_search_filter import (
+            CustomerSearchFilter,
         )
 
         d = dict(src_dict)
         _filter_ = d.pop("filter", UNSET)
-        filter_: SalesOrderSearchFilter | Unset
+        filter_: CustomerSearchFilter | Unset
         if isinstance(_filter_, Unset):
             filter_ = UNSET
         else:
-            filter_ = SalesOrderSearchFilter.from_dict(_filter_)
+            filter_ = CustomerSearchFilter.from_dict(_filter_)
 
         def _parse_order(data: object) -> list[str] | str | Unset:
             if isinstance(data, Unset):
@@ -116,11 +105,11 @@ class SalesOrderSearchRequest:
 
         page = d.pop("page", UNSET)
 
-        sales_order_search_request = cls(
+        customer_search_request = cls(
             filter_=filter_,
             order=order,
             limit=limit,
             page=page,
         )
 
-        return sales_order_search_request
+        return customer_search_request
