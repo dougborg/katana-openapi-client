@@ -30,7 +30,7 @@ class RegularPurchaseOrder:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     status: PurchaseOrderStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     entity_type: RegularPurchaseOrderEntityType | Unset = UNSET
@@ -47,7 +47,7 @@ class RegularPurchaseOrder:
     last_document_status: DocumentSendStatus | Unset = UNSET
     purchase_order_rows: list[PurchaseOrderRow] | Unset = UNSET
     supplier: Supplier | Unset = UNSET
-    tracking_location_id: None | Unset = UNSET
+    tracking_location_id: Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -61,7 +61,7 @@ class RegularPurchaseOrder:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -194,7 +194,7 @@ class RegularPurchaseOrder:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -207,7 +207,7 @@ class RegularPurchaseOrder:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

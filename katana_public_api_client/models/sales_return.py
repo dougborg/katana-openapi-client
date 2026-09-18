@@ -41,17 +41,17 @@ class SalesReturn:
     status: SalesReturnStatus
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
-    sales_order_id: int | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
+    sales_order_id: int | Unset | None = UNSET
     currency: str | Unset = UNSET
-    return_date: datetime.datetime | None | Unset = UNSET
+    return_date: datetime.datetime | Unset | None = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
-    refund_status: None | SalesReturnRefundStatus | Unset = UNSET
-    tracking_number: None | str | Unset = UNSET
-    tracking_number_url: None | str | Unset = UNSET
-    tracking_carrier: None | str | Unset = UNSET
-    tracking_method: None | str | Unset = UNSET
+    additional_info: str | Unset | None = UNSET
+    refund_status: SalesReturnRefundStatus | Unset | None = UNSET
+    tracking_number: str | Unset | None = UNSET
+    tracking_number_url: str | Unset | None = UNSET
+    tracking_carrier: str | Unset | None = UNSET
+    tracking_method: str | Unset | None = UNSET
     sales_return_rows: list[SalesReturnRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -74,7 +74,7 @@ class SalesReturn:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -82,7 +82,7 @@ class SalesReturn:
         else:
             deleted_at = self.deleted_at
 
-        sales_order_id: int | None | Unset
+        sales_order_id: int | Unset | None
         if isinstance(self.sales_order_id, Unset):
             sales_order_id = UNSET
         else:
@@ -90,7 +90,7 @@ class SalesReturn:
 
         currency = self.currency
 
-        return_date: None | str | Unset
+        return_date: str | Unset | None
         if isinstance(self.return_date, Unset):
             return_date = UNSET
         elif isinstance(self.return_date, datetime.datetime):
@@ -102,13 +102,13 @@ class SalesReturn:
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        refund_status: None | str | Unset
+        refund_status: str | Unset | None
         if isinstance(self.refund_status, Unset):
             refund_status = UNSET
         elif isinstance(self.refund_status, SalesReturnRefundStatus):
@@ -116,25 +116,25 @@ class SalesReturn:
         else:
             refund_status = self.refund_status
 
-        tracking_number: None | str | Unset
+        tracking_number: str | Unset | None
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_number_url: None | str | Unset
+        tracking_number_url: str | Unset | None
         if isinstance(self.tracking_number_url, Unset):
             tracking_number_url = UNSET
         else:
             tracking_number_url = self.tracking_number_url
 
-        tracking_carrier: None | str | Unset
+        tracking_carrier: str | Unset | None
         if isinstance(self.tracking_carrier, Unset):
             tracking_carrier = UNSET
         else:
             tracking_carrier = self.tracking_carrier
 
-        tracking_method: None | str | Unset
+        tracking_method: str | Unset | None
         if isinstance(self.tracking_method, Unset):
             tracking_method = UNSET
         else:
@@ -218,7 +218,7 @@ class SalesReturn:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -231,22 +231,22 @@ class SalesReturn:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        def _parse_sales_order_id(data: object) -> int | None | Unset:
+        def _parse_sales_order_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_return_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_return_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -259,7 +259,7 @@ class SalesReturn:
                 return return_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         return_date = _parse_return_date(d.pop("return_date", UNSET))
 
@@ -270,18 +270,18 @@ class SalesReturn:
         else:
             order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
         def _parse_refund_status(
             data: object,
-        ) -> None | SalesReturnRefundStatus | Unset:
+        ) -> SalesReturnRefundStatus | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -294,45 +294,45 @@ class SalesReturn:
                 return refund_status_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesReturnRefundStatus | Unset, data)
+            return cast(SalesReturnRefundStatus | Unset | None, data)
 
         refund_status = _parse_refund_status(d.pop("refund_status", UNSET))
 
-        def _parse_tracking_number(data: object) -> None | str | Unset:
+        def _parse_tracking_number(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_number_url(data: object) -> None | str | Unset:
+        def _parse_tracking_number_url(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
         )
 
-        def _parse_tracking_carrier(data: object) -> None | str | Unset:
+        def _parse_tracking_carrier(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_carrier = _parse_tracking_carrier(d.pop("tracking_carrier", UNSET))
 
-        def _parse_tracking_method(data: object) -> None | str | Unset:
+        def _parse_tracking_method(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_method = _parse_tracking_method(d.pop("tracking_method", UNSET))
 

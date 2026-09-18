@@ -201,6 +201,7 @@ from katana_public_api_client import KatanaClient
 
 mcp = FastMCP("katana-erp")
 
+
 @mcp.tool()
 async def check_inventory(sku: str, ctx: Context) -> InventoryStatus:
     """Check inventory status for a specific SKU."""
@@ -226,11 +227,13 @@ Use Pydantic models for all tool return types:
 ```python
 from pydantic import BaseModel
 
+
 class InventoryStatus(BaseModel):
     sku: str
     in_stock: int
     location: str
     reorder_point: int | None
+
 
 @mcp.tool()
 async def check_inventory(sku: str) -> InventoryStatus:

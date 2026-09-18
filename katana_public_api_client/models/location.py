@@ -33,10 +33,10 @@ class Location:
     name: str
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     legal_name: str | Unset = UNSET
-    address_id: int | None | Unset = UNSET
-    address: LocationAddress | None | Unset = UNSET
+    address_id: int | Unset | None = UNSET
+    address: LocationAddress | Unset | None = UNSET
     is_primary: bool | Unset = UNSET
     sales_allowed: bool | Unset = UNSET
     purchase_allowed: bool | Unset = UNSET
@@ -58,7 +58,7 @@ class Location:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -68,13 +68,13 @@ class Location:
 
         legal_name = self.legal_name
 
-        address_id: int | None | Unset
+        address_id: int | Unset | None
         if isinstance(self.address_id, Unset):
             address_id = UNSET
         else:
             address_id = self.address_id
 
-        address: dict[str, Any] | None | Unset
+        address: dict[str, Any] | Unset | None
         if isinstance(self.address, Unset):
             address = UNSET
         elif isinstance(self.address, LocationAddress):
@@ -144,7 +144,7 @@ class Location:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -157,22 +157,22 @@ class Location:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         legal_name = d.pop("legal_name", UNSET)
 
-        def _parse_address_id(data: object) -> int | None | Unset:
+        def _parse_address_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         address_id = _parse_address_id(d.pop("address_id", UNSET))
 
-        def _parse_address(data: object) -> LocationAddress | None | Unset:
+        def _parse_address(data: object) -> LocationAddress | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -190,7 +190,7 @@ class Location:
                 return address_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(LocationAddress | None | Unset, data)
+            return cast(LocationAddress | Unset | None, data)
 
         address = _parse_address(d.pop("address", UNSET))
 

@@ -42,7 +42,9 @@ class CustomFieldOptionsCreate:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_field_choice_create import CustomFieldChoiceCreate
+        from ..models.custom_field_choice_create import (
+            CustomFieldChoiceCreate,
+        )
 
         d = dict(src_dict)
         choices = []

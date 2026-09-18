@@ -48,9 +48,12 @@ To regenerate: `uv run poe regenerate-client` then `uv run poe generate-pydantic
 ```python
 from katana_public_api_client.utils import unwrap, unwrap_as, unwrap_data, is_success
 
-order = unwrap_as(response, ManufacturingOrder)        # 200 single object (incl. POST creates)
-items = unwrap_data(response, default=[])              # 200 list (.data envelope)
-if is_success(response): ...                           # 204 (DELETE)
+order = unwrap_as(
+    response, ManufacturingOrder
+)  # 200 single object (incl. POST creates)
+items = unwrap_data(response, default=[])  # 200 list (.data envelope)
+if is_success(response):
+    ...  # 204 (DELETE)
 ```
 
 Anti-pattern: `if response.status_code == 200`. **POST creates return 200, not 201** — use `unwrap_as` like any other 200 response. Source: `katana_public_api_client/docs/guide.md` — Response Handling section, `katana_public_api_client/docs/spec-authoring.md` — POST create endpoints return 200 not 201.
@@ -60,8 +63,8 @@ Anti-pattern: `if response.status_code == 200`. **POST creates return 200, not 2
 ```python
 from katana_public_api_client.domain.converters import unwrap_unset, to_unset
 
-status = unwrap_unset(order.status, None)        # read attrs field; default if UNSET
-payload_value = to_unset(maybe_optional)         # write attrs field; UNSET if None
+status = unwrap_unset(order.status, None)  # read attrs field; default if UNSET
+payload_value = to_unset(maybe_optional)  # write attrs field; UNSET if None
 ```
 
 Never `isinstance(value, type(UNSET))`, never `hasattr(order, 'status')` for attrs-defined fields. Source: `katana_public_api_client/docs/guide.md` — Response Handling section (anti-patterns).

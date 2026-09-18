@@ -39,7 +39,7 @@ class UpdateVariantRequest:
     supplier_item_codes: list[str] | Unset = UNSET
     internal_barcode: str | Unset = UNSET
     registered_barcode: str | Unset = UNSET
-    lead_time: int | None | Unset = UNSET
+    lead_time: int | Unset | None = UNSET
     minimum_order_quantity: float | Unset = UNSET
     config_attributes: list[UpdateVariantRequestConfigAttributesItem] | Unset = UNSET
     custom_fields: list[UpdateVariantRequestCustomFieldsItem] | Unset = UNSET
@@ -59,7 +59,7 @@ class UpdateVariantRequest:
 
         registered_barcode = self.registered_barcode
 
-        lead_time: int | None | Unset
+        lead_time: int | Unset | None
         if isinstance(self.lead_time, Unset):
             lead_time = UNSET
         else:
@@ -129,12 +129,12 @@ class UpdateVariantRequest:
 
         registered_barcode = d.pop("registered_barcode", UNSET)
 
-        def _parse_lead_time(data: object) -> int | None | Unset:
+        def _parse_lead_time(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 

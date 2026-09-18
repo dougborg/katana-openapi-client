@@ -21,23 +21,23 @@ class UpdateBinTransferRequest:
 
     bin_transfer_number: str | Unset = UNSET
     location_id: int | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
-    created_date: datetime.datetime | None | Unset = UNSET
-    departed_at: datetime.datetime | None | Unset = UNSET
-    arrived_at: datetime.datetime | None | Unset = UNSET
+    additional_info: str | Unset | None = UNSET
+    created_date: datetime.datetime | Unset | None = UNSET
+    departed_at: datetime.datetime | Unset | None = UNSET
+    arrived_at: datetime.datetime | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         bin_transfer_number = self.bin_transfer_number
 
         location_id = self.location_id
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        created_date: None | str | Unset
+        created_date: str | Unset | None
         if isinstance(self.created_date, Unset):
             created_date = UNSET
         elif isinstance(self.created_date, datetime.datetime):
@@ -45,7 +45,7 @@ class UpdateBinTransferRequest:
         else:
             created_date = self.created_date
 
-        departed_at: None | str | Unset
+        departed_at: str | Unset | None
         if isinstance(self.departed_at, Unset):
             departed_at = UNSET
         elif isinstance(self.departed_at, datetime.datetime):
@@ -53,7 +53,7 @@ class UpdateBinTransferRequest:
         else:
             departed_at = self.departed_at
 
-        arrived_at: None | str | Unset
+        arrived_at: str | Unset | None
         if isinstance(self.arrived_at, Unset):
             arrived_at = UNSET
         elif isinstance(self.arrived_at, datetime.datetime):
@@ -86,16 +86,16 @@ class UpdateBinTransferRequest:
 
         location_id = d.pop("location_id", UNSET)
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_created_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_created_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -108,11 +108,11 @@ class UpdateBinTransferRequest:
                 return created_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         created_date = _parse_created_date(d.pop("created_date", UNSET))
 
-        def _parse_departed_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_departed_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -125,11 +125,11 @@ class UpdateBinTransferRequest:
                 return departed_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         departed_at = _parse_departed_at(d.pop("departed_at", UNSET))
 
-        def _parse_arrived_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_arrived_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -142,7 +142,7 @@ class UpdateBinTransferRequest:
                 return arrived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         arrived_at = _parse_arrived_at(d.pop("arrived_at", UNSET))
 

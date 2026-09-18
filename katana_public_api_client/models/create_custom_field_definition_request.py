@@ -29,11 +29,13 @@ class CreateCustomFieldDefinitionRequest:
     field_type: CustomFieldType
     entity_type: CustomFieldEntityType
     source: str
-    description: None | str | Unset = UNSET
-    options: CustomFieldOptionsCreate | None | Unset = UNSET
+    description: str | Unset | None = UNSET
+    options: CustomFieldOptionsCreate | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.custom_field_options_create import CustomFieldOptionsCreate
+        from ..models.custom_field_options_create import (
+            CustomFieldOptionsCreate,
+        )
 
         label = self.label
 
@@ -43,13 +45,13 @@ class CreateCustomFieldDefinitionRequest:
 
         source = self.source
 
-        description: None | str | Unset
+        description: str | Unset | None
         if isinstance(self.description, Unset):
             description = UNSET
         else:
             description = self.description
 
-        options: dict[str, Any] | None | Unset
+        options: dict[str, Any] | Unset | None
         if isinstance(self.options, Unset):
             options = UNSET
         elif isinstance(self.options, CustomFieldOptionsCreate):
@@ -76,7 +78,9 @@ class CreateCustomFieldDefinitionRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_field_options_create import CustomFieldOptionsCreate
+        from ..models.custom_field_options_create import (
+            CustomFieldOptionsCreate,
+        )
 
         d = dict(src_dict)
         label = d.pop("label")
@@ -87,16 +91,16 @@ class CreateCustomFieldDefinitionRequest:
 
         source = d.pop("source")
 
-        def _parse_description(data: object) -> None | str | Unset:
+        def _parse_description(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         description = _parse_description(d.pop("description", UNSET))
 
-        def _parse_options(data: object) -> CustomFieldOptionsCreate | None | Unset:
+        def _parse_options(data: object) -> CustomFieldOptionsCreate | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -114,7 +118,7 @@ class CreateCustomFieldDefinitionRequest:
                 return options_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(CustomFieldOptionsCreate | None | Unset, data)
+            return cast(CustomFieldOptionsCreate | Unset | None, data)
 
         options = _parse_options(d.pop("options", UNSET))
 

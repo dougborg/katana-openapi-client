@@ -36,7 +36,7 @@ class CreateSalesOrderRowRequest:
     location_id: int | Unset = UNSET
     attributes: list[CreateSalesOrderRowRequestAttributesItem] | Unset = UNSET
     total_discount: float | Unset = UNSET
-    custom_fields: CreateSalesOrderRowRequestCustomFieldsType0 | None | Unset = UNSET
+    custom_fields: CreateSalesOrderRowRequestCustomFieldsType0 | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.create_sales_order_row_request_custom_fields_type_0 import (
@@ -64,7 +64,7 @@ class CreateSalesOrderRowRequest:
 
         total_discount = self.total_discount
 
-        custom_fields: dict[str, Any] | None | Unset
+        custom_fields: dict[str, Any] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(
@@ -135,7 +135,7 @@ class CreateSalesOrderRowRequest:
 
         def _parse_custom_fields(
             data: object,
-        ) -> CreateSalesOrderRowRequestCustomFieldsType0 | None | Unset:
+        ) -> CreateSalesOrderRowRequestCustomFieldsType0 | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -156,7 +156,7 @@ class CreateSalesOrderRowRequest:
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(
-                CreateSalesOrderRowRequestCustomFieldsType0 | None | Unset, data
+                CreateSalesOrderRowRequestCustomFieldsType0 | Unset | None, data
             )
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))

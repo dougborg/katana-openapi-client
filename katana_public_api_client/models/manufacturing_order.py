@@ -46,29 +46,29 @@ class ManufacturingOrder:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     status: ManufacturingOrderStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     variant_id: int | Unset = UNSET
     planned_quantity: float | Unset = UNSET
-    actual_quantity: float | None | Unset = UNSET
-    completed_quantity: float | None | Unset = UNSET
-    remaining_quantity: float | None | Unset = UNSET
+    actual_quantity: float | Unset | None = UNSET
+    completed_quantity: float | Unset | None = UNSET
+    remaining_quantity: float | Unset | None = UNSET
     includes_partial_completions: bool | Unset = UNSET
     batch_transactions: list[BatchTransaction] | Unset = UNSET
     location_id: int | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
-    production_deadline_date: datetime.datetime | None | Unset = UNSET
-    done_date: datetime.datetime | None | Unset = UNSET
+    production_deadline_date: datetime.datetime | Unset | None = UNSET
+    done_date: datetime.datetime | Unset | None = UNSET
     additional_info: str | Unset = UNSET
     is_linked_to_sales_order: bool | Unset = UNSET
-    ingredient_availability: IngredientAvailability | None | Unset = UNSET
+    ingredient_availability: IngredientAvailability | Unset | None = UNSET
     total_cost: float | Unset = UNSET
     total_actual_time: float | Unset = UNSET
     total_planned_time: float | Unset = UNSET
     sales_order_id: int | Unset = UNSET
     sales_order_row_id: int | Unset = UNSET
-    sales_order_delivery_deadline: datetime.datetime | None | Unset = UNSET
+    sales_order_delivery_deadline: datetime.datetime | Unset | None = UNSET
     material_cost: float | Unset = UNSET
     subassemblies_cost: float | Unset = UNSET
     operations_cost: float | Unset = UNSET
@@ -86,7 +86,7 @@ class ManufacturingOrder:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -104,19 +104,19 @@ class ManufacturingOrder:
 
         planned_quantity = self.planned_quantity
 
-        actual_quantity: float | None | Unset
+        actual_quantity: float | Unset | None
         if isinstance(self.actual_quantity, Unset):
             actual_quantity = UNSET
         else:
             actual_quantity = self.actual_quantity
 
-        completed_quantity: float | None | Unset
+        completed_quantity: float | Unset | None
         if isinstance(self.completed_quantity, Unset):
             completed_quantity = UNSET
         else:
             completed_quantity = self.completed_quantity
 
-        remaining_quantity: float | None | Unset
+        remaining_quantity: float | Unset | None
         if isinstance(self.remaining_quantity, Unset):
             remaining_quantity = UNSET
         else:
@@ -137,7 +137,7 @@ class ManufacturingOrder:
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        production_deadline_date: None | str | Unset
+        production_deadline_date: str | Unset | None
         if isinstance(self.production_deadline_date, Unset):
             production_deadline_date = UNSET
         elif isinstance(self.production_deadline_date, datetime.datetime):
@@ -145,7 +145,7 @@ class ManufacturingOrder:
         else:
             production_deadline_date = self.production_deadline_date
 
-        done_date: None | str | Unset
+        done_date: str | Unset | None
         if isinstance(self.done_date, Unset):
             done_date = UNSET
         elif isinstance(self.done_date, datetime.datetime):
@@ -157,7 +157,7 @@ class ManufacturingOrder:
 
         is_linked_to_sales_order = self.is_linked_to_sales_order
 
-        ingredient_availability: None | str | Unset
+        ingredient_availability: str | Unset | None
         if isinstance(self.ingredient_availability, Unset):
             ingredient_availability = UNSET
         elif isinstance(self.ingredient_availability, IngredientAvailability):
@@ -175,7 +175,7 @@ class ManufacturingOrder:
 
         sales_order_row_id = self.sales_order_row_id
 
-        sales_order_delivery_deadline: None | str | Unset
+        sales_order_delivery_deadline: str | Unset | None
         if isinstance(self.sales_order_delivery_deadline, Unset):
             sales_order_delivery_deadline = UNSET
         elif isinstance(self.sales_order_delivery_deadline, datetime.datetime):
@@ -288,7 +288,7 @@ class ManufacturingOrder:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -301,7 +301,7 @@ class ManufacturingOrder:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -318,32 +318,32 @@ class ManufacturingOrder:
 
         planned_quantity = d.pop("planned_quantity", UNSET)
 
-        def _parse_actual_quantity(data: object) -> float | None | Unset:
+        def _parse_actual_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
 
-        def _parse_completed_quantity(data: object) -> float | None | Unset:
+        def _parse_completed_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         completed_quantity = _parse_completed_quantity(
             d.pop("completed_quantity", UNSET)
         )
 
-        def _parse_remaining_quantity(data: object) -> float | None | Unset:
+        def _parse_remaining_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         remaining_quantity = _parse_remaining_quantity(
             d.pop("remaining_quantity", UNSET)
@@ -373,7 +373,7 @@ class ManufacturingOrder:
 
         def _parse_production_deadline_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -386,13 +386,13 @@ class ManufacturingOrder:
                 return production_deadline_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         production_deadline_date = _parse_production_deadline_date(
             d.pop("production_deadline_date", UNSET)
         )
 
-        def _parse_done_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_done_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -405,7 +405,7 @@ class ManufacturingOrder:
                 return done_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         done_date = _parse_done_date(d.pop("done_date", UNSET))
 
@@ -415,7 +415,7 @@ class ManufacturingOrder:
 
         def _parse_ingredient_availability(
             data: object,
-        ) -> IngredientAvailability | None | Unset:
+        ) -> IngredientAvailability | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -428,7 +428,7 @@ class ManufacturingOrder:
                 return ingredient_availability_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(IngredientAvailability | None | Unset, data)
+            return cast(IngredientAvailability | Unset | None, data)
 
         ingredient_availability = _parse_ingredient_availability(
             d.pop("ingredient_availability", UNSET)
@@ -446,7 +446,7 @@ class ManufacturingOrder:
 
         def _parse_sales_order_delivery_deadline(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -461,7 +461,7 @@ class ManufacturingOrder:
                 return sales_order_delivery_deadline_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         sales_order_delivery_deadline = _parse_sales_order_delivery_deadline(
             d.pop("sales_order_delivery_deadline", UNSET)

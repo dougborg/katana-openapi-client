@@ -25,7 +25,7 @@ response = await get_all_products.asyncio_detailed(
     is_producible=True,
     include_deleted=False,
     include_archived=False,
-    limit=100
+    limit=100,
 )
 products = unwrap_data(response)
 ```
@@ -57,8 +57,7 @@ class ProductHelper:
     async def list(self, **filters) -> list[Product]:
         """Generated wrapper for get_all_products."""
         response = await get_all_products.asyncio_detailed(
-            client=self._client,
-            **filters
+            client=self._client, **filters
         )
         return unwrap_data(response)
 
@@ -83,9 +82,7 @@ class ProductHelper:
     async def active_sellable(self) -> list[Product]:
         """Get active sellable products (common filter)."""
         return await self.list(
-            is_sellable=True,
-            include_deleted=False,
-            include_archived=False
+            is_sellable=True, include_deleted=False, include_archived=False
         )
 
     async def low_stock(self, threshold: int = 10) -> list[tuple[Product, int]]:
@@ -169,13 +166,7 @@ The helpers are:
 See [ADR-008](0008-avoid-builder-pattern.md) for full analysis.
 
 ```python
-query = (
-    ProductQuery(client)
-    .sellable()
-    .producible()
-    .created_between(start, end)
-    .all()
-)
+query = ProductQuery(client).sellable().producible().created_between(start, end).all()
 ```
 
 **Why Rejected:**
@@ -196,7 +187,7 @@ response = await get_all_products.asyncio_detailed(
     is_sellable=True,
     is_producible=True,
     include_deleted=False,
-    include_archived=False
+    include_archived=False,
 )
 ```
 

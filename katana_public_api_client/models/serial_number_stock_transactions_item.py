@@ -20,7 +20,7 @@ class SerialNumberStockTransactionsItem:
     resource_id: int
     resource_type: str
     quantity_change: int
-    transaction_date: datetime.datetime | None | Unset = UNSET
+    transaction_date: datetime.datetime | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,7 +32,7 @@ class SerialNumberStockTransactionsItem:
 
         quantity_change = self.quantity_change
 
-        transaction_date: None | str | Unset
+        transaction_date: str | Unset | None
         if isinstance(self.transaction_date, Unset):
             transaction_date = UNSET
         elif isinstance(self.transaction_date, datetime.datetime):
@@ -66,7 +66,7 @@ class SerialNumberStockTransactionsItem:
 
         quantity_change = d.pop("quantity_change")
 
-        def _parse_transaction_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_transaction_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -79,7 +79,7 @@ class SerialNumberStockTransactionsItem:
                 return transaction_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         transaction_date = _parse_transaction_date(d.pop("transaction_date", UNSET))
 

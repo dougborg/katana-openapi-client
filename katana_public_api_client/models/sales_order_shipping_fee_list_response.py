@@ -47,7 +47,9 @@ class SalesOrderShippingFeeListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_shipping_fee import SalesOrderShippingFee
+        from ..models.sales_order_shipping_fee import (
+            SalesOrderShippingFee,
+        )
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)

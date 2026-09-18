@@ -23,12 +23,12 @@ class StockAdjustmentBatchTransaction:
     """
 
     quantity: float
-    batch_id: int | None | Unset = UNSET
+    batch_id: int | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
 
-        batch_id: int | None | Unset
+        batch_id: int | Unset | None
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
         else:
@@ -51,12 +51,12 @@ class StockAdjustmentBatchTransaction:
         d = dict(src_dict)
         quantity = d.pop("quantity")
 
-        def _parse_batch_id(data: object) -> int | None | Unset:
+        def _parse_batch_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 

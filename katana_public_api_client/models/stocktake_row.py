@@ -23,12 +23,12 @@ class StocktakeRow:
     variant_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
-    batch_id: int | None | Unset = UNSET
-    in_stock_quantity: float | None | Unset = UNSET
-    counted_quantity: float | None | Unset = UNSET
-    discrepancy_quantity: float | None | Unset = UNSET
-    notes: None | str | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
+    batch_id: int | Unset | None = UNSET
+    in_stock_quantity: float | Unset | None = UNSET
+    counted_quantity: float | Unset | None = UNSET
+    discrepancy_quantity: float | Unset | None = UNSET
+    notes: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -46,7 +46,7 @@ class StocktakeRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -54,31 +54,31 @@ class StocktakeRow:
         else:
             deleted_at = self.deleted_at
 
-        batch_id: int | None | Unset
+        batch_id: int | Unset | None
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
         else:
             batch_id = self.batch_id
 
-        in_stock_quantity: float | None | Unset
+        in_stock_quantity: float | Unset | None
         if isinstance(self.in_stock_quantity, Unset):
             in_stock_quantity = UNSET
         else:
             in_stock_quantity = self.in_stock_quantity
 
-        counted_quantity: float | None | Unset
+        counted_quantity: float | Unset | None
         if isinstance(self.counted_quantity, Unset):
             counted_quantity = UNSET
         else:
             counted_quantity = self.counted_quantity
 
-        discrepancy_quantity: float | None | Unset
+        discrepancy_quantity: float | Unset | None
         if isinstance(self.discrepancy_quantity, Unset):
             discrepancy_quantity = UNSET
         else:
             discrepancy_quantity = self.discrepancy_quantity
 
-        notes: None | str | Unset
+        notes: str | Unset | None
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -135,7 +135,7 @@ class StocktakeRow:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -148,54 +148,54 @@ class StocktakeRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        def _parse_batch_id(data: object) -> int | None | Unset:
+        def _parse_batch_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
-        def _parse_in_stock_quantity(data: object) -> float | None | Unset:
+        def _parse_in_stock_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         in_stock_quantity = _parse_in_stock_quantity(d.pop("in_stock_quantity", UNSET))
 
-        def _parse_counted_quantity(data: object) -> float | None | Unset:
+        def _parse_counted_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
 
-        def _parse_discrepancy_quantity(data: object) -> float | None | Unset:
+        def _parse_discrepancy_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         discrepancy_quantity = _parse_discrepancy_quantity(
             d.pop("discrepancy_quantity", UNSET)
         )
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_notes(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

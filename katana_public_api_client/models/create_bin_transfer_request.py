@@ -28,7 +28,7 @@ class CreateBinTransferRequest:
 
     location_id: int
     bin_transfer_number: str | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
+    additional_info: str | Unset | None = UNSET
     created_date: datetime.datetime | Unset = UNSET
     bin_transfer_rows: list[BinTransferRowCreateNested] | Unset = UNSET
 
@@ -37,7 +37,7 @@ class CreateBinTransferRequest:
 
         bin_transfer_number = self.bin_transfer_number
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
@@ -74,19 +74,21 @@ class CreateBinTransferRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.bin_transfer_row_create_nested import BinTransferRowCreateNested
+        from ..models.bin_transfer_row_create_nested import (
+            BinTransferRowCreateNested,
+        )
 
         d = dict(src_dict)
         location_id = d.pop("location_id")
 
         bin_transfer_number = d.pop("bin_transfer_number", UNSET)
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

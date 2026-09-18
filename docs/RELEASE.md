@@ -6,19 +6,19 @@ This repository uses [release-please](https://github.com/googleapis/release-plea
 1. **katana-openapi-client** - The main Python API client
 1. **katana-mcp-server** - The Model Context Protocol server
 
-Each package is released independently. release-please decides which package(s) to
-bump based on **which paths a commit touches**, not on commit scope - a commit that
-only touches `katana_mcp_server/` bumps only the MCP server; a commit touching the
-repo root (outside `katana_mcp_server/`) bumps the client; a commit touching both
-bumps both. Conventional-commit scopes (`(client)` / `(mcp)`) remain useful for
-changelog readability but are no longer load-bearing for version decisions.
+Each package is released independently. release-please decides which package(s) to bump
+based on **which paths a commit touches**, not on commit scope - a commit that only
+touches `katana_mcp_server/` bumps only the MCP server; a commit touching the repo root
+(outside `katana_mcp_server/`) bumps the client; a commit touching both bumps both.
+Conventional-commit scopes (`(client)` / `(mcp)`) remain useful for changelog
+readability but are no longer load-bearing for version decisions.
 
 ## How releases work
 
 ### 1. Every push to `main` updates the release PR
 
-[`release-please.yml`](../.github/workflows/release-please.yml) is the **only**
-workflow that watches pushes to `main` for release purposes. On every push it runs
+[`release-please.yml`](../.github/workflows/release-please.yml) is the **only** workflow
+that watches pushes to `main` for release purposes. On every push it runs
 [`googleapis/release-please-action`](https://github.com/googleapis/release-please-action)
 against [`release-please-config.json`](../release-please-config.json) /
 [`.release-please-manifest.json`](../.release-please-manifest.json) and either:
@@ -65,8 +65,8 @@ never on a `main` push - and:
 1. attaches the built wheel/sdist to the **still-draft** release
 1. publishes the release (`gh release edit --draft=false`)
 
-For `mcp-v*` tags, a follow-on job also builds and pushes the multi-arch Docker image
-to `ghcr.io/dougborg/katana-mcp-server`.
+For `mcp-v*` tags, a follow-on job also builds and pushes the multi-arch Docker image to
+`ghcr.io/dougborg/katana-mcp-server`.
 
 Releases are always finalized (published) only **after** their assets are attached.
 Draft releases accept asset uploads; once a release is published it becomes
@@ -98,8 +98,8 @@ Which package bumps is determined by **which files the commit touches**:
   The client bumps.
 - Changed both? Both bump.
 
-Scopes like `(client)`/`(mcp)` are still encouraged for changelog clarity, but no
-longer decide which package releases.
+Scopes like `(client)`/`(mcp)` are still encouraged for changelog clarity, but no longer
+decide which package releases.
 
 ## Tag format
 
@@ -118,10 +118,10 @@ this migration:
   `publish.yml`
 - **katana-mcp-server**: published from the `publish-mcp-pypi` job in `publish.yml`
 
-Neither job declares a GitHub Environment - the existing Trusted Publisher
-registrations on PyPI were made without an environment name, and the OIDC claim
-includes that name, so adding one now would break publishing. Configuration: PyPI
-Project Settings -> Publishing -> Trusted Publishers.
+Neither job declares a GitHub Environment - the existing Trusted Publisher registrations
+on PyPI were made without an environment name, and the OIDC claim includes that name, so
+adding one now would break publishing. Configuration: PyPI Project Settings ->
+Publishing -> Trusted Publishers.
 
 ## Manual release (emergency only)
 
@@ -150,19 +150,19 @@ Only do this if the automated pipeline is broken. Prefer fixing the workflow.
 
 ### No release PR appearing
 
-- Check that a commit since the last release actually has a releasable type
-  (`feat:`, `fix:`, `perf:`) touching a tracked path.
+- Check that a commit since the last release actually has a releasable type (`feat:`,
+  `fix:`, `perf:`) touching a tracked path.
 - Check the `release-please` job logs in `release-please.yml`'s latest run.
-- release-please skips work with nothing to release - this is expected between
-  releases, not a failure.
+- release-please skips work with nothing to release - this is expected between releases,
+  not a failure.
 
 ### `uv.lock` or the MCP client pin looks stale on the release PR
 
 - Check that `release-pr-prepare.yml` actually ran and pushed a commit - it only
   triggers on `pull_request` events (`opened`, `synchronize`, `reopened`) for branches
   matching `release-please--*` in this repository.
-- If release-please force-pushed the PR branch again after `release-pr-prepare.yml`
-  last ran, `synchronize` re-triggers it automatically; give it a minute.
+- If release-please force-pushed the PR branch again after `release-pr-prepare.yml` last
+  ran, `synchronize` re-triggers it automatically; give it a minute.
 
 ### Publish auth failures
 
@@ -176,19 +176,19 @@ Only do this if the automated pipeline is broken. Prefer fixing the workflow.
 
 - Each `publish.yml` job publishes to PyPI, uploads build artifacts, and *then* runs
   `gh release edit --draft=false`. If the job failed before that last step, the draft
-  release is expected to remain in draft - check the workflow run for the actual
-  failure and re-run the job; `gh release upload --clobber` and `gh release edit` are
-  both safe to re-run against a still-draft release.
+  release is expected to remain in draft - check the workflow run for the actual failure
+  and re-run the job; `gh release upload --clobber` and `gh release edit` are both safe
+  to re-run against a still-draft release.
 
 ## Branch protection interaction
 
 `main` is protected by the "Protect Main" ruleset (required PRs, linear history,
-required status checks, Copilot review). release-please satisfies the PR requirement
-by construction - it always opens a PR rather than pushing directly. The
+required status checks, Copilot review). release-please satisfies the PR requirement by
+construction - it always opens a PR rather than pushing directly. The
 `dougborg-release-please` GitHub App's ruleset bypass (previously needed so
-python-semantic-release could push release commits straight to `main`) becomes
-optional under this design, needed only if the release PR should auto-merge without
-review (see #429). This PR does not change the ruleset itself.
+python-semantic-release could push release commits straight to `main`) becomes optional
+under this design, needed only if the release PR should auto-merge without review (see
+#429). This PR does not change the ruleset itself.
 
 ## Further reading
 

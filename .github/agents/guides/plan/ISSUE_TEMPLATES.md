@@ -254,8 +254,8 @@ Add null check before accessing pagination cursor:
 ```python
 # Fixed
 meta = response.parsed.meta
-if meta and 'next' in meta and meta['next']:
-    next_url = meta['next']
+if meta and "next" in meta and meta["next"]:
+    next_url = meta["next"]
 else:
     # End of results
     break

@@ -43,11 +43,13 @@ import asyncio
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
 
+
 async def main():
     async with KatanaClient() as client:
         response = await get_all_products.asyncio_detailed(client=client)
         products = response.parsed.data
         print(f"Found {len(products)} products")
+
 
 asyncio.run(main())
 ```

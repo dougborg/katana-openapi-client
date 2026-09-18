@@ -33,15 +33,15 @@ class OutsourcedPurchaseOrderRecipeRow:
     planned_quantity_per_unit: float
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     purchase_order_id: int | Unset = UNSET
     ingredient_availability: OutsourcedRecipeIngredientAvailability | Unset = UNSET
-    ingredient_expected_date: datetime.datetime | None | Unset = UNSET
-    notes: None | str | Unset = UNSET
+    ingredient_expected_date: datetime.datetime | Unset | None = UNSET
+    notes: str | Unset | None = UNSET
     batch_transactions: (
         list[OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem] | Unset
     ) = UNSET
-    cost: float | None | Unset = UNSET
+    cost: float | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -61,7 +61,7 @@ class OutsourcedPurchaseOrderRecipeRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -75,7 +75,7 @@ class OutsourcedPurchaseOrderRecipeRow:
         if not isinstance(self.ingredient_availability, Unset):
             ingredient_availability = self.ingredient_availability.value
 
-        ingredient_expected_date: None | str | Unset
+        ingredient_expected_date: str | Unset | None
         if isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
         elif isinstance(self.ingredient_expected_date, datetime.datetime):
@@ -83,7 +83,7 @@ class OutsourcedPurchaseOrderRecipeRow:
         else:
             ingredient_expected_date = self.ingredient_expected_date
 
-        notes: None | str | Unset
+        notes: str | Unset | None
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -96,7 +96,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        cost: float | None | Unset
+        cost: float | Unset | None
         if isinstance(self.cost, Unset):
             cost = UNSET
         else:
@@ -162,7 +162,7 @@ class OutsourcedPurchaseOrderRecipeRow:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -175,7 +175,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -192,7 +192,7 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         def _parse_ingredient_expected_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -205,18 +205,18 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return ingredient_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
         )
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_notes(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
@@ -235,12 +235,12 @@ class OutsourcedPurchaseOrderRecipeRow:
 
                 batch_transactions.append(batch_transactions_item)
 
-        def _parse_cost(data: object) -> float | None | Unset:
+        def _parse_cost(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         cost = _parse_cost(d.pop("cost", UNSET))
 

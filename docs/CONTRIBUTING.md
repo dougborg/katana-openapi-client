@@ -351,8 +351,9 @@ regen. Everything else under `katana_public_api_client/` (including the rest of
 
 ## Release Process
 
-Releases are automated using [release-please](https://github.com/googleapis/release-please)
-in manifest mode. See [RELEASE.md](RELEASE.md) for complete documentation.
+Releases are automated using
+[release-please](https://github.com/googleapis/release-please) in manifest mode. See
+[RELEASE.md](RELEASE.md) for complete documentation.
 
 **Quick summary for contributors:**
 

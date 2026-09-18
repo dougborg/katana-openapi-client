@@ -32,9 +32,9 @@ class SalesReturnRow:
     updated_at: datetime.datetime | Unset = UNSET
     fulfillment_row_id: int | Unset = UNSET
     sales_order_row_id: int | Unset = UNSET
-    net_price_per_unit: None | str | Unset = UNSET
-    reason_id: int | None | Unset = UNSET
-    restock_location_id: int | None | Unset = UNSET
+    net_price_per_unit: str | Unset | None = UNSET
+    reason_id: int | Unset | None = UNSET
+    restock_location_id: int | Unset | None = UNSET
     batch_transactions: list[SalesReturnRowBatchTransactionsItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -59,19 +59,19 @@ class SalesReturnRow:
 
         sales_order_row_id = self.sales_order_row_id
 
-        net_price_per_unit: None | str | Unset
+        net_price_per_unit: str | Unset | None
         if isinstance(self.net_price_per_unit, Unset):
             net_price_per_unit = UNSET
         else:
             net_price_per_unit = self.net_price_per_unit
 
-        reason_id: int | None | Unset
+        reason_id: int | Unset | None
         if isinstance(self.reason_id, Unset):
             reason_id = UNSET
         else:
             reason_id = self.reason_id
 
-        restock_location_id: int | None | Unset
+        restock_location_id: int | Unset | None
         if isinstance(self.restock_location_id, Unset):
             restock_location_id = UNSET
         else:
@@ -146,32 +146,32 @@ class SalesReturnRow:
 
         sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
-        def _parse_net_price_per_unit(data: object) -> None | str | Unset:
+        def _parse_net_price_per_unit(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         net_price_per_unit = _parse_net_price_per_unit(
             d.pop("net_price_per_unit", UNSET)
         )
 
-        def _parse_reason_id(data: object) -> int | None | Unset:
+        def _parse_reason_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         reason_id = _parse_reason_id(d.pop("reason_id", UNSET))
 
-        def _parse_restock_location_id(data: object) -> int | None | Unset:
+        def _parse_restock_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         restock_location_id = _parse_restock_location_id(
             d.pop("restock_location_id", UNSET)

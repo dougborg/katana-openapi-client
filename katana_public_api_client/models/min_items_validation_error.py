@@ -53,7 +53,9 @@ class MinItemsValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.min_items_validation_error_info import MinItemsValidationErrorInfo
+        from ..models.min_items_validation_error_info import (
+            MinItemsValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

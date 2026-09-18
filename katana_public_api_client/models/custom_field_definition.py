@@ -43,11 +43,11 @@ class CustomFieldDefinition:
     field_type: CustomFieldType
     entity_type: CustomFieldEntityType
     source: str
-    description: None | str | Unset = UNSET
-    options: CustomFieldOptions | None | Unset = UNSET
+    description: str | Unset | None = UNSET
+    options: CustomFieldOptions | Unset | None = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.custom_field_options import CustomFieldOptions
@@ -62,13 +62,13 @@ class CustomFieldDefinition:
 
         source = self.source
 
-        description: None | str | Unset
+        description: str | Unset | None
         if isinstance(self.description, Unset):
             description = UNSET
         else:
             description = self.description
 
-        options: dict[str, Any] | None | Unset
+        options: dict[str, Any] | Unset | None
         if isinstance(self.options, Unset):
             options = UNSET
         elif isinstance(self.options, CustomFieldOptions):
@@ -84,7 +84,7 @@ class CustomFieldDefinition:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -131,16 +131,16 @@ class CustomFieldDefinition:
 
         source = d.pop("source")
 
-        def _parse_description(data: object) -> None | str | Unset:
+        def _parse_description(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         description = _parse_description(d.pop("description", UNSET))
 
-        def _parse_options(data: object) -> CustomFieldOptions | None | Unset:
+        def _parse_options(data: object) -> CustomFieldOptions | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -158,7 +158,7 @@ class CustomFieldDefinition:
                 return options_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(CustomFieldOptions | None | Unset, data)
+            return cast(CustomFieldOptions | Unset | None, data)
 
         options = _parse_options(d.pop("options", UNSET))
 
@@ -176,7 +176,7 @@ class CustomFieldDefinition:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -189,7 +189,7 @@ class CustomFieldDefinition:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

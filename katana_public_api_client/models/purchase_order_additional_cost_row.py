@@ -28,18 +28,18 @@ class PurchaseOrderAdditionalCostRow:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     additional_cost_id: int | Unset = UNSET
     group_id: int | Unset = UNSET
     name: str | Unset = UNSET
     distribution_method: str | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
-    tax_rate: float | None | Unset = UNSET
+    tax_rate: float | Unset | None = UNSET
     price: float | Unset = UNSET
-    price_in_base: float | None | Unset = UNSET
+    price_in_base: float | Unset | None = UNSET
     currency: str | Unset = UNSET
-    currency_conversion_rate: float | None | Unset = UNSET
-    currency_conversion_rate_fix_date: datetime.datetime | None | Unset = UNSET
+    currency_conversion_rate: float | Unset | None = UNSET
+    currency_conversion_rate_fix_date: datetime.datetime | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,7 +53,7 @@ class PurchaseOrderAdditionalCostRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -71,7 +71,7 @@ class PurchaseOrderAdditionalCostRow:
 
         tax_rate_id = self.tax_rate_id
 
-        tax_rate: float | None | Unset
+        tax_rate: float | Unset | None
         if isinstance(self.tax_rate, Unset):
             tax_rate = UNSET
         else:
@@ -79,7 +79,7 @@ class PurchaseOrderAdditionalCostRow:
 
         price = self.price
 
-        price_in_base: float | None | Unset
+        price_in_base: float | Unset | None
         if isinstance(self.price_in_base, Unset):
             price_in_base = UNSET
         else:
@@ -87,13 +87,13 @@ class PurchaseOrderAdditionalCostRow:
 
         currency = self.currency
 
-        currency_conversion_rate: float | None | Unset
+        currency_conversion_rate: float | Unset | None
         if isinstance(self.currency_conversion_rate, Unset):
             currency_conversion_rate = UNSET
         else:
             currency_conversion_rate = self.currency_conversion_rate
 
-        currency_conversion_rate_fix_date: None | str | Unset
+        currency_conversion_rate_fix_date: str | Unset | None
         if isinstance(self.currency_conversion_rate_fix_date, Unset):
             currency_conversion_rate_fix_date = UNSET
         elif isinstance(self.currency_conversion_rate_fix_date, datetime.datetime):
@@ -162,7 +162,7 @@ class PurchaseOrderAdditionalCostRow:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -175,7 +175,7 @@ class PurchaseOrderAdditionalCostRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -189,34 +189,34 @@ class PurchaseOrderAdditionalCostRow:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        def _parse_tax_rate(data: object) -> float | None | Unset:
+        def _parse_tax_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         tax_rate = _parse_tax_rate(d.pop("tax_rate", UNSET))
 
         price = d.pop("price", UNSET)
 
-        def _parse_price_in_base(data: object) -> float | None | Unset:
+        def _parse_price_in_base(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         price_in_base = _parse_price_in_base(d.pop("price_in_base", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_currency_conversion_rate(data: object) -> float | None | Unset:
+        def _parse_currency_conversion_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         currency_conversion_rate = _parse_currency_conversion_rate(
             d.pop("currency_conversion_rate", UNSET)
@@ -224,7 +224,7 @@ class PurchaseOrderAdditionalCostRow:
 
         def _parse_currency_conversion_rate_fix_date(
             data: object,
-        ) -> datetime.datetime | None | Unset:
+        ) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -239,7 +239,7 @@ class PurchaseOrderAdditionalCostRow:
                 return currency_conversion_rate_fix_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         currency_conversion_rate_fix_date = _parse_currency_conversion_rate_fix_date(
             d.pop("currency_conversion_rate_fix_date", UNSET)

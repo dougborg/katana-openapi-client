@@ -68,6 +68,7 @@ async def main():
         response = await get_all_products.asyncio_detailed(client=client)
         products = response.parsed.data
 
+
 # Sync application (scripts, notebooks)
 def main():
     with KatanaClient() as client:
@@ -160,11 +161,11 @@ Provide sync API, users can wrap in async:
 ```python
 import asyncio
 
+
 async def async_wrapper():
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
-        None,
-        lambda: get_all_products.sync_detailed(client=client)
+        None, lambda: get_all_products.sync_detailed(client=client)
     )
 ```
 
@@ -249,9 +250,7 @@ class KatanaClient(AuthenticatedClient):
         sync_transport = ResilientSyncTransport.create(...)
 
         super().__init__(
-            transport=sync_transport,
-            async_transport=async_transport,
-            **kwargs
+            transport=sync_transport, async_transport=async_transport, **kwargs
         )
 ```
 

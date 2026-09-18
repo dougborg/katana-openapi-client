@@ -35,21 +35,21 @@ class SalesOrderRowSearchWhere:
 
     and_: list[SalesOrderRowSearchWhereAndItem] | Unset = UNSET
     or_: list[SalesOrderRowSearchWhereOrItem] | Unset = UNSET
-    id: bool | float | None | SearchComparator | str | Unset = UNSET
-    sales_order_id: bool | float | None | SearchComparator | str | Unset = UNSET
-    variant_id: bool | float | None | SearchComparator | str | Unset = UNSET
-    location_id: bool | float | None | SearchComparator | str | Unset = UNSET
-    tax_rate_id: bool | float | None | SearchComparator | str | Unset = UNSET
-    quantity: bool | float | None | SearchComparator | str | Unset = UNSET
-    price_per_unit: bool | float | None | SearchComparator | str | Unset = UNSET
-    total_discount: bool | float | None | SearchComparator | str | Unset = UNSET
-    tax_rate: bool | float | None | SearchComparator | str | Unset = UNSET
-    currency: bool | float | None | SearchComparator | str | Unset = UNSET
-    product_availability: bool | float | None | SearchComparator | str | Unset = UNSET
-    created_at: bool | float | None | SearchComparator | str | Unset = UNSET
-    updated_at: bool | float | None | SearchComparator | str | Unset = UNSET
-    delivery_date: bool | float | None | SearchComparator | str | Unset = UNSET
-    shipping_date: bool | float | None | SearchComparator | str | Unset = UNSET
+    id: bool | float | SearchComparator | str | Unset | None = UNSET
+    sales_order_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    variant_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    location_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    tax_rate_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    quantity: bool | float | SearchComparator | str | Unset | None = UNSET
+    price_per_unit: bool | float | SearchComparator | str | Unset | None = UNSET
+    total_discount: bool | float | SearchComparator | str | Unset | None = UNSET
+    tax_rate: bool | float | SearchComparator | str | Unset | None = UNSET
+    currency: bool | float | SearchComparator | str | Unset | None = UNSET
+    product_availability: bool | float | SearchComparator | str | Unset | None = UNSET
+    created_at: bool | float | SearchComparator | str | Unset | None = UNSET
+    updated_at: bool | float | SearchComparator | str | Unset | None = UNSET
+    delivery_date: bool | float | SearchComparator | str | Unset | None = UNSET
+    shipping_date: bool | float | SearchComparator | str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -69,7 +69,7 @@ class SalesOrderRowSearchWhere:
                 or_item = or_item_data.to_dict()
                 or_.append(or_item)
 
-        id: bool | dict[str, Any] | float | None | str | Unset
+        id: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.id, Unset):
             id = UNSET
         elif isinstance(self.id, SearchComparator):
@@ -77,7 +77,7 @@ class SalesOrderRowSearchWhere:
         else:
             id = self.id
 
-        sales_order_id: bool | dict[str, Any] | float | None | str | Unset
+        sales_order_id: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.sales_order_id, Unset):
             sales_order_id = UNSET
         elif isinstance(self.sales_order_id, SearchComparator):
@@ -85,7 +85,7 @@ class SalesOrderRowSearchWhere:
         else:
             sales_order_id = self.sales_order_id
 
-        variant_id: bool | dict[str, Any] | float | None | str | Unset
+        variant_id: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.variant_id, Unset):
             variant_id = UNSET
         elif isinstance(self.variant_id, SearchComparator):
@@ -93,7 +93,7 @@ class SalesOrderRowSearchWhere:
         else:
             variant_id = self.variant_id
 
-        location_id: bool | dict[str, Any] | float | None | str | Unset
+        location_id: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.location_id, Unset):
             location_id = UNSET
         elif isinstance(self.location_id, SearchComparator):
@@ -101,7 +101,7 @@ class SalesOrderRowSearchWhere:
         else:
             location_id = self.location_id
 
-        tax_rate_id: bool | dict[str, Any] | float | None | str | Unset
+        tax_rate_id: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.tax_rate_id, Unset):
             tax_rate_id = UNSET
         elif isinstance(self.tax_rate_id, SearchComparator):
@@ -109,7 +109,7 @@ class SalesOrderRowSearchWhere:
         else:
             tax_rate_id = self.tax_rate_id
 
-        quantity: bool | dict[str, Any] | float | None | str | Unset
+        quantity: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.quantity, Unset):
             quantity = UNSET
         elif isinstance(self.quantity, SearchComparator):
@@ -117,7 +117,7 @@ class SalesOrderRowSearchWhere:
         else:
             quantity = self.quantity
 
-        price_per_unit: bool | dict[str, Any] | float | None | str | Unset
+        price_per_unit: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.price_per_unit, Unset):
             price_per_unit = UNSET
         elif isinstance(self.price_per_unit, SearchComparator):
@@ -125,7 +125,7 @@ class SalesOrderRowSearchWhere:
         else:
             price_per_unit = self.price_per_unit
 
-        total_discount: bool | dict[str, Any] | float | None | str | Unset
+        total_discount: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.total_discount, Unset):
             total_discount = UNSET
         elif isinstance(self.total_discount, SearchComparator):
@@ -133,7 +133,7 @@ class SalesOrderRowSearchWhere:
         else:
             total_discount = self.total_discount
 
-        tax_rate: bool | dict[str, Any] | float | None | str | Unset
+        tax_rate: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.tax_rate, Unset):
             tax_rate = UNSET
         elif isinstance(self.tax_rate, SearchComparator):
@@ -141,7 +141,7 @@ class SalesOrderRowSearchWhere:
         else:
             tax_rate = self.tax_rate
 
-        currency: bool | dict[str, Any] | float | None | str | Unset
+        currency: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.currency, Unset):
             currency = UNSET
         elif isinstance(self.currency, SearchComparator):
@@ -149,7 +149,7 @@ class SalesOrderRowSearchWhere:
         else:
             currency = self.currency
 
-        product_availability: bool | dict[str, Any] | float | None | str | Unset
+        product_availability: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.product_availability, Unset):
             product_availability = UNSET
         elif isinstance(self.product_availability, SearchComparator):
@@ -157,7 +157,7 @@ class SalesOrderRowSearchWhere:
         else:
             product_availability = self.product_availability
 
-        created_at: bool | dict[str, Any] | float | None | str | Unset
+        created_at: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.created_at, Unset):
             created_at = UNSET
         elif isinstance(self.created_at, SearchComparator):
@@ -165,7 +165,7 @@ class SalesOrderRowSearchWhere:
         else:
             created_at = self.created_at
 
-        updated_at: bool | dict[str, Any] | float | None | str | Unset
+        updated_at: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.updated_at, Unset):
             updated_at = UNSET
         elif isinstance(self.updated_at, SearchComparator):
@@ -173,7 +173,7 @@ class SalesOrderRowSearchWhere:
         else:
             updated_at = self.updated_at
 
-        delivery_date: bool | dict[str, Any] | float | None | str | Unset
+        delivery_date: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.delivery_date, Unset):
             delivery_date = UNSET
         elif isinstance(self.delivery_date, SearchComparator):
@@ -181,7 +181,7 @@ class SalesOrderRowSearchWhere:
         else:
             delivery_date = self.delivery_date
 
-        shipping_date: bool | dict[str, Any] | float | None | str | Unset
+        shipping_date: bool | dict[str, Any] | float | str | Unset | None
         if isinstance(self.shipping_date, Unset):
             shipping_date = UNSET
         elif isinstance(self.shipping_date, SearchComparator):
@@ -264,7 +264,7 @@ class SalesOrderRowSearchWhere:
 
         def _parse_id(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -282,13 +282,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         id = _parse_id(d.pop("id", UNSET))
 
         def _parse_sales_order_id(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -306,13 +306,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
 
         def _parse_variant_id(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -330,13 +330,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         variant_id = _parse_variant_id(d.pop("variant_id", UNSET))
 
         def _parse_location_id(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -354,13 +354,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 
         def _parse_tax_rate_id(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -378,13 +378,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
 
         def _parse_quantity(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -402,13 +402,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 
         def _parse_price_per_unit(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -426,13 +426,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         price_per_unit = _parse_price_per_unit(d.pop("price_per_unit", UNSET))
 
         def _parse_total_discount(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -450,13 +450,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         total_discount = _parse_total_discount(d.pop("total_discount", UNSET))
 
         def _parse_tax_rate(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -474,13 +474,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         tax_rate = _parse_tax_rate(d.pop("tax_rate", UNSET))
 
         def _parse_currency(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -498,13 +498,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
         def _parse_product_availability(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -522,7 +522,7 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         product_availability = _parse_product_availability(
             d.pop("product_availability", UNSET)
@@ -530,7 +530,7 @@ class SalesOrderRowSearchWhere:
 
         def _parse_created_at(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -548,13 +548,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         created_at = _parse_created_at(d.pop("created_at", UNSET))
 
         def _parse_updated_at(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -572,13 +572,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         updated_at = _parse_updated_at(d.pop("updated_at", UNSET))
 
         def _parse_delivery_date(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -596,13 +596,13 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
         def _parse_shipping_date(
             data: object,
-        ) -> bool | float | None | SearchComparator | str | Unset:
+        ) -> bool | float | SearchComparator | str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -620,7 +620,7 @@ class SalesOrderRowSearchWhere:
                 return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(bool | float | None | SearchComparator | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
         shipping_date = _parse_shipping_date(d.pop("shipping_date", UNSET))
 

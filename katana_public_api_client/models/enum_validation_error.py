@@ -53,7 +53,9 @@ class EnumValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.enum_validation_error_info import EnumValidationErrorInfo
+        from ..models.enum_validation_error_info import (
+            EnumValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

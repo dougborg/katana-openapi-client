@@ -31,77 +31,77 @@ class CreateCustomerRequest:
     """
 
     name: str
-    first_name: None | str | Unset = UNSET
-    last_name: None | str | Unset = UNSET
-    company: None | str | Unset = UNSET
-    email: None | str | Unset = UNSET
-    phone: None | str | Unset = UNSET
-    comment: None | str | Unset = UNSET
-    currency: None | str | Unset = UNSET
-    reference_id: None | str | Unset = UNSET
-    category: None | str | Unset = UNSET
-    discount_rate: float | None | Unset = UNSET
+    first_name: str | Unset | None = UNSET
+    last_name: str | Unset | None = UNSET
+    company: str | Unset | None = UNSET
+    email: str | Unset | None = UNSET
+    phone: str | Unset | None = UNSET
+    comment: str | Unset | None = UNSET
+    currency: str | Unset | None = UNSET
+    reference_id: str | Unset | None = UNSET
+    category: str | Unset | None = UNSET
+    discount_rate: float | Unset | None = UNSET
     addresses: list[CreateCustomerRequestAddressesItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
 
-        first_name: None | str | Unset
+        first_name: str | Unset | None
         if isinstance(self.first_name, Unset):
             first_name = UNSET
         else:
             first_name = self.first_name
 
-        last_name: None | str | Unset
+        last_name: str | Unset | None
         if isinstance(self.last_name, Unset):
             last_name = UNSET
         else:
             last_name = self.last_name
 
-        company: None | str | Unset
+        company: str | Unset | None
         if isinstance(self.company, Unset):
             company = UNSET
         else:
             company = self.company
 
-        email: None | str | Unset
+        email: str | Unset | None
         if isinstance(self.email, Unset):
             email = UNSET
         else:
             email = self.email
 
-        phone: None | str | Unset
+        phone: str | Unset | None
         if isinstance(self.phone, Unset):
             phone = UNSET
         else:
             phone = self.phone
 
-        comment: None | str | Unset
+        comment: str | Unset | None
         if isinstance(self.comment, Unset):
             comment = UNSET
         else:
             comment = self.comment
 
-        currency: None | str | Unset
+        currency: str | Unset | None
         if isinstance(self.currency, Unset):
             currency = UNSET
         else:
             currency = self.currency
 
-        reference_id: None | str | Unset
+        reference_id: str | Unset | None
         if isinstance(self.reference_id, Unset):
             reference_id = UNSET
         else:
             reference_id = self.reference_id
 
-        category: None | str | Unset
+        category: str | Unset | None
         if isinstance(self.category, Unset):
             category = UNSET
         else:
             category = self.category
 
-        discount_rate: float | None | Unset
+        discount_rate: float | Unset | None
         if isinstance(self.discount_rate, Unset):
             discount_rate = UNSET
         else:
@@ -155,93 +155,93 @@ class CreateCustomerRequest:
         d = dict(src_dict)
         name = d.pop("name")
 
-        def _parse_first_name(data: object) -> None | str | Unset:
+        def _parse_first_name(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
-        def _parse_last_name(data: object) -> None | str | Unset:
+        def _parse_last_name(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
-        def _parse_company(data: object) -> None | str | Unset:
+        def _parse_company(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         company = _parse_company(d.pop("company", UNSET))
 
-        def _parse_email(data: object) -> None | str | Unset:
+        def _parse_email(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         email = _parse_email(d.pop("email", UNSET))
 
-        def _parse_phone(data: object) -> None | str | Unset:
+        def _parse_phone(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
-        def _parse_comment(data: object) -> None | str | Unset:
+        def _parse_comment(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         comment = _parse_comment(d.pop("comment", UNSET))
 
-        def _parse_currency(data: object) -> None | str | Unset:
+        def _parse_currency(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
-        def _parse_reference_id(data: object) -> None | str | Unset:
+        def _parse_reference_id(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         reference_id = _parse_reference_id(d.pop("reference_id", UNSET))
 
-        def _parse_category(data: object) -> None | str | Unset:
+        def _parse_category(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         category = _parse_category(d.pop("category", UNSET))
 
-        def _parse_discount_rate(data: object) -> float | None | Unset:
+        def _parse_discount_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         discount_rate = _parse_discount_rate(d.pop("discount_rate", UNSET))
 

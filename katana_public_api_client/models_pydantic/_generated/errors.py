@@ -70,11 +70,11 @@ class Info(KatanaPydanticBase):
 
 class AdditionalPropertiesValidationError(BaseValidationError):
     code: Annotated[
-        Code | None,
+        Code,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info,
         Field(description="Keyword-specific metadata for ``additionalProperties``"),
@@ -97,11 +97,11 @@ class Info1(KatanaPydanticBase):
 
 class ConstValidationError(BaseValidationError):
     code: Annotated[
-        Code1 | None,
+        Code1,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[Info1, Field(description="Keyword-specific metadata for ``const``")]
 
 
@@ -132,11 +132,11 @@ class Info2(KatanaPydanticBase):
 
 class DependenciesValidationError(BaseValidationError):
     code: Annotated[
-        Code2 | None,
+        Code2,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info2, Field(description="Keyword-specific metadata for ``dependencies``")
     ]
@@ -158,11 +158,11 @@ class Info3(KatanaPydanticBase):
 
 class EnumValidationError(BaseValidationError):
     code: Annotated[
-        Code3 | None,
+        Code3,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[Info3, Field(description="Keyword-specific metadata for ``enum``")]
 
 
@@ -180,11 +180,11 @@ class Info4(KatanaPydanticBase):
 
 class ExclusiveMaximumValidationError(BaseValidationError):
     code: Annotated[
-        Code4 | None,
+        Code4,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info4, Field(description="Keyword-specific metadata for ``exclusiveMaximum``")
     ]
@@ -204,11 +204,11 @@ class Info5(KatanaPydanticBase):
 
 class ExclusiveMinimumValidationError(BaseValidationError):
     code: Annotated[
-        Code5 | None,
+        Code5,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info5, Field(description="Keyword-specific metadata for ``exclusiveMinimum``")
     ]
@@ -229,11 +229,11 @@ class Info6(KatanaPydanticBase):
 
 class FormatValidationError(BaseValidationError):
     code: Annotated[
-        Code6 | None,
+        Code6,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info6, Field(description="Keyword-specific metadata for ``format``")
     ]
@@ -249,11 +249,11 @@ class Info7(KatanaPydanticBase):
 
 class MaxItemsValidationError(BaseValidationError):
     code: Annotated[
-        Code7 | None,
+        Code7,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info7, Field(description="Keyword-specific metadata for ``maxItems``")
     ]
@@ -269,11 +269,11 @@ class Info8(KatanaPydanticBase):
 
 class MaxLengthValidationError(BaseValidationError):
     code: Annotated[
-        Code8 | None,
+        Code8,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info8, Field(description="Keyword-specific metadata for ``maxLength``")
     ]
@@ -293,11 +293,11 @@ class Info9(KatanaPydanticBase):
 
 class MaximumValidationError(BaseValidationError):
     code: Annotated[
-        Code9 | None,
+        Code9,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info9, Field(description="Keyword-specific metadata for ``maximum``")
     ]
@@ -313,11 +313,11 @@ class Info10(KatanaPydanticBase):
 
 class MinItemsValidationError(BaseValidationError):
     code: Annotated[
-        Code10 | None,
+        Code10,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info10, Field(description="Keyword-specific metadata for ``minItems``")
     ]
@@ -333,11 +333,11 @@ class Info11(KatanaPydanticBase):
 
 class MinLengthValidationError(BaseValidationError):
     code: Annotated[
-        Code11 | None,
+        Code11,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info11, Field(description="Keyword-specific metadata for ``minLength``")
     ]
@@ -357,11 +357,11 @@ class Info12(KatanaPydanticBase):
 
 class MinimumValidationError(BaseValidationError):
     code: Annotated[
-        Code12 | None,
+        Code12,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info12, Field(description="Keyword-specific metadata for ``minimum``")
     ]
@@ -379,11 +379,11 @@ class Info13(KatanaPydanticBase):
 
 class MultipleOfValidationError(BaseValidationError):
     code: Annotated[
-        Code13 | None,
+        Code13,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info13, Field(description="Keyword-specific metadata for ``multipleOf``")
     ]
@@ -405,11 +405,11 @@ class Info14(KatanaPydanticBase):
 
 class OneOfValidationError(BaseValidationError):
     code: Annotated[
-        Code14 | None,
+        Code14,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info14, Field(description="Keyword-specific metadata for ``oneOf``")
     ]
@@ -427,11 +427,11 @@ class Info15(KatanaPydanticBase):
 
 class PatternValidationError(BaseValidationError):
     code: Annotated[
-        Code15 | None,
+        Code15,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info15, Field(description="Keyword-specific metadata for ``pattern``")
     ]
@@ -453,11 +453,11 @@ class Info16(KatanaPydanticBase):
 
 class RequiredValidationError(BaseValidationError):
     code: Annotated[
-        Code16 | None,
+        Code16,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info16, Field(description="Keyword-specific metadata for ``required``")
     ]
@@ -478,11 +478,11 @@ class Info17(KatanaPydanticBase):
 
 class TypeValidationError(BaseValidationError):
     code: Annotated[
-        Code17 | None,
+        Code17,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[Info17, Field(description="Keyword-specific metadata for ``type``")]
 
 
@@ -497,11 +497,11 @@ class Info18(KatanaPydanticBase):
 
 class UniqueItemsValidationError(BaseValidationError):
     code: Annotated[
-        Code18 | None,
+        Code18,
         Field(
             description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
         ),
-    ] = None
+    ]
     info: Annotated[
         Info18, Field(description="Keyword-specific metadata for ``uniqueItems``")
     ]
@@ -509,11 +509,11 @@ class UniqueItemsValidationError(BaseValidationError):
 
 class GenericValidationError(BaseValidationError):
     code: Annotated[
-        str | None,
+        str,
         Field(
             description="Ajv keyword that failed (any value not covered by typed subtypes)"
         ),
-    ] = None
+    ]
 
 
 class DetailedErrorResponse(CodedErrorResponse):

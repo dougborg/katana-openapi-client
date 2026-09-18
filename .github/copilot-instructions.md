@@ -286,9 +286,7 @@ from katana_public_api_client.api.product import get_all_products
 
 async with KatanaClient() as client:
     # Automatic retries, rate limiting, and pagination
-    response = await get_all_products.asyncio_detailed(
-        client=client, limit=50
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=50)
 ```
 
 ### File Organization Rules

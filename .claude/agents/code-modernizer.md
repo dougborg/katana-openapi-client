@@ -78,7 +78,8 @@ if response.status_code == 200:
 # GOOD: use helpers
 result = unwrap_as(response, ExpectedType)
 items = unwrap_data(response, default=[])
-if is_success(response): ...
+if is_success(response):
+    ...
 ```
 
 ### Architecture Violations

@@ -35,17 +35,16 @@ from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
 from katana_public_api_client.utils import unwrap_data
 
+
 async def main():
     # Automatic configuration from .env file
     async with KatanaClient() as client:
         # Direct API usage - automatic resilience built-in
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=50
-        )
+        response = await get_all_products.asyncio_detailed(client=client, limit=50)
 
         products = unwrap_data(response, default=[])
         print(f"Retrieved {len(products)} products")
+
 
 asyncio.run(main())
 ```
@@ -117,6 +116,7 @@ status = unwrap_unset(order.status, None)
 optional_field = value if value is not None else UNSET
 # ✅ DO: use to_unset
 from katana_public_api_client.domain.converters import to_unset
+
 optional_field = to_unset(value)
 ```
 
@@ -150,10 +150,7 @@ async with KatanaClient(max_retries=5) as client:
     # This call will automatically retry on failures
     # POST/PATCH requests will retry on 429 but not on 5xx errors
     # GET/PUT/DELETE requests will retry on both 429 and 5xx errors
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=100
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=100)
     # No decorators or wrapper methods needed!
 ```
 
@@ -222,10 +219,7 @@ logging.basicConfig(level=logging.INFO)
 
 async with KatanaClient() as client:
     # Automatic error recovery with detailed logging
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=100
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=100)
     # Logs will show retry attempts and recovery
 ```
 
@@ -242,7 +236,7 @@ async with KatanaClient() as client:
     all_products = await get_all_products.asyncio_detailed(
         client=client,
         is_sellable=True,  # API filter parameters
-        limit=250  # Page size (all pages still collected)
+        limit=250,  # Page size (all pages still collected)
     )
     print(f"Total products: {len(all_products.parsed.data)}")
 ```
@@ -257,16 +251,16 @@ async with KatanaClient() as client:
     # Get ONLY page 2 (auto-pagination disabled when page is explicit)
     page2_products = await get_all_products.asyncio_detailed(
         client=client,
-        page=2,       # Explicit page disables auto-pagination
-        limit=50
+        page=2,  # Explicit page disables auto-pagination
+        limit=50,
     )
     # Returns just the 50 items on page 2
 
     # page=1 ALSO disables auto-pagination (returns only first page)
     first_page = await get_all_products.asyncio_detailed(
         client=client,
-        page=1,       # Get ONLY page 1, not all pages
-        limit=50
+        page=1,  # Get ONLY page 1, not all pages
+        limit=50,
     )
 ```
 
@@ -280,8 +274,8 @@ async with KatanaClient() as client:
     httpx_client = client.get_async_httpx_client()
     response = await httpx_client.get(
         "/products",
-        params={"limit": 50},           # 50 items per page
-        extensions={"max_items": 200}   # Stop after 200 items total
+        params={"limit": 50},  # 50 items per page
+        extensions={"max_items": 200},  # Stop after 200 items total
     )
 ```
 
@@ -369,9 +363,9 @@ import logging
 async with KatanaClient(
     api_key="custom-key",
     base_url="https://custom.katana.com/v1",
-    timeout=60.0,           # Request timeout
-    max_retries=5,          # Maximum retry attempts
-    logger=logging.getLogger("custom")  # stdlib logger
+    timeout=60.0,  # Request timeout
+    max_retries=5,  # Maximum retry attempts
+    logger=logging.getLogger("custom"),  # stdlib logger
 ) as client:
     # Your API calls here
     pass
@@ -400,15 +394,11 @@ async with KatanaClient(
     # Standard KatanaClient options
     api_key="your-key",
     max_retries=3,
-
     # httpx client options
-    verify=False,           # SSL verification
+    verify=False,  # SSL verification
     proxies="http://proxy:8080",
     headers={"Custom": "Header"},
-    event_hooks={
-        "request": [custom_request_hook],
-        "response": [custom_response_hook]
-    }
+    event_hooks={"request": [custom_request_hook], "response": [custom_response_hook]},
 ) as client:
     # Client has both resilience AND custom httpx config
     pass
@@ -423,16 +413,12 @@ import logging
 
 # Configure logging to see what's happening
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 async with KatanaClient() as client:
     # All resilience actions are logged
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=100
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=100)
 ```
 
 Example log output:
@@ -451,16 +437,10 @@ async def custom_response_hook(response):
     print(f"API call: {response.request.method} {response.request.url}")
     print(f"Status: {response.status_code}")
 
-async with KatanaClient(
-    event_hooks={
-        "response": [custom_response_hook]
-    }
-) as client:
+
+async with KatanaClient(event_hooks={"response": [custom_response_hook]}) as client:
     # Your custom hooks are called alongside built-in ones
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=10
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=10)
 ```
 
 ## 🧪 Testing
@@ -472,13 +452,14 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from katana_public_api_client import KatanaClient
 
+
 @pytest.mark.asyncio
 async def test_api_integration():
     """Test API integration with mocked responses."""
-    with patch.dict('os.environ', {'KATANA_API_KEY': 'test-key'}):
+    with patch.dict("os.environ", {"KATANA_API_KEY": "test-key"}):
         async with KatanaClient() as client:
             # Mock the underlying httpx client
-            with patch.object(client, 'get_async_httpx_client') as mock_httpx:
+            with patch.object(client, "get_async_httpx_client") as mock_httpx:
                 mock_response = AsyncMock()
                 mock_response.status_code = 200
                 mock_response.json.return_value = {"data": [{"id": 1}]}
@@ -487,9 +468,9 @@ async def test_api_integration():
 
                 # Test your API logic here
                 from katana_public_api_client.api.product import get_all_products
+
                 response = await get_all_products.asyncio_detailed(
-                    client=client,
-                    limit=10
+                    client=client, limit=10
                 )
 
                 assert response.status_code == 200
@@ -505,22 +486,20 @@ import pytest
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_real_api():
     """Test against real Katana API (requires KATANA_API_KEY)."""
-    api_key = os.getenv('KATANA_API_KEY')
+    api_key = os.getenv("KATANA_API_KEY")
     if not api_key:
         pytest.skip("KATANA_API_KEY not set")
 
     async with KatanaClient() as client:
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=1
-        )
+        response = await get_all_products.asyncio_detailed(client=client, limit=1)
 
         assert response.status_code == 200
-        assert hasattr(response.parsed, 'data')
+        assert hasattr(response.parsed, "data")
 ```
 
 ## 🔧 Advanced Patterns
@@ -534,12 +513,10 @@ from katana_public_api_client.katana_client import ResilientAsyncTransport
 custom_transport = ResilientAsyncTransport(
     max_retries=10,
     max_pages=50,  # Limit automatic pagination
-    logger=custom_logger
+    logger=custom_logger,
 )
 
-async with KatanaClient(
-    transport=custom_transport
-) as client:
+async with KatanaClient(transport=custom_transport) as client:
     # Uses your custom retry logic
     pass
 ```
@@ -550,18 +527,21 @@ async with KatanaClient(
 import asyncio
 from katana_public_api_client.api.product import get_product
 
+
 async def process_products_in_batches(product_ids, batch_size=10):
     """Process products in batches with automatic resilience."""
     async with KatanaClient() as client:
         results = []
         for i in range(0, len(product_ids), batch_size):
-            batch = product_ids[i:i + batch_size]
+            batch = product_ids[i : i + batch_size]
 
             # Each call automatically has resilience
-            batch_results = await asyncio.gather(*[
-                get_product.asyncio_detailed(client=client, id=product_id)
-                for product_id in batch
-            ])
+            batch_results = await asyncio.gather(
+                *[
+                    get_product.asyncio_detailed(client=client, id=product_id)
+                    for product_id in batch
+                ]
+            )
 
             results.extend(batch_results)
 
@@ -579,10 +559,7 @@ from katana_public_api_client.utils import unwrap_data, APIError
 
 async with KatanaClient() as client:
     try:
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=50
-        )
+        response = await get_all_products.asyncio_detailed(client=client, limit=50)
         products = unwrap_data(response, default=[])
         print(f"Success: {len(products)} products")
 
@@ -601,17 +578,11 @@ async with KatanaClient() as client:
 ```python
 # ✅ Good: Properly manages connections
 async with KatanaClient() as client:
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=50
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=50)
 
 # ❌ Bad: Doesn't close connections
 client = KatanaClient()
-response = await get_all_products.asyncio_detailed(
-    client=client,
-    limit=50
-)
+response = await get_all_products.asyncio_detailed(client=client, limit=50)
 ```
 
 ### 2. Configure Appropriate Timeouts
@@ -634,23 +605,21 @@ async with KatanaClient(timeout=1.0) as client:
 # ✅ Good: Auto-pagination is ON by default with safety limits
 all_products = await get_all_products.asyncio_detailed(
     client=client,
-    limit=250  # Sets page size; all pages collected automatically
+    limit=250,  # Sets page size; all pages collected automatically
 )
 
 # ✅ Good: Use explicit page when you need just one page
 page2 = await get_all_products.asyncio_detailed(
     client=client,
-    page=2,    # Explicit page = single page only
-    limit=100
+    page=2,  # Explicit page = single page only
+    limit=100,
 )
 
 # ❌ Bad: Manual pagination loop without safety limits
 page = 1
 while True:  # Could run forever!
     response = await get_all_products.asyncio_detailed(
-        client=client,
-        page=page,
-        limit=100
+        client=client, page=page, limit=100
     )
     # ... handle response
     page += 1
@@ -662,10 +631,7 @@ while True:  # Could run forever!
 from katana_public_api_client.utils import unwrap_data, AuthenticationError, APIError
 
 async with KatanaClient() as client:
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=50
-    )
+    response = await get_all_products.asyncio_detailed(client=client, limit=50)
 
     # ✅ Good: use unwrap helpers + typed exceptions
     try:
@@ -684,10 +650,7 @@ from katana_public_api_client.api.product import get_all_products
 
 # ✅ Good: Direct API calls with automatic resilience
 async with KatanaClient() as client:
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        is_sellable=True
-    )
+    response = await get_all_products.asyncio_detailed(client=client, is_sellable=True)
     products = unwrap_data(response, default=[])
 ```
 
@@ -718,19 +681,19 @@ for operation in [get_all_products, get_all_sales_orders]:
 # ✅ Good: Reasonable page size
 products = await get_all_products.asyncio_detailed(
     client=client,
-    limit=250  # Good balance of efficiency and memory - automatically paginated
+    limit=250,  # Good balance of efficiency and memory - automatically paginated
 )
 
 # ❌ Bad: Too small (many requests)
 products = await get_all_products.asyncio_detailed(
     client=client,
-    limit=10   # Will make many small requests
+    limit=10,  # Will make many small requests
 )
 
 # ❌ Bad: Too large (may hit API limits)
 products = await get_all_products.asyncio_detailed(
     client=client,
-    limit=10000  # May exceed API limits
+    limit=10000,  # May exceed API limits
 )
 ```
 
@@ -740,17 +703,17 @@ products = await get_all_products.asyncio_detailed(
 import asyncio
 from katana_public_api_client.api.product import get_product
 
+
 # ✅ Good: Limited concurrency respects rate limits
 async def get_multiple_products(product_ids):
     async with KatanaClient() as client:
         # Process in small batches
         results = []
         for i in range(0, len(product_ids), 5):  # 5 concurrent requests
-            batch = product_ids[i:i+5]
-            batch_results = await asyncio.gather(*[
-                get_product.asyncio_detailed(client=client, id=pid)
-                for pid in batch
-            ])
+            batch = product_ids[i : i + 5]
+            batch_results = await asyncio.gather(
+                *[get_product.asyncio_detailed(client=client, id=pid) for pid in batch]
+            )
             results.extend(batch_results)
 
             # Small delay between batches
@@ -792,7 +755,7 @@ def ResilientAsyncTransport(
     max_retries: int = 5,
     max_pages: int = 100,
     logger: Optional[Logger] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> RetryTransport:
     """
     Creates a chained transport with:

@@ -38,7 +38,7 @@ class PurchaseOrderRow:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     quantity: float | Unset = UNSET
     variant_id: int | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
@@ -47,15 +47,15 @@ class PurchaseOrderRow:
     purchase_uom_conversion_rate: float | Unset = UNSET
     purchase_uom: str | Unset = UNSET
     currency: str | Unset = UNSET
-    conversion_rate: float | None | Unset = UNSET
+    conversion_rate: float | Unset | None = UNSET
     total: float | Unset = UNSET
     total_in_base_currency: float | Unset = UNSET
-    conversion_date: datetime.datetime | None | Unset = UNSET
-    received_date: datetime.datetime | None | Unset = UNSET
-    arrival_date: datetime.datetime | None | Unset = UNSET
+    conversion_date: datetime.datetime | Unset | None = UNSET
+    received_date: datetime.datetime | Unset | None = UNSET
+    arrival_date: datetime.datetime | Unset | None = UNSET
     batch_transactions: list[PurchaseOrderRowBatchTransactionsItem] | Unset = UNSET
     purchase_order_id: int | Unset = UNSET
-    location_id: int | None | Unset = UNSET
+    location_id: int | Unset | None = UNSET
     landed_cost: float | Unset = UNSET
     group_id: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -71,7 +71,7 @@ class PurchaseOrderRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -95,7 +95,7 @@ class PurchaseOrderRow:
 
         currency = self.currency
 
-        conversion_rate: float | None | Unset
+        conversion_rate: float | Unset | None
         if isinstance(self.conversion_rate, Unset):
             conversion_rate = UNSET
         else:
@@ -105,7 +105,7 @@ class PurchaseOrderRow:
 
         total_in_base_currency = self.total_in_base_currency
 
-        conversion_date: None | str | Unset
+        conversion_date: str | Unset | None
         if isinstance(self.conversion_date, Unset):
             conversion_date = UNSET
         elif isinstance(self.conversion_date, datetime.datetime):
@@ -113,7 +113,7 @@ class PurchaseOrderRow:
         else:
             conversion_date = self.conversion_date
 
-        received_date: None | str | Unset
+        received_date: str | Unset | None
         if isinstance(self.received_date, Unset):
             received_date = UNSET
         elif isinstance(self.received_date, datetime.datetime):
@@ -121,7 +121,7 @@ class PurchaseOrderRow:
         else:
             received_date = self.received_date
 
-        arrival_date: None | str | Unset
+        arrival_date: str | Unset | None
         if isinstance(self.arrival_date, Unset):
             arrival_date = UNSET
         elif isinstance(self.arrival_date, datetime.datetime):
@@ -138,7 +138,7 @@ class PurchaseOrderRow:
 
         purchase_order_id = self.purchase_order_id
 
-        location_id: int | None | Unset
+        location_id: int | Unset | None
         if isinstance(self.location_id, Unset):
             location_id = UNSET
         else:
@@ -227,7 +227,7 @@ class PurchaseOrderRow:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -240,7 +240,7 @@ class PurchaseOrderRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -262,12 +262,12 @@ class PurchaseOrderRow:
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_conversion_rate(data: object) -> float | None | Unset:
+        def _parse_conversion_rate(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
@@ -275,7 +275,7 @@ class PurchaseOrderRow:
 
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
-        def _parse_conversion_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_conversion_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -288,11 +288,11 @@ class PurchaseOrderRow:
                 return conversion_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
-        def _parse_received_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_received_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -305,11 +305,11 @@ class PurchaseOrderRow:
                 return received_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         received_date = _parse_received_date(d.pop("received_date", UNSET))
 
-        def _parse_arrival_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_arrival_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -322,7 +322,7 @@ class PurchaseOrderRow:
                 return arrival_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         arrival_date = _parse_arrival_date(d.pop("arrival_date", UNSET))
 
@@ -341,12 +341,12 @@ class PurchaseOrderRow:
 
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
-        def _parse_location_id(data: object) -> int | None | Unset:
+        def _parse_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 

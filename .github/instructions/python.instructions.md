@@ -24,9 +24,9 @@ ______________________________________________________________________
 from typing import AsyncIterator
 from katana_public_api_client.domain.product import Product
 
+
 async def get_products_by_category(
-    category: str,
-    limit: int | None = None
+    category: str, limit: int | None = None
 ) -> AsyncIterator[Product]:
     """Get products filtered by category."""
     ...
@@ -52,8 +52,10 @@ async with KatanaClient() as client:
 ```python
 from pydantic import BaseModel, Field
 
+
 class ProductSearchParams(BaseModel):
     """Parameters for product search."""
+
     query: str = Field(min_length=1, description="Search query")
     category: str | None = Field(default=None, description="Category filter")
     limit: int = Field(default=50, ge=1, le=100, description="Results limit")
@@ -159,10 +161,9 @@ from katana_public_api_client.domain.product import Product
 ```python
 from katana_public_api_client.client_types import UNSET
 
+
 def update_product(
-    product_id: str,
-    name: str | type[UNSET] = UNSET,
-    price: float | type[UNSET] = UNSET
+    product_id: str, name: str | type[UNSET] = UNSET, price: float | type[UNSET] = UNSET
 ) -> None:
     """Update product with optional fields."""
     if name is not UNSET:

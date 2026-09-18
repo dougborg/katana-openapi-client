@@ -143,7 +143,7 @@ via:
 from katana_mcp.services import get_services
 
 services = get_services(context)
-client = services.client            # KatanaClient
+client = services.client  # KatanaClient
 typed_cache = services.typed_cache  # TypedCacheEngine
 catalog = services.typed_cache.catalog  # CatalogQueries adapter
 ```

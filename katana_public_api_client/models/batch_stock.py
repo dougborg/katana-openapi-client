@@ -28,7 +28,7 @@ class BatchStock:
     variant_id: int
     expiration_date: datetime.datetime | Unset = UNSET
     batch_created_date: datetime.datetime | Unset = UNSET
-    batch_barcode: None | str | Unset = UNSET
+    batch_barcode: str | Unset | None = UNSET
     batch_id: int | Unset = UNSET
     location_id: int | Unset = UNSET
     quantity_in_stock: str | Unset = UNSET
@@ -47,7 +47,7 @@ class BatchStock:
         if not isinstance(self.batch_created_date, Unset):
             batch_created_date = self.batch_created_date.isoformat()
 
-        batch_barcode: None | str | Unset
+        batch_barcode: str | Unset | None
         if isinstance(self.batch_barcode, Unset):
             batch_barcode = UNSET
         else:
@@ -103,12 +103,12 @@ class BatchStock:
         else:
             batch_created_date = datetime.datetime.fromisoformat(_batch_created_date)
 
-        def _parse_batch_barcode(data: object) -> None | str | Unset:
+        def _parse_batch_barcode(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

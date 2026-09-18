@@ -162,7 +162,7 @@ class UpdateManufacturingOrderProductionRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrderProductionIngredient(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     location_id: int | None = None
     variant_id: int | None = None
     manufacturing_order_id: int | None = None
@@ -183,7 +183,7 @@ class UpdateManufacturingOrderProductionIngredientRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrderOperationProduction(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     location_id: int | None = None
     manufacturing_order_id: int | None = None
     manufacturing_order_operation_id: int | None = None
@@ -244,7 +244,7 @@ class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrderRecipeRow(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     manufacturing_order_id: Annotated[
         int | None,
         Field(description="ID of the manufacturing order this recipe row belongs to"),
@@ -569,7 +569,7 @@ class UpdateRecipeRowRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrder(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     status: Annotated[
         ManufacturingOrderStatus | None,
         Field(description="Current production status of the manufacturing order"),
@@ -686,7 +686,7 @@ class ManufacturingOrder(DeletableEntity):
 
 
 class ManufacturingOrderProduction(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     manufacturing_order_id: Annotated[
         int | None,
         Field(
@@ -727,7 +727,7 @@ class ManufacturingOrderProductionListResponse(KatanaPydanticBase):
 
 
 class ManufacturingOrderOperationRow(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     status: Annotated[
         ManufacturingOperationStatus | None,
         Field(description="Current status of the operation"),

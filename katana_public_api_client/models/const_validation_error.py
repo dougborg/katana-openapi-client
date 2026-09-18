@@ -53,7 +53,9 @@ class ConstValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.const_validation_error_info import ConstValidationErrorInfo
+        from ..models.const_validation_error_info import (
+            ConstValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

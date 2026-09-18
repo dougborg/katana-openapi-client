@@ -30,6 +30,7 @@ def test_get_product_returns_404_when_not_found():
     """Test product retrieval with non-existent ID."""
     ...
 
+
 def test_create_order_success_with_valid_data():
     """Test successful order creation."""
     ...
@@ -39,6 +40,7 @@ def test_create_order_success_with_valid_data():
 
 ```python
 import pytest
+
 
 @pytest.mark.asyncio
 async def test_async_api_call():
@@ -56,16 +58,19 @@ Define reusable test setup in `conftest.py`:
 import pytest
 from katana_public_api_client import KatanaClient
 
+
 @pytest.fixture
 def katana_client():
     """Provide test KatanaClient."""
     return KatanaClient(api_key="test-key")
+
 
 @pytest.fixture
 async def async_client():
     """Provide async KatanaClient."""
     async with KatanaClient(api_key="test") as client:
         yield client
+
 
 @pytest.fixture
 def mock_product_data():
@@ -82,12 +87,15 @@ def mock_product_data():
 Test multiple scenarios efficiently:
 
 ```python
-@pytest.mark.parametrize("input,expected", [
-    ("valid-sku", True),
-    ("invalid", False),
-    ("", False),
-    (None, False),
-])
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        ("valid-sku", True),
+        ("invalid", False),
+        ("", False),
+        (None, False),
+    ],
+)
 def test_sku_validation(input, expected):
     """Test SKU validation with various inputs."""
     result = validate_sku(input)
@@ -98,6 +106,7 @@ def test_sku_validation(input, expected):
 
 ```python
 import responses
+
 
 @responses.activate
 def test_api_call():
@@ -157,12 +166,14 @@ def test_helper_function():
     """Test helper utility."""
     ...
 
+
 # Integration tests (require KATANA_API_KEY)
 @pytest.mark.integration
 @pytest.mark.skipif(not os.getenv("KATANA_API_KEY"), reason="No API key")
 async def test_real_api():
     """Test against real API."""
     ...
+
 
 # Slow tests
 @pytest.mark.slow

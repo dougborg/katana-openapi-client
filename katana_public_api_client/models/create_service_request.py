@@ -31,7 +31,7 @@ class CreateServiceRequest:
     category_name: str | Unset = UNSET
     additional_info: str | Unset = UNSET
     is_sellable: bool | Unset = UNSET
-    custom_field_collection_id: int | None | Unset = UNSET
+    custom_field_collection_id: int | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -49,7 +49,7 @@ class CreateServiceRequest:
 
         is_sellable = self.is_sellable
 
-        custom_field_collection_id: int | None | Unset
+        custom_field_collection_id: int | Unset | None
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -78,7 +78,9 @@ class CreateServiceRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_service_variant_request import CreateServiceVariantRequest
+        from ..models.create_service_variant_request import (
+            CreateServiceVariantRequest,
+        )
 
         d = dict(src_dict)
         name = d.pop("name")
@@ -100,12 +102,12 @@ class CreateServiceRequest:
 
         is_sellable = d.pop("is_sellable", UNSET)
 
-        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
+        def _parse_custom_field_collection_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

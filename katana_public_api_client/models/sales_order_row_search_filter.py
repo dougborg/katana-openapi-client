@@ -57,7 +57,9 @@ class SalesOrderRowSearchFilter:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_row_search_where import SalesOrderRowSearchWhere
+        from ..models.sales_order_row_search_where import (
+            SalesOrderRowSearchWhere,
+        )
 
         d = dict(src_dict)
         _where = d.pop("where", UNSET)

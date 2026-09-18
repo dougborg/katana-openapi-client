@@ -25,15 +25,15 @@ class ProductOperationRow:
     operation_id: int | Unset = UNSET
     operation_name: str | Unset = UNSET
     type_: ManufacturingOperationType | Unset = UNSET
-    resource_id: int | None | Unset = UNSET
-    resource_name: None | str | Unset = UNSET
-    cost_per_hour: float | None | Unset = UNSET
-    cost_parameter: float | None | Unset = UNSET
-    planned_cost_per_unit: float | None | Unset = UNSET
-    planned_time_per_unit: float | None | Unset = UNSET
-    planned_time_parameter: float | None | Unset = UNSET
+    resource_id: int | Unset | None = UNSET
+    resource_name: str | Unset | None = UNSET
+    cost_per_hour: float | Unset | None = UNSET
+    cost_parameter: float | Unset | None = UNSET
+    planned_cost_per_unit: float | Unset | None = UNSET
+    planned_time_per_unit: float | Unset | None = UNSET
+    planned_time_parameter: float | Unset | None = UNSET
     rank: int | Unset = UNSET
-    group_boundary: None | str | Unset = UNSET
+    group_boundary: str | Unset | None = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -53,43 +53,43 @@ class ProductOperationRow:
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
-        resource_id: int | None | Unset
+        resource_id: int | Unset | None
         if isinstance(self.resource_id, Unset):
             resource_id = UNSET
         else:
             resource_id = self.resource_id
 
-        resource_name: None | str | Unset
+        resource_name: str | Unset | None
         if isinstance(self.resource_name, Unset):
             resource_name = UNSET
         else:
             resource_name = self.resource_name
 
-        cost_per_hour: float | None | Unset
+        cost_per_hour: float | Unset | None
         if isinstance(self.cost_per_hour, Unset):
             cost_per_hour = UNSET
         else:
             cost_per_hour = self.cost_per_hour
 
-        cost_parameter: float | None | Unset
+        cost_parameter: float | Unset | None
         if isinstance(self.cost_parameter, Unset):
             cost_parameter = UNSET
         else:
             cost_parameter = self.cost_parameter
 
-        planned_cost_per_unit: float | None | Unset
+        planned_cost_per_unit: float | Unset | None
         if isinstance(self.planned_cost_per_unit, Unset):
             planned_cost_per_unit = UNSET
         else:
             planned_cost_per_unit = self.planned_cost_per_unit
 
-        planned_time_per_unit: float | None | Unset
+        planned_time_per_unit: float | Unset | None
         if isinstance(self.planned_time_per_unit, Unset):
             planned_time_per_unit = UNSET
         else:
             planned_time_per_unit = self.planned_time_per_unit
 
-        planned_time_parameter: float | None | Unset
+        planned_time_parameter: float | Unset | None
         if isinstance(self.planned_time_parameter, Unset):
             planned_time_parameter = UNSET
         else:
@@ -97,7 +97,7 @@ class ProductOperationRow:
 
         rank = self.rank
 
-        group_boundary: None | str | Unset
+        group_boundary: str | Unset | None
         if isinstance(self.group_boundary, Unset):
             group_boundary = UNSET
         else:
@@ -173,70 +173,70 @@ class ProductOperationRow:
         else:
             type_ = ManufacturingOperationType(_type_)
 
-        def _parse_resource_id(data: object) -> int | None | Unset:
+        def _parse_resource_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
 
-        def _parse_resource_name(data: object) -> None | str | Unset:
+        def _parse_resource_name(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         resource_name = _parse_resource_name(d.pop("resource_name", UNSET))
 
-        def _parse_cost_per_hour(data: object) -> float | None | Unset:
+        def _parse_cost_per_hour(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         cost_per_hour = _parse_cost_per_hour(d.pop("cost_per_hour", UNSET))
 
-        def _parse_cost_parameter(data: object) -> float | None | Unset:
+        def _parse_cost_parameter(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         cost_parameter = _parse_cost_parameter(d.pop("cost_parameter", UNSET))
 
-        def _parse_planned_cost_per_unit(data: object) -> float | None | Unset:
+        def _parse_planned_cost_per_unit(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         planned_cost_per_unit = _parse_planned_cost_per_unit(
             d.pop("planned_cost_per_unit", UNSET)
         )
 
-        def _parse_planned_time_per_unit(data: object) -> float | None | Unset:
+        def _parse_planned_time_per_unit(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         planned_time_per_unit = _parse_planned_time_per_unit(
             d.pop("planned_time_per_unit", UNSET)
         )
 
-        def _parse_planned_time_parameter(data: object) -> float | None | Unset:
+        def _parse_planned_time_parameter(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         planned_time_parameter = _parse_planned_time_parameter(
             d.pop("planned_time_parameter", UNSET)
@@ -244,12 +244,12 @@ class ProductOperationRow:
 
         rank = d.pop("rank", UNSET)
 
-        def _parse_group_boundary(data: object) -> None | str | Unset:
+        def _parse_group_boundary(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         group_boundary = _parse_group_boundary(d.pop("group_boundary", UNSET))
 

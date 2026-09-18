@@ -26,8 +26,8 @@ class UpdateBinTransferRowRequest:
 
     variant_id: int | Unset = UNSET
     quantity: str | Unset = UNSET
-    source_bin_location_id: int | None | Unset = UNSET
-    target_bin_location_id: int | None | Unset = UNSET
+    source_bin_location_id: int | Unset | None = UNSET
+    target_bin_location_id: int | Unset | None = UNSET
     traceability: list[BinTransferTraceabilityRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,13 +35,13 @@ class UpdateBinTransferRowRequest:
 
         quantity = self.quantity
 
-        source_bin_location_id: int | None | Unset
+        source_bin_location_id: int | Unset | None
         if isinstance(self.source_bin_location_id, Unset):
             source_bin_location_id = UNSET
         else:
             source_bin_location_id = self.source_bin_location_id
 
-        target_bin_location_id: int | None | Unset
+        target_bin_location_id: int | Unset | None
         if isinstance(self.target_bin_location_id, Unset):
             target_bin_location_id = UNSET
         else:
@@ -81,23 +81,23 @@ class UpdateBinTransferRowRequest:
 
         quantity = d.pop("quantity", UNSET)
 
-        def _parse_source_bin_location_id(data: object) -> int | None | Unset:
+        def _parse_source_bin_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         source_bin_location_id = _parse_source_bin_location_id(
             d.pop("source_bin_location_id", UNSET)
         )
 
-        def _parse_target_bin_location_id(data: object) -> int | None | Unset:
+        def _parse_target_bin_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         target_bin_location_id = _parse_target_bin_location_id(
             d.pop("target_bin_location_id", UNSET)

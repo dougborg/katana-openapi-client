@@ -39,12 +39,12 @@ class CreateVariantRequest:
     sku: str | Unset = UNSET
     sales_price: float | Unset = UNSET
     purchase_price: float | Unset = UNSET
-    product_id: int | None | Unset = UNSET
-    material_id: int | None | Unset = UNSET
+    product_id: int | Unset | None = UNSET
+    material_id: int | Unset | None = UNSET
     supplier_item_codes: list[str] | Unset = UNSET
     internal_barcode: str | Unset = UNSET
     registered_barcode: str | Unset = UNSET
-    lead_time: int | None | Unset = UNSET
+    lead_time: int | Unset | None = UNSET
     minimum_order_quantity: float | Unset = UNSET
     config_attributes: list[CreateVariantRequestConfigAttributesItem] | Unset = UNSET
     custom_fields: list[CreateVariantRequestCustomFieldsItem] | Unset = UNSET
@@ -56,13 +56,13 @@ class CreateVariantRequest:
 
         purchase_price = self.purchase_price
 
-        product_id: int | None | Unset
+        product_id: int | Unset | None
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        material_id: int | None | Unset
+        material_id: int | Unset | None
         if isinstance(self.material_id, Unset):
             material_id = UNSET
         else:
@@ -76,7 +76,7 @@ class CreateVariantRequest:
 
         registered_barcode = self.registered_barcode
 
-        lead_time: int | None | Unset
+        lead_time: int | Unset | None
         if isinstance(self.lead_time, Unset):
             lead_time = UNSET
         else:
@@ -144,21 +144,21 @@ class CreateVariantRequest:
 
         purchase_price = d.pop("purchase_price", UNSET)
 
-        def _parse_product_id(data: object) -> int | None | Unset:
+        def _parse_product_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
-        def _parse_material_id(data: object) -> int | None | Unset:
+        def _parse_material_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -168,12 +168,12 @@ class CreateVariantRequest:
 
         registered_barcode = d.pop("registered_barcode", UNSET)
 
-        def _parse_lead_time(data: object) -> int | None | Unset:
+        def _parse_lead_time(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 

@@ -44,7 +44,7 @@ class UpdateSalesOrderRowRequest:
     ) = UNSET
     traceability: list[TraceabilityRequest] | Unset = UNSET
     attributes: list[UpdateSalesOrderRowRequestAttributesItem] | Unset = UNSET
-    custom_fields: None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0 = UNSET
+    custom_fields: Unset | UpdateSalesOrderRowRequestCustomFieldsType0 | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.update_sales_order_row_request_custom_fields_type_0 import (
@@ -93,7 +93,7 @@ class UpdateSalesOrderRowRequest:
                 attributes_item = attributes_item_data.to_dict()
                 attributes.append(attributes_item)
 
-        custom_fields: dict[str, Any] | None | Unset
+        custom_fields: dict[str, Any] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(
@@ -208,7 +208,7 @@ class UpdateSalesOrderRowRequest:
 
         def _parse_custom_fields(
             data: object,
-        ) -> None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0:
+        ) -> Unset | UpdateSalesOrderRowRequestCustomFieldsType0 | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -229,7 +229,7 @@ class UpdateSalesOrderRowRequest:
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(
-                None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0, data
+                Unset | UpdateSalesOrderRowRequestCustomFieldsType0 | None, data
             )
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
