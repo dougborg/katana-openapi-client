@@ -3895,6 +3895,44 @@ export type PurchaseOrderReceiveRow = {
 };
 
 /**
+ * Placement target for a rerank operation. Ranking is relative, mirroring drag-and-drop reordering - the reranked order is moved next to the target order.
+ */
+export type RerankPlace = {
+  /**
+   * ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.
+   */
+  before_id: number;
+};
+
+/**
+ * Request payload for repositioning a manufacturing order in the production schedule, relative to another manufacturing order
+ */
+export type RerankManufacturingOrderRequest = {
+  /**
+   * Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.
+   */
+  order_ids: [number];
+  /**
+   * Where to place the reranked order, relative to another manufacturing order
+   */
+  place: RerankPlace;
+};
+
+/**
+ * Request payload for repositioning a sales order in the schedule, relative to another sales order
+ */
+export type RerankSalesOrderRequest = {
+  /**
+   * Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.
+   */
+  order_ids: [number];
+  /**
+   * Where to place the reranked order, relative to another sales order
+   */
+  place: RerankPlace;
+};
+
+/**
  * Request payload for recording the receipt of purchase order items at the facility
  */
 export type PurchaseOrderReceiveRequest = Array<PurchaseOrderReceiveRow> | PurchaseOrderReceiveRow;
@@ -11978,6 +12016,52 @@ export type MakeToOrderManufacturingOrderResponses = {
 export type MakeToOrderManufacturingOrderResponse =
   MakeToOrderManufacturingOrderResponses[keyof MakeToOrderManufacturingOrderResponses];
 
+export type RerankManufacturingOrderData = {
+  /**
+   * manufacturing order rerank details
+   */
+  body: RerankManufacturingOrderRequest;
+  path?: never;
+  query?: never;
+  url: '/manufacturing_order_rerank';
+};
+
+export type RerankManufacturingOrderErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type RerankManufacturingOrderError =
+  RerankManufacturingOrderErrors[keyof RerankManufacturingOrderErrors];
+
+export type RerankManufacturingOrderResponses = {
+  /**
+   * Manufacturing order reranked successfully
+   */
+  204: void;
+};
+
+export type RerankManufacturingOrderResponse =
+  RerankManufacturingOrderResponses[keyof RerankManufacturingOrderResponses];
+
 export type UnlinkManufacturingOrderData = {
   /**
    * new manufacturing order details
@@ -18012,6 +18096,50 @@ export type UpdateStockTransferStatusResponses = {
 
 export type UpdateStockTransferStatusResponse =
   UpdateStockTransferStatusResponses[keyof UpdateStockTransferStatusResponses];
+
+export type RerankSalesOrderData = {
+  /**
+   * sales order rerank details
+   */
+  body: RerankSalesOrderRequest;
+  path?: never;
+  query?: never;
+  url: '/sales_order_rerank';
+};
+
+export type RerankSalesOrderErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type RerankSalesOrderError = RerankSalesOrderErrors[keyof RerankSalesOrderErrors];
+
+export type RerankSalesOrderResponses = {
+  /**
+   * Sales order reranked successfully
+   */
+  204: void;
+};
+
+export type RerankSalesOrderResponse = RerankSalesOrderResponses[keyof RerankSalesOrderResponses];
 
 export type GetAllSalesOrderRowsData = {
   body?: never;

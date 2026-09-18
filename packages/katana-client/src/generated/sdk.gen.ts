@@ -531,9 +531,15 @@ import type {
   ReceivePurchaseOrderData,
   ReceivePurchaseOrderErrors,
   ReceivePurchaseOrderResponses,
+  RerankManufacturingOrderData,
+  RerankManufacturingOrderErrors,
+  RerankManufacturingOrderResponses,
   RerankProductOperationsData,
   RerankProductOperationsErrors,
   RerankProductOperationsResponses,
+  RerankSalesOrderData,
+  RerankSalesOrderErrors,
+  RerankSalesOrderResponses,
   SearchSalesOrderRowsData,
   SearchSalesOrderRowsErrors,
   SearchSalesOrderRowsResponses,
@@ -1295,6 +1301,34 @@ export const makeToOrderManufacturingOrder = <ThrowOnError extends boolean = fal
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/manufacturing_order_make_to_order',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Change a manufacturing order's rank
+ *
+ * Repositions a manufacturing order in the production schedule relative to another manufacturing order.
+ *
+ * Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
+ * order.
+ *
+ * Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales order, all
+ * related manufacturing orders are repositioned together.
+ */
+export const rerankManufacturingOrder = <ThrowOnError extends boolean = false>(
+  options: Options<RerankManufacturingOrderData, ThrowOnError>
+): RequestResult<RerankManufacturingOrderResponses, RerankManufacturingOrderErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    RerankManufacturingOrderResponses,
+    RerankManufacturingOrderErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/manufacturing_order_rerank',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -3550,6 +3584,30 @@ export const updateStockTransferStatus = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/stock_transfers/{id}/status',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Change a sales order's rank
+ *
+ * Repositions a sales order in the schedule relative to another sales order.
+ *
+ * Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
+ * order.
+ *
+ * Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move
+ * together with the sales order.
+ */
+export const rerankSalesOrder = <ThrowOnError extends boolean = false>(
+  options: Options<RerankSalesOrderData, ThrowOnError>
+): RequestResult<RerankSalesOrderResponses, RerankSalesOrderErrors, ThrowOnError> =>
+  (options.client ?? client).post<RerankSalesOrderResponses, RerankSalesOrderErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/sales_order_rerank',
     ...options,
     headers: {
       'Content-Type': 'application/json',

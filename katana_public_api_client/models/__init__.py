@@ -392,6 +392,9 @@ from .regular_purchase_order_entity_type import RegularPurchaseOrderEntityType
 from .required_validation_error import RequiredValidationError
 from .required_validation_error_code import RequiredValidationErrorCode
 from .required_validation_error_info import RequiredValidationErrorInfo
+from .rerank_manufacturing_order_request import RerankManufacturingOrderRequest
+from .rerank_place import RerankPlace
+from .rerank_sales_order_request import RerankSalesOrderRequest
 from .returnable_item import ReturnableItem
 from .sales_order import SalesOrder
 from .sales_order_accounting_metadata import SalesOrderAccountingMetadata
@@ -905,6 +908,9 @@ __all__ = (
     "RequiredValidationError",
     "RequiredValidationErrorCode",
     "RequiredValidationErrorInfo",
+    "RerankManufacturingOrderRequest",
+    "RerankPlace",
+    "RerankSalesOrderRequest",
     "ReturnableItem",
     "SalesOrder",
     "SalesOrderAccountingMetadata",

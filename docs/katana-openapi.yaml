@@ -6737,6 +6737,84 @@ components:
               quantity:
                 type: number
                 maximum: 100000000000000000
+    RerankPlace:
+      description:
+        Placement target for a rerank operation. Ranking is relative, mirroring drag-and-drop reordering - the
+        reranked order is moved next to the target order.
+      type: object
+      additionalProperties: false
+      required:
+        - before_id
+      properties:
+        before_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description:
+            ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order
+            is moved next to this target, landing directly above it when moving up and directly below it when
+            moving down.
+      example:
+        before_id: 4
+
+    RerankManufacturingOrderRequest:
+      description:
+        Request payload for repositioning a manufacturing order in the production schedule, relative to another
+        manufacturing order
+      type: object
+      additionalProperties: false
+      required:
+        - order_ids
+        - place
+      properties:
+        order_ids:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          description:
+            Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array
+            shape is reserved for future bulk reranking.
+        place:
+          description: Where to place the reranked order, relative to another manufacturing order
+          $ref: "#/components/schemas/RerankPlace"
+      example:
+        order_ids:
+          - 1
+        place:
+          before_id: 4
+
+    RerankSalesOrderRequest:
+      description: Request payload for repositioning a sales order in the schedule, relative to another sales order
+      type: object
+      additionalProperties: false
+      required:
+        - order_ids
+        - place
+      properties:
+        order_ids:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          description:
+            Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is
+            reserved for future bulk reranking.
+        place:
+          description: Where to place the reranked order, relative to another sales order
+          $ref: "#/components/schemas/RerankPlace"
+      example:
+        order_ids:
+          - 1
+        place:
+          before_id: 4
+
     PurchaseOrderReceiveRequest:
       description: Request payload for recording the receipt of purchase order items at the facility
       anyOf:
@@ -15775,6 +15853,47 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /manufacturing_order_rerank:
+    post:
+      summary: Change a manufacturing order's rank
+      tags:
+        - Manufacturing order
+      description: |-
+        Repositions a manufacturing order in the production schedule relative to another manufacturing order.
+
+        Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
+        order.
+
+        Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales order, all
+        related manufacturing orders are repositioned together.
+      operationId: rerankManufacturingOrder
+      requestBody:
+        description: manufacturing order rerank details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RerankManufacturingOrderRequest"
+      responses:
+        "204":
+          description: Manufacturing order reranked successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /manufacturing_order_unlink:
     post:
       summary: Unlink a manufacturing order from sales order row
@@ -21359,6 +21478,47 @@ paths:
                 $ref: "#/components/schemas/StockTransfer"
         "400":
           $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /sales_order_rerank:
+    post:
+      summary: Change a sales order's rank
+      tags:
+        - Sales order
+      description: |-
+        Repositions a sales order in the schedule relative to another sales order.
+
+        Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
+        order.
+
+        Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move
+        together with the sales order.
+      operationId: rerankSalesOrder
+      requestBody:
+        description: sales order rerank details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RerankSalesOrderRequest"
+      responses:
+        "204":
+          description: Sales order reranked successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
