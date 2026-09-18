@@ -332,7 +332,7 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
     ] = None
 
 
-class SalesOrderSearchWhere(KatanaPydanticBase):
+class SalesOrderSearchFilter(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="allow",
     )
@@ -466,7 +466,7 @@ class SalesOrderSearchWhere(KatanaPydanticBase):
     ] = None
 
 
-class SalesOrderRowSearchWhere(KatanaPydanticBase):
+class SalesOrderRowSearchFilter(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="allow",
     )
@@ -915,7 +915,7 @@ class UpdateSalesReturnRequest(KatanaPydanticBase):
 
 
 class SalesReturnRow(UpdatableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     sales_return_id: Annotated[
         int, Field(description="The sales return this line item belongs to")
     ]
@@ -1506,11 +1506,11 @@ class SalesOrder(DeletableEntity):
     ] = None
 
 
-class SalesOrderSearchFilter(KatanaPydanticBase):
+class SalesOrderSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    where: SalesOrderSearchWhere | None = None
+    filter: SalesOrderSearchFilter | None = None
     order: Annotated[
         str | list[str] | None,
         Field(
@@ -1534,11 +1534,11 @@ class SalesOrderSearchFilter(KatanaPydanticBase):
     ] = None
 
 
-class SalesOrderRowSearchFilter(KatanaPydanticBase):
+class SalesOrderRowSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    where: SalesOrderRowSearchWhere | None = None
+    filter: SalesOrderRowSearchFilter | None = None
     order: Annotated[
         str | list[str] | None,
         Field(
@@ -1661,20 +1661,6 @@ class SalesOrderShippingFeeListResponse(KatanaPydanticBase):
             description="Array of shipping fee records with costs and tax information"
         ),
     ] = None
-
-
-class SalesOrderSearchRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    filter: SalesOrderSearchFilter | None = None
-
-
-class SalesOrderRowSearchRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    filter: SalesOrderRowSearchFilter | None = None
 
 
 class CachedSalesOrderRow(DeletableEntity, table=True):

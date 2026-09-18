@@ -1,10 +1,10 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-14T13:38:42.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Delete a custom field definition
-
-> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
 
 Deletes a custom field definition by id.
 
@@ -43,7 +43,7 @@ Deletes a custom field definition by id.
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nDeletes a custom field definition by id.",
+        "description": "Deletes a custom field definition by id.",
         "operationId": "deleteCustomFieldDefinition",
         "parameters": [
           {

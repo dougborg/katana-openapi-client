@@ -1,20 +1,17 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a manufacturing order production
 
-Creates a new manufacturing order production (partial completion).
+Creates a manufacturing order production (partial completion). The `ingredients` and `operations`
+  arrays each behave independently:
 
-**Ingredient and Operation Consumption Behavior:**
-
-The following behavior applies independently to the 'ingredients' and 'operations' arrays:
-
-- **When an array is provided with data**: Records the specified consumption values.
-- **When an array is provided but empty ([])**: Records production but no consumption for that array.
-- **When an array is omitted**: Automatically creates consumption based on the manufacturing order plan.
-
-This allows flexible reporting: explicit values, no consumption, or auto-calculated from plan.
+  - **Entries provided**: records exactly that consumption.
+  - **Empty array (`[]`)**: records no consumption.
+  - **Array omitted**: consumption is auto-created from the manufacturing order plan.
 
 # OpenAPI definition
 
@@ -51,7 +48,7 @@ This allows flexible reporting: explicit values, no consumption, or auto-calcula
         "tags": [
           "Manufacturing order production"
         ],
-        "description": "Creates a new manufacturing order production (partial completion).\n\n**Ingredient and Operation Consumption Behavior:**\n\nThe following behavior applies independently to the 'ingredients' and 'operations' arrays:\n\n- **When an array is provided with data**: Records the specified consumption values.\n- **When an array is provided but empty ([])**: Records production but no consumption for that array.\n- **When an array is omitted**: Automatically creates consumption based on the manufacturing order plan.\n\nThis allows flexible reporting: explicit values, no consumption, or auto-calculated from plan.",
+        "description": "Creates a manufacturing order production (partial completion). The `ingredients` and `operations`\n  arrays each behave independently:\n\n  - **Entries provided**: records exactly that consumption.\n  - **Empty array (`[]`)**: records no consumption.\n  - **Array omitted**: consumption is auto-created from the manufacturing order plan.",
         "operationId": "createManufacturingOrderProduction",
         "requestBody": {
           "description": "new manufacturing order production details",
@@ -97,6 +94,8 @@ This allows flexible reporting: explicit values, no consumption, or auto-calcula
                         },
                         "batch_transactions": {
                           "type": "array",
+                          "deprecated": true,
+                          "description": "Deprecated in favor of `traceability`.",
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
@@ -111,6 +110,35 @@ This allows flexible reporting: explicit values, no consumption, or auto-calcula
                               },
                               "batch_id": {
                                 "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "traceability": {
+                          "type": "array",
+                          "description": "Consumed traceability for the ingredient, moved here from the recipe row.",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "One allocation entry for a consumed ingredient. Entries together cover the recipe row / production ingredient quantity.\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. `bin_location_id` optionally pins the bin the allocation is drawn from.",
+                            "properties": {
+                              "batch_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Batch id the ingredient allocation is drawn from."
+                              },
+                              "bin_location_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Bin location id the allocation is drawn from. Optional."
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "description": "Decimal string quantity for this allocation entry."
                               }
                             }
                           }
@@ -133,35 +161,45 @@ This allows flexible reporting: explicit values, no consumption, or auto-calcula
                         },
                         "time": {
                           "type": "number"
-                        },
-                        "batch_transactions": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "quantity",
-                              "batch_id"
-                            ],
-                            "properties": {
-                              "quantity": {
-                                "maximum": 1000000000000000,
-                                "type": "number"
-                              },
-                              "batch_id": {
-                                "type": "integer"
-                              }
-                            }
-                          }
                         }
                       }
                     }
                   },
                   "serial_numbers": {
                     "type": "array",
+                    "deprecated": true,
+                    "description": "Deprecated in favor of `traceability`.",
                     "items": {
-                      "type": "number",
-                      "additionalProperties": false
+                      "type": "number"
+                    }
+                  },
+                  "traceability": {
+                    "type": "array",
+                    "description": "Produced traceability for the output, moved here from the manufacturing order.",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "One allocation entry for the produced output. `traceability` is an array because the two tracking modes need different cardinality — a variant is tracked one way, so an output is either all-batch or all-serial, never mixed:\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — the entire produced quantity goes to a **single batch**, so send exactly **one** entry with its `batch_id`. Only one batch is ever honored per output; extra batch entries are not applied. `quantity` is not used here — the batch takes the whole output and is never split across batches.\n- **Serial-tracked** — each produced unit is its own serial number, so send **one entry per serial number** (`serial_number_id`). This is the case the array shape exists for. The number of entries may not exceed the produced quantity (422 otherwise).",
+                      "properties": {
+                        "batch_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Batch id. Mutually exclusive with `serial_number_id`. At most one batch per output — the whole produced quantity is assigned to it."
+                        },
+                        "serial_number_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Serial number id. Mutually exclusive with `batch_id`. One entry per produced unit."
+                        },
+                        "quantity": {
+                          "type": "string",
+                          "description": "Ignored for produced output: a batch entry takes the entire produced quantity and each serial entry is one unit. Accepted for shape compatibility but has no effect."
+                        }
+                      }
                     }
                   }
                 }
@@ -236,11 +274,19 @@ This allows flexible reporting: explicit values, no consumption, or auto-calcula
                   "serial_numbers": [
                     {
                       "id": 1,
-                      "transaction_id": "eb4da756-0842-4495-9118-f8135f681234",
+                      "transaction_id": null,
                       "serial_number": "SN1",
                       "resource_type": "Production",
-                      "resource_id": 2,
-                      "transaction_date": "2023-02-10T10:06:14.435Z"
+                      "resource_id": 21300,
+                      "transaction_date": "2023-02-10T10:06:14.435Z",
+                      "quantity_change": 1
+                    }
+                  ],
+                  "traceability": [
+                    {
+                      "batch_id": 1,
+                      "serial_number_id": null,
+                      "quantity": "2"
                     }
                   ]
                 }

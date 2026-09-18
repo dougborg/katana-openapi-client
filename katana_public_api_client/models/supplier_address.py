@@ -27,14 +27,14 @@ class SupplierAddress:
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     supplier_id: int | Unset = UNSET
     line_1: str | Unset = UNSET
-    line_2: None | str | Unset = UNSET
-    city: None | str | Unset = UNSET
-    state: None | str | Unset = UNSET
-    zip_: None | str | Unset = UNSET
-    country: None | str | Unset = UNSET
+    line_2: str | Unset | None = UNSET
+    city: str | Unset | None = UNSET
+    state: str | Unset | None = UNSET
+    zip_: str | Unset | None = UNSET
+    country: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,7 +48,7 @@ class SupplierAddress:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -60,31 +60,31 @@ class SupplierAddress:
 
         line_1 = self.line_1
 
-        line_2: None | str | Unset
+        line_2: str | Unset | None
         if isinstance(self.line_2, Unset):
             line_2 = UNSET
         else:
             line_2 = self.line_2
 
-        city: None | str | Unset
+        city: str | Unset | None
         if isinstance(self.city, Unset):
             city = UNSET
         else:
             city = self.city
 
-        state: None | str | Unset
+        state: str | Unset | None
         if isinstance(self.state, Unset):
             state = UNSET
         else:
             state = self.state
 
-        zip_: None | str | Unset
+        zip_: str | Unset | None
         if isinstance(self.zip_, Unset):
             zip_ = UNSET
         else:
             zip_ = self.zip_
 
-        country: None | str | Unset
+        country: str | Unset | None
         if isinstance(self.country, Unset):
             country = UNSET
         else:
@@ -139,7 +139,7 @@ class SupplierAddress:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -152,7 +152,7 @@ class SupplierAddress:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -160,48 +160,48 @@ class SupplierAddress:
 
         line_1 = d.pop("line_1", UNSET)
 
-        def _parse_line_2(data: object) -> None | str | Unset:
+        def _parse_line_2(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
-        def _parse_city(data: object) -> None | str | Unset:
+        def _parse_city(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         city = _parse_city(d.pop("city", UNSET))
 
-        def _parse_state(data: object) -> None | str | Unset:
+        def _parse_state(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         state = _parse_state(d.pop("state", UNSET))
 
-        def _parse_zip_(data: object) -> None | str | Unset:
+        def _parse_zip_(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
-        def _parse_country(data: object) -> None | str | Unset:
+        def _parse_country(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         country = _parse_country(d.pop("country", UNSET))
 

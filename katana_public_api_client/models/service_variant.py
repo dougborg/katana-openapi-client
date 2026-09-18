@@ -33,21 +33,21 @@ class ServiceVariant:
     """
 
     id: int
-    sku: None | str
+    sku: str | None
     service_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
-    sales_price: float | None | Unset = UNSET
-    default_cost: float | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
+    sales_price: float | Unset | None = UNSET
+    default_cost: float | Unset | None = UNSET
     type_: VariantType | Unset = UNSET
-    custom_fields: list[ServiceVariantCustomFieldsType0Item] | None | Unset = UNSET
+    custom_fields: list[ServiceVariantCustomFieldsType0Item] | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        sku: None | str
+        sku: str | None
         sku = self.sku
 
         service_id = self.service_id
@@ -60,7 +60,7 @@ class ServiceVariant:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -68,13 +68,13 @@ class ServiceVariant:
         else:
             deleted_at = self.deleted_at
 
-        sales_price: float | None | Unset
+        sales_price: float | Unset | None
         if isinstance(self.sales_price, Unset):
             sales_price = UNSET
         else:
             sales_price = self.sales_price
 
-        default_cost: float | None | Unset
+        default_cost: float | Unset | None
         if isinstance(self.default_cost, Unset):
             default_cost = UNSET
         else:
@@ -84,7 +84,7 @@ class ServiceVariant:
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
-        custom_fields: list[dict[str, Any]] | None | Unset
+        custom_fields: list[dict[str, Any]] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(self.custom_fields, list):
@@ -131,10 +131,10 @@ class ServiceVariant:
         d = dict(src_dict)
         id = d.pop("id")
 
-        def _parse_sku(data: object) -> None | str:
+        def _parse_sku(data: object) -> str | None:
             if data is None:
                 return data
-            return cast(None | str, data)
+            return cast(str | None, data)
 
         sku = _parse_sku(d.pop("sku"))
 
@@ -154,7 +154,7 @@ class ServiceVariant:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -167,25 +167,25 @@ class ServiceVariant:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        def _parse_sales_price(data: object) -> float | None | Unset:
+        def _parse_sales_price(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
-        def _parse_default_cost(data: object) -> float | None | Unset:
+        def _parse_default_cost(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 
@@ -198,7 +198,7 @@ class ServiceVariant:
 
         def _parse_custom_fields(
             data: object,
-        ) -> list[ServiceVariantCustomFieldsType0Item] | None | Unset:
+        ) -> list[ServiceVariantCustomFieldsType0Item] | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -223,7 +223,7 @@ class ServiceVariant:
                 return custom_fields_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(list[ServiceVariantCustomFieldsType0Item] | None | Unset, data)
+            return cast(list[ServiceVariantCustomFieldsType0Item] | Unset | None, data)
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 

@@ -35,8 +35,7 @@ Every tool has a comprehensive Google-style docstring:
 @observe_tool
 @unpack_pydantic_params
 async def create_purchase_order(
-    request: Annotated[CreatePurchaseOrderRequest, Unpack()],
-    context: Context
+    request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
 ) -> PurchaseOrderResponse:
     """Create a new purchase order with user confirmation.
 
@@ -102,16 +101,16 @@ class CreatePurchaseOrderRequest(BaseModel):
     """Request to create a purchase order."""
 
     supplier_id: int = Field(..., description="Supplier ID from Katana")
-    location_id: int = Field(..., description="Warehouse location ID where items will be received")
+    location_id: int = Field(
+        ..., description="Warehouse location ID where items will be received"
+    )
     order_number: str = Field(..., description="Unique PO number (e.g., PO-2025-001)")
     items: list[PurchaseOrderItem] = Field(
-        ...,
-        description="Items to purchase with quantities and prices",
-        min_length=1
+        ..., description="Items to purchase with quantities and prices", min_length=1
     )
     confirm: bool = Field(
         False,
-        description="If false, returns preview. If true, creates order after user confirmation."
+        description="If false, returns preview. If true, creates order after user confirmation.",
     )
 ```
 

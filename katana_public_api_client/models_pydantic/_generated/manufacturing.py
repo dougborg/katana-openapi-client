@@ -8,7 +8,7 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field
@@ -29,6 +29,8 @@ from .common import (
     Operator,
     ProductOperationType,
     Row,
+    SearchComparator,
+    SearchScalarValue1,
     Status,
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
@@ -162,7 +164,7 @@ class UpdateManufacturingOrderProductionRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrderProductionIngredient(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     location_id: int | None = None
     variant_id: int | None = None
     manufacturing_order_id: int | None = None
@@ -183,7 +185,7 @@ class UpdateManufacturingOrderProductionIngredientRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrderOperationProduction(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     location_id: int | None = None
     manufacturing_order_id: int | None = None
     manufacturing_order_operation_id: int | None = None
@@ -244,7 +246,7 @@ class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrderRecipeRow(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     manufacturing_order_id: Annotated[
         int | None,
         Field(description="ID of the manufacturing order this recipe row belongs to"),
@@ -569,7 +571,7 @@ class UpdateRecipeRowRequest(KatanaPydanticBase):
 
 
 class ManufacturingOrder(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     status: Annotated[
         ManufacturingOrderStatus | None,
         Field(description="Current production status of the manufacturing order"),
@@ -686,7 +688,7 @@ class ManufacturingOrder(DeletableEntity):
 
 
 class ManufacturingOrderProduction(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     manufacturing_order_id: Annotated[
         int | None,
         Field(
@@ -727,7 +729,7 @@ class ManufacturingOrderProductionListResponse(KatanaPydanticBase):
 
 
 class ManufacturingOrderOperationRow(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     status: Annotated[
         ManufacturingOperationStatus | None,
         Field(description="Current status of the operation"),
@@ -965,10 +967,173 @@ class ManufacturingOrderListResponse(KatanaPydanticBase):
     ] = None
 
 
+class ManufacturingOrderProductionIngredientListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[ManufacturingOrderProductionIngredientResponse] | None,
+        Field(
+            description="Array of ingredient consumption records for manufacturing order productions"
+        ),
+    ] = None
+
+
 class ManufacturingOrderOperationRowListResponse(KatanaPydanticBase):
     data: Annotated[
         list[ManufacturingOrderOperationRow] | None,
         Field(description="List of manufacturing order operation rows"),
+    ] = None
+
+
+class ManufacturingOrderSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND - every nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR - at least one nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    actual_quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Actual quantity produced, null if production not completed",
+        ),
+    ] = None
+    completed_quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Total quantity completed so far (including partial completions)",
+        ),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the record was created.",
+        ),
+    ] = None
+    done_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the manufacturing order was completed",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Record id."),
+    ] = None
+    includes_partial_completions: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Whether this order has been partially completed",
+        ),
+    ] = None
+    ingredient_availability: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Status of material ingredient availability for production",
+        ),
+    ] = None
+    is_linked_to_sales_order: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Whether this manufacturing order is linked to a sales order",
+        ),
+    ] = None
+    location_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ID of the factory location where production takes place",
+        ),
+    ] = None
+    order_created_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Date and time when the manufacturing order was created",
+        ),
+    ] = None
+    order_no: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Unique manufacturing order number for tracking and reference",
+        ),
+    ] = None
+    planned_quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Originally planned quantity to produce",
+        ),
+    ] = None
+    production_deadline_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Target deadline for completing production (null when none is set)",
+        ),
+    ] = None
+    remaining_quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Remaining quantity to produce (planned - completed)",
+        ),
+    ] = None
+    status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Current production status of the manufacturing order",
+        ),
+    ] = None
+    total_cost: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Total cost of the manufacturing order including all materials and operations",
+        ),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the record was last updated.",
+        ),
+    ] = None
+    variant_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ID of the product variant being manufactured",
+        ),
+    ] = None
+
+
+class ManufacturingOrderSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: ManufacturingOrderSearchFilter | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50.\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
+        ),
     ] = None
 
 

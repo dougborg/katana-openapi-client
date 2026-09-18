@@ -8,7 +8,7 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
 from sqlalchemy import Column
@@ -25,6 +25,8 @@ from .base import DeletableEntity
 from .common import (
     CostDistributionMethod,
     DocumentSendStatus,
+    SearchComparator,
+    SearchScalarValue1,
 )
 from .contacts import CachedSupplier, Supplier
 from .stock import (
@@ -119,9 +121,8 @@ class PurchaseOrderRowRequest(KatanaPydanticBase):
 
 class PurchaseOrderRow(DeletableEntity):
     id: Annotated[
-        int | None,
-        Field(description="Unique identifier for this purchase order line item"),
-    ] = None
+        int, Field(description="Unique identifier for this purchase order line item")
+    ]
     quantity: Annotated[
         float | None, Field(description="The quantity of items for the order line.")
     ] = None
@@ -306,13 +307,19 @@ class CreatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
             description="How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)"
         ),
     ] = None
+    reference: Annotated[
+        str | None,
+        Field(
+            description="Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge",
+            max_length=255,
+        ),
+    ] = None
 
 
 class PurchaseOrderAdditionalCostRow(DeletableEntity):
     id: Annotated[
-        int | None,
-        Field(description="Unique identifier for this additional cost line item"),
-    ] = None
+        int, Field(description="Unique identifier for this additional cost line item")
+    ]
     additional_cost_id: Annotated[
         int | None,
         Field(
@@ -325,6 +332,12 @@ class PurchaseOrderAdditionalCostRow(DeletableEntity):
     ] = None
     name: Annotated[
         str | None, Field(description="Name or description of the additional cost")
+    ] = None
+    reference: Annotated[
+        str | None,
+        Field(
+            description="Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge"
+        ),
     ] = None
     distribution_method: Annotated[
         str | None,
@@ -399,6 +412,13 @@ class UpdatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
         CostDistributionMethod | None,
         Field(
             description="How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)"
+        ),
+    ] = None
+    reference: Annotated[
+        str | None,
+        Field(
+            description="Free-text label describing what this cost row is; pass null to clear it",
+            max_length=255,
         ),
     ] = None
 
@@ -655,7 +675,7 @@ class PurchaseOrderAccountingMetadataListResponse(KatanaPydanticBase):
 
 
 class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
-    id: int | None = None
+    id: Annotated[int, Field(description="Unique identifier")]
     purchase_order_id: Annotated[
         int | None, Field(description="The purchase order this recipe row belongs to")
     ] = None
@@ -803,6 +823,140 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
             min_length=1,
         ),
     ]
+
+
+class PurchaseOrderSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND - every nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR - at least one nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    billing_status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description='Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply...',
+        ),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the record was created.",
+        ),
+    ] = None
+    currency: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Currency of the purchase order. Filled with supplier currency by default.",
+        ),
+    ] = None
+    default_group_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Default grouping identifier for organizational purposes",
+        ),
+    ] = None
+    entity_type: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description='Either "regular" or "outsourced", depending on the purchase order type.',
+        ),
+    ] = None
+    expected_arrival_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="The timestamp when the items are expected to arrive (in full) in your warehouse.",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Record id."),
+    ] = None
+    last_document_status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Status of the last e-mail sent from (O)PO card.",
+        ),
+    ] = None
+    location_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="The ID of the location to which items are received.",
+        ),
+    ] = None
+    order_created_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="The timestamp of creating the document.",
+        ),
+    ] = None
+    order_no: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="A unique, identifying string used in the UI and controlled by the user.",
+        ),
+    ] = None
+    status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Status of the order."),
+    ] = None
+    supplier_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ID of the supplier who this order belongs to.",
+        ),
+    ] = None
+    tracking_location_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Regular orders do not have tracking locations",
+        ),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Timestamp when the record was last updated.",
+        ),
+    ] = None
+
+
+class PurchaseOrderSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: PurchaseOrderSearchFilter | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50.\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
+        ),
+    ] = None
 
 
 class OutsourcedPurchaseOrderRecipeRowListResponse(KatanaPydanticBase):

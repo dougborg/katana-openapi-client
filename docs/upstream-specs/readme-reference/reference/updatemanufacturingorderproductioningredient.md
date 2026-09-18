@@ -1,12 +1,12 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a manufacturing order production ingredient
 
-Updates the specified manufacturing order production ingredient by setting the values of the parameters passed.
-  Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be updated when
-  the manufacturing order status is DONE.
+Updates the traceability of the specified manufacturing order production ingredient.
 
 # OpenAPI definition
 
@@ -43,7 +43,7 @@ Updates the specified manufacturing order production ingredient by setting the v
         "tags": [
           "Manufacturing order production ingredient"
         ],
-        "description": "Updates the specified manufacturing order production ingredient by setting the values of the parameters passed.\n  Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be updated when\n  the manufacturing order status is DONE.",
+        "description": "Updates the traceability of the specified manufacturing order production ingredient.",
         "operationId": "updateManufacturingOrderProductionIngredient",
         "parameters": [
           {
@@ -67,6 +67,8 @@ Updates the specified manufacturing order production ingredient by setting the v
                 "properties": {
                   "batch_transactions": {
                     "type": "array",
+                    "deprecated": true,
+                    "description": "Deprecated in favor of `traceability`.",
                     "items": {
                       "type": "object",
                       "additionalProperties": false,
@@ -80,6 +82,35 @@ Updates the specified manufacturing order production ingredient by setting the v
                         },
                         "batch_id": {
                           "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "traceability": {
+                    "type": "array",
+                    "description": "Consumed traceability for the ingredient, moved here from the recipe row.",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "One allocation entry for a consumed ingredient. Entries together cover the recipe row / production ingredient quantity.\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. `bin_location_id` optionally pins the bin the allocation is drawn from.",
+                      "properties": {
+                        "batch_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Batch id the ingredient allocation is drawn from."
+                        },
+                        "bin_location_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Bin location id the allocation is drawn from. Optional."
+                        },
+                        "quantity": {
+                          "type": "string",
+                          "description": "Decimal string quantity for this allocation entry."
                         }
                       }
                     }
@@ -123,7 +154,14 @@ Updates the specified manufacturing order production ingredient by setting the v
                   "production_id": 21300,
                   "quantity": 4,
                   "production_date": "2023-02-10T10:06:13.047Z",
-                  "cost": 1
+                  "cost": 1,
+                  "traceability": [
+                    {
+                      "batch_id": 1,
+                      "bin_location_id": null,
+                      "quantity": "2"
+                    }
+                  ]
                 }
               }
             }

@@ -108,7 +108,7 @@ ______________________________________________________________________
          CreatePurchaseOrderRequest(
              supplier_id=123,
              items=[OrderItem(sku="WIDGET-001", quantity=100)],
-             confirm=False  # Preview mode
+             confirm=False,  # Preview mode
          )
      )
      # Returns: PurchaseOrderPreview with total_cost, lead_times, warnings
@@ -118,7 +118,7 @@ ______________________________________________________________________
          CreatePurchaseOrderRequest(
              supplier_id=123,
              items=[OrderItem(sku="WIDGET-001", quantity=100)],
-             confirm=True  # Create mode
+             confirm=True,  # Create mode
          )
      )
      # Returns: Created PurchaseOrder with order_number, status
@@ -717,7 +717,9 @@ Every MCP primitive includes **three levels of documentation**:
 - **What**: Pydantic Field(..., description="...") for every parameter
 - **Example**:
   ```python
-  query: str = Field(..., description="Search query to match against SKU, name, or description")
+  query: str = Field(
+      ..., description="Search query to match against SKU, name, or description"
+  )
   limit: int = Field(20, description="Maximum results to return (1-100)", ge=1, le=100)
   ```
 
@@ -737,8 +739,7 @@ Every MCP primitive includes **three levels of documentation**:
 
   ```python
   async def search_variants(
-      request: SearchVariantsRequest,
-      context: Context
+      request: SearchVariantsRequest, context: Context
   ) -> SearchVariantsResponse:
       """Search for variants across all catalog item types.
 
@@ -804,17 +805,20 @@ ______________________________________________________________________
 ```python
 class CreatePurchaseOrderRequest(BaseModel):
     """Request to create a purchase order."""
+
     supplier_id: int = Field(..., description="Supplier ID", gt=0)
     items: list[OrderItem] = Field(..., min_items=1, description="Line items")
     expected_delivery: date | None = Field(None, description="Expected delivery date")
     notes: str | None = Field(None, description="Order notes")
     confirm: bool = Field(
         False,
-        description="Set to true to confirm order creation. False returns preview."
+        description="Set to true to confirm order creation. False returns preview.",
     )
+
 
 class PurchaseOrderPreview(BaseModel):
     """Preview of PO before creation."""
+
     supplier_name: str
     items: list[OrderItem]
     subtotal: float
@@ -826,8 +830,10 @@ class PurchaseOrderPreview(BaseModel):
         default=["Review totals", "Verify supplier", "Set confirm=true to create"]
     )
 
+
 class PurchaseOrderCreated(BaseModel):
     """Created purchase order details."""
+
     order_id: int
     order_number: str
     status: str
@@ -837,11 +843,12 @@ class PurchaseOrderCreated(BaseModel):
         default=["Share PO with supplier", "Schedule follow-up", "Track delivery"]
     )
 
+
 CreatePurchaseOrderResponse = PurchaseOrderPreview | PurchaseOrderCreated
 
+
 async def create_purchase_order(
-    request: CreatePurchaseOrderRequest,
-    context: Context
+    request: CreatePurchaseOrderRequest, context: Context
 ) -> CreatePurchaseOrderResponse:
     """Create a purchase order with two-step confirmation.
 

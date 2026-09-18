@@ -152,8 +152,8 @@ grep -nE "\.value\b" katana_mcp_server/src/katana_mcp/tools/prefab_ui.py | grep 
 
 ```python
 DataTableColumn(key="recipe_row_id", header="Row ID")  # wire identifier, no user value
-DataTableColumn(key="mo_id", header="MO")              # raw integer; user wants order_no
-Text(content=f"Type: {address.entity_type.value}")     # enum dump
+DataTableColumn(key="mo_id", header="MO")  # raw integer; user wants order_no
+Text(content=f"Type: {address.entity_type.value}")  # enum dump
 ```
 
 **Fix.** Resolve wire IDs to user-facing labels impl-side. For columns that exist purely as drill-down anchors (e.g. "click to see the underlying MO"), prefer a per-row Katana URL on a name column over a separate ID column.

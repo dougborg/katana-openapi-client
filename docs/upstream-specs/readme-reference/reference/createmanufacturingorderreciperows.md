@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a manufacturing order recipe row
 
@@ -75,6 +77,8 @@ Add a recipe row to an existing manufacturing order.
                   },
                   "batch_transactions": {
                     "type": "array",
+                    "deprecated": true,
+                    "description": "Deprecated in favor of `traceability`.",
                     "items": {
                       "type": "object",
                       "additionalProperties": false,
@@ -84,6 +88,35 @@ Add a recipe row to an existing manufacturing order.
                         },
                         "quantity": {
                           "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "traceability": {
+                    "type": "array",
+                    "description": "Pre-assigned traceability for consumption. Consumed traceability is moved to the production ingredient.",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "One allocation entry for a consumed ingredient. Entries together cover the recipe row / production ingredient quantity.\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. `bin_location_id` optionally pins the bin the allocation is drawn from.",
+                      "properties": {
+                        "batch_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Batch id the ingredient allocation is drawn from."
+                        },
+                        "bin_location_id": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true,
+                          "description": "Bin location id the allocation is drawn from. Optional."
+                        },
+                        "quantity": {
+                          "type": "string",
+                          "description": "Decimal string quantity for this allocation entry."
                         }
                       }
                     }
@@ -135,6 +168,13 @@ Add a recipe row to an existing manufacturing order.
                     {
                       "batch_id": 12,
                       "quantity": 4.6
+                    }
+                  ],
+                  "traceability": [
+                    {
+                      "batch_id": 1,
+                      "bin_location_id": null,
+                      "quantity": "2"
                     }
                   ],
                   "cost": 50.4,

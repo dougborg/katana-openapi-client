@@ -53,7 +53,9 @@ class PatternValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.pattern_validation_error_info import PatternValidationErrorInfo
+        from ..models.pattern_validation_error_info import (
+            PatternValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

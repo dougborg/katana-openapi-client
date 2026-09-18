@@ -300,6 +300,7 @@ Automatically instruments MCP tool functions with comprehensive observability.
 from katana_mcp.logging import observe_tool
 from fastmcp import Context
 
+
 @observe_tool
 @mcp.tool()
 async def my_tool(request: MyRequest, context: Context) -> MyResponse:
@@ -385,12 +386,13 @@ Instruments service layer methods with debug-level logging.
 ```python
 from katana_mcp.logging import observe_service
 
+
 class MyService:
     @observe_service("get_item")
     async def get(self, item_id: int) -> Item:
         """Fetch item by ID."""
         return await self._fetch(item_id)
-    
+
     @observe_service("create_item")
     async def create(self, data: dict) -> Item:
         """Create new item."""

@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a sales order fulfillment
 
@@ -115,6 +117,8 @@ Creates a new fulfillment for an existing sales order.
                         "batch_transactions": {
                           "type": "array",
                           "minItems": 1,
+                          "deprecated": true,
+                          "description": "Batch-level breakdown of the fulfilled quantity. **Deprecated** — will be phased out; prefer `traceability`. When `traceability` is sent it wins over `batch_transactions` + `serial_numbers`.",
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
@@ -138,8 +142,46 @@ Creates a new fulfillment for an existing sales order.
                         },
                         "serial_numbers": {
                           "type": "array",
+                          "deprecated": true,
+                          "description": "Serial number ids for the fulfilled quantity. **Deprecated** — will be phased out; prefer `traceability`. When `traceability` is sent it wins over `batch_transactions` + `serial_numbers`.",
                           "items": {
                             "type": "number"
+                          }
+                        },
+                        "traceability": {
+                          "type": "array",
+                          "description": "Unified allocation breakdown of the fulfilled quantity (batch / serial / bin). Preferred over `batch_transactions` + `serial_numbers`; when `traceability` is sent it wins. Serial entries set `serial_number_id` with implicit quantity `'1'` (still send it).",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "One allocation entry. A row's `traceability` is an array; entries together cover the row's quantity.\n\n- **Non-tracked variant** — send `[]` (or omit `traceability`).\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to draw from multiple batches.\n- **Serial-tracked** — each entry sets `serial_number_id`. Use one entry per serial number.\n\nA variant is tracked one way, so per row you cannot mix batch and serial entries. Each entry sets at most one of `batch_id` / `serial_number_id`. `bin_location_id` is optional and pins the allocation to a bin location.",
+                            "properties": {
+                              "batch_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Batch id. Mutually exclusive with `serial_number_id`."
+                              },
+                              "serial_number_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Serial number id. Mutually exclusive with `batch_id`."
+                              },
+                              "bin_location_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Bin location id the allocation is drawn from / moved to. Optional."
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "description": "Decimal string quantity for this allocation entry. Optional for most domains; stock adjustments require it (see `stockAdjustmentTraceabilityInputItem`). Serial entries are implicit `'1'` (the server stores and returns `'1'`), but send it explicitly when known."
+                              }
+                            }
                           }
                         }
                       }
@@ -199,6 +241,14 @@ Creates a new fulfillment for an existing sales order.
                       ],
                       "serial_numbers": [
                         1
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 3,
+                          "quantity": "2"
+                        }
                       ]
                     }
                   ]

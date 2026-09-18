@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -22,31 +22,68 @@ class SalesOrderRowSearchRequest:
     request/response shape may evolve before GA.
 
         Example:
-            {'filter': {'where': {'and': [{'sales_order_id': {'inq': [12345, 12346, 12347]}}, {'quantity': {'gt': 0}},
-                {'product_availability': 'IN_STOCK'}]}, 'order': ['delivery_date ASC', 'id ASC'], 'limit': 100, 'page': 1}}
+            {'filter': {'and': [{'sales_order_id': {'inq': [12345, 12346, 12347]}}, {'quantity': {'gt': 0}},
+                {'product_availability': 'IN_STOCK'}]}, 'order': ['delivery_date ASC', 'id ASC'], 'limit': 100, 'page': 1}
 
         Attributes:
-            filter_ (SalesOrderRowSearchFilter | Unset): Filter envelope for ``POST /sales_order_rows/search``.
+            filter_ (SalesOrderRowSearchFilter | Unset): ``filter`` clause for ``POST /sales_order_rows/search``. Only the
+                fields listed here may appear; unknown fields are rejected with
+                422. Custom field values are addressable via additional
+                ``custom_fields.<uuid>`` keys (snake_case), where ``<uuid>`` is the
+                custom field definition id. Compose with ``and`` / ``or`` (max
+                nesting depth 2).
+            order (list[str] | str | Unset): Sort directive(s). Each entry is ``<field> ASC|DESC``
+                (direction defaults to ASC). Only filterable fields may be
+                used; ``custom_fields.<uuid>`` paths are orderable.
+            limit (int | Unset): Page size; maximum 200. Omit to let the server apply its
+                default of 50 (the client omits the key when unset rather than
+                sending a default, so direct construction and round-tripped
+                ``from_dict`` payloads behave identically).
+            page (int | Unset): 1-based page number. Omit to let the server default to 1.
     """
 
     filter_: SalesOrderRowSearchFilter | Unset = UNSET
+    order: list[str] | str | Unset = UNSET
+    limit: int | Unset = UNSET
+    page: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         filter_: dict[str, Any] | Unset = UNSET
         if not isinstance(self.filter_, Unset):
             filter_ = self.filter_.to_dict()
 
+        order: list[str] | str | Unset
+        if isinstance(self.order, Unset):
+            order = UNSET
+        elif isinstance(self.order, list):
+            order = self.order
+
+        else:
+            order = self.order
+
+        limit = self.limit
+
+        page = self.page
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
         if filter_ is not UNSET:
             field_dict["filter"] = filter_
+        if order is not UNSET:
+            field_dict["order"] = order
+        if limit is not UNSET:
+            field_dict["limit"] = limit
+        if page is not UNSET:
+            field_dict["page"] = page
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_row_search_filter import SalesOrderRowSearchFilter
+        from ..models.sales_order_row_search_filter import (
+            SalesOrderRowSearchFilter,
+        )
 
         d = dict(src_dict)
         _filter_ = d.pop("filter", UNSET)
@@ -56,8 +93,30 @@ class SalesOrderRowSearchRequest:
         else:
             filter_ = SalesOrderRowSearchFilter.from_dict(_filter_)
 
+        def _parse_order(data: object) -> list[str] | str | Unset:
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                order_type_1 = cast(list[str], data)
+
+                return order_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(list[str] | str | Unset, data)
+
+        order = _parse_order(d.pop("order", UNSET))
+
+        limit = d.pop("limit", UNSET)
+
+        page = d.pop("page", UNSET)
+
         sales_order_row_search_request = cls(
             filter_=filter_,
+            order=order,
+            limit=limit,
+            page=page,
         )
 
         return sales_order_row_search_request

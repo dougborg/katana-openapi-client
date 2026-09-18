@@ -27,7 +27,13 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.audit_spec_drift import AuditReport, audit  # noqa: E402
+from scripts.audit_spec_drift import (  # noqa: E402
+    DEFAULT_OVERRIDES,
+    AuditReport,
+    apply_overrides,
+    audit,
+    load_overrides,
+)
 
 LIVE_SPEC_PATH = PROJECT_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
 
@@ -50,7 +56,16 @@ def live_spec() -> dict[str, Any]:
 
 @pytest.fixture(scope="module")
 def drift_report(local_spec: dict[str, Any], live_spec: dict[str, Any]) -> AuditReport:
-    return audit(local_spec, live_spec)
+    """The audit with the committed override registry applied.
+
+    Mirrors what ``poe audit-spec-strict`` does in CI, so the test suite and
+    the gate can't disagree about what counts as drift. A divergence that is
+    deliberately deferred in the registry (with a ``fix_tracked_in`` issue) is
+    suppressed here too; anything *not* in the registry still fails.
+    """
+    report = audit(local_spec, live_spec)
+    apply_overrides(report, load_overrides(DEFAULT_OVERRIDES))
+    return report
 
 
 # ---------------------------------------------------------------------------
@@ -78,8 +93,10 @@ def test_no_endpoints_missing_from_local(drift_report: AuditReport) -> None:
     missing = drift_report.paths_only_in_live
     assert not missing, (
         f"{len(missing)} endpoints in live but not local spec. "
-        "Refresh the upstream spec, then add them locally. Missing: "
-        f"{[f'{m.upper()} {p}' for p, m in missing]}"
+        "Refresh the upstream spec, then either add them locally or defer "
+        "each one with an `only_live_endpoint` entry (carrying "
+        "`fix_tracked_in`) in docs/upstream-specs/audit-overrides.yaml. "
+        f"Missing: {[f'{m.upper()} {p}' for p, m in missing]}"
     )
 
 

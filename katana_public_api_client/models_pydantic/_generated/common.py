@@ -584,6 +584,86 @@ class Location(DeletableEntity):
     ] = None
 
 
+class InventorySignalLeadTimeSource(StrEnum):
+    sku = "sku"
+    system_po = "system_po"
+    system_mo = "system_mo"
+    fallback = "fallback"
+
+
+class InventorySignal(KatanaPydanticBase):
+    variant_id: Annotated[
+        int | None,
+        Field(
+            description="The variant the signal describes. One row per variant, summed across all locations."
+        ),
+    ] = None
+    avg_daily_demand_30d: Annotated[
+        str | None,
+        Field(
+            description="Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC."
+        ),
+    ] = None
+    reorder_point: Annotated[
+        str | None,
+        Field(
+            description="Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on /inventory. Null while demand has not yet been calculated."
+        ),
+    ] = None
+    days_of_stock_left: Annotated[
+        int | None,
+        Field(
+            description="floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand has not yet been calculated."
+        ),
+    ] = None
+    stock_risk: Annotated[
+        int | None,
+        Field(
+            description="Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been calculated."
+        ),
+    ] = None
+    in_stock: Annotated[
+        str | None, Field(description="Quantity on hand, summed across all locations")
+    ] = None
+    committed: Annotated[
+        str | None,
+        Field(description="Quantity claimed by open sales and manufacturing orders"),
+    ] = None
+    safety_stock_breach_at: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Projected date stock falls below safety stock. Set on high and critical rows only."
+        ),
+    ] = None
+    expected_before_safety_stock_breach: Annotated[
+        str | None,
+        Field(
+            description="Incoming quantity that stock_risk counted as landing in time"
+        ),
+    ] = None
+    safety_stock: Annotated[
+        str | None, Field(description="The safety stock level set for the variant")
+    ] = None
+    lead_time_used: Annotated[
+        int | None, Field(description="Lead time in days used in the calculations")
+    ] = None
+    lead_time_source: Annotated[
+        InventorySignalLeadTimeSource | None,
+        Field(description="Which source supplied lead_time_used"),
+    ] = None
+    demand_calculated_at: Annotated[
+        AwareDatetime | None,
+        Field(description="When avg_daily_demand_30d was last calculated"),
+    ] = None
+
+
+class InventorySignalListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[InventorySignal] | None,
+        Field(description="Array of per-variant replenishment signals"),
+    ] = None
+
+
 class Status(StrEnum):
     not_started = "NOT_STARTED"
 
@@ -637,10 +717,72 @@ class Config2(KatanaPydanticBase):
 
 class EntityType(StrEnum):
     regular = "regular"
+    outsourced = "outsourced"
+    regular_1 = "regular"
 
 
 class EntityType1(StrEnum):
+    regular = "regular"
     outsourced = "outsourced"
+    outsourced_1 = "outsourced"
+
+
+class RerankPlace(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    before_id: Annotated[
+        int,
+        Field(
+            description="ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.",
+            ge=1,
+            le=2147483647,
+        ),
+    ]
+
+
+class OrderId(RootModel[int]):
+    root: Annotated[int, Field(ge=1, le=2147483647)]
+
+
+class RerankManufacturingOrderRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    order_ids: Annotated[
+        list[OrderId],
+        Field(
+            description="Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
+            max_length=1,
+            min_length=1,
+        ),
+    ]
+    place: Annotated[
+        RerankPlace,
+        Field(
+            description="Where to place the reranked order, relative to another manufacturing order"
+        ),
+    ]
+
+
+class RerankSalesOrderRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    order_ids: Annotated[
+        list[OrderId],
+        Field(
+            description="Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
+            max_length=1,
+            min_length=1,
+        ),
+    ]
+    place: Annotated[
+        RerankPlace,
+        Field(
+            description="Where to place the reranked order, relative to another sales order"
+        ),
+    ]
 
 
 class CreateTaxRateRequest(KatanaPydanticBase):
@@ -665,9 +807,7 @@ class CreateTaxRateRequest(KatanaPydanticBase):
 
 
 class TaxRate(UpdatableEntity):
-    id: Annotated[
-        int | None, Field(description="Unique identifier for the tax rate")
-    ] = None
+    id: Annotated[int, Field(description="Unique identifier for the tax rate")]
     name: Annotated[
         str | None,
         Field(
@@ -780,9 +920,8 @@ class VariantDefaultStorageBinLink(KatanaPydanticBase):
 
 class VariantDefaultStorageBinLinkResponse(DeletableEntity):
     id: Annotated[
-        int | None,
-        Field(description="Unique identifier for the variant-storage bin link"),
-    ] = None
+        int, Field(description="Unique identifier for the variant-storage bin link")
+    ]
     bin_name: Annotated[
         str | None, Field(description="Name of the storage bin linked to this variant")
     ] = None
@@ -862,6 +1001,7 @@ class Event(StrEnum):
     sales_order_approved = "sales_order.approved"
     sales_order_packed = "sales_order.packed"
     sales_order_delivered = "sales_order.delivered"
+    sales_order_invoiced = "sales_order.invoiced"
     sales_order_updated = "sales_order.updated"
     sales_order_deleted = "sales_order.deleted"
     sales_order_availability_updated = "sales_order.availability_updated"
@@ -871,6 +1011,7 @@ class Event(StrEnum):
     purchase_order_deleted = "purchase_order.deleted"
     purchase_order_partially_received = "purchase_order.partially_received"
     purchase_order_received = "purchase_order.received"
+    purchase_order_billed = "purchase_order.billed"
     purchase_order_row_created = "purchase_order_row.created"
     purchase_order_row_received = "purchase_order_row.received"
     purchase_order_row_updated = "purchase_order_row.updated"
@@ -880,6 +1021,7 @@ class Event(StrEnum):
     outsourced_purchase_order_updated = "outsourced_purchase_order.updated"
     outsourced_purchase_order_deleted = "outsourced_purchase_order.deleted"
     outsourced_purchase_order_received = "outsourced_purchase_order.received"
+    outsourced_purchase_order_billed = "outsourced_purchase_order.billed"
     outsourced_purchase_order_row_created = "outsourced_purchase_order_row.created"
     outsourced_purchase_order_row_updated = "outsourced_purchase_order_row.updated"
     outsourced_purchase_order_row_deleted = "outsourced_purchase_order_row.deleted"
@@ -941,6 +1083,9 @@ class Event(StrEnum):
     variant_deleted = "variant.deleted"
     product_recipe_row_created = "product_recipe_row.created"
     product_recipe_row_deleted = "product_recipe_row.deleted"
+    bom_row_created = "bom_row.created"
+    bom_row_updated = "bom_row.updated"
+    bom_row_deleted = "bom_row.deleted"
     product_recipe_row_updated = "product_recipe_row.updated"
 
 
@@ -1151,6 +1296,12 @@ class SearchComparator(KatanaPydanticBase):
     ] = None
 
 
+class IncludeEnum(StrEnum):
+    item = "item"
+    archived = "archived"
+    deleted = "deleted"
+
+
 class Attribute3(KatanaPydanticBase):
     key: Annotated[str | None, Field(description="Attribute name")] = None
     value: Annotated[str | None, Field(description="Attribute value")] = None
@@ -1302,7 +1453,7 @@ class Factory(KatanaPydanticBase):
 
 
 class Operator(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     operator_name: str
 
 
@@ -1539,6 +1690,126 @@ class ProductOperationRowListResponse(KatanaPydanticBase):
         list[ProductOperationRow] | None,
         Field(
             description="Array of product operation rows returned by this page of the list response"
+        ),
+    ] = None
+
+
+class VariantSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND - every nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR - at least one nested clause must match. Maximum nesting depth 2.",
+        ),
+    ] = None
+    abc_classification: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="ABC inventory classification."),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the variant was created.",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Variant id."),
+    ] = None
+    internal_barcode: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Internal barcode."),
+    ] = None
+    item_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Id of the product, material, or service this variant belongs to.",
+        ),
+    ] = None
+    item_type: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Kind of item the variant belongs to.",
+        ),
+    ] = None
+    lead_time: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Lead time in days."),
+    ] = None
+    minimum_order_quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Minimum order quantity."),
+    ] = None
+    purchase_price: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Purchase price."),
+    ] = None
+    registered_barcode: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Registered (GTIN/EAN/UPC) barcode.", union_mode="left_to_right"
+        ),
+    ] = None
+    sales_price: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Sales price."),
+    ] = None
+    sku: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Stock keeping unit."),
+    ] = None
+    supplier_item_codes: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Supplier item code."),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the variant was last updated.",
+        ),
+    ] = None
+
+
+class VariantSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: VariantSearchFilter | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50.\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
+        ),
+    ] = None
+    include: Annotated[
+        list[IncludeEnum] | None,
+        Field(
+            description="Related data to include, and result-set widening. ``item``\nenriches each variant with its parent item under ``item``;\n``archived`` and ``deleted`` include otherwise-excluded\nvariants in the results.\n"
         ),
     ] = None
 

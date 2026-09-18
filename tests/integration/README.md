@@ -80,7 +80,7 @@ the spec-drift probes use:
    ```python
    from scripts.spec_drift_verify import SDT_PREFIX, tagged, record_artifact
 
-   name = f"[{SDT_PREFIX}] Smoke Material"   # or tagged("WIDGET-001") for a SKU
+   name = f"[{SDT_PREFIX}] Smoke Material"  # or tagged("WIDGET-001") for a SKU
    ```
 
 1. **Record it to the ledger immediately after the create succeeds** so cleanup can find

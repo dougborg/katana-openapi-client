@@ -186,6 +186,10 @@ from .customer import Customer
 from .customer_address import CustomerAddress
 from .customer_address_list_response import CustomerAddressListResponse
 from .customer_list_response import CustomerListResponse
+from .customer_search_filter import CustomerSearchFilter
+from .customer_search_filter_and_item import CustomerSearchFilterAndItem
+from .customer_search_filter_or_item import CustomerSearchFilterOrItem
+from .customer_search_request import CustomerSearchRequest
 from .deletable_entity import DeletableEntity
 from .delete_serial_numbers_request import DeleteSerialNumbersRequest
 from .demand_forecast_period import DemandForecastPeriod
@@ -221,6 +225,7 @@ from .format_validation_error_code import FormatValidationErrorCode
 from .format_validation_error_info import FormatValidationErrorInfo
 from .generic_validation_error import GenericValidationError
 from .get_all_inventory_point_extend_item import GetAllInventoryPointExtendItem
+from .get_all_inventory_signals_stock_risk import GetAllInventorySignalsStockRisk
 from .get_all_materials_batch_tracked import GetAllMaterialsBatchTracked
 from .get_all_materials_extend_item import GetAllMaterialsExtendItem
 from .get_all_products_batch_tracked import GetAllProductsBatchTracked
@@ -252,6 +257,9 @@ from .inventory_reorder_point import InventoryReorderPoint
 from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
+from .inventory_signal import InventorySignal
+from .inventory_signal_lead_time_source import InventorySignalLeadTimeSource
+from .inventory_signal_list_response import InventorySignalListResponse
 from .item_config import ItemConfig
 from .location import Location
 from .location_address import LocationAddress
@@ -274,6 +282,9 @@ from .manufacturing_order_production import ManufacturingOrderProduction
 from .manufacturing_order_production_ingredient import (
     ManufacturingOrderProductionIngredient,
 )
+from .manufacturing_order_production_ingredient_list_response import (
+    ManufacturingOrderProductionIngredientListResponse,
+)
 from .manufacturing_order_production_ingredient_response import (
     ManufacturingOrderProductionIngredientResponse,
 )
@@ -287,6 +298,14 @@ from .manufacturing_order_recipe_row_batch_transactions_item import (
 from .manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse,
 )
+from .manufacturing_order_search_filter import ManufacturingOrderSearchFilter
+from .manufacturing_order_search_filter_and_item import (
+    ManufacturingOrderSearchFilterAndItem,
+)
+from .manufacturing_order_search_filter_or_item import (
+    ManufacturingOrderSearchFilterOrItem,
+)
+from .manufacturing_order_search_request import ManufacturingOrderSearchRequest
 from .manufacturing_order_status import ManufacturingOrderStatus
 from .material import Material
 from .material_config import MaterialConfig
@@ -384,6 +403,10 @@ from .purchase_order_row_batch_transactions_item import (
 )
 from .purchase_order_row_list_response import PurchaseOrderRowListResponse
 from .purchase_order_row_request import PurchaseOrderRowRequest
+from .purchase_order_search_filter import PurchaseOrderSearchFilter
+from .purchase_order_search_filter_and_item import PurchaseOrderSearchFilterAndItem
+from .purchase_order_search_filter_or_item import PurchaseOrderSearchFilterOrItem
+from .purchase_order_search_request import PurchaseOrderSearchRequest
 from .purchase_order_status import PurchaseOrderStatus
 from .recipe import Recipe
 from .recipe_list_response import RecipeListResponse
@@ -392,6 +415,9 @@ from .regular_purchase_order_entity_type import RegularPurchaseOrderEntityType
 from .required_validation_error import RequiredValidationError
 from .required_validation_error_code import RequiredValidationErrorCode
 from .required_validation_error_info import RequiredValidationErrorInfo
+from .rerank_manufacturing_order_request import RerankManufacturingOrderRequest
+from .rerank_place import RerankPlace
+from .rerank_sales_order_request import RerankSalesOrderRequest
 from .returnable_item import ReturnableItem
 from .sales_order import SalesOrder
 from .sales_order_accounting_metadata import SalesOrderAccountingMetadata
@@ -424,10 +450,9 @@ from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransacti
 from .sales_order_row_custom_fields_type_0 import SalesOrderRowCustomFieldsType0
 from .sales_order_row_list_response import SalesOrderRowListResponse
 from .sales_order_row_search_filter import SalesOrderRowSearchFilter
+from .sales_order_row_search_filter_and_item import SalesOrderRowSearchFilterAndItem
+from .sales_order_row_search_filter_or_item import SalesOrderRowSearchFilterOrItem
 from .sales_order_row_search_request import SalesOrderRowSearchRequest
-from .sales_order_row_search_where import SalesOrderRowSearchWhere
-from .sales_order_row_search_where_and_item import SalesOrderRowSearchWhereAndItem
-from .sales_order_row_search_where_or_item import SalesOrderRowSearchWhereOrItem
 from .sales_order_row_serial_number_transactions_item import (
     SalesOrderRowSerialNumberTransactionsItem,
 )
@@ -435,10 +460,9 @@ from .sales_order_row_serial_number_transactions_item_quantity import (
     SalesOrderRowSerialNumberTransactionsItemQuantity,
 )
 from .sales_order_search_filter import SalesOrderSearchFilter
+from .sales_order_search_filter_and_item import SalesOrderSearchFilterAndItem
+from .sales_order_search_filter_or_item import SalesOrderSearchFilterOrItem
 from .sales_order_search_request import SalesOrderSearchRequest
-from .sales_order_search_where import SalesOrderSearchWhere
-from .sales_order_search_where_and_item import SalesOrderSearchWhereAndItem
-from .sales_order_search_where_or_item import SalesOrderSearchWhereOrItem
 from .sales_order_shipping_fee import SalesOrderShippingFee
 from .sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
 from .sales_order_status import SalesOrderStatus
@@ -602,6 +626,11 @@ from .variant_response_config_attributes_type_0_item import (
 from .variant_response_custom_fields_type_0_item import (
     VariantResponseCustomFieldsType0Item,
 )
+from .variant_search_filter import VariantSearchFilter
+from .variant_search_filter_and_item import VariantSearchFilterAndItem
+from .variant_search_filter_or_item import VariantSearchFilterOrItem
+from .variant_search_request import VariantSearchRequest
+from .variant_search_request_include_item import VariantSearchRequestIncludeItem
 from .variant_type import VariantType
 from .webhook import Webhook
 from .webhook_event import WebhookEvent
@@ -743,6 +772,10 @@ __all__ = (
     "CustomerAddress",
     "CustomerAddressListResponse",
     "CustomerListResponse",
+    "CustomerSearchFilter",
+    "CustomerSearchFilterAndItem",
+    "CustomerSearchFilterOrItem",
+    "CustomerSearchRequest",
     "DeletableEntity",
     "DeleteSerialNumbersRequest",
     "DemandForecastPeriod",
@@ -774,6 +807,7 @@ __all__ = (
     "FormatValidationErrorInfo",
     "GenericValidationError",
     "GetAllInventoryPointExtendItem",
+    "GetAllInventorySignalsStockRisk",
     "GetAllMaterialsBatchTracked",
     "GetAllMaterialsExtendItem",
     "GetAllProductsBatchTracked",
@@ -801,6 +835,9 @@ __all__ = (
     "InventoryReorderPointResponse",
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
+    "InventorySignal",
+    "InventorySignalLeadTimeSource",
+    "InventorySignalListResponse",
     "ItemConfig",
     "Location",
     "LocationAddress",
@@ -815,11 +852,16 @@ __all__ = (
     "ManufacturingOrderOperationRowListResponse",
     "ManufacturingOrderProduction",
     "ManufacturingOrderProductionIngredient",
+    "ManufacturingOrderProductionIngredientListResponse",
     "ManufacturingOrderProductionIngredientResponse",
     "ManufacturingOrderProductionListResponse",
     "ManufacturingOrderRecipeRow",
     "ManufacturingOrderRecipeRowBatchTransactionsItem",
     "ManufacturingOrderRecipeRowListResponse",
+    "ManufacturingOrderSearchFilter",
+    "ManufacturingOrderSearchFilterAndItem",
+    "ManufacturingOrderSearchFilterOrItem",
+    "ManufacturingOrderSearchRequest",
     "ManufacturingOrderStatus",
     "Material",
     "MaterialConfig",
@@ -897,6 +939,10 @@ __all__ = (
     "PurchaseOrderRowBatchTransactionsItem",
     "PurchaseOrderRowListResponse",
     "PurchaseOrderRowRequest",
+    "PurchaseOrderSearchFilter",
+    "PurchaseOrderSearchFilterAndItem",
+    "PurchaseOrderSearchFilterOrItem",
+    "PurchaseOrderSearchRequest",
     "PurchaseOrderStatus",
     "Recipe",
     "RecipeListResponse",
@@ -905,6 +951,9 @@ __all__ = (
     "RequiredValidationError",
     "RequiredValidationErrorCode",
     "RequiredValidationErrorInfo",
+    "RerankManufacturingOrderRequest",
+    "RerankPlace",
+    "RerankSalesOrderRequest",
     "ReturnableItem",
     "SalesOrder",
     "SalesOrderAccountingMetadata",
@@ -929,17 +978,15 @@ __all__ = (
     "SalesOrderRowCustomFieldsType0",
     "SalesOrderRowListResponse",
     "SalesOrderRowSearchFilter",
+    "SalesOrderRowSearchFilterAndItem",
+    "SalesOrderRowSearchFilterOrItem",
     "SalesOrderRowSearchRequest",
-    "SalesOrderRowSearchWhere",
-    "SalesOrderRowSearchWhereAndItem",
-    "SalesOrderRowSearchWhereOrItem",
     "SalesOrderRowSerialNumberTransactionsItem",
     "SalesOrderRowSerialNumberTransactionsItemQuantity",
     "SalesOrderSearchFilter",
+    "SalesOrderSearchFilterAndItem",
+    "SalesOrderSearchFilterOrItem",
     "SalesOrderSearchRequest",
-    "SalesOrderSearchWhere",
-    "SalesOrderSearchWhereAndItem",
-    "SalesOrderSearchWhereOrItem",
     "SalesOrderShippingFee",
     "SalesOrderShippingFeeListResponse",
     "SalesOrderStatus",
@@ -1063,6 +1110,11 @@ __all__ = (
     "VariantResponse",
     "VariantResponseConfigAttributesType0Item",
     "VariantResponseCustomFieldsType0Item",
+    "VariantSearchFilter",
+    "VariantSearchFilterAndItem",
+    "VariantSearchFilterOrItem",
+    "VariantSearchRequest",
+    "VariantSearchRequestIncludeItem",
     "VariantType",
     "Webhook",
     "WebhookEvent",

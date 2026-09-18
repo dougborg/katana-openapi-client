@@ -36,10 +36,10 @@ class StockAdjustment:
     location_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     stock_adjustment_date: datetime.datetime | Unset = UNSET
-    reason: None | str | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
+    reason: str | Unset | None = UNSET
+    additional_info: str | Unset | None = UNSET
     stock_adjustment_rows: list[StockAdjustmentRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -58,7 +58,7 @@ class StockAdjustment:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -70,13 +70,13 @@ class StockAdjustment:
         if not isinstance(self.stock_adjustment_date, Unset):
             stock_adjustment_date = self.stock_adjustment_date.isoformat()
 
-        reason: None | str | Unset
+        reason: str | Unset | None
         if isinstance(self.reason, Unset):
             reason = UNSET
         else:
             reason = self.reason
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
@@ -140,7 +140,7 @@ class StockAdjustment:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -153,7 +153,7 @@ class StockAdjustment:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -166,21 +166,21 @@ class StockAdjustment:
                 _stock_adjustment_date
             )
 
-        def _parse_reason(data: object) -> None | str | Unset:
+        def _parse_reason(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         reason = _parse_reason(d.pop("reason", UNSET))
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

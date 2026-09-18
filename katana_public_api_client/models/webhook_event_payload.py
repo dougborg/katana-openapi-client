@@ -57,7 +57,9 @@ class WebhookEventPayload:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.webhook_event_payload_object import WebhookEventPayloadObject
+        from ..models.webhook_event_payload_object import (
+            WebhookEventPayloadObject,
+        )
 
         d = dict(src_dict)
         resource_type = d.pop("resource_type")

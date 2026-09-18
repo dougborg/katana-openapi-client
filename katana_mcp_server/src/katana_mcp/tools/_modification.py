@@ -72,7 +72,7 @@ WireDatetime = Annotated[datetime, AfterValidator(_ensure_tz_aware)]
 
 def patch_additional_info(
     caller_value: str | None,
-    existing_value: str | None | Unset,
+    existing_value: str | Unset | None,
 ) -> str | Unset:
     """Decide ``additional_info`` for a Katana PATCH body.
 

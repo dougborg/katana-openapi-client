@@ -39,12 +39,12 @@ class BinTransfer:
     location_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     status: BinTransferStatus | Unset = UNSET
-    created_date: datetime.datetime | None | Unset = UNSET
-    departed_at: datetime.datetime | None | Unset = UNSET
-    arrived_at: datetime.datetime | None | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
+    created_date: datetime.datetime | Unset | None = UNSET
+    departed_at: datetime.datetime | Unset | None = UNSET
+    arrived_at: datetime.datetime | Unset | None = UNSET
+    additional_info: str | Unset | None = UNSET
     bin_transfer_rows: list[BinTransferRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -63,7 +63,7 @@ class BinTransfer:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -75,7 +75,7 @@ class BinTransfer:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        created_date: None | str | Unset
+        created_date: str | Unset | None
         if isinstance(self.created_date, Unset):
             created_date = UNSET
         elif isinstance(self.created_date, datetime.datetime):
@@ -83,7 +83,7 @@ class BinTransfer:
         else:
             created_date = self.created_date
 
-        departed_at: None | str | Unset
+        departed_at: str | Unset | None
         if isinstance(self.departed_at, Unset):
             departed_at = UNSET
         elif isinstance(self.departed_at, datetime.datetime):
@@ -91,7 +91,7 @@ class BinTransfer:
         else:
             departed_at = self.departed_at
 
-        arrived_at: None | str | Unset
+        arrived_at: str | Unset | None
         if isinstance(self.arrived_at, Unset):
             arrived_at = UNSET
         elif isinstance(self.arrived_at, datetime.datetime):
@@ -99,7 +99,7 @@ class BinTransfer:
         else:
             arrived_at = self.arrived_at
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
@@ -167,7 +167,7 @@ class BinTransfer:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -180,7 +180,7 @@ class BinTransfer:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -191,7 +191,7 @@ class BinTransfer:
         else:
             status = BinTransferStatus(_status)
 
-        def _parse_created_date(data: object) -> datetime.datetime | None | Unset:
+        def _parse_created_date(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -204,11 +204,11 @@ class BinTransfer:
                 return created_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         created_date = _parse_created_date(d.pop("created_date", UNSET))
 
-        def _parse_departed_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_departed_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -221,11 +221,11 @@ class BinTransfer:
                 return departed_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         departed_at = _parse_departed_at(d.pop("departed_at", UNSET))
 
-        def _parse_arrived_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_arrived_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -238,16 +238,16 @@ class BinTransfer:
                 return arrived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         arrived_at = _parse_arrived_at(d.pop("arrived_at", UNSET))
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

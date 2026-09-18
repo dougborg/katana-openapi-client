@@ -18,7 +18,7 @@ import time
 import traceback
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from fastmcp.server.auth import AuthProvider  # pragma: no cover
@@ -238,11 +238,8 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
             # its first call with no signal at the config site).
             sync_api_key = (os.getenv("KATANA_SYNC_API_KEY") or "").strip() or None
             if sync_api_key and sync_api_key != api_key:
-                dedicated_sync_client = cast(
-                    KatanaClient,
-                    await sync_stack.enter_async_context(
-                        KatanaClient(api_key=sync_api_key, **client_kwargs)
-                    ),
+                dedicated_sync_client = await sync_stack.enter_async_context(
+                    KatanaClient(api_key=sync_api_key, **client_kwargs)
                 )
                 logger.info("sync_client_initialized", isolated=True)
             else:
@@ -260,11 +257,8 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
             # Build the service container up front so the warm-up can route
             # through ``Services.sync_client`` — the single source of truth for
             # the dedicated-vs-foreground fallback (no duplicated resolution).
-            # The generated ``AuthenticatedClient.__aenter__`` is annotated to
-            # return its own class, dropping the ``KatanaClient`` subclass we
-            # constructed, hence the casts.
             context = Services(
-                client=cast(KatanaClient, client),
+                client=client,
                 typed_cache=typed_cache,
                 dedicated_sync_client=dedicated_sync_client,
             )

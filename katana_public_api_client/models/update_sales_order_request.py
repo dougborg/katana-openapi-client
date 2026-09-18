@@ -32,11 +32,11 @@ class UpdateSalesOrderRequest:
     currency: str | Unset = UNSET
     conversion_rate: float | Unset = UNSET
     conversion_date: str | Unset = UNSET
-    additional_info: None | str | Unset = UNSET
-    customer_ref: None | str | Unset = UNSET
-    tracking_number: None | str | Unset = UNSET
-    tracking_number_url: None | str | Unset = UNSET
-    custom_fields: None | Unset | UpdateSalesOrderRequestCustomFieldsType0 = UNSET
+    additional_info: str | Unset | None = UNSET
+    customer_ref: str | Unset | None = UNSET
+    tracking_number: str | Unset | None = UNSET
+    tracking_number_url: str | Unset | None = UNSET
+    custom_fields: Unset | UpdateSalesOrderRequestCustomFieldsType0 | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.update_sales_order_request_custom_fields_type_0 import (
@@ -71,31 +71,31 @@ class UpdateSalesOrderRequest:
 
         conversion_date = self.conversion_date
 
-        additional_info: None | str | Unset
+        additional_info: str | Unset | None
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        customer_ref: None | str | Unset
+        customer_ref: str | Unset | None
         if isinstance(self.customer_ref, Unset):
             customer_ref = UNSET
         else:
             customer_ref = self.customer_ref
 
-        tracking_number: None | str | Unset
+        tracking_number: str | Unset | None
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_number_url: None | str | Unset
+        tracking_number_url: str | Unset | None
         if isinstance(self.tracking_number_url, Unset):
             tracking_number_url = UNSET
         else:
             tracking_number_url = self.tracking_number_url
 
-        custom_fields: dict[str, Any] | None | Unset
+        custom_fields: dict[str, Any] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(self.custom_fields, UpdateSalesOrderRequestCustomFieldsType0):
@@ -186,39 +186,39 @@ class UpdateSalesOrderRequest:
 
         conversion_date = d.pop("conversion_date", UNSET)
 
-        def _parse_additional_info(data: object) -> None | str | Unset:
+        def _parse_additional_info(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_customer_ref(data: object) -> None | str | Unset:
+        def _parse_customer_ref(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
-        def _parse_tracking_number(data: object) -> None | str | Unset:
+        def _parse_tracking_number(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_number_url(data: object) -> None | str | Unset:
+        def _parse_tracking_number_url(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -226,7 +226,7 @@ class UpdateSalesOrderRequest:
 
         def _parse_custom_fields(
             data: object,
-        ) -> None | Unset | UpdateSalesOrderRequestCustomFieldsType0:
+        ) -> Unset | UpdateSalesOrderRequestCustomFieldsType0 | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -246,7 +246,7 @@ class UpdateSalesOrderRequest:
                 return custom_fields_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | UpdateSalesOrderRequestCustomFieldsType0, data)
+            return cast(Unset | UpdateSalesOrderRequestCustomFieldsType0 | None, data)
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 

@@ -15,7 +15,7 @@ response = Response(
     status_code=200,
     content=b"...",
     headers={...},
-    parsed=ProductListResponse(data=[...])  # or ErrorResponse
+    parsed=ProductListResponse(data=[...]),  # or ErrorResponse
 )
 ```
 
@@ -50,18 +50,22 @@ We will provide **utility functions** for common response operations in `utils.p
 def unwrap(response: Response[T], *, raise_on_error: bool = True) -> T:
     """Unwrap response and return parsed data or raise typed exception."""
 
+
 # Extract .data field from list responses
 @overload
 def unwrap_data(response, *, raise_on_error: bool = True) -> list[Any]: ...
 @overload
 def unwrap_data(response, *, raise_on_error: bool = False) -> Optional[list[Any]]: ...
 
+
 # Status checking
 def is_success(response: Response[Any]) -> bool: ...
 def is_error(response: Response[Any]) -> bool: ...
 
+
 # Error message extraction
 def get_error_message(response: Response[Any]) -> str | None: ...
+
 
 # Custom handling
 def handle_response(
@@ -69,7 +73,7 @@ def handle_response(
     *,
     on_success: Callable[[T], Any] | None = None,
     on_error: Callable[[ErrorResponse], Any] | None = None,
-    raise_on_error: bool = True
+    raise_on_error: bool = True,
 ) -> Any: ...
 ```
 
@@ -77,9 +81,17 @@ def handle_response(
 
 ```python
 class APIError(Exception): ...
+
+
 class AuthenticationError(APIError): ...
+
+
 class ValidationError(APIError): ...
+
+
 class RateLimitError(APIError): ...
+
+
 class ServerError(APIError): ...
 ```
 
@@ -145,6 +157,7 @@ def unwrap_data(
 ) -> list[Any]:  # Never None when raise_on_error=True
     ...
 
+
 @overload
 def unwrap_data(
     response: Response[T],
@@ -171,11 +184,7 @@ Use Result/Either monad pattern:
 
 ```python
 result = await get_all_products.asyncio_detailed(client=client)
-products = (
-    result
-    .map(lambda r: r.data)
-    .unwrap_or([])
-)
+products = result.map(lambda r: r.data).unwrap_or([])
 ```
 
 **Pros:**
@@ -258,9 +267,7 @@ Handles nested error responses from Katana API:
 {
     "error": {
         "message": "Validation failed",
-        "errors": [
-            {"field": "name", "message": "Required"}
-        ]
+        "errors": [{"field": "name", "message": "Required"}],
     }
 }
 ```
@@ -269,9 +276,7 @@ Converted to:
 
 ```python
 raise ValidationError(
-    "Validation failed: name: Required",
-    status_code=400,
-    validation_errors=[...]
+    "Validation failed: name: Required", status_code=400, validation_errors=[...]
 )
 ```
 

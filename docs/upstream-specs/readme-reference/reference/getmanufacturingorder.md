@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Retrieve a manufacturing order
 
@@ -109,11 +111,19 @@ Retrieves the details of an existing manufacturing order based on ID.
                   "serial_numbers": [
                     {
                       "id": 1,
-                      "transaction_id": "eb4da756-0842-4495-9118-f8135f681234",
+                      "transaction_id": null,
                       "serial_number": "SN1",
-                      "resource_type": "Production",
-                      "resource_id": 2,
-                      "transaction_date": "2023-02-10T10:06:14.435Z"
+                      "resource_type": "ManufacturingOrder",
+                      "resource_id": 21400,
+                      "transaction_date": "2023-02-10T10:06:14.435Z",
+                      "quantity_change": 1
+                    }
+                  ],
+                  "traceability": [
+                    {
+                      "batch_id": 1,
+                      "serial_number_id": null,
+                      "quantity": "2"
                     }
                   ]
                 }

@@ -108,10 +108,7 @@ implementation.
 ## Docstring Template
 
 ```python
-def process_order(
-    order_id: str,
-    confirm: bool = False
-) -> str:
+def process_order(order_id: str, confirm: bool = False) -> str:
     """Process an order with optional confirmation.
 
     Args:

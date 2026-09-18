@@ -19,33 +19,33 @@ class UpdateStocktakeRowRequest:
     """
 
     variant_id: int | Unset = UNSET
-    batch_id: int | None | Unset = UNSET
-    bin_location_id: int | None | Unset = UNSET
-    notes: None | str | Unset = UNSET
-    counted_quantity: float | None | Unset = UNSET
+    batch_id: int | Unset | None = UNSET
+    bin_location_id: int | Unset | None = UNSET
+    notes: str | Unset | None = UNSET
+    counted_quantity: float | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id
 
-        batch_id: int | None | Unset
+        batch_id: int | Unset | None
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
         else:
             batch_id = self.batch_id
 
-        bin_location_id: int | None | Unset
+        bin_location_id: int | Unset | None
         if isinstance(self.bin_location_id, Unset):
             bin_location_id = UNSET
         else:
             bin_location_id = self.bin_location_id
 
-        notes: None | str | Unset
+        notes: str | Unset | None
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
             notes = self.notes
 
-        counted_quantity: float | None | Unset
+        counted_quantity: float | Unset | None
         if isinstance(self.counted_quantity, Unset):
             counted_quantity = UNSET
         else:
@@ -72,39 +72,39 @@ class UpdateStocktakeRowRequest:
         d = dict(src_dict)
         variant_id = d.pop("variant_id", UNSET)
 
-        def _parse_batch_id(data: object) -> int | None | Unset:
+        def _parse_batch_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
-        def _parse_bin_location_id(data: object) -> int | None | Unset:
+        def _parse_bin_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         bin_location_id = _parse_bin_location_id(d.pop("bin_location_id", UNSET))
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_notes(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        def _parse_counted_quantity(data: object) -> float | None | Unset:
+        def _parse_counted_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
 

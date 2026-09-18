@@ -115,8 +115,10 @@ instrumentation.
 async def log_request(request):
     print(f"Request: {request.method} {request.url}")
 
+
 async def log_response(response):
     print(f"Response: {response.status_code}")
+
 
 client = httpx.AsyncClient(
     event_hooks={"request": [log_request], "response": [log_response]},
@@ -154,7 +156,11 @@ status-code inspection.
 
 ```python
 from katana_public_api_client.utils import (
-    unwrap, unwrap_as, unwrap_data, is_success, is_error,
+    unwrap,
+    unwrap_as,
+    unwrap_data,
+    is_success,
+    is_error,
 )
 from katana_public_api_client.domain.converters import unwrap_unset, to_unset
 
@@ -318,7 +324,9 @@ async with KatanaClient() as client:
     pass
 
 # Or explicit:
-async with KatanaClient(api_key="explicit-key", base_url="https://custom.api.com") as client:
+async with KatanaClient(
+    api_key="explicit-key", base_url="https://custom.api.com"
+) as client:
     pass
 ```
 

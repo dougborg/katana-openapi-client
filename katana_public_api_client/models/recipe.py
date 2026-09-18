@@ -31,7 +31,7 @@ class Recipe:
     recipe_row_id: str | Unset = UNSET
     product_id: int | Unset = UNSET
     product_item_id: int | Unset = UNSET
-    notes: None | str | Unset = UNSET
+    notes: str | Unset | None = UNSET
     rank: int | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
@@ -52,7 +52,7 @@ class Recipe:
 
         product_item_id = self.product_item_id
 
-        notes: None | str | Unset
+        notes: str | Unset | None
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -112,12 +112,12 @@ class Recipe:
 
         product_item_id = d.pop("product_item_id", UNSET)
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_notes(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

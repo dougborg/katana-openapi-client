@@ -1,10 +1,10 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-14T13:38:42.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all custom field definitions
-
-> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
 
 Returns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.
 
@@ -43,7 +43,7 @@ Returns a list of custom field definitions in the factory, optionally filtered b
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nReturns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.",
+        "description": "Returns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.",
         "operationId": "getAllCustomFieldDefinitions",
         "parameters": [
           {
@@ -80,7 +80,8 @@ Returns a list of custom field definitions in the factory, optionally filtered b
               "type": "string",
               "enum": [
                 "SalesOrder",
-                "SalesOrderRow"
+                "SalesOrderRow",
+                "ProductionOperation"
               ]
             },
             "in": "query"

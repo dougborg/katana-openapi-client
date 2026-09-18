@@ -54,7 +54,9 @@ class CustomFieldsCollectionListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_fields_collection import CustomFieldsCollection
+        from ..models.custom_fields_collection import (
+            CustomFieldsCollection,
+        )
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)

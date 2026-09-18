@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a stock adjustment
 
@@ -120,6 +122,38 @@ Updates the specified stock adjustment by setting the values of the parameters p
                   "location_id": 1,
                   "reason": "adjustment reason",
                   "additional_info": "adjustment additional info",
+                  "stock_adjustment_rows": [
+                    {
+                      "id": 1,
+                      "variant_id": 1,
+                      "quantity": 100,
+                      "cost_per_unit": 123.45,
+                      "batch_transactions": [
+                        {
+                          "batch_id": 1,
+                          "quantity": 50
+                        },
+                        {
+                          "batch_id": null,
+                          "quantity": 50
+                        }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 7,
+                          "quantity": "50"
+                        },
+                        {
+                          "batch_id": null,
+                          "serial_number_id": null,
+                          "bin_location_id": null,
+                          "quantity": "50"
+                        }
+                      ]
+                    }
+                  ],
                   "created_at": "2021-10-06T11:47:13.846Z",
                   "updated_at": "2021-10-06T11:47:13.846Z",
                   "deleted_at": null

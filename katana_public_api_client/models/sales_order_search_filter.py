@@ -3,12 +3,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from attrs import define as _attrs_define
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.sales_order_search_where import SalesOrderSearchWhere
+    from ..models.sales_order_search_filter_and_item import (
+        SalesOrderSearchFilterAndItem,
+    )
+    from ..models.sales_order_search_filter_or_item import SalesOrderSearchFilterOrItem
+    from ..models.search_comparator import SearchComparator
 
 
 T = TypeVar("T", bound="SalesOrderSearchFilter")
@@ -16,81 +23,871 @@ T = TypeVar("T", bound="SalesOrderSearchFilter")
 
 @_attrs_define
 class SalesOrderSearchFilter:
-    """Filter envelope for ``POST /sales_orders/search``."""
+    """``filter`` clause for ``POST /sales_orders/search``. Only the fields
+    listed here may appear; unknown fields are rejected with 422.
+    Custom field values are addressable via additional
+    ``custom_fields.<uuid>`` keys (snake_case, matching the
+    request/response body), where ``<uuid>`` is the custom field
+    definition id — its value is a bare value or a ``SearchComparator``
+    like any other predicate (for ``singleSelect`` the value is the
+    integer choice ``id``). Compose with ``and`` / ``or`` (max nesting
+    depth 2).
+    """
 
-    where: SalesOrderSearchWhere | Unset = UNSET
-    order: list[str] | str | Unset = UNSET
-    limit: int | Unset = UNSET
-    page: int | Unset = UNSET
+    and_: list[SalesOrderSearchFilterAndItem] | Unset = UNSET
+    or_: list[SalesOrderSearchFilterOrItem] | Unset = UNSET
+    id: bool | float | SearchComparator | str | Unset | None = UNSET
+    order_no: bool | float | SearchComparator | str | Unset | None = UNSET
+    customer_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    customer_ref: bool | float | SearchComparator | str | Unset | None = UNSET
+    location_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    status: bool | float | SearchComparator | str | Unset | None = UNSET
+    invoicing_status: bool | float | SearchComparator | str | Unset | None = UNSET
+    production_status: bool | float | SearchComparator | str | Unset | None = UNSET
+    source: bool | float | SearchComparator | str | Unset | None = UNSET
+    currency: bool | float | SearchComparator | str | Unset | None = UNSET
+    product_availability: bool | float | SearchComparator | str | Unset | None = UNSET
+    ingredient_availability: bool | float | SearchComparator | str | Unset | None = (
+        UNSET
+    )
+    ecommerce_order_type: bool | float | SearchComparator | str | Unset | None = UNSET
+    ecommerce_store_name: bool | float | SearchComparator | str | Unset | None = UNSET
+    ecommerce_order_id: bool | float | SearchComparator | str | Unset | None = UNSET
+    tracking_number: bool | float | SearchComparator | str | Unset | None = UNSET
+    created_at: bool | float | SearchComparator | str | Unset | None = UNSET
+    updated_at: bool | float | SearchComparator | str | Unset | None = UNSET
+    order_created_date: bool | float | SearchComparator | str | Unset | None = UNSET
+    delivery_date: bool | float | SearchComparator | str | Unset | None = UNSET
+    picked_date: bool | float | SearchComparator | str | Unset | None = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        where: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.where, Unset):
-            where = self.where.to_dict()
+        from ..models.search_comparator import SearchComparator
 
-        order: list[str] | str | Unset
-        if isinstance(self.order, Unset):
-            order = UNSET
-        elif isinstance(self.order, list):
-            order = self.order
+        and_: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.and_, Unset):
+            and_ = []
+            for and_item_data in self.and_:
+                and_item = and_item_data.to_dict()
+                and_.append(and_item)
 
+        or_: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.or_, Unset):
+            or_ = []
+            for or_item_data in self.or_:
+                or_item = or_item_data.to_dict()
+                or_.append(or_item)
+
+        id: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.id, Unset):
+            id = UNSET
+        elif isinstance(self.id, SearchComparator):
+            id = self.id.to_dict()
         else:
-            order = self.order
+            id = self.id
 
-        limit = self.limit
+        order_no: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.order_no, Unset):
+            order_no = UNSET
+        elif isinstance(self.order_no, SearchComparator):
+            order_no = self.order_no.to_dict()
+        else:
+            order_no = self.order_no
 
-        page = self.page
+        customer_id: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.customer_id, Unset):
+            customer_id = UNSET
+        elif isinstance(self.customer_id, SearchComparator):
+            customer_id = self.customer_id.to_dict()
+        else:
+            customer_id = self.customer_id
+
+        customer_ref: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.customer_ref, Unset):
+            customer_ref = UNSET
+        elif isinstance(self.customer_ref, SearchComparator):
+            customer_ref = self.customer_ref.to_dict()
+        else:
+            customer_ref = self.customer_ref
+
+        location_id: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.location_id, Unset):
+            location_id = UNSET
+        elif isinstance(self.location_id, SearchComparator):
+            location_id = self.location_id.to_dict()
+        else:
+            location_id = self.location_id
+
+        status: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.status, Unset):
+            status = UNSET
+        elif isinstance(self.status, SearchComparator):
+            status = self.status.to_dict()
+        else:
+            status = self.status
+
+        invoicing_status: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.invoicing_status, Unset):
+            invoicing_status = UNSET
+        elif isinstance(self.invoicing_status, SearchComparator):
+            invoicing_status = self.invoicing_status.to_dict()
+        else:
+            invoicing_status = self.invoicing_status
+
+        production_status: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.production_status, Unset):
+            production_status = UNSET
+        elif isinstance(self.production_status, SearchComparator):
+            production_status = self.production_status.to_dict()
+        else:
+            production_status = self.production_status
+
+        source: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.source, Unset):
+            source = UNSET
+        elif isinstance(self.source, SearchComparator):
+            source = self.source.to_dict()
+        else:
+            source = self.source
+
+        currency: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.currency, Unset):
+            currency = UNSET
+        elif isinstance(self.currency, SearchComparator):
+            currency = self.currency.to_dict()
+        else:
+            currency = self.currency
+
+        product_availability: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.product_availability, Unset):
+            product_availability = UNSET
+        elif isinstance(self.product_availability, SearchComparator):
+            product_availability = self.product_availability.to_dict()
+        else:
+            product_availability = self.product_availability
+
+        ingredient_availability: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.ingredient_availability, Unset):
+            ingredient_availability = UNSET
+        elif isinstance(self.ingredient_availability, SearchComparator):
+            ingredient_availability = self.ingredient_availability.to_dict()
+        else:
+            ingredient_availability = self.ingredient_availability
+
+        ecommerce_order_type: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.ecommerce_order_type, Unset):
+            ecommerce_order_type = UNSET
+        elif isinstance(self.ecommerce_order_type, SearchComparator):
+            ecommerce_order_type = self.ecommerce_order_type.to_dict()
+        else:
+            ecommerce_order_type = self.ecommerce_order_type
+
+        ecommerce_store_name: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.ecommerce_store_name, Unset):
+            ecommerce_store_name = UNSET
+        elif isinstance(self.ecommerce_store_name, SearchComparator):
+            ecommerce_store_name = self.ecommerce_store_name.to_dict()
+        else:
+            ecommerce_store_name = self.ecommerce_store_name
+
+        ecommerce_order_id: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.ecommerce_order_id, Unset):
+            ecommerce_order_id = UNSET
+        elif isinstance(self.ecommerce_order_id, SearchComparator):
+            ecommerce_order_id = self.ecommerce_order_id.to_dict()
+        else:
+            ecommerce_order_id = self.ecommerce_order_id
+
+        tracking_number: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.tracking_number, Unset):
+            tracking_number = UNSET
+        elif isinstance(self.tracking_number, SearchComparator):
+            tracking_number = self.tracking_number.to_dict()
+        else:
+            tracking_number = self.tracking_number
+
+        created_at: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.created_at, Unset):
+            created_at = UNSET
+        elif isinstance(self.created_at, SearchComparator):
+            created_at = self.created_at.to_dict()
+        else:
+            created_at = self.created_at
+
+        updated_at: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.updated_at, Unset):
+            updated_at = UNSET
+        elif isinstance(self.updated_at, SearchComparator):
+            updated_at = self.updated_at.to_dict()
+        else:
+            updated_at = self.updated_at
+
+        order_created_date: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.order_created_date, Unset):
+            order_created_date = UNSET
+        elif isinstance(self.order_created_date, SearchComparator):
+            order_created_date = self.order_created_date.to_dict()
+        else:
+            order_created_date = self.order_created_date
+
+        delivery_date: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.delivery_date, Unset):
+            delivery_date = UNSET
+        elif isinstance(self.delivery_date, SearchComparator):
+            delivery_date = self.delivery_date.to_dict()
+        else:
+            delivery_date = self.delivery_date
+
+        picked_date: bool | dict[str, Any] | float | str | Unset | None
+        if isinstance(self.picked_date, Unset):
+            picked_date = UNSET
+        elif isinstance(self.picked_date, SearchComparator):
+            picked_date = self.picked_date.to_dict()
+        else:
+            picked_date = self.picked_date
 
         field_dict: dict[str, Any] = {}
-
+        field_dict.update(self.additional_properties)
         field_dict.update({})
-        if where is not UNSET:
-            field_dict["where"] = where
-        if order is not UNSET:
-            field_dict["order"] = order
-        if limit is not UNSET:
-            field_dict["limit"] = limit
-        if page is not UNSET:
-            field_dict["page"] = page
+        if and_ is not UNSET:
+            field_dict["and"] = and_
+        if or_ is not UNSET:
+            field_dict["or"] = or_
+        if id is not UNSET:
+            field_dict["id"] = id
+        if order_no is not UNSET:
+            field_dict["order_no"] = order_no
+        if customer_id is not UNSET:
+            field_dict["customer_id"] = customer_id
+        if customer_ref is not UNSET:
+            field_dict["customer_ref"] = customer_ref
+        if location_id is not UNSET:
+            field_dict["location_id"] = location_id
+        if status is not UNSET:
+            field_dict["status"] = status
+        if invoicing_status is not UNSET:
+            field_dict["invoicing_status"] = invoicing_status
+        if production_status is not UNSET:
+            field_dict["production_status"] = production_status
+        if source is not UNSET:
+            field_dict["source"] = source
+        if currency is not UNSET:
+            field_dict["currency"] = currency
+        if product_availability is not UNSET:
+            field_dict["product_availability"] = product_availability
+        if ingredient_availability is not UNSET:
+            field_dict["ingredient_availability"] = ingredient_availability
+        if ecommerce_order_type is not UNSET:
+            field_dict["ecommerce_order_type"] = ecommerce_order_type
+        if ecommerce_store_name is not UNSET:
+            field_dict["ecommerce_store_name"] = ecommerce_store_name
+        if ecommerce_order_id is not UNSET:
+            field_dict["ecommerce_order_id"] = ecommerce_order_id
+        if tracking_number is not UNSET:
+            field_dict["tracking_number"] = tracking_number
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if order_created_date is not UNSET:
+            field_dict["order_created_date"] = order_created_date
+        if delivery_date is not UNSET:
+            field_dict["delivery_date"] = delivery_date
+        if picked_date is not UNSET:
+            field_dict["picked_date"] = picked_date
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_search_where import SalesOrderSearchWhere
+        from ..models.sales_order_search_filter_and_item import (
+            SalesOrderSearchFilterAndItem,
+        )
+        from ..models.sales_order_search_filter_or_item import (
+            SalesOrderSearchFilterOrItem,
+        )
+        from ..models.search_comparator import SearchComparator
 
         d = dict(src_dict)
-        _where = d.pop("where", UNSET)
-        where: SalesOrderSearchWhere | Unset
-        if isinstance(_where, Unset):
-            where = UNSET
-        else:
-            where = SalesOrderSearchWhere.from_dict(_where)
+        _and_ = d.pop("and", UNSET)
+        and_: list[SalesOrderSearchFilterAndItem] | Unset = UNSET
+        if _and_ is not UNSET:
+            and_ = []
+            for and_item_data in _and_:
+                and_item = SalesOrderSearchFilterAndItem.from_dict(
+                    cast(Mapping[str, Any], and_item_data)
+                )
 
-        def _parse_order(data: object) -> list[str] | str | Unset:
+                and_.append(and_item)
+
+        _or_ = d.pop("or", UNSET)
+        or_: list[SalesOrderSearchFilterOrItem] | Unset = UNSET
+        if _or_ is not UNSET:
+            or_ = []
+            for or_item_data in _or_:
+                or_item = SalesOrderSearchFilterOrItem.from_dict(
+                    cast(Mapping[str, Any], or_item_data)
+                )
+
+                or_.append(or_item)
+
+        def _parse_id(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
             if isinstance(data, Unset):
                 return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
             try:
-                if not isinstance(data, list):
+                if not isinstance(data, dict):
                     raise TypeError()
-                order_type_1 = cast(list[str], data)
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
-                return order_type_1
+                return componentsschemas_search_predicate_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(list[str] | str | Unset, data)
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
-        order = _parse_order(d.pop("order", UNSET))
+        id = _parse_id(d.pop("id", UNSET))
 
-        limit = d.pop("limit", UNSET)
+        def _parse_order_no(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
-        page = d.pop("page", UNSET)
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
 
-        sales_order_search_filter = cls(
-            where=where,
-            order=order,
-            limit=limit,
-            page=page,
+        order_no = _parse_order_no(d.pop("order_no", UNSET))
+
+        def _parse_customer_id(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        customer_id = _parse_customer_id(d.pop("customer_id", UNSET))
+
+        def _parse_customer_ref(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
+
+        def _parse_location_id(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        location_id = _parse_location_id(d.pop("location_id", UNSET))
+
+        def _parse_status(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        status = _parse_status(d.pop("status", UNSET))
+
+        def _parse_invoicing_status(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        invoicing_status = _parse_invoicing_status(d.pop("invoicing_status", UNSET))
+
+        def _parse_production_status(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        production_status = _parse_production_status(d.pop("production_status", UNSET))
+
+        def _parse_source(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        source = _parse_source(d.pop("source", UNSET))
+
+        def _parse_currency(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        currency = _parse_currency(d.pop("currency", UNSET))
+
+        def _parse_product_availability(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        product_availability = _parse_product_availability(
+            d.pop("product_availability", UNSET)
         )
 
+        def _parse_ingredient_availability(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        ingredient_availability = _parse_ingredient_availability(
+            d.pop("ingredient_availability", UNSET)
+        )
+
+        def _parse_ecommerce_order_type(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        ecommerce_order_type = _parse_ecommerce_order_type(
+            d.pop("ecommerce_order_type", UNSET)
+        )
+
+        def _parse_ecommerce_store_name(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        ecommerce_store_name = _parse_ecommerce_store_name(
+            d.pop("ecommerce_store_name", UNSET)
+        )
+
+        def _parse_ecommerce_order_id(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        ecommerce_order_id = _parse_ecommerce_order_id(
+            d.pop("ecommerce_order_id", UNSET)
+        )
+
+        def _parse_tracking_number(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
+
+        def _parse_created_at(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        created_at = _parse_created_at(d.pop("created_at", UNSET))
+
+        def _parse_updated_at(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        updated_at = _parse_updated_at(d.pop("updated_at", UNSET))
+
+        def _parse_order_created_date(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        order_created_date = _parse_order_created_date(
+            d.pop("order_created_date", UNSET)
+        )
+
+        def _parse_delivery_date(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
+
+        def _parse_picked_date(
+            data: object,
+        ) -> bool | float | SearchComparator | str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_search_predicate_type_1 = SearchComparator.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return componentsschemas_search_predicate_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(bool | float | SearchComparator | str | Unset | None, data)
+
+        picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
+
+        sales_order_search_filter = cls(
+            and_=and_,
+            or_=or_,
+            id=id,
+            order_no=order_no,
+            customer_id=customer_id,
+            customer_ref=customer_ref,
+            location_id=location_id,
+            status=status,
+            invoicing_status=invoicing_status,
+            production_status=production_status,
+            source=source,
+            currency=currency,
+            product_availability=product_availability,
+            ingredient_availability=ingredient_availability,
+            ecommerce_order_type=ecommerce_order_type,
+            ecommerce_store_name=ecommerce_store_name,
+            ecommerce_order_id=ecommerce_order_id,
+            tracking_number=tracking_number,
+            created_at=created_at,
+            updated_at=updated_at,
+            order_created_date=order_created_date,
+            delivery_date=delivery_date,
+            picked_date=picked_date,
+        )
+
+        sales_order_search_filter.additional_properties = d
         return sales_order_search_filter
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

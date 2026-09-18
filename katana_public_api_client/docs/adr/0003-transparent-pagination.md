@@ -75,11 +75,7 @@ Users can still get single page by specifying `page` parameter:
 response = await get_all_products.asyncio_detailed(client=client)
 
 # Single page (manual pagination)
-response = await get_all_products.asyncio_detailed(
-    client=client,
-    page=1,
-    limit=50
-)
+response = await get_all_products.asyncio_detailed(client=client, page=1, limit=50)
 ```
 
 ## Consequences
@@ -121,9 +117,7 @@ page = 1
 all_products = []
 while True:
     response = await get_all_products.asyncio_detailed(
-        client=client,
-        page=page,
-        limit=50
+        client=client, page=page, limit=50
     )
     products = response.parsed.data
     if not products:
@@ -259,16 +253,10 @@ Get single page by specifying `page`:
 
 ```python
 # Just first page
-response = await get_all_products.asyncio_detailed(
-    client=client,
-    page=1
-)
+response = await get_all_products.asyncio_detailed(client=client, page=1)
 
 # Second page
-response = await get_all_products.asyncio_detailed(
-    client=client,
-    page=2
-)
+response = await get_all_products.asyncio_detailed(client=client, page=2)
 ```
 
 ## Observability

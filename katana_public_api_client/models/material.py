@@ -44,20 +44,20 @@ class Material:
     type_: MaterialType
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    archived_at: datetime.datetime | None | Unset = UNSET
+    archived_at: datetime.datetime | Unset | None = UNSET
     uom: str | Unset = UNSET
     category_name: str | Unset = UNSET
     is_sellable: bool | Unset = UNSET
-    default_supplier_id: int | None | Unset = UNSET
+    default_supplier_id: int | Unset | None = UNSET
     additional_info: str | Unset = UNSET
     batch_tracked: bool | Unset = UNSET
-    purchase_uom: None | str | Unset = UNSET
-    purchase_uom_conversion_rate: None | str | Unset = UNSET
-    custom_field_collection_id: int | None | Unset = UNSET
+    purchase_uom: str | Unset | None = UNSET
+    purchase_uom_conversion_rate: str | Unset | None = UNSET
+    custom_field_collection_id: int | Unset | None = UNSET
     variants: list[Variant] | Unset = UNSET
     configs: list[ItemConfig] | Unset = UNSET
-    supplier: None | Supplier | Unset = UNSET
-    deleted_at: datetime.datetime | None | Unset = UNSET
+    supplier: Supplier | Unset | None = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
     serial_tracked: bool | Unset = UNSET
     operations_in_sequence: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -79,7 +79,7 @@ class Material:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | str | Unset
+        archived_at: str | Unset | None
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -93,7 +93,7 @@ class Material:
 
         is_sellable = self.is_sellable
 
-        default_supplier_id: int | None | Unset
+        default_supplier_id: int | Unset | None
         if isinstance(self.default_supplier_id, Unset):
             default_supplier_id = UNSET
         else:
@@ -103,19 +103,19 @@ class Material:
 
         batch_tracked = self.batch_tracked
 
-        purchase_uom: None | str | Unset
+        purchase_uom: str | Unset | None
         if isinstance(self.purchase_uom, Unset):
             purchase_uom = UNSET
         else:
             purchase_uom = self.purchase_uom
 
-        purchase_uom_conversion_rate: None | str | Unset
+        purchase_uom_conversion_rate: str | Unset | None
         if isinstance(self.purchase_uom_conversion_rate, Unset):
             purchase_uom_conversion_rate = UNSET
         else:
             purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        custom_field_collection_id: int | None | Unset
+        custom_field_collection_id: int | Unset | None
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -135,7 +135,7 @@ class Material:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        supplier: dict[str, Any] | None | Unset
+        supplier: dict[str, Any] | Unset | None
         if isinstance(self.supplier, Unset):
             supplier = UNSET
         elif isinstance(self.supplier, Supplier):
@@ -143,7 +143,7 @@ class Material:
         else:
             supplier = self.supplier
 
-        deleted_at: None | str | Unset
+        deleted_at: str | Unset | None
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -230,7 +230,7 @@ class Material:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
-        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_archived_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -243,7 +243,7 @@ class Material:
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -253,12 +253,12 @@ class Material:
 
         is_sellable = d.pop("is_sellable", UNSET)
 
-        def _parse_default_supplier_id(data: object) -> int | None | Unset:
+        def _parse_default_supplier_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         default_supplier_id = _parse_default_supplier_id(
             d.pop("default_supplier_id", UNSET)
@@ -268,32 +268,32 @@ class Material:
 
         batch_tracked = d.pop("batch_tracked", UNSET)
 
-        def _parse_purchase_uom(data: object) -> None | str | Unset:
+        def _parse_purchase_uom(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
-        def _parse_purchase_uom_conversion_rate(data: object) -> None | str | Unset:
+        def _parse_purchase_uom_conversion_rate(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
             d.pop("purchase_uom_conversion_rate", UNSET)
         )
 
-        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
+        def _parse_custom_field_collection_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)
@@ -321,7 +321,7 @@ class Material:
 
                 configs.append(configs_item)
 
-        def _parse_supplier(data: object) -> None | Supplier | Unset:
+        def _parse_supplier(data: object) -> Supplier | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -337,11 +337,11 @@ class Material:
                 return supplier_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Supplier | Unset, data)
+            return cast(Supplier | Unset | None, data)
 
         supplier = _parse_supplier(d.pop("supplier", UNSET))
 
-        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -354,7 +354,7 @@ class Material:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(datetime.datetime | Unset | None, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

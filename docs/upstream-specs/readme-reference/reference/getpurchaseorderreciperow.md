@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Retrieve an outsourced purchase order recipe row
 
@@ -92,6 +94,10 @@ Retrieves the details of an existing outsourced purchase order recipe row.
                     {
                       "batch_id": 1,
                       "quantity": 10
+                    },
+                    {
+                      "batch_id": null,
+                      "quantity": 5
                     }
                   ],
                   "cost": 0,

@@ -1,6 +1,4 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Unbatched stock is now represented as batch_id: null in Purchase Order rows and Purchase Order recipe rows
 
@@ -10,15 +8,15 @@ Previously, unbatched stock was represented by a dedicated "Unbatched" batch rec
 
 This applies to endpoints that allow creating or updating purchase order row and purchase order recipe row batch transactions, and endpoints that return them in responses - responses will also return batch\_id: null for unbatched entries.
 
-* GET [https://api.katanamrp.com/v1/purchase\_orders](https://api.katanamrp.com/v1/purchase_orders)
-* GET [https://api.katanamrp.com/v1/purchase\_orders/\{id}](https://api.katanamrp.com/v1/purchase_orders/\{id})
-* POST [https://api.katanamrp.com/v1/purchase\_order\_receive](https://api.katanamrp.com/v1/purchase_order_receive)
-* GET [https://api.katanamrp.com/v1/purchase\_order\_rows](https://api.katanamrp.com/v1/purchase_order_rows)
-* GET [https://api.katanamrp.com/v1/purchase\_order\_rows/\{id}](https://api.katanamrp.com/v1/purchase_order_rows/\{id})
-* GET [https://api.katanamrp.com/v1/outsourced\_purchase\_order\_recipe\_rows](https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows)
-* GET [https://api.katanamrp.com/v1/outsourced\_purchase\_order\_recipe\_rows/\{id}](https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/\{id})
-* PATCH [https://api.katanamrp.com/v1/outsourced\_purchase\_order\_recipe\_rows/\{id}](https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/\{id})
-* POST [https://api.katanamrp.com/v1/outsourced\_purchase\_order\_recipe\_rows/\{id}](https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/\{id})
+* GET <https://api.katanamrp.com/v1/purchase_orders>
+* GET <https://api.katanamrp.com/v1/purchase_orders/{id}>
+* POST <https://api.katanamrp.com/v1/purchase_order_receive>
+* GET <https://api.katanamrp.com/v1/purchase_order_rows>
+* GET <https://api.katanamrp.com/v1/purchase_order_rows/{id}>
+* GET <https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows>
+* GET <https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/{id}>
+* PATCH <https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/{id}>
+* POST <https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/{id}>
 
 **Example request body / response body:**
 

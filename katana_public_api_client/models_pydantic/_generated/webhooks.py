@@ -26,6 +26,7 @@ class WebhookEvent(StrEnum):
     sales_order_deleted = "sales_order.deleted"
     sales_order_packed = "sales_order.packed"
     sales_order_delivered = "sales_order.delivered"
+    sales_order_invoiced = "sales_order.invoiced"
     sales_order_availability_updated = "sales_order.availability_updated"
     purchase_order_created = "purchase_order.created"
     purchase_order_approved = "purchase_order.approved"
@@ -33,6 +34,7 @@ class WebhookEvent(StrEnum):
     purchase_order_deleted = "purchase_order.deleted"
     purchase_order_partially_received = "purchase_order.partially_received"
     purchase_order_received = "purchase_order.received"
+    purchase_order_billed = "purchase_order.billed"
     purchase_order_row_created = "purchase_order_row.created"
     purchase_order_row_updated = "purchase_order_row.updated"
     purchase_order_row_deleted = "purchase_order_row.deleted"
@@ -86,11 +88,15 @@ class WebhookEvent(StrEnum):
     product_recipe_row_created = "product_recipe_row.created"
     product_recipe_row_updated = "product_recipe_row.updated"
     product_recipe_row_deleted = "product_recipe_row.deleted"
+    bom_row_created = "bom_row.created"
+    bom_row_updated = "bom_row.updated"
+    bom_row_deleted = "bom_row.deleted"
     outsourced_purchase_order_created = "outsourced_purchase_order.created"
     outsourced_purchase_order_approved = "outsourced_purchase_order.approved"
     outsourced_purchase_order_updated = "outsourced_purchase_order.updated"
     outsourced_purchase_order_deleted = "outsourced_purchase_order.deleted"
     outsourced_purchase_order_received = "outsourced_purchase_order.received"
+    outsourced_purchase_order_billed = "outsourced_purchase_order.billed"
     outsourced_purchase_order_row_created = "outsourced_purchase_order_row.created"
     outsourced_purchase_order_row_updated = "outsourced_purchase_order_row.updated"
     outsourced_purchase_order_row_deleted = "outsourced_purchase_order_row.deleted"
@@ -202,8 +208,8 @@ class UpdateWebhookRequest(KatanaPydanticBase):
 
 class Webhook(UpdatableEntity):
     id: Annotated[
-        int | None, Field(description="Unique identifier for the webhook subscription")
-    ] = None
+        int, Field(description="Unique identifier for the webhook subscription")
+    ]
     url: Annotated[
         str | None,
         Field(description="HTTPS endpoint URL where webhook events will be sent"),

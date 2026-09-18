@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all sales order fulfillments
 
@@ -247,11 +249,29 @@ Returns a list of sales order fulfillments you’ve previously created.
                           "batch_transactions": [
                             {
                               "batch_id": 1,
-                              "quantity": 2
+                              "quantity": 1
+                            },
+                            {
+                              "batch_id": null,
+                              "quantity": 1
                             }
                           ],
                           "serial_numbers": [
                             1
+                          ],
+                          "traceability": [
+                            {
+                              "batch_id": 1,
+                              "serial_number_id": null,
+                              "bin_location_id": 3,
+                              "quantity": "1"
+                            },
+                            {
+                              "batch_id": null,
+                              "serial_number_id": null,
+                              "bin_location_id": null,
+                              "quantity": "1"
+                            }
                           ]
                         }
                       ]

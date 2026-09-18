@@ -20,7 +20,7 @@ class CodedErrorResponse:
     status_code: int | Unset = UNSET
     name: str | Unset = UNSET
     message: str | Unset = UNSET
-    code: None | str | Unset = UNSET
+    code: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -30,7 +30,7 @@ class CodedErrorResponse:
 
         message = self.message
 
-        code: None | str | Unset
+        code: str | Unset | None
         if isinstance(self.code, Unset):
             code = UNSET
         else:
@@ -59,12 +59,12 @@ class CodedErrorResponse:
 
         message = d.pop("message", UNSET)
 
-        def _parse_code(data: object) -> None | str | Unset:
+        def _parse_code(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         code = _parse_code(d.pop("code", UNSET))
 

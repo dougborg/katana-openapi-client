@@ -49,7 +49,7 @@ class DetailedErrorResponse:
     status_code: int | Unset = UNSET
     name: str | Unset = UNSET
     message: str | Unset = UNSET
-    code: None | str | Unset = UNSET
+    code: str | Unset | None = UNSET
     details: (
         list[
             AdditionalPropertiesValidationError
@@ -81,8 +81,12 @@ class DetailedErrorResponse:
         from ..models.additional_properties_validation_error import (
             AdditionalPropertiesValidationError,
         )
-        from ..models.const_validation_error import ConstValidationError
-        from ..models.dependencies_validation_error import DependenciesValidationError
+        from ..models.const_validation_error import (
+            ConstValidationError,
+        )
+        from ..models.dependencies_validation_error import (
+            DependenciesValidationError,
+        )
         from ..models.enum_validation_error import EnumValidationError
         from ..models.exclusive_maximum_validation_error import (
             ExclusiveMaximumValidationError,
@@ -90,19 +94,43 @@ class DetailedErrorResponse:
         from ..models.exclusive_minimum_validation_error import (
             ExclusiveMinimumValidationError,
         )
-        from ..models.format_validation_error import FormatValidationError
-        from ..models.max_items_validation_error import MaxItemsValidationError
-        from ..models.max_length_validation_error import MaxLengthValidationError
-        from ..models.maximum_validation_error import MaximumValidationError
-        from ..models.min_items_validation_error import MinItemsValidationError
-        from ..models.min_length_validation_error import MinLengthValidationError
-        from ..models.minimum_validation_error import MinimumValidationError
-        from ..models.multiple_of_validation_error import MultipleOfValidationError
-        from ..models.one_of_validation_error import OneOfValidationError
-        from ..models.pattern_validation_error import PatternValidationError
-        from ..models.required_validation_error import RequiredValidationError
+        from ..models.format_validation_error import (
+            FormatValidationError,
+        )
+        from ..models.max_items_validation_error import (
+            MaxItemsValidationError,
+        )
+        from ..models.max_length_validation_error import (
+            MaxLengthValidationError,
+        )
+        from ..models.maximum_validation_error import (
+            MaximumValidationError,
+        )
+        from ..models.min_items_validation_error import (
+            MinItemsValidationError,
+        )
+        from ..models.min_length_validation_error import (
+            MinLengthValidationError,
+        )
+        from ..models.minimum_validation_error import (
+            MinimumValidationError,
+        )
+        from ..models.multiple_of_validation_error import (
+            MultipleOfValidationError,
+        )
+        from ..models.one_of_validation_error import (
+            OneOfValidationError,
+        )
+        from ..models.pattern_validation_error import (
+            PatternValidationError,
+        )
+        from ..models.required_validation_error import (
+            RequiredValidationError,
+        )
         from ..models.type_validation_error import TypeValidationError
-        from ..models.unique_items_validation_error import UniqueItemsValidationError
+        from ..models.unique_items_validation_error import (
+            UniqueItemsValidationError,
+        )
 
         status_code = self.status_code
 
@@ -110,7 +138,7 @@ class DetailedErrorResponse:
 
         message = self.message
 
-        code: None | str | Unset
+        code: str | Unset | None
         if isinstance(self.code, Unset):
             code = UNSET
         else:
@@ -172,8 +200,12 @@ class DetailedErrorResponse:
         from ..models.additional_properties_validation_error import (
             AdditionalPropertiesValidationError,
         )
-        from ..models.const_validation_error import ConstValidationError
-        from ..models.dependencies_validation_error import DependenciesValidationError
+        from ..models.const_validation_error import (
+            ConstValidationError,
+        )
+        from ..models.dependencies_validation_error import (
+            DependenciesValidationError,
+        )
         from ..models.enum_validation_error import EnumValidationError
         from ..models.exclusive_maximum_validation_error import (
             ExclusiveMaximumValidationError,
@@ -181,20 +213,46 @@ class DetailedErrorResponse:
         from ..models.exclusive_minimum_validation_error import (
             ExclusiveMinimumValidationError,
         )
-        from ..models.format_validation_error import FormatValidationError
-        from ..models.generic_validation_error import GenericValidationError
-        from ..models.max_items_validation_error import MaxItemsValidationError
-        from ..models.max_length_validation_error import MaxLengthValidationError
-        from ..models.maximum_validation_error import MaximumValidationError
-        from ..models.min_items_validation_error import MinItemsValidationError
-        from ..models.min_length_validation_error import MinLengthValidationError
-        from ..models.minimum_validation_error import MinimumValidationError
-        from ..models.multiple_of_validation_error import MultipleOfValidationError
-        from ..models.one_of_validation_error import OneOfValidationError
-        from ..models.pattern_validation_error import PatternValidationError
-        from ..models.required_validation_error import RequiredValidationError
+        from ..models.format_validation_error import (
+            FormatValidationError,
+        )
+        from ..models.generic_validation_error import (
+            GenericValidationError,
+        )
+        from ..models.max_items_validation_error import (
+            MaxItemsValidationError,
+        )
+        from ..models.max_length_validation_error import (
+            MaxLengthValidationError,
+        )
+        from ..models.maximum_validation_error import (
+            MaximumValidationError,
+        )
+        from ..models.min_items_validation_error import (
+            MinItemsValidationError,
+        )
+        from ..models.min_length_validation_error import (
+            MinLengthValidationError,
+        )
+        from ..models.minimum_validation_error import (
+            MinimumValidationError,
+        )
+        from ..models.multiple_of_validation_error import (
+            MultipleOfValidationError,
+        )
+        from ..models.one_of_validation_error import (
+            OneOfValidationError,
+        )
+        from ..models.pattern_validation_error import (
+            PatternValidationError,
+        )
+        from ..models.required_validation_error import (
+            RequiredValidationError,
+        )
         from ..models.type_validation_error import TypeValidationError
-        from ..models.unique_items_validation_error import UniqueItemsValidationError
+        from ..models.unique_items_validation_error import (
+            UniqueItemsValidationError,
+        )
 
         d = dict(src_dict)
         status_code = d.pop("statusCode", UNSET)
@@ -203,12 +261,12 @@ class DetailedErrorResponse:
 
         message = d.pop("message", UNSET)
 
-        def _parse_code(data: object) -> None | str | Unset:
+        def _parse_code(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         code = _parse_code(d.pop("code", UNSET))
 

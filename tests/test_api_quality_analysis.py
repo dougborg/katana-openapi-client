@@ -77,7 +77,11 @@ class TestAPIQualityAnalysis:
         # ``GET /inventory`` accepts ``variant_id`` as ``array[integer]``
         # (multi-valued filter); every other endpoint uses a single integer.
         # Confirmed in ``live-gateway.yaml::InventoryController.getInventories``.
-        "variant_id": {"GET /inventory"},
+        # ``GET /inventory_signals`` is the same case — upstream's
+        # ``InventorySignalController.getInventorySignals`` declares
+        # ``variant_id`` as ``array[integer]`` so callers can request signals
+        # for several variants at once.
+        "variant_id": {"GET /inventory", "GET /inventory_signals"},
         # ``GET /stocktakes`` accepts ``stock_adjustment_id`` as a string per
         # upstream; ``GET /stocktake_rows`` declares ``number`` (legacy local
         # divergence — upstream does not expose the parameter at all on

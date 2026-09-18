@@ -1408,9 +1408,7 @@ class ProductListResponse(KatanaPydanticBase):
 
 
 class VariantResponse(DeletableEntity):
-    id: Annotated[
-        int | None, Field(description="Unique identifier for this variant")
-    ] = None
+    id: Annotated[int, Field(description="Unique identifier for this variant")]
     sku: Annotated[
         str | None,
         Field(

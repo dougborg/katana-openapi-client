@@ -473,12 +473,12 @@ class CreateStockAdjustmentRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_adjustment_number: Annotated[
-        str,
+        str | None,
         Field(
             description="Human-readable reference number for tracking and audit purposes",
             min_length=1,
         ),
-    ]
+    ] = None
     stock_adjustment_date: Annotated[
         AwareDatetime | None,
         Field(description="Date and time when the adjustment was performed"),
@@ -568,7 +568,7 @@ class BatchTransaction8(KatanaPydanticBase):
 
 
 class Stocktake(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     stocktake_number: Annotated[
         str, Field(description="A string used to identify the stocktake")
     ]
@@ -616,7 +616,7 @@ class Stocktake(DeletableEntity):
 
 
 class StocktakeRow(DeletableEntity):
-    id: int
+    id: Annotated[int, Field(description="Unique identifier")]
     stocktake_id: Annotated[
         int, Field(description="The stocktake process this row belongs to")
     ]
@@ -878,9 +878,9 @@ class CreateStockTransferRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_transfer_number: Annotated[
-        str,
+        str | None,
         Field(description="Unique stock transfer number for tracking", min_length=1),
-    ]
+    ] = None
     source_location_id: Annotated[
         int, Field(description="Source location ID where items are transferred from")
     ]

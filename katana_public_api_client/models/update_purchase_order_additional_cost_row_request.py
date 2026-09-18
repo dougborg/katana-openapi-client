@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -16,13 +16,15 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
     """Request payload for updating an existing additional cost line item on a purchase order
 
     Example:
-        {'additional_cost_id': 1, 'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}
+        {'additional_cost_id': 1, 'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE', 'reference':
+            'Customs invoice #123'}
     """
 
     additional_cost_id: int | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
     price: float | Unset = UNSET
     distribution_method: CostDistributionMethod | Unset = UNSET
+    reference: str | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         additional_cost_id = self.additional_cost_id
@@ -35,6 +37,12 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
         if not isinstance(self.distribution_method, Unset):
             distribution_method = self.distribution_method.value
 
+        reference: str | Unset | None
+        if isinstance(self.reference, Unset):
+            reference = UNSET
+        else:
+            reference = self.reference
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
@@ -46,6 +54,8 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
             field_dict["price"] = price
         if distribution_method is not UNSET:
             field_dict["distribution_method"] = distribution_method
+        if reference is not UNSET:
+            field_dict["reference"] = reference
 
         return field_dict
 
@@ -65,11 +75,21 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
         else:
             distribution_method = CostDistributionMethod(_distribution_method)
 
+        def _parse_reference(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        reference = _parse_reference(d.pop("reference", UNSET))
+
         update_purchase_order_additional_cost_row_request = cls(
             additional_cost_id=additional_cost_id,
             tax_rate_id=tax_rate_id,
             price=price,
             distribution_method=distribution_method,
+            reference=reference,
         )
 
         return update_purchase_order_additional_cost_row_request

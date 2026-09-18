@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2025-11-25T09:47:06.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # The sales return row object
 
@@ -30,7 +32,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        sales\_return\_id
+        sales_return_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -40,7 +42,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        variant\_id
+        variant_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -50,18 +52,18 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        fulfillment\_row\_id
+        fulfillment_row_id
       </td>
 
       <td style={{ textAlign: "left" }}>
-        Reference to the original fulfillment row\
-        from GET /sales\_orders/id/returnable\_items
+        Reference to the original fulfillment row   
+        from GET /sales_orders/id/returnable_items
       </td>
     </tr>
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        sales\_order\_row\_id
+        sales_order_row_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -81,7 +83,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        net\_price\_per\_unit
+        net_price_per_unit
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -91,7 +93,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        reason\_id
+        reason_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -101,7 +103,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        restock\_location\_id
+        restock_location_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -111,7 +113,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        batch\_transactions
+        batch_transactions
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -121,7 +123,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        created\_at
+        created_at
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -131,7 +133,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        updated\_at
+        updated_at
       </td>
 
       <td style={{ textAlign: "left" }}>

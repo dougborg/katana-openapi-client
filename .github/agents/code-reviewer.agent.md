@@ -305,6 +305,7 @@ def process_product(product):
 ```python
 from katana_public_api_client.domain.product import Product
 
+
 def process_product(product: Product) -> str:
     return product.name
 ```

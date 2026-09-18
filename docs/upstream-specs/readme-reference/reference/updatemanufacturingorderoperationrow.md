@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a manufacturing order operation row
 
@@ -118,6 +120,12 @@ Updates the specified manufacturing order operation row by setting the values of
                       "COMPLETED"
                     ]
                   },
+                  "custom_fields": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true,
+                    "description": "_Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID) of a definition with `entity_type` `ProductionOperation`. Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Sending the object replaces all stored values — include every key you want to keep. Send `null` to clear every custom field value, or omit the property to leave values unchanged. Unknown definition IDs are rejected with a 422. Custom fields cannot be updated when the manufacturing order status is DONE."
+                  },
                   "assigned_operators": {
                     "type": "array",
                     "items": {
@@ -222,6 +230,10 @@ Updates the specified manufacturing order operation row by setting the values of
                     "cost_parameter": 1,
                     "group_boundary": 1000,
                     "is_status_actionable": true,
+                    "custom_fields": {
+                      "37460d24-ea57-416d-888e-bea7c0505642": "CNC mill",
+                      "6afe78d2-2b95-4d71-92f5-1bc2be852afe": 5
+                    },
                     "completed_at": "2020-10-23T10:37:05.085Z",
                     "created_at": "2020-10-23T10:37:05.085Z",
                     "updated_at": "2020-10-23T10:37:05.085Z",

@@ -1,10 +1,10 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-14T13:38:42.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a custom field definition
-
-> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
 
 Creates a new custom field definition for a given entity type. A factory may have at most 50 definitions.
 
@@ -43,7 +43,7 @@ Creates a new custom field definition for a given entity type. A factory may hav
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nCreates a new custom field definition for a given entity type. A factory may have at most 50 definitions.",
+        "description": "Creates a new custom field definition for a given entity type. A factory may have at most 50 definitions.",
         "operationId": "createCustomFieldDefinition",
         "requestBody": {
           "description": "New custom field definition details",
@@ -81,9 +81,10 @@ Creates a new custom field definition for a given entity type. A factory may hav
                     "type": "string",
                     "enum": [
                       "SalesOrder",
-                      "SalesOrderRow"
+                      "SalesOrderRow",
+                      "ProductionOperation"
                     ],
-                    "description": "Entity the custom field applies to. Immutable after creation."
+                    "description": "Entity the custom field applies to. Immutable after creation. `ProductionOperation` is behind a feature flag — contact support@katanamrp.com to enable — and requires the Advanced Manufacturing or Manufacturing Management add-on."
                   },
                   "source": {
                     "type": "string",

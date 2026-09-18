@@ -97,9 +97,10 @@ def sync_detailed(
             Returns the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_order_rows`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'sales_order_id': {'inq': [12345, 12346,
-            12347]}}, {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order':
-            ['delivery_date ASC', 'id ASC'], 'limit': 100, 'page': 1}}.
+             Example: {'filter': {'and': [{'sales_order_id': {'inq': [12345, 12346, 12347]}},
+            {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order': ['delivery_date
+            ASC', 'id ASC'], 'limit': 100, 'page': 1}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -142,9 +143,10 @@ def sync(
             Returns the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_order_rows`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'sales_order_id': {'inq': [12345, 12346,
-            12347]}}, {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order':
-            ['delivery_date ASC', 'id ASC'], 'limit': 100, 'page': 1}}.
+             Example: {'filter': {'and': [{'sales_order_id': {'inq': [12345, 12346, 12347]}},
+            {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order': ['delivery_date
+            ASC', 'id ASC'], 'limit': 100, 'page': 1}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,9 +184,10 @@ async def asyncio_detailed(
             Returns the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_order_rows`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'sales_order_id': {'inq': [12345, 12346,
-            12347]}}, {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order':
-            ['delivery_date ASC', 'id ASC'], 'limit': 100, 'page': 1}}.
+             Example: {'filter': {'and': [{'sales_order_id': {'inq': [12345, 12346, 12347]}},
+            {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order': ['delivery_date
+            ASC', 'id ASC'], 'limit': 100, 'page': 1}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -225,9 +228,10 @@ async def asyncio(
             Returns the same paginated ``{"data": [...]}`` shape as
             ``GET /sales_order_rows`` plus an ``X-Pagination`` header. Beta —
             request/response shape may evolve before GA.
-             Example: {'filter': {'where': {'and': [{'sales_order_id': {'inq': [12345, 12346,
-            12347]}}, {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order':
-            ['delivery_date ASC', 'id ASC'], 'limit': 100, 'page': 1}}.
+             Example: {'filter': {'and': [{'sales_order_id': {'inq': [12345, 12346, 12347]}},
+            {'quantity': {'gt': 0}}, {'product_availability': 'IN_STOCK'}]}, 'order': ['delivery_date
+            ASC', 'id ASC'], 'limit': 100, 'page': 1}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

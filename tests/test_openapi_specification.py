@@ -348,18 +348,29 @@ class TestCustomFieldsSurfaceAlignment:
         assert so.endswith("/SalesOrderSearchRequest")
         assert row.endswith("/SalesOrderRowSearchRequest")
 
-    def test_search_where_uses_snake_case_custom_fields_path(
+    def test_search_filter_uses_snake_case_custom_fields_path(
         self, schemas: dict[str, Any]
     ):
         """Pin the live-verified snake_case ``custom_fields.<uuid>`` search path.
 
-        Verified live (2026-06-02): the API accepts ``custom_fields.<uuid>`` in
-        ``where`` and rejects camelCase ``customFields.<uuid>`` as an unknown
-        field. The where schemas allow the dynamic UUID keys via
+        Verified live (2026-06-02): the API accepts ``custom_fields.<uuid>``
+        inside the filter clause and rejects camelCase ``customFields.<uuid>``
+        as an unknown field. The filter schemas allow the dynamic UUID keys via
         ``additionalProperties: true`` and must NOT declare a ``customFields``
         property (which would reintroduce the pre-GA camelCase footgun).
+
+        Covers all six search endpoints. (These schemas were named
+        ``...SearchWhere`` until the request envelope was corrected in #1040 —
+        the wire calls this clause ``filter``, with no ``where`` level.)
         """
-        for name in ("SalesOrderSearchWhere", "SalesOrderRowSearchWhere"):
+        for name in (
+            "SalesOrderSearchFilter",
+            "SalesOrderRowSearchFilter",
+            "CustomerSearchFilter",
+            "VariantSearchFilter",
+            "ManufacturingOrderSearchFilter",
+            "PurchaseOrderSearchFilter",
+        ):
             where = schemas[name]
             assert where["additionalProperties"] is True, (
                 f"{name} must allow custom_fields.<uuid> dynamic keys"
@@ -367,3 +378,80 @@ class TestCustomFieldsSurfaceAlignment:
             assert "customFields" not in where.get("properties", {}), (
                 f"{name} must not declare a camelCase customFields property"
             )
+
+
+SPEC_PATH = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
+
+
+class TestSpecSourceHygiene:
+    """Guard against YAML scalar-quoting hazards in the spec *source*.
+
+    These are failure modes the parsed-document checks structurally cannot
+    see, because by the time the YAML is a dict the damage is already done
+    and looks like ordinary data.
+
+    The motivating bug: a description written as
+
+        reference: Customs invoice #123
+
+    parses as the string ``"Customs invoice"``. YAML treats an unquoted
+    ``space + #`` as the start of a comment, so ``#123`` is discarded
+    **silently** — the spec still validates, the examples still match their
+    schemas, and the truncated value propagates into the generated
+    docstrings of all three clients. It was caught only because a
+    regeneration happened to diff the docstring.
+    """
+
+    @staticmethod
+    def _plain_scalar_nodes(text: str) -> list[yaml.Node]:
+        """Every plain-style (unquoted) scalar node in the document."""
+        out: list[yaml.Node] = []
+
+        def walk(node: yaml.Node) -> None:
+            if isinstance(node, yaml.ScalarNode):
+                # style: None/'' = plain, '"'/"'" = quoted, '|'/'>' = block.
+                # Only plain scalars can have a value eaten by a comment.
+                if not node.style:
+                    out.append(node)
+            elif isinstance(node, yaml.SequenceNode):
+                for child in node.value:
+                    walk(child)
+            elif isinstance(node, yaml.MappingNode):
+                for key, value in node.value:
+                    walk(key)
+                    walk(value)
+
+        walk(yaml.compose(text, Loader=yaml.SafeLoader))
+        return out
+
+    def test_no_unquoted_hash_truncating_a_value(self) -> None:
+        """A plain scalar must not be followed by ``#`` on the same line.
+
+        When it is, YAML has swallowed the remainder as a comment and the
+        value in the document is shorter than what was written. Quote the
+        value (``reference: "Customs invoice #123"``) to keep the ``#``.
+        """
+        text = SPEC_PATH.read_text(encoding="utf-8")
+        lines = text.splitlines()
+
+        offenders: list[str] = []
+        for node in self._plain_scalar_nodes(text):
+            end = node.end_mark
+            # A plain scalar can span lines; only the final line can be cut
+            # short by a comment.
+            if end.line >= len(lines):
+                continue
+            rest = lines[end.line][end.column :]
+            stripped = rest.strip()
+            if stripped.startswith("#"):
+                offenders.append(
+                    f"  line {end.line + 1}: {lines[end.line].strip()!r}\n"
+                    f"    -> parsed as {node.value!r}, dropping {stripped!r}"
+                )
+
+        assert not offenders, (
+            f"{len(offenders)} plain scalar(s) truncated by an unquoted '#'. "
+            "YAML read the rest of the line as a comment, so the spec holds a "
+            "shorter value than was written. Quote the value to keep it:\n"
+            + "\n".join(offenders)
+        )

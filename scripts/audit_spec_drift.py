@@ -132,6 +132,12 @@ PARAM_KINDS = frozenset(
 RESPONSE_KINDS = frozenset(
     {"response_empty_local", "response_empty_both", "response_wrapper"}
 )
+# Whole-endpoint kind: upstream publishes a path+method we don't model at all.
+# Unlike the field-level kinds there is nothing to pin beyond the endpoint
+# itself, so an entry is deliberately coarse — it defers one *known* new
+# endpoint. Any endpoint NOT listed still fails the gate, so this can't
+# silently hide upstream growth.
+ENDPOINT_KINDS = frozenset({"only_live_endpoint"})
 # Kinds whose override entry pins exact `field` + `live`/`local` strings.
 TYPED_KINDS = frozenset(
     {"type_diff", "param_type_diff", "param_enum_diff", "response_wrapper"}
@@ -140,7 +146,7 @@ TYPED_KINDS = frozenset(
 FIELDED_KINDS = (
     frozenset({"type_diff", "only_live", "only_local"}) | PARAM_KINDS | RESPONSE_KINDS
 )
-OVERRIDE_KINDS = DTO_KINDS | PARAM_KINDS | RESPONSE_KINDS
+OVERRIDE_KINDS = DTO_KINDS | PARAM_KINDS | RESPONSE_KINDS | ENDPOINT_KINDS
 
 
 # ----------------------------------------------------------------------------
@@ -1019,6 +1025,26 @@ def apply_overrides(report: AuditReport, overrides: list[Override]) -> None:
         else:
             kept_responses.append(rf)
     report.response_findings = kept_responses
+
+    # Whole-endpoint findings: upstream has a path+method we don't model.
+    # Matching is on the endpoint string alone — there is no field to pin.
+    kept_paths: list[tuple[str, str]] = []
+    for path, method in report.paths_only_in_live:
+        endpoint = f"{method.upper()} {path}"
+        ov = take(endpoint, "only_live_endpoint", lambda _o: True)
+        if ov:
+            suppressed.append(
+                SuppressedFinding(
+                    endpoint,
+                    "only_live_endpoint",
+                    None,
+                    "upstream publishes this endpoint; local spec does not model it",
+                    ov,
+                )
+            )
+        else:
+            kept_paths.append((path, method))
+    report.paths_only_in_live = kept_paths
 
     report.suppressed = suppressed
     report.stale_overrides = [ov for i, ov in enumerate(overrides) if i not in used]

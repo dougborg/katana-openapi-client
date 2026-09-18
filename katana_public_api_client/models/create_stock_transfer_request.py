@@ -19,18 +19,16 @@ T = TypeVar("T", bound="CreateStockTransferRequest")
 class CreateStockTransferRequest:
     """Request payload for creating a new stock transfer"""
 
-    stock_transfer_number: str
     source_location_id: int
     target_location_id: int
     stock_transfer_rows: list[StockTransferRowRequest]
+    stock_transfer_number: str | Unset = UNSET
     transfer_date: datetime.datetime | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     expected_arrival_date: datetime.datetime | Unset = UNSET
     additional_info: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        stock_transfer_number = self.stock_transfer_number
-
         source_location_id = self.source_location_id
 
         target_location_id = self.target_location_id
@@ -39,6 +37,8 @@ class CreateStockTransferRequest:
         for stock_transfer_rows_item_data in self.stock_transfer_rows:
             stock_transfer_rows_item = stock_transfer_rows_item_data.to_dict()
             stock_transfer_rows.append(stock_transfer_rows_item)
+
+        stock_transfer_number = self.stock_transfer_number
 
         transfer_date: str | Unset = UNSET
         if not isinstance(self.transfer_date, Unset):
@@ -58,12 +58,13 @@ class CreateStockTransferRequest:
 
         field_dict.update(
             {
-                "stock_transfer_number": stock_transfer_number,
                 "source_location_id": source_location_id,
                 "target_location_id": target_location_id,
                 "stock_transfer_rows": stock_transfer_rows,
             }
         )
+        if stock_transfer_number is not UNSET:
+            field_dict["stock_transfer_number"] = stock_transfer_number
         if transfer_date is not UNSET:
             field_dict["transfer_date"] = transfer_date
         if order_created_date is not UNSET:
@@ -77,11 +78,11 @@ class CreateStockTransferRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.stock_transfer_row_request import StockTransferRowRequest
+        from ..models.stock_transfer_row_request import (
+            StockTransferRowRequest,
+        )
 
         d = dict(src_dict)
-        stock_transfer_number = d.pop("stock_transfer_number")
-
         source_location_id = d.pop("source_location_id")
 
         target_location_id = d.pop("target_location_id")
@@ -94,6 +95,8 @@ class CreateStockTransferRequest:
             )
 
             stock_transfer_rows.append(stock_transfer_rows_item)
+
+        stock_transfer_number = d.pop("stock_transfer_number", UNSET)
 
         _transfer_date = d.pop("transfer_date", UNSET)
         transfer_date: datetime.datetime | Unset
@@ -121,10 +124,10 @@ class CreateStockTransferRequest:
         additional_info = d.pop("additional_info", UNSET)
 
         create_stock_transfer_request = cls(
-            stock_transfer_number=stock_transfer_number,
             source_location_id=source_location_id,
             target_location_id=target_location_id,
             stock_transfer_rows=stock_transfer_rows,
+            stock_transfer_number=stock_transfer_number,
             transfer_date=transfer_date,
             order_created_date=order_created_date,
             expected_arrival_date=expected_arrival_date,

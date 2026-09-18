@@ -26,20 +26,20 @@ class CreateServiceVariantRequest:
     """
 
     sku: str | Unset = UNSET
-    sales_price: float | None | Unset = UNSET
-    default_cost: float | None | Unset = UNSET
+    sales_price: float | Unset | None = UNSET
+    default_cost: float | Unset | None = UNSET
     custom_fields: list[CreateServiceVariantRequestCustomFieldsItem] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
 
-        sales_price: float | None | Unset
+        sales_price: float | Unset | None
         if isinstance(self.sales_price, Unset):
             sales_price = UNSET
         else:
             sales_price = self.sales_price
 
-        default_cost: float | None | Unset
+        default_cost: float | Unset | None
         if isinstance(self.default_cost, Unset):
             default_cost = UNSET
         else:
@@ -75,21 +75,21 @@ class CreateServiceVariantRequest:
         d = dict(src_dict)
         sku = d.pop("sku", UNSET)
 
-        def _parse_sales_price(data: object) -> float | None | Unset:
+        def _parse_sales_price(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
-        def _parse_default_cost(data: object) -> float | None | Unset:
+        def _parse_default_cost(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 

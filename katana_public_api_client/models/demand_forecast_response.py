@@ -63,7 +63,9 @@ class DemandForecastResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.demand_forecast_period import DemandForecastPeriod
+        from ..models.demand_forecast_period import (
+            DemandForecastPeriod,
+        )
 
         d = dict(src_dict)
         variant_id = d.pop("variant_id")

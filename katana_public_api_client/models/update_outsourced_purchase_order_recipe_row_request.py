@@ -53,7 +53,9 @@ class UpdateOutsourcedPurchaseOrderRecipeRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.batch_transaction_request import BatchTransactionRequest
+        from ..models.batch_transaction_request import (
+            BatchTransactionRequest,
+        )
 
         d = dict(src_dict)
         ingredient_variant_id = d.pop("ingredient_variant_id", UNSET)

@@ -2434,7 +2434,7 @@ async def _update_stock_adjustment_impl(
     # additional_info, we need to re-send the existing value so the
     # PATCH doesn't blank it. We already fetched prior_state above for
     # the diff card; reuse that here instead of doing a second fetch.
-    existing_info_field: str | None | Unset = UNSET
+    existing_info_field: str | Unset | None = UNSET
     if request.additional_info is None and prior_state is not None:
         existing_info_field = prior_state.get("additional_info")
         if existing_info_field is None:

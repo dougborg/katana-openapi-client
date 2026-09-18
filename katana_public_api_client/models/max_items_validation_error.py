@@ -51,7 +51,9 @@ class MaxItemsValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.max_items_validation_error_info import MaxItemsValidationErrorInfo
+        from ..models.max_items_validation_error_info import (
+            MaxItemsValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")

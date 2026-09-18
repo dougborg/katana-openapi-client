@@ -46,25 +46,32 @@ Users can add observability via httpx's event hooks:
 ```python
 # Request/Response Logging
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
+
 
 # Custom Event Hooks
 def log_request(request):
     print(f">>> {request.method} {request.url}")
 
+
 client.event_hooks["request"] = [log_request]
 
 # OpenTelemetry Integration
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
 HTTPXClientInstrumentor().instrument()
 
 # Prometheus Metrics
 from prometheus_client import Counter
-requests_total = Counter('katana_requests', 'Total requests')
+
+requests_total = Counter("katana_requests", "Total requests")
+
 
 def track_request(request):
     requests_total.inc()
+
 
 client.event_hooks["request"] = [track_request]
 ```
@@ -102,11 +109,7 @@ Include Prometheus metrics, structured logging, etc:
 ```python
 from katana_public_api_client import KatanaClient
 
-client = KatanaClient(
-    enable_metrics=True,
-    enable_tracing=True,
-    log_level="INFO"
-)
+client = KatanaClient(enable_metrics=True, enable_tracing=True, log_level="INFO")
 
 # Metrics automatically exported to /metrics endpoint
 # Traces automatically sent to configured backend
@@ -135,12 +138,7 @@ Provide plugin system for observability:
 ```python
 from katana_public_api_client.plugins import PrometheusPlugin, OTelPlugin
 
-client = KatanaClient(
-    plugins=[
-        PrometheusPlugin(),
-        OTelPlugin(endpoint="...")
-    ]
-)
+client = KatanaClient(plugins=[PrometheusPlugin(), OTelPlugin(endpoint="...")])
 ```
 
 **Pros:**
@@ -164,12 +162,10 @@ Include basic structured logging, nothing else:
 
 ```python
 # Built-in: structured logs
-logger.info("API request", extra={
-    "method": "GET",
-    "url": "/products",
-    "status": 200,
-    "duration_ms": 123
-})
+logger.info(
+    "API request",
+    extra={"method": "GET", "url": "/products", "status": 200, "duration_ms": 123},
+)
 ```
 
 **Pros:**
@@ -211,8 +207,10 @@ async with KatanaClient() as client:
 def log_request(request):
     print(f">>> {request.method} {request.url}")
 
+
 def log_response(response):
     print(f"<<< {response.status_code}")
+
 
 async with KatanaClient() as client:
     client.event_hooks["request"] = [log_request]
@@ -236,14 +234,19 @@ async with KatanaClient() as client:
 ```python
 from prometheus_client import Counter, Histogram
 
-requests_total = Counter('katana_requests_total', 'Total requests', ['method', 'endpoint'])
-request_duration = Histogram('katana_request_duration_seconds', 'Request duration')
+requests_total = Counter(
+    "katana_requests_total", "Total requests", ["method", "endpoint"]
+)
+request_duration = Histogram("katana_request_duration_seconds", "Request duration")
+
 
 def track_request(request):
     requests_total.labels(method=request.method, endpoint=request.url.path).inc()
 
+
 def track_response(response):
     request_duration.observe(response.elapsed.total_seconds())
+
 
 async with KatanaClient() as client:
     client.event_hooks["request"] = [track_request]

@@ -23,9 +23,9 @@ class BinInventory:
 
     location_id: int | Unset = UNSET
     variant_id: int | Unset = UNSET
-    bin_location_id: int | None | Unset = UNSET
-    batch_id: int | None | Unset = UNSET
-    serial_number_id: int | None | Unset = UNSET
+    bin_location_id: int | Unset | None = UNSET
+    batch_id: int | Unset | None = UNSET
+    serial_number_id: int | Unset | None = UNSET
     quantity_in_stock: str | Unset = UNSET
     quantity_committed: str | Unset = UNSET
     quantity_expected: str | Unset = UNSET
@@ -36,19 +36,19 @@ class BinInventory:
 
         variant_id = self.variant_id
 
-        bin_location_id: int | None | Unset
+        bin_location_id: int | Unset | None
         if isinstance(self.bin_location_id, Unset):
             bin_location_id = UNSET
         else:
             bin_location_id = self.bin_location_id
 
-        batch_id: int | None | Unset
+        batch_id: int | Unset | None
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
         else:
             batch_id = self.batch_id
 
-        serial_number_id: int | None | Unset
+        serial_number_id: int | Unset | None
         if isinstance(self.serial_number_id, Unset):
             serial_number_id = UNSET
         else:
@@ -89,30 +89,30 @@ class BinInventory:
 
         variant_id = d.pop("variant_id", UNSET)
 
-        def _parse_bin_location_id(data: object) -> int | None | Unset:
+        def _parse_bin_location_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         bin_location_id = _parse_bin_location_id(d.pop("bin_location_id", UNSET))
 
-        def _parse_batch_id(data: object) -> int | None | Unset:
+        def _parse_batch_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
-        def _parse_serial_number_id(data: object) -> int | None | Unset:
+        def _parse_serial_number_id(data: object) -> int | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)
+            return cast(int | Unset | None, data)
 
         serial_number_id = _parse_serial_number_id(d.pop("serial_number_id", UNSET))
 

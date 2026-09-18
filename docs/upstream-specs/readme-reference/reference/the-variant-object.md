@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-03-26T11:34:16.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # The variant object
 
@@ -30,7 +32,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        product\_id
+        product_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -40,7 +42,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        material\_id
+        material_id
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -60,7 +62,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        sales\_price
+        sales_price
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -70,7 +72,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        purchase\_price
+        purchase_price
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -82,7 +84,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        internal\_barcode
+        internal_barcode
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -92,7 +94,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        registered\_barcode
+        registered_barcode
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -102,7 +104,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        supplier\_item\_codes
+        supplier_item_codes
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -112,7 +114,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        config\_attributes
+        config_attributes
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -122,7 +124,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        config\_attributes.config\_name
+        config_attributes.config_name
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -132,7 +134,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        config\_attributes.config\_value
+        config_attributes.config_value
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -152,7 +154,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        created\_at
+        created_at
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -162,7 +164,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        updated\_at
+        updated_at
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -172,18 +174,18 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        minimum\_order\_quantity
+        minimum_order_quantity
       </td>
 
       <td style={{ textAlign: "left" }}>
-        The minimum order quantity is used as a default purchase order row quantity. It can be manually changed on each order.\
+        The minimum order quantity is used as a default purchase order row quantity. It can be manually changed on each order.  
         If you purchase in a different unit of measure than your stock unit of measure, then this is the quantity per purchase UoM.
       </td>
     </tr>
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        lead\_time
+        lead_time
       </td>
 
       <td style={{ textAlign: "left" }}>
@@ -193,7 +195,7 @@
 
     <tr>
       <td style={{ textAlign: "left" }}>
-        abc\_classification
+        abc_classification
       </td>
 
       <td style={{ textAlign: "left" }}>

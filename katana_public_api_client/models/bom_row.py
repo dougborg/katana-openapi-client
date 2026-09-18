@@ -29,8 +29,8 @@ class BomRow:
     product_variant_id: int
     product_item_id: int
     ingredient_variant_id: int
-    quantity: float | None | Unset = UNSET
-    notes: None | str | Unset = UNSET
+    quantity: float | Unset | None = UNSET
+    notes: str | Unset | None = UNSET
     rank: int | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
@@ -45,13 +45,13 @@ class BomRow:
 
         ingredient_variant_id = self.ingredient_variant_id
 
-        quantity: float | None | Unset
+        quantity: float | Unset | None
         if isinstance(self.quantity, Unset):
             quantity = UNSET
         else:
             quantity = self.quantity
 
-        notes: None | str | Unset
+        notes: str | Unset | None
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -101,21 +101,21 @@ class BomRow:
 
         ingredient_variant_id = d.pop("ingredient_variant_id")
 
-        def _parse_quantity(data: object) -> float | None | Unset:
+        def _parse_quantity(data: object) -> float | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(float | Unset | None, data)
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_notes(data: object) -> str | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(str | Unset | None, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

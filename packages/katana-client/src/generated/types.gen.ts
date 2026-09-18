@@ -1923,6 +1923,80 @@ export type InventorySafetyStockLevel = {
 };
 
 /**
+ * Which source supplied the lead time used in a replenishment calculation
+ */
+export type InventorySignalLeadTimeSource = 'sku' | 'system_po' | 'system_mo' | 'fallback';
+
+/**
+ * Replenishment signal for a single variant, summed across all locations. Derived nightly from the last 30 days of demand.
+ */
+export type InventorySignal = {
+  /**
+   * The variant the signal describes. One row per variant, summed across all locations.
+   */
+  variant_id?: number;
+  /**
+   * Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC.
+   */
+  avg_daily_demand_30d?: string;
+  /**
+   * Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on /inventory. Null while demand has not yet been calculated.
+   */
+  reorder_point?: string | null;
+  /**
+   * floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand has not yet been calculated.
+   */
+  days_of_stock_left?: number | null;
+  /**
+   * Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been calculated.
+   */
+  stock_risk?: number | null;
+  /**
+   * Quantity on hand, summed across all locations
+   */
+  in_stock?: string;
+  /**
+   * Quantity claimed by open sales and manufacturing orders
+   */
+  committed?: string;
+  /**
+   * Projected date stock falls below safety stock. Set on high and critical rows only.
+   */
+  safety_stock_breach_at?: string | null;
+  /**
+   * Incoming quantity that stock_risk counted as landing in time
+   */
+  expected_before_safety_stock_breach?: string | null;
+  /**
+   * The safety stock level set for the variant
+   */
+  safety_stock?: string;
+  /**
+   * Lead time in days used in the calculations
+   */
+  lead_time_used?: number;
+  /**
+   * Which source supplied lead_time_used
+   */
+  lead_time_source?: InventorySignalLeadTimeSource;
+  /**
+   * When avg_daily_demand_30d was last calculated
+   */
+  demand_calculated_at?: string;
+};
+
+/**
+ * Response containing a list of inventory replenishment signals with pagination support.
+ *
+ */
+export type InventorySignalListResponse = {
+  /**
+   * Array of per-variant replenishment signals
+   */
+  data?: Array<InventorySignal>;
+};
+
+/**
  * Complete safety stock level configuration with metadata including timestamps and deletion status
  */
 export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel & DeletableEntity;
@@ -2783,6 +2857,18 @@ export type UnlinkManufacturingOrderRequest = {
    * ID of the sales order row to unlink from the manufacturing order
    */
   sales_order_row_id: number;
+};
+
+/**
+ * Response containing a list of ingredient consumption records across manufacturing order productions, with
+ * pagination support.
+ *
+ */
+export type ManufacturingOrderProductionIngredientListResponse = {
+  /**
+   * Array of ingredient consumption records for manufacturing order productions
+   */
+  data?: Array<ManufacturingOrderProductionIngredientResponse>;
 };
 
 /**
@@ -3763,6 +3849,10 @@ export type CreatePurchaseOrderAdditionalCostRowRequest = {
    * How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
    */
   distribution_method?: CostDistributionMethod;
+  /**
+   * Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge
+   */
+  reference?: string | null;
 };
 
 /**
@@ -3785,6 +3875,10 @@ export type PurchaseOrderAdditionalCostRow = {
    * Name or description of the additional cost
    */
   name?: string;
+  /**
+   * Free-text label describing what this cost row is, e.g. a customs invoice or freight surcharge
+   */
+  reference?: string | null;
   /**
    * Method used for distributing this cost across purchase order items
    */
@@ -3849,6 +3943,10 @@ export type UpdatePurchaseOrderAdditionalCostRowRequest = {
    * How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
    */
   distribution_method?: CostDistributionMethod;
+  /**
+   * Free-text label describing what this cost row is; pass null to clear it
+   */
+  reference?: string | null;
 };
 
 /**
@@ -3880,6 +3978,44 @@ export type PurchaseOrderReceiveRow = {
     batch_id: number;
     quantity: number;
   }>;
+};
+
+/**
+ * Placement target for a rerank operation. Ranking is relative, mirroring drag-and-drop reordering - the reranked order is moved next to the target order.
+ */
+export type RerankPlace = {
+  /**
+   * ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.
+   */
+  before_id: number;
+};
+
+/**
+ * Request payload for repositioning a manufacturing order in the production schedule, relative to another manufacturing order
+ */
+export type RerankManufacturingOrderRequest = {
+  /**
+   * Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.
+   */
+  order_ids: [number];
+  /**
+   * Where to place the reranked order, relative to another manufacturing order
+   */
+  place: RerankPlace;
+};
+
+/**
+ * Request payload for repositioning a sales order in the schedule, relative to another sales order
+ */
+export type RerankSalesOrderRequest = {
+  /**
+   * Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.
+   */
+  order_ids: [number];
+  /**
+   * Where to place the reranked order, relative to another sales order
+   */
+  place: RerankPlace;
 };
 
 /**
@@ -4651,7 +4787,8 @@ export type UnlinkVariantBinLocationListRequest = Array<UnlinkVariantBinLocation
 
 /**
  * Available webhook events for real-time notifications.
- * Complete list of all 61 supported events as documented in the Katana API.
+ * Mirrors the event list the live gateway accepts; see the Katana API
+ * changelog for newly added events.
  */
 export type WebhookEvent =
   | 'sales_order.created'
@@ -4660,6 +4797,7 @@ export type WebhookEvent =
   | 'sales_order.deleted'
   | 'sales_order.packed'
   | 'sales_order.delivered'
+  | 'sales_order.invoiced'
   | 'sales_order.availability_updated'
   | 'purchase_order.created'
   | 'purchase_order.approved'
@@ -4667,6 +4805,7 @@ export type WebhookEvent =
   | 'purchase_order.deleted'
   | 'purchase_order.partially_received'
   | 'purchase_order.received'
+  | 'purchase_order.billed'
   | 'purchase_order_row.created'
   | 'purchase_order_row.updated'
   | 'purchase_order_row.deleted'
@@ -4704,11 +4843,15 @@ export type WebhookEvent =
   | 'product_recipe_row.created'
   | 'product_recipe_row.updated'
   | 'product_recipe_row.deleted'
+  | 'bom_row.created'
+  | 'bom_row.updated'
+  | 'bom_row.deleted'
   | 'outsourced_purchase_order.created'
   | 'outsourced_purchase_order.approved'
   | 'outsourced_purchase_order.updated'
   | 'outsourced_purchase_order.deleted'
   | 'outsourced_purchase_order.received'
+  | 'outsourced_purchase_order.billed'
   | 'outsourced_purchase_order_row.created'
   | 'outsourced_purchase_order_row.updated'
   | 'outsourced_purchase_order_row.deleted'
@@ -4868,6 +5011,7 @@ export type WebhookLogsExportRequest = {
     | 'sales_order.approved'
     | 'sales_order.packed'
     | 'sales_order.delivered'
+    | 'sales_order.invoiced'
     | 'sales_order.updated'
     | 'sales_order.deleted'
     | 'sales_order.availability_updated'
@@ -4877,6 +5021,7 @@ export type WebhookLogsExportRequest = {
     | 'purchase_order.deleted'
     | 'purchase_order.partially_received'
     | 'purchase_order.received'
+    | 'purchase_order.billed'
     | 'purchase_order_row.created'
     | 'purchase_order_row.received'
     | 'purchase_order_row.updated'
@@ -4886,6 +5031,7 @@ export type WebhookLogsExportRequest = {
     | 'outsourced_purchase_order.updated'
     | 'outsourced_purchase_order.deleted'
     | 'outsourced_purchase_order.received'
+    | 'outsourced_purchase_order.billed'
     | 'outsourced_purchase_order_row.created'
     | 'outsourced_purchase_order_row.updated'
     | 'outsourced_purchase_order_row.deleted'
@@ -4925,6 +5071,9 @@ export type WebhookLogsExportRequest = {
     | 'variant.deleted'
     | 'product_recipe_row.created'
     | 'product_recipe_row.deleted'
+    | 'bom_row.created'
+    | 'bom_row.updated'
+    | 'bom_row.deleted'
     | 'product_recipe_row.updated';
   /**
    * Filter logs by HTTP status code
@@ -6055,6 +6204,462 @@ export type SearchComparator = {
 };
 
 /**
+ * Filter clause for ``POST /customers/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type CustomerSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Customer category for segmentation and reporting
+   */
+  category?: SearchPredicate;
+  /**
+   * Internal notes and comments about the customer
+   */
+  comment?: SearchPredicate;
+  /**
+   * Company name for business customers
+   */
+  company?: SearchPredicate;
+  /**
+   * Timestamp when the record was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Default currency code for all transactions with this customer
+   */
+  currency?: SearchPredicate;
+  /**
+   * ID of the default billing address for this customer
+   */
+  default_billing_id?: SearchPredicate;
+  /**
+   * ID of the default shipping address for this customer
+   */
+  default_shipping_id?: SearchPredicate;
+  /**
+   * Primary email address for communication and order notifications
+   */
+  email?: SearchPredicate;
+  /**
+   * Customer's first name for individual contacts
+   */
+  first_name?: SearchPredicate;
+  /**
+   * Record id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Customer's last name for individual contacts
+   */
+  last_name?: SearchPredicate;
+  /**
+   * Customer display name, either individual name or company name
+   */
+  name?: SearchPredicate;
+  /**
+   * Primary phone number for customer contact
+   */
+  phone?: SearchPredicate;
+  /**
+   * External reference ID for integration with other systems
+   */
+  reference_id?: SearchPredicate;
+  /**
+   * Timestamp when the record was last updated.
+   */
+  updated_at?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Filter clause for ``POST /variants/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type VariantSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * ABC inventory classification.
+   */
+  abc_classification?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the variant was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Variant id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Internal barcode.
+   */
+  internal_barcode?: SearchPredicate;
+  /**
+   * Id of the product, material, or service this variant belongs to.
+   */
+  item_id?: SearchPredicate;
+  /**
+   * Kind of item the variant belongs to.
+   */
+  item_type?: SearchPredicate;
+  /**
+   * Lead time in days.
+   */
+  lead_time?: SearchPredicate;
+  /**
+   * Minimum order quantity.
+   */
+  minimum_order_quantity?: SearchPredicate;
+  /**
+   * Purchase price.
+   */
+  purchase_price?: SearchPredicate;
+  /**
+   * Registered (GTIN/EAN/UPC) barcode.
+   */
+  registered_barcode?: SearchPredicate;
+  /**
+   * Sales price.
+   */
+  sales_price?: SearchPredicate;
+  /**
+   * Stock keeping unit.
+   */
+  sku?: SearchPredicate;
+  /**
+   * Supplier item code.
+   */
+  supplier_item_codes?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the variant was last updated.
+   */
+  updated_at?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Filter clause for ``POST /manufacturing_orders/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type ManufacturingOrderSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Actual quantity produced, null if production not completed
+   */
+  actual_quantity?: SearchPredicate;
+  /**
+   * Total quantity completed so far (including partial completions)
+   */
+  completed_quantity?: SearchPredicate;
+  /**
+   * Timestamp when the record was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Timestamp when the manufacturing order was completed
+   */
+  done_date?: SearchPredicate;
+  /**
+   * Record id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Whether this order has been partially completed
+   */
+  includes_partial_completions?: SearchPredicate;
+  /**
+   * Status of material ingredient availability for production
+   */
+  ingredient_availability?: SearchPredicate;
+  /**
+   * Whether this manufacturing order is linked to a sales order
+   */
+  is_linked_to_sales_order?: SearchPredicate;
+  /**
+   * ID of the factory location where production takes place
+   */
+  location_id?: SearchPredicate;
+  /**
+   * Date and time when the manufacturing order was created
+   */
+  order_created_date?: SearchPredicate;
+  /**
+   * Unique manufacturing order number for tracking and reference
+   */
+  order_no?: SearchPredicate;
+  /**
+   * Originally planned quantity to produce
+   */
+  planned_quantity?: SearchPredicate;
+  /**
+   * Target deadline for completing production (null when none is set)
+   */
+  production_deadline_date?: SearchPredicate;
+  /**
+   * Remaining quantity to produce (planned - completed)
+   */
+  remaining_quantity?: SearchPredicate;
+  /**
+   * Current production status of the manufacturing order
+   */
+  status?: SearchPredicate;
+  /**
+   * Total cost of the manufacturing order including all materials and operations
+   */
+  total_cost?: SearchPredicate;
+  /**
+   * Timestamp when the record was last updated.
+   */
+  updated_at?: SearchPredicate;
+  /**
+   * ID of the product variant being manufactured
+   */
+  variant_id?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Filter clause for ``POST /purchase_orders/search``. Only the fields listed
+ * here may appear; unknown fields are rejected with 422. Custom field
+ * values are addressable via ``custom_fields.<uuid>`` keys.
+ *
+ */
+export type PurchaseOrderSearchFilter = {
+  /**
+   * Logical AND - every nested clause must match. Maximum nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR - at least one nested clause must match. Maximum nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply...
+   */
+  billing_status?: SearchPredicate;
+  /**
+   * Timestamp when the record was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * Currency of the purchase order. Filled with supplier currency by default.
+   */
+  currency?: SearchPredicate;
+  /**
+   * Default grouping identifier for organizational purposes
+   */
+  default_group_id?: SearchPredicate;
+  /**
+   * Either "regular" or "outsourced", depending on the purchase order type.
+   */
+  entity_type?: SearchPredicate;
+  /**
+   * The timestamp when the items are expected to arrive (in full) in your warehouse.
+   */
+  expected_arrival_date?: SearchPredicate;
+  /**
+   * Record id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Status of the last e-mail sent from (O)PO card.
+   */
+  last_document_status?: SearchPredicate;
+  /**
+   * The ID of the location to which items are received.
+   */
+  location_id?: SearchPredicate;
+  /**
+   * The timestamp of creating the document.
+   */
+  order_created_date?: SearchPredicate;
+  /**
+   * A unique, identifying string used in the UI and controlled by the user.
+   */
+  order_no?: SearchPredicate;
+  /**
+   * Status of the order.
+   */
+  status?: SearchPredicate;
+  /**
+   * ID of the supplier who this order belongs to.
+   */
+  supplier_id?: SearchPredicate;
+  /**
+   * Regular orders do not have tracking locations
+   */
+  tracking_location_id?: SearchPredicate;
+  /**
+   * Timestamp when the record was last updated.
+   */
+  updated_at?: SearchPredicate;
+  [key: string]: unknown;
+};
+
+/**
+ * Structured search body for ``POST /customers/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type CustomerSearchRequest = {
+  filter?: CustomerSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
+ * Structured search body for ``POST /variants/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type VariantSearchRequest = {
+  filter?: VariantSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+  /**
+   * Related data to include, and result-set widening. ``item``
+   * enriches each variant with its parent item under ``item``;
+   * ``archived`` and ``deleted`` include otherwise-excluded
+   * variants in the results.
+   *
+   */
+  include?: Array<'item' | 'archived' | 'deleted'>;
+};
+
+/**
+ * Structured search body for ``POST /manufacturing_orders/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type ManufacturingOrderSearchRequest = {
+  filter?: ManufacturingOrderSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
+ * Structured search body for ``POST /purchase_orders/search``. Returns the
+ * same paginated ``{"data": [...]}`` shape as the corresponding list
+ * endpoint, plus an ``X-Pagination`` header.
+ *
+ */
+export type PurchaseOrderSearchRequest = {
+  filter?: PurchaseOrderSearchFilter;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50.
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
  * A single ``where`` predicate: either a bare ``SearchScalarValue``
  * (equality) or a ``SearchComparator`` operator object.
  *
@@ -6070,13 +6675,6 @@ export type SearchPredicate = SearchScalarValue | SearchComparator;
  */
 export type SalesOrderSearchRequest = {
   filter?: SalesOrderSearchFilter;
-};
-
-/**
- * Filter envelope for ``POST /sales_orders/search``.
- */
-export type SalesOrderSearchFilter = {
-  where?: SalesOrderSearchWhere;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
    * (direction defaults to ASC). Only filterable fields may be
@@ -6100,7 +6698,7 @@ export type SalesOrderSearchFilter = {
 };
 
 /**
- * ``where`` clause for ``POST /sales_orders/search``. Only the fields
+ * ``filter`` clause for ``POST /sales_orders/search``. Only the fields
  * listed here may appear; unknown fields are rejected with 422.
  * Custom field values are addressable via additional
  * ``custom_fields.<uuid>`` keys (snake_case, matching the
@@ -6111,7 +6709,7 @@ export type SalesOrderSearchFilter = {
  * depth 2).
  *
  */
-export type SalesOrderSearchWhere = {
+export type SalesOrderSearchFilter = {
   /**
    * Logical AND — every nested where-clause must match. Max nesting depth 2.
    */
@@ -6232,13 +6830,6 @@ export type SalesOrderSearchWhere = {
  */
 export type SalesOrderRowSearchRequest = {
   filter?: SalesOrderRowSearchFilter;
-};
-
-/**
- * Filter envelope for ``POST /sales_order_rows/search``.
- */
-export type SalesOrderRowSearchFilter = {
-  where?: SalesOrderRowSearchWhere;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
    * (direction defaults to ASC). Only filterable fields may be
@@ -6262,7 +6853,7 @@ export type SalesOrderRowSearchFilter = {
 };
 
 /**
- * ``where`` clause for ``POST /sales_order_rows/search``. Only the
+ * ``filter`` clause for ``POST /sales_order_rows/search``. Only the
  * fields listed here may appear; unknown fields are rejected with
  * 422. Custom field values are addressable via additional
  * ``custom_fields.<uuid>`` keys (snake_case), where ``<uuid>`` is the
@@ -6270,7 +6861,7 @@ export type SalesOrderRowSearchFilter = {
  * nesting depth 2).
  *
  */
-export type SalesOrderRowSearchWhere = {
+export type SalesOrderRowSearchFilter = {
   /**
    * Logical AND — every nested where-clause must match. Max nesting depth 2.
    */
@@ -6750,7 +7341,7 @@ export type CreateStockAdjustmentRequest = {
   /**
    * Human-readable reference number for tracking and audit purposes
    */
-  stock_adjustment_number: string;
+  stock_adjustment_number?: string;
   /**
    * Date and time when the adjustment was performed
    */
@@ -9465,7 +10056,7 @@ export type CreateStockTransferRequest = {
   /**
    * Unique stock transfer number for tracking
    */
-  stock_transfer_number: string;
+  stock_transfer_number?: string;
   /**
    * Source location ID where items are transferred from
    */
@@ -10112,6 +10703,11 @@ export type IsLinkedToSalesOrder = boolean;
  * Filters manufacturing order productions by manufacturing order ids.
  */
 export type ManufacturingOrderIds = Array<number>;
+
+/**
+ * Filters manufacturing order production ingredients by production ids.
+ */
+export type ProductionIds = Array<number>;
 
 /**
  * Filters sales returns by an order number
@@ -11457,6 +12053,62 @@ export type GetAllInventoryMovementsResponses = {
 export type GetAllInventoryMovementsResponse =
   GetAllInventoryMovementsResponses[keyof GetAllInventoryMovementsResponses];
 
+export type GetAllInventorySignalsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Filters signals by valid variant ids. A variant with no demand in the 30-day window has no row, so the response can contain fewer rows than ids requested.
+     */
+    variant_id?: Array<number>;
+    /**
+     * Filters signals by risk level - 0 low, 1 high, 2 critical, 3 stockout. Any other value is a 400.
+     */
+    stock_risk?: 0 | 1 | 2 | 3;
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+  };
+  url: '/inventory_signals';
+};
+
+export type GetAllInventorySignalsErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllInventorySignalsError =
+  GetAllInventorySignalsErrors[keyof GetAllInventorySignalsErrors];
+
+export type GetAllInventorySignalsResponses = {
+  /**
+   * List all inventory replenishment signals
+   */
+  200: InventorySignalListResponse;
+};
+
+export type GetAllInventorySignalsResponse =
+  GetAllInventorySignalsResponses[keyof GetAllInventorySignalsResponses];
+
 export type CreateInventorySafetyStockLevelData = {
   /**
    * Safety stock level details to set (create or update).
@@ -11638,6 +12290,52 @@ export type GetLocationResponses = {
 };
 
 export type GetLocationResponse = GetLocationResponses[keyof GetLocationResponses];
+
+export type SearchManufacturingOrdersData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: ManufacturingOrderSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/manufacturing_orders/search';
+};
+
+export type SearchManufacturingOrdersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchManufacturingOrdersError =
+  SearchManufacturingOrdersErrors[keyof SearchManufacturingOrdersErrors];
+
+export type SearchManufacturingOrdersResponses = {
+  /**
+   * Matching manufacturing orders
+   */
+  200: ManufacturingOrderListResponse;
+};
+
+export type SearchManufacturingOrdersResponse =
+  SearchManufacturingOrdersResponses[keyof SearchManufacturingOrdersResponses];
 
 export type GetAllManufacturingOrdersData = {
   body?: never;
@@ -11953,6 +12651,52 @@ export type MakeToOrderManufacturingOrderResponses = {
 export type MakeToOrderManufacturingOrderResponse =
   MakeToOrderManufacturingOrderResponses[keyof MakeToOrderManufacturingOrderResponses];
 
+export type RerankManufacturingOrderData = {
+  /**
+   * manufacturing order rerank details
+   */
+  body: RerankManufacturingOrderRequest;
+  path?: never;
+  query?: never;
+  url: '/manufacturing_order_rerank';
+};
+
+export type RerankManufacturingOrderErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type RerankManufacturingOrderError =
+  RerankManufacturingOrderErrors[keyof RerankManufacturingOrderErrors];
+
+export type RerankManufacturingOrderResponses = {
+  /**
+   * Manufacturing order reranked successfully
+   */
+  204: void;
+};
+
+export type RerankManufacturingOrderResponse =
+  RerankManufacturingOrderResponses[keyof RerankManufacturingOrderResponses];
+
 export type UnlinkManufacturingOrderData = {
   /**
    * new manufacturing order details
@@ -12231,6 +12975,82 @@ export type UpdateManufacturingOrderProductionResponses = {
 
 export type UpdateManufacturingOrderProductionResponse =
   UpdateManufacturingOrderProductionResponses[keyof UpdateManufacturingOrderProductionResponses];
+
+export type GetAllManufacturingOrderProductionIngredientsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Filters results by an array of IDs.
+     */
+    ids?: Array<number>;
+    /**
+     * Filters manufacturing order productions by manufacturing order ids.
+     */
+    manufacturing_order_ids?: Array<number>;
+    /**
+     * Filters manufacturing order production ingredients by production ids.
+     */
+    production_ids?: Array<number>;
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+    /**
+     * Minimum creation date (ISO 8601 format).
+     */
+    created_at_min?: string;
+    /**
+     * Maximum creation date (ISO 8601 format).
+     */
+    created_at_max?: string;
+    /**
+     * Minimum update date (ISO 8601 format).
+     */
+    updated_at_min?: string;
+    /**
+     * Maximum update date (ISO 8601 format).
+     */
+    updated_at_max?: string;
+    /**
+     * Soft-deleted data is excluded from result set by default. Set to true to include it.
+     */
+    include_deleted?: boolean;
+  };
+  url: '/manufacturing_order_production_ingredients';
+};
+
+export type GetAllManufacturingOrderProductionIngredientsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllManufacturingOrderProductionIngredientsError =
+  GetAllManufacturingOrderProductionIngredientsErrors[keyof GetAllManufacturingOrderProductionIngredientsErrors];
+
+export type GetAllManufacturingOrderProductionIngredientsResponses = {
+  /**
+   * List all manufacturing order production ingredients
+   */
+  200: ManufacturingOrderProductionIngredientListResponse;
+};
+
+export type GetAllManufacturingOrderProductionIngredientsResponse =
+  GetAllManufacturingOrderProductionIngredientsResponses[keyof GetAllManufacturingOrderProductionIngredientsResponses];
 
 export type UpdateManufacturingOrderProductionIngredientData = {
   /**
@@ -13413,6 +14233,52 @@ export type UpdateProductResponses = {
 };
 
 export type UpdateProductResponse = UpdateProductResponses[keyof UpdateProductResponses];
+
+export type SearchPurchaseOrdersData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: PurchaseOrderSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/purchase_orders/search';
+};
+
+export type SearchPurchaseOrdersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchPurchaseOrdersError =
+  SearchPurchaseOrdersErrors[keyof SearchPurchaseOrdersErrors];
+
+export type SearchPurchaseOrdersResponses = {
+  /**
+   * Matching purchase orders
+   */
+  200: PurchaseOrderListResponse;
+};
+
+export type SearchPurchaseOrdersResponse =
+  SearchPurchaseOrdersResponses[keyof SearchPurchaseOrdersResponses];
 
 export type FindPurchaseOrdersData = {
   body?: never;
@@ -14879,6 +15745,50 @@ export type CreateTaxRateResponses = {
 };
 
 export type CreateTaxRateResponse = CreateTaxRateResponses[keyof CreateTaxRateResponses];
+
+export type SearchVariantsData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: VariantSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/variants/search';
+};
+
+export type SearchVariantsErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchVariantsError = SearchVariantsErrors[keyof SearchVariantsErrors];
+
+export type SearchVariantsResponses = {
+  /**
+   * Matching variants
+   */
+  200: VariantListResponse;
+};
+
+export type SearchVariantsResponse = SearchVariantsResponses[keyof SearchVariantsResponses];
 
 export type GetAllVariantsData = {
   body?: never;
@@ -17135,6 +18045,50 @@ export type GetSalesOrderReturnableItemsResponses = {
 export type GetSalesOrderReturnableItemsResponse =
   GetSalesOrderReturnableItemsResponses[keyof GetSalesOrderReturnableItemsResponses];
 
+export type SearchCustomersData = {
+  /**
+   * Structured search body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: CustomerSearchRequest;
+  path?: never;
+  query?: never;
+  url: '/customers/search';
+};
+
+export type SearchCustomersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchCustomersError = SearchCustomersErrors[keyof SearchCustomersErrors];
+
+export type SearchCustomersResponses = {
+  /**
+   * Matching customers
+   */
+  200: CustomerListResponse;
+};
+
+export type SearchCustomersResponse = SearchCustomersResponses[keyof SearchCustomersResponses];
+
 export type GetAllCustomersData = {
   body?: never;
   path?: never;
@@ -17987,6 +18941,50 @@ export type UpdateStockTransferStatusResponses = {
 
 export type UpdateStockTransferStatusResponse =
   UpdateStockTransferStatusResponses[keyof UpdateStockTransferStatusResponses];
+
+export type RerankSalesOrderData = {
+  /**
+   * sales order rerank details
+   */
+  body: RerankSalesOrderRequest;
+  path?: never;
+  query?: never;
+  url: '/sales_order_rerank';
+};
+
+export type RerankSalesOrderErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type RerankSalesOrderError = RerankSalesOrderErrors[keyof RerankSalesOrderErrors];
+
+export type RerankSalesOrderResponses = {
+  /**
+   * Sales order reranked successfully
+   */
+  204: void;
+};
+
+export type RerankSalesOrderResponse = RerankSalesOrderResponses[keyof RerankSalesOrderResponses];
 
 export type GetAllSalesOrderRowsData = {
   body?: never;

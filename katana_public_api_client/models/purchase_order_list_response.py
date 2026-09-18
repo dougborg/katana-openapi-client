@@ -39,7 +39,9 @@ class PurchaseOrderListResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.regular_purchase_order import RegularPurchaseOrder
+        from ..models.regular_purchase_order import (
+            RegularPurchaseOrder,
+        )
 
         data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
@@ -63,8 +65,12 @@ class PurchaseOrderListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.outsourced_purchase_order import OutsourcedPurchaseOrder
-        from ..models.regular_purchase_order import RegularPurchaseOrder
+        from ..models.outsourced_purchase_order import (
+            OutsourcedPurchaseOrder,
+        )
+        from ..models.regular_purchase_order import (
+            RegularPurchaseOrder,
+        )
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)

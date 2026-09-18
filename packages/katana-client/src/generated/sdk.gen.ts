@@ -297,12 +297,18 @@ import type {
   GetAllInventoryPointData,
   GetAllInventoryPointErrors,
   GetAllInventoryPointResponses,
+  GetAllInventorySignalsData,
+  GetAllInventorySignalsErrors,
+  GetAllInventorySignalsResponses,
   GetAllLocationsData,
   GetAllLocationsErrors,
   GetAllLocationsResponses,
   GetAllManufacturingOrderOperationRowsData,
   GetAllManufacturingOrderOperationRowsErrors,
   GetAllManufacturingOrderOperationRowsResponses,
+  GetAllManufacturingOrderProductionIngredientsData,
+  GetAllManufacturingOrderProductionIngredientsErrors,
+  GetAllManufacturingOrderProductionIngredientsResponses,
   GetAllManufacturingOrderProductionsData,
   GetAllManufacturingOrderProductionsErrors,
   GetAllManufacturingOrderProductionsResponses,
@@ -531,15 +537,33 @@ import type {
   ReceivePurchaseOrderData,
   ReceivePurchaseOrderErrors,
   ReceivePurchaseOrderResponses,
+  RerankManufacturingOrderData,
+  RerankManufacturingOrderErrors,
+  RerankManufacturingOrderResponses,
   RerankProductOperationsData,
   RerankProductOperationsErrors,
   RerankProductOperationsResponses,
+  RerankSalesOrderData,
+  RerankSalesOrderErrors,
+  RerankSalesOrderResponses,
+  SearchCustomersData,
+  SearchCustomersErrors,
+  SearchCustomersResponses,
+  SearchManufacturingOrdersData,
+  SearchManufacturingOrdersErrors,
+  SearchManufacturingOrdersResponses,
+  SearchPurchaseOrdersData,
+  SearchPurchaseOrdersErrors,
+  SearchPurchaseOrdersResponses,
   SearchSalesOrderRowsData,
   SearchSalesOrderRowsErrors,
   SearchSalesOrderRowsResponses,
   SearchSalesOrdersData,
   SearchSalesOrdersErrors,
   SearchSalesOrdersResponses,
+  SearchVariantsData,
+  SearchVariantsErrors,
+  SearchVariantsResponses,
   UnlinkManufacturingOrderData,
   UnlinkManufacturingOrderErrors,
   UnlinkManufacturingOrderResponses,
@@ -1116,6 +1140,29 @@ export const getAllInventoryMovements = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List inventory replenishment signals
+ *
+ * Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
+ * across all locations.
+ *
+ * Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
+ * than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
+ * full listing.
+ */
+export const getAllInventorySignals = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAllInventorySignalsData, ThrowOnError>
+): RequestResult<GetAllInventorySignalsResponses, GetAllInventorySignalsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    GetAllInventorySignalsResponses,
+    GetAllInventorySignalsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/inventory_signals',
+    ...options,
+  });
+
+/**
  * Create or update the safety stock level
  *
  * Create or update an item's safety stock level within a certain location and variant combination.
@@ -1168,6 +1215,38 @@ export const getLocation = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/locations/{id}',
     ...options,
+  });
+
+/**
+ * Search manufacturing orders
+ *
+ * Searches manufacturing orders using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /manufacturing_orders`` — a paginated list of records.
+ *
+ */
+export const searchManufacturingOrders = <ThrowOnError extends boolean = false>(
+  options: Options<SearchManufacturingOrdersData, ThrowOnError>
+): RequestResult<
+  SearchManufacturingOrdersResponses,
+  SearchManufacturingOrdersErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    SearchManufacturingOrdersResponses,
+    SearchManufacturingOrdersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/manufacturing_orders/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**
@@ -1295,6 +1374,34 @@ export const makeToOrderManufacturingOrder = <ThrowOnError extends boolean = fal
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/manufacturing_order_make_to_order',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Change a manufacturing order's rank
+ *
+ * Repositions a manufacturing order in the production schedule relative to another manufacturing order.
+ *
+ * Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
+ * order.
+ *
+ * Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales order, all
+ * related manufacturing orders are repositioned together.
+ */
+export const rerankManufacturingOrder = <ThrowOnError extends boolean = false>(
+  options: Options<RerankManufacturingOrderData, ThrowOnError>
+): RequestResult<RerankManufacturingOrderResponses, RerankManufacturingOrderErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    RerankManufacturingOrderResponses,
+    RerankManufacturingOrderErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/manufacturing_order_rerank',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -1443,6 +1550,29 @@ export const updateManufacturingOrderProduction = <ThrowOnError extends boolean 
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * List all manufacturing order production ingredients
+ *
+ * Returns a list of ingredient consumption records across manufacturing order productions.
+ * Each record ties a consumed ingredient variant to the production batch and recipe row it was used for.
+ */
+export const getAllManufacturingOrderProductionIngredients = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAllManufacturingOrderProductionIngredientsData, ThrowOnError>
+): RequestResult<
+  GetAllManufacturingOrderProductionIngredientsResponses,
+  GetAllManufacturingOrderProductionIngredientsErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    GetAllManufacturingOrderProductionIngredientsResponses,
+    GetAllManufacturingOrderProductionIngredientsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/manufacturing_order_production_ingredients',
+    ...options,
   });
 
 /**
@@ -1892,6 +2022,34 @@ export const updateProduct = <ThrowOnError extends boolean = false>(
   (options.client ?? client).patch<UpdateProductResponses, UpdateProductErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/products/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Search purchase orders
+ *
+ * Searches purchase orders using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /purchase_orders`` — a paginated list of records.
+ *
+ */
+export const searchPurchaseOrders = <ThrowOnError extends boolean = false>(
+  options: Options<SearchPurchaseOrdersData, ThrowOnError>
+): RequestResult<SearchPurchaseOrdersResponses, SearchPurchaseOrdersErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    SearchPurchaseOrdersResponses,
+    SearchPurchaseOrdersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/purchase_orders/search',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -2425,6 +2583,30 @@ export const createTaxRate = <ThrowOnError extends boolean = false>(
   (options.client ?? client).post<CreateTaxRateResponses, CreateTaxRateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/tax_rates',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Search variants
+ *
+ * Searches variants using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /variants`` — a paginated list of records.
+ *
+ */
+export const searchVariants = <ThrowOnError extends boolean = false>(
+  options: Options<SearchVariantsData, ThrowOnError>
+): RequestResult<SearchVariantsResponses, SearchVariantsErrors, ThrowOnError> =>
+  (options.client ?? client).post<SearchVariantsResponses, SearchVariantsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/variants/search',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -3244,6 +3426,30 @@ export const getSalesOrderReturnableItems = <ThrowOnError extends boolean = fals
   });
 
 /**
+ * Search customers
+ *
+ * Searches customers using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the filter schema may appear; unknown fields
+ * return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths. Returns the same shape as
+ * ``GET /customers`` — a paginated list of records.
+ *
+ */
+export const searchCustomers = <ThrowOnError extends boolean = false>(
+  options: Options<SearchCustomersData, ThrowOnError>
+): RequestResult<SearchCustomersResponses, SearchCustomersErrors, ThrowOnError> =>
+  (options.client ?? client).post<SearchCustomersResponses, SearchCustomersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/customers/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * List all customers
  *
  * Returns a list of customers you've previously created.
@@ -3550,6 +3756,30 @@ export const updateStockTransferStatus = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/stock_transfers/{id}/status',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Change a sales order's rank
+ *
+ * Repositions a sales order in the schedule relative to another sales order.
+ *
+ * Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
+ * order.
+ *
+ * Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move
+ * together with the sales order.
+ */
+export const rerankSalesOrder = <ThrowOnError extends boolean = false>(
+  options: Options<RerankSalesOrderData, ThrowOnError>
+): RequestResult<RerankSalesOrderResponses, RerankSalesOrderErrors, ThrowOnError> =>
+  (options.client ?? client).post<RerankSalesOrderResponses, RerankSalesOrderErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/sales_order_rerank',
     ...options,
     headers: {
       'Content-Type': 'application/json',

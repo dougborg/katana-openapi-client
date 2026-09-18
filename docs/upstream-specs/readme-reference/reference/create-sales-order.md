@@ -1,6 +1,8 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt
-> Use this file to discover all available pages before exploring further.
+---
+updatedAt: 2026-05-29T09:20:09.000Z
+---
+
+Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a sales order
 
@@ -232,7 +234,7 @@ Creates a new sales order object.
                     "type": "object",
                     "nullable": true,
                     "additionalProperties": true,
-                    "description": "_Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID). Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`."
+                    "description": "Custom field values keyed by custom field definition ID (UUID). Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`."
                   }
                 }
               }
@@ -312,7 +314,9 @@ Creates a new sales order object.
                           "value": "value"
                         }
                       ],
-                      "batch_transactions": []
+                      "batch_transactions": [],
+                      "serial_numbers": [],
+                      "traceability": []
                     }
                   ],
                   "tracking_number": "12345678",
