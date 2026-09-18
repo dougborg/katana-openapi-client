@@ -94,21 +94,26 @@ overrides:
     field: options
     live: "object"
     local: "?"
-    category: upstream_correct_local_wrong
+    category: intentional_local_divergence
     reason: >-
-      Live declares `options` as a structured object; locally it is present but
-      untyped (`?`). We should type it to match the wire contract.
-    fix_tracked_in: "#806"
+      Live declares `options` as a bare nullable `object` with no properties;
+      locally it is a typed `anyOf[$ref:CustomFieldOptionsCreate, null]`
+      describing the `{choices: [{label}]}` shape the wire actually accepts
+      (typed under #805). Local is strictly more precise. The `?` in `local:`
+      is an audit rendering artifact — `normalize_type` collapses `anyOf` to
+      `?` (sharpened by #1043).
 
   - endpoint: "PATCH /custom_field_definitions/{id}"
     kind: type_diff
     field: options
     live: "object"
     local: "?"
-    category: upstream_correct_local_wrong
+    category: intentional_local_divergence
     reason: >-
-      Same untyped-`options` gap as the POST variant — type it to match live.
-    fix_tracked_in: "#806"
+      Same shape as the POST variant: live declares a bare nullable `object`,
+      local a typed `anyOf[$ref:CustomFieldOptions, null]` carrying the
+      server-assigned choice `id`s. Local is strictly more precise; the `?` in
+      `local:` is the same `anyOf` rendering artifact.
 
   # --- manufacturing_order_operation_rows PATCH: local over-constrains -------
   - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
