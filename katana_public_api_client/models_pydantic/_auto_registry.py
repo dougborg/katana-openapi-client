@@ -325,6 +325,12 @@ from katana_public_api_client.models.inventory_safety_stock_level import (
 from katana_public_api_client.models.inventory_safety_stock_level_response import (
     InventorySafetyStockLevelResponse as AttrsInventorySafetyStockLevelResponse,
 )
+from katana_public_api_client.models.inventory_signal import (
+    InventorySignal as AttrsInventorySignal,
+)
+from katana_public_api_client.models.inventory_signal_list_response import (
+    InventorySignalListResponse as AttrsInventorySignalListResponse,
+)
 from katana_public_api_client.models.item_config import ItemConfig as AttrsItemConfig
 from katana_public_api_client.models.location import Location as AttrsLocation
 from katana_public_api_client.models.location_address import (
@@ -356,6 +362,9 @@ from katana_public_api_client.models.manufacturing_order_production import (
 )
 from katana_public_api_client.models.manufacturing_order_production_ingredient import (
     ManufacturingOrderProductionIngredient as AttrsManufacturingOrderProductionIngredient,
+)
+from katana_public_api_client.models.manufacturing_order_production_ingredient_list_response import (
+    ManufacturingOrderProductionIngredientListResponse as AttrsManufacturingOrderProductionIngredientListResponse,
 )
 from katana_public_api_client.models.manufacturing_order_production_ingredient_response import (
     ManufacturingOrderProductionIngredientResponse as AttrsManufacturingOrderProductionIngredientResponse,
@@ -871,6 +880,8 @@ from ._generated.common import (
     DemandForecastPeriod as PydanticDemandForecastPeriod,
     DemandForecastResponse as PydanticDemandForecastResponse,
     Factory as PydanticFactory,
+    InventorySignal as PydanticInventorySignal,
+    InventorySignalListResponse as PydanticInventorySignalListResponse,
     Location as PydanticLocation,
     LocationAddress as PydanticLocationAddress,
     LocationListResponse as PydanticLocationListResponse,
@@ -1009,6 +1020,7 @@ from ._generated.manufacturing import (
     ManufacturingOrderOperationRowListResponse as PydanticManufacturingOrderOperationRowListResponse,
     ManufacturingOrderProduction as PydanticManufacturingOrderProduction,
     ManufacturingOrderProductionIngredient as PydanticManufacturingOrderProductionIngredient,
+    ManufacturingOrderProductionIngredientListResponse as PydanticManufacturingOrderProductionIngredientListResponse,
     ManufacturingOrderProductionIngredientResponse as PydanticManufacturingOrderProductionIngredientResponse,
     ManufacturingOrderProductionListResponse as PydanticManufacturingOrderProductionListResponse,
     ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
@@ -1318,6 +1330,8 @@ def register_all_models() -> None:
         AttrsInventorySafetyStockLevelResponse,
         PydanticInventorySafetyStockLevelResponse,
     )
+    register(AttrsInventorySignal, PydanticInventorySignal)
+    register(AttrsInventorySignalListResponse, PydanticInventorySignalListResponse)
     register(AttrsItemConfig, PydanticItemConfig)
     register(AttrsLocation, PydanticLocation)
     register(AttrsLocationAddress, PydanticLocationAddress)
@@ -1345,6 +1359,10 @@ def register_all_models() -> None:
     register(
         AttrsManufacturingOrderProductionIngredient,
         PydanticManufacturingOrderProductionIngredient,
+    )
+    register(
+        AttrsManufacturingOrderProductionIngredientListResponse,
+        PydanticManufacturingOrderProductionIngredientListResponse,
     )
     register(
         AttrsManufacturingOrderProductionIngredientResponse,

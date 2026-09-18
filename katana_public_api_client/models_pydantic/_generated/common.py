@@ -584,6 +584,86 @@ class Location(DeletableEntity):
     ] = None
 
 
+class InventorySignalLeadTimeSource(StrEnum):
+    sku = "sku"
+    system_po = "system_po"
+    system_mo = "system_mo"
+    fallback = "fallback"
+
+
+class InventorySignal(KatanaPydanticBase):
+    variant_id: Annotated[
+        int | None,
+        Field(
+            description="The variant the signal describes. One row per variant, summed across all locations."
+        ),
+    ] = None
+    avg_daily_demand_30d: Annotated[
+        str | None,
+        Field(
+            description="Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC."
+        ),
+    ] = None
+    reorder_point: Annotated[
+        str | None,
+        Field(
+            description="Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on /inventory. Null while demand has not yet been calculated."
+        ),
+    ] = None
+    days_of_stock_left: Annotated[
+        int | None,
+        Field(
+            description="floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand has not yet been calculated."
+        ),
+    ] = None
+    stock_risk: Annotated[
+        int | None,
+        Field(
+            description="Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been calculated."
+        ),
+    ] = None
+    in_stock: Annotated[
+        str | None, Field(description="Quantity on hand, summed across all locations")
+    ] = None
+    committed: Annotated[
+        str | None,
+        Field(description="Quantity claimed by open sales and manufacturing orders"),
+    ] = None
+    safety_stock_breach_at: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Projected date stock falls below safety stock. Set on high and critical rows only."
+        ),
+    ] = None
+    expected_before_safety_stock_breach: Annotated[
+        str | None,
+        Field(
+            description="Incoming quantity that stock_risk counted as landing in time"
+        ),
+    ] = None
+    safety_stock: Annotated[
+        str | None, Field(description="The safety stock level set for the variant")
+    ] = None
+    lead_time_used: Annotated[
+        int | None, Field(description="Lead time in days used in the calculations")
+    ] = None
+    lead_time_source: Annotated[
+        InventorySignalLeadTimeSource | None,
+        Field(description="Which source supplied lead_time_used"),
+    ] = None
+    demand_calculated_at: Annotated[
+        AwareDatetime | None,
+        Field(description="When avg_daily_demand_30d was last calculated"),
+    ] = None
+
+
+class InventorySignalListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[InventorySignal] | None,
+        Field(description="Array of per-variant replenishment signals"),
+    ] = None
+
+
 class Status(StrEnum):
     not_started = "NOT_STARTED"
 
