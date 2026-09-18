@@ -329,14 +329,22 @@ def load_spec(path: Path) -> dict[str, Any]:
     return json.loads(text)
 
 
-def collect_request_dtos(spec: dict[str, Any]) -> dict[tuple[str, str], str]:
-    """Map ``(path, method)`` → request body schema name (only $ref'd ones).
+def collect_request_dtos(
+    spec: dict[str, Any],
+) -> dict[tuple[str, str], tuple[str, dict[str, Any]]]:
+    """Map ``(path, method)`` → ``(display_name, schema)`` for request bodies.
 
-    Endpoints with inline schemas (no $ref) are skipped — they can't be
-    cross-compared by name. The path is still included in the path-coverage
-    report.
+    Both ``$ref``'d and **inline** request bodies are collected. Inline ones
+    get the display name ``"(inline)"`` — they have no component name to print,
+    but their *fields* compare perfectly well, which is what the audit
+    actually needs.
+
+    Skipping inline bodies is what let #1040 through: upstream declares every
+    ``POST /<entity>/search`` body inline, so all six search endpoints were
+    dropped from the comparison entirely, and a request shape the API rejects
+    with 422 sat undetected in our spec.
     """
-    out: dict[tuple[str, str], str] = {}
+    out: dict[tuple[str, str], tuple[str, dict[str, Any]]] = {}
     for path, methods in spec.get("paths", {}).items():
         for method, op in methods.items():
             if method not in HTTP_METHODS:
@@ -344,10 +352,16 @@ def collect_request_dtos(spec: dict[str, Any]) -> dict[tuple[str, str], str]:
             rb = op.get("requestBody") or {}
             for cval in rb.get("content", {}).values():
                 schema = cval.get("schema", {})
+                if not isinstance(schema, dict) or not schema:
+                    continue
                 ref = schema.get("$ref", "")
                 if ref:
-                    out[(path, method)] = ref.rsplit("/", 1)[-1]
-                    break
+                    out[(path, method)] = (ref.rsplit("/", 1)[-1], schema)
+                elif schema.get("properties") or schema.get("allOf"):
+                    out[(path, method)] = ("(inline)", schema)
+                else:
+                    continue
+                break
     return out
 
 
@@ -392,6 +406,41 @@ def fields_of(
     return expand_schema(spec, schemas, s)
 
 
+def _object_subfields(
+    spec: dict[str, Any], schemas: dict[str, Any], pd: dict[str, Any]
+) -> dict[str, dict[str, Any]] | None:
+    """Properties of a request property that is itself an object, or None.
+
+    Returns ``None`` when the property is not a comparable object — a scalar,
+    an array, or a *free-form* object (``additionalProperties`` with no
+    declared ``properties``). Free-form is deliberately excluded: upstream
+    models several bodies as open objects, and descending into them would
+    report every field as missing on one side.
+    """
+    ref = pd.get("$ref")
+    if ref:
+        pd = schemas.get(ref.rsplit("/", 1)[-1]) or {}
+    if not isinstance(pd, dict):
+        return None
+    t = pd.get("type")
+    if t is not None and t != "object":
+        return None
+    props, _ = expand_schema(spec, schemas, pd)
+    return props or None
+
+
+def _resolve_body(
+    spec: dict[str, Any],
+    schemas: dict[str, Any],
+    name: str,
+    schema: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], set[str]]:
+    """Expand a request body whether it is ``$ref``'d or inline."""
+    if name != "(inline)":
+        return fields_of(spec, schemas, name)
+    return expand_schema(spec, schemas, schema)
+
+
 def normalize_type(pd: dict[str, Any]) -> str:
     """Render a property's type signature, ignoring nullability syntax noise.
 
@@ -403,7 +452,12 @@ def normalize_type(pd: dict[str, Any]) -> str:
     t = pd.get("type")
     enum = pd.get("enum")
     ref = pd.get("$ref", "")
-    one_of = pd.get("oneOf")
+    # `anyOf` and `oneOf` both render a union of alternatives, and for a
+    # request-shape audit the distinction (may match several vs exactly one)
+    # carries no signal — the two specs use them interchangeably for the same
+    # field. Treat them identically so an `anyOf` here doesn't read as `?` and
+    # then mismatch an upstream `oneOf`.
+    one_of = pd.get("oneOf") or pd.get("anyOf")
 
     if ref:
         return f"$ref:{ref.rsplit('/', 1)[-1]}"
@@ -495,10 +549,10 @@ def audit(
     report.shared_endpoints = len(shared)
 
     for path, method in shared:
-        live_n = live_dtos[(path, method)]
-        local_n = local_dtos[(path, method)]
-        live_f, live_req = fields_of(live, live_schemas, live_n)
-        local_f, local_req = fields_of(local, local_schemas, local_n)
+        live_n, live_s = live_dtos[(path, method)]
+        local_n, local_s = local_dtos[(path, method)]
+        live_f, live_req = _resolve_body(live, live_schemas, live_n, live_s)
+        local_f, local_req = _resolve_body(local, local_schemas, local_n, local_s)
 
         only_live = sorted(set(live_f) - set(local_f))
         only_local = sorted(set(local_f) - set(live_f))
@@ -510,6 +564,26 @@ def audit(
                 type_diffs.append(
                     (f, normalize_type(live_f[f]), normalize_type(local_f[f]))
                 )
+
+        # One level deeper, for properties that are objects on *both* sides.
+        #
+        # Comparing only top-level field names let #1040 through: our
+        # `POST /sales_orders/search` body and upstream's both exposed a
+        # `filter` property, so the names matched and the audit stopped there
+        # — while the shapes underneath were entirely different (ours nested a
+        # `where` level the API rejects with 422). Sub-fields are reported as
+        # dotted names (`filter.where`), which the override registry already
+        # handles via the existing `only_live` / `only_local` kinds.
+        #
+        # Exactly one level: enough to catch envelope mismatches like #1040
+        # without turning every nested divergence into a finding.
+        for f in sorted(common):
+            live_sub = _object_subfields(live, live_schemas, live_f[f])
+            local_sub = _object_subfields(local, local_schemas, local_f[f])
+            if not live_sub or not local_sub:
+                continue
+            only_live += [f"{f}.{n}" for n in sorted(set(live_sub) - set(local_sub))]
+            only_local += [f"{f}.{n}" for n in sorted(set(local_sub) - set(live_sub))]
 
         ed = EndpointDrift(
             method=method,

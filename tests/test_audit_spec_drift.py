@@ -400,6 +400,137 @@ class TestApplyOverrides:
 # ----------------------------------------------------------------------
 
 
+class TestInlineAndNestedRequestBodies:
+    """Cover the two gaps that let #1040 through.
+
+    A request shape the API rejects with 422 sat in our spec undetected
+    because (a) upstream declares every `/search` body inline and inline
+    bodies were skipped entirely, and (b) the comparison stopped at
+    top-level field names, so a matching `filter` property masked a
+    completely different shape underneath.
+    """
+
+    def test_inline_request_body_is_compared(self) -> None:
+        """An inline upstream body still has its fields compared."""
+        local = _spec(
+            "Req",
+            {"properties": {"a": {"type": "string"}}},
+            path="/x/search",
+            method="post",
+        )
+        live = {
+            "paths": {
+                "/x/search": {
+                    "post": {
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {"b": {"type": "string"}},
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {"schemas": {}},
+        }
+        report = audit(local, live)
+
+        [ed] = report.drifted_endpoints
+        assert ed.live_dto == "(inline)"
+        assert ed.only_live_fields == ["b"]
+        assert ed.only_local_fields == ["a"]
+
+    def test_nested_object_subfields_are_compared(self) -> None:
+        """Sub-fields of an object property are reported as dotted names.
+
+        This is the #1040 signature exactly: both sides expose `filter`, so
+        the top-level names match, but the shapes underneath differ.
+        """
+        local = _spec(
+            "Req",
+            {"properties": {"filter": {"$ref": "#/components/schemas/F"}}},
+            path="/x/search",
+            method="post",
+        )
+        local["components"]["schemas"]["F"] = {
+            "type": "object",
+            "properties": {"where": {"type": "object"}},
+        }
+        live = _spec(
+            "LiveReq",
+            {
+                "properties": {
+                    "filter": {
+                        "type": "object",
+                        "properties": {"status": {"type": "string"}},
+                    }
+                }
+            },
+            path="/x/search",
+            method="post",
+        )
+        report = audit(local, live)
+
+        [ed] = report.drifted_endpoints
+        assert "filter.where" in ed.only_local_fields
+        assert "filter.status" in ed.only_live_fields
+
+    def test_free_form_objects_are_not_descended_into(self) -> None:
+        """An object with no declared properties yields no sub-field noise.
+
+        Upstream models several bodies as open objects; descending into one
+        would report every field on our side as missing upstream.
+        """
+        local = _spec(
+            "Req",
+            {"properties": {"blob": {"$ref": "#/components/schemas/B"}}},
+            path="/x",
+            method="post",
+        )
+        local["components"]["schemas"]["B"] = {
+            "type": "object",
+            "properties": {"a": {"type": "string"}, "b": {"type": "string"}},
+        }
+        live = _spec(
+            "LiveReq",
+            {"properties": {"blob": {"type": "object", "additionalProperties": True}}},
+            path="/x",
+            method="post",
+        )
+        report = audit(local, live)
+
+        dotted = [
+            f
+            for ed in report.drifted_endpoints
+            for f in ed.only_local_fields + ed.only_live_fields
+            if "." in f
+        ]
+        assert dotted == [], f"expected no sub-field findings, got {dotted}"
+
+    def test_anyof_and_oneof_compare_equal(self) -> None:
+        """`anyOf` and `oneOf` unions of the same members are not drift.
+
+        The two specs use them interchangeably. Before this, `anyOf`
+        rendered as `?` and mismatched an upstream `oneOf`.
+        """
+        union = [{"type": "string"}, {"type": "array"}]
+        local = _spec(
+            "Req", {"properties": {"order": {"anyOf": union}}}, path="/x", method="post"
+        )
+        live = _spec(
+            "LiveReq",
+            {"properties": {"order": {"oneOf": union}}},
+            path="/x",
+            method="post",
+        )
+
+        assert audit(local, live).drifted_endpoints == []
+
+
 class TestOnlyLiveEndpointOverride:
     """The `only_live_endpoint` kind defers a whole endpoint upstream publishes.
 

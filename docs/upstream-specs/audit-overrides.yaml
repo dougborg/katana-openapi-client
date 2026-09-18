@@ -93,27 +93,24 @@ overrides:
     kind: type_diff
     field: options
     live: "object"
-    local: "?"
+    local: "oneOf:[$ref:CustomFieldOptionsCreate]"
     category: intentional_local_divergence
     reason: >-
       Live declares `options` as a bare nullable `object` with no properties;
       locally it is a typed `anyOf[$ref:CustomFieldOptionsCreate, null]`
       describing the `{choices: [{label}]}` shape the wire actually accepts
-      (typed under #805). Local is strictly more precise. The `?` in `local:`
-      is an audit rendering artifact — `normalize_type` collapses `anyOf` to
-      `?` (sharpened by #1043).
+      (typed under #805). Local is strictly more precise.
 
   - endpoint: "PATCH /custom_field_definitions/{id}"
     kind: type_diff
     field: options
     live: "object"
-    local: "?"
+    local: "oneOf:[$ref:CustomFieldOptions]"
     category: intentional_local_divergence
     reason: >-
       Same shape as the POST variant: live declares a bare nullable `object`,
       local a typed `anyOf[$ref:CustomFieldOptions, null]` carrying the
-      server-assigned choice `id`s. Local is strictly more precise; the `?` in
-      `local:` is the same `anyOf` rendering artifact.
+      server-assigned choice `id`s. Local is strictly more precise.
 
   # --- manufacturing_order_operation_rows PATCH: local over-constrains -------
   - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
@@ -676,7 +673,7 @@ overrides:
   - endpoint: "PATCH /services/{id}"
     kind: type_diff
     field: custom_fields
-    live: "?"
+    live: "oneOf:[object,array]"
     local: "array"
     category: upstream_correct_local_wrong
     fix_tracked_in: "#1030"
@@ -688,7 +685,7 @@ overrides:
   - endpoint: "POST /variants"
     kind: type_diff
     field: custom_fields
-    live: "?"
+    live: "oneOf:[object,array]"
     local: "array"
     category: upstream_correct_local_wrong
     fix_tracked_in: "#1030"
@@ -700,7 +697,7 @@ overrides:
   - endpoint: "PATCH /variants/{id}"
     kind: type_diff
     field: custom_fields
-    live: "?"
+    live: "oneOf:[object,array]"
     local: "array"
     category: upstream_correct_local_wrong
     fix_tracked_in: "#1030"
@@ -808,3 +805,89 @@ overrides:
       RerankPlace per our convention of dropping the `Dto` suffix. The audit
       compares nested $ref targets by name, so the rename reads as a type
       diff.
+
+  # --- search filters: named component vs upstream's inline object ----------
+  # Upstream declares each search request body inline, so its `filter` reads
+  # as a bare `object`. We name the clause so the generators emit a usable
+  # type instead of an untyped dict. Same fields either side — this is a
+  # modelling choice, not drift. (These endpoints only became comparable at
+  # all once the audit started reading inline request bodies, #1043.)
+  - endpoint: "POST /sales_orders/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:SalesOrderSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Upstream inlines the request body, so `filter` renders as a bare
+      `object`; we name the clause `SalesOrderSearchFilter` so the generated
+      clients get a real type. Field sets match.
+
+  - endpoint: "POST /sales_order_rows/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:SalesOrderRowSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Upstream inlines the request body, so `filter` renders as a bare
+      `object`; we name the clause `SalesOrderRowSearchFilter` so the generated
+      clients get a real type. Field sets match.
+
+  - endpoint: "POST /customers/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:CustomerSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Upstream inlines the request body, so `filter` renders as a bare
+      `object`; we name the clause `CustomerSearchFilter` so the generated
+      clients get a real type. Field sets match.
+
+  - endpoint: "POST /variants/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:VariantSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Upstream inlines the request body, so `filter` renders as a bare
+      `object`; we name the clause `VariantSearchFilter` so the generated
+      clients get a real type. Field sets match.
+
+  - endpoint: "POST /manufacturing_orders/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:ManufacturingOrderSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Upstream inlines the request body, so `filter` renders as a bare
+      `object`; we name the clause `ManufacturingOrderSearchFilter` so the generated
+      clients get a real type. Field sets match.
+
+  - endpoint: "POST /purchase_orders/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:PurchaseOrderSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Upstream inlines the request body, so `filter` renders as a bare
+      `object`; we name the clause `PurchaseOrderSearchFilter` so the generated
+      clients get a real type. Field sets match.
+
+  # --- MO productions: batch_transaction sub-field ---------------------------
+  - endpoint: "POST /manufacturing_order_productions"
+    kind: only_local
+    field: batch_transaction.quantity
+    category: upstream_correct_local_wrong
+    fix_tracked_in: "#1042"
+    reason: >-
+      Local points `batch_transaction` at the shared `BatchTransaction`
+      component, which requires `quantity`; upstream's endpoint-specific
+      `CompletePartiallyBatchDto` declares only `batch_id` and sets
+      `additionalProperties: false`, so sending `quantity` may be rejected.
+      Unverified — this is a write endpoint, so probing it creates real
+      production records. See the issue.
