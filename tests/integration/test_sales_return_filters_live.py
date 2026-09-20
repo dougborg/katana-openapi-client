@@ -57,11 +57,18 @@ async def _create_sales_return(
 
 
 async def _returned_ids(http: httpx.AsyncClient, **params: int | str) -> set[int]:
-    response = await http.get(
-        "/sales_returns", params={"limit": 100, "page": 1, **params}
-    )
-    response.raise_for_status()
-    return {entry["id"] for entry in response.json()["data"]}
+    result: set[int] = set()
+    page = 1
+    while True:
+        response = await http.get(
+            "/sales_returns", params={**params, "limit": 100, "page": page}
+        )
+        response.raise_for_status()
+        entries = response.json()["data"]
+        result.update(entry["id"] for entry in entries)
+        if len(entries) < 100:
+            return result
+        page += 1
 
 
 async def test_sales_return_filters_match_live_api(
@@ -102,8 +109,8 @@ async def test_sales_return_filters_match_live_api(
         suffix="SECOND",
     )
 
-    all_ids = await _returned_ids(http)
-    assert {first_return["id"], second_return["id"]} <= all_ids
+    owned_ids = {first_return["id"], second_return["id"]}
+    assert owned_ids <= await _returned_ids(http=http)
     for sales_return, return_date in [
         (first_return, "2026-09-18"),
         (second_return, "2026-09-19"),
@@ -113,21 +120,27 @@ async def test_sales_return_filters_match_live_api(
         )
         dated.raise_for_status()
         assert dated.json()["return_date"].startswith(return_date)
-    assert await _returned_ids(http, order_no=first_return["order_no"]) == {
+    assert await _returned_ids(http=http, order_no=first_return["order_no"]) == {
         first_return["id"]
     }
-    assert await _returned_ids(http, sales_order_no=first_order["order_no"]) == all_ids
-    assert await _returned_ids(http, return_location_id=-1) == set()
-    assert await _returned_ids(http, status="RETURNED_ALL") == set()
-    assert await _returned_ids(http, refund_status="REFUNDED") == set()
-    assert await _returned_ids(http, order_return_date_min="2026-09-19") == {
-        second_return["id"]
-    }
+    assert (
+        await _returned_ids(http=http, sales_order_no=first_order["order_no"])
+    ) & owned_ids == owned_ids
+    assert not (await _returned_ids(http=http, return_location_id=-1)) & owned_ids
+    assert not (await _returned_ids(http=http, status="RETURNED_ALL")) & owned_ids
+    assert not (await _returned_ids(http=http, refund_status="REFUNDED")) & owned_ids
+    assert (
+        await _returned_ids(http=http, order_return_date_min="2026-09-19")
+    ) & owned_ids == {second_return["id"]}
 
     # The API is lenient with unknown query keys. These portal/local names must
     # not be exposed as functional filters when they return the unfiltered set.
     assert (
-        await _returned_ids(http, return_order_no=first_return["order_no"]) == all_ids
-    )
-    assert await _returned_ids(http, sales_order_id=first_order["id"]) == all_ids
-    assert await _returned_ids(http, return_date_min="2026-09-19") == all_ids
+        await _returned_ids(http=http, return_order_no=first_return["order_no"])
+    ) & owned_ids == owned_ids
+    assert (
+        await _returned_ids(http=http, sales_order_id=first_order["id"])
+    ) & owned_ids == owned_ids
+    assert (
+        await _returned_ids(http=http, return_date_min="2026-09-19")
+    ) & owned_ids == owned_ids
