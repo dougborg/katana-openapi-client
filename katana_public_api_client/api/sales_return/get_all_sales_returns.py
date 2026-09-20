@@ -17,17 +17,17 @@ def _get_kwargs(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    sales_order_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-    return_order_no: str | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    return_location_id: int | Unset = UNSET,
     refund_status: SalesReturnRefundStatus | Unset = UNSET,
-    return_date_min: datetime.datetime | Unset = UNSET,
-    return_date_max: datetime.datetime | Unset = UNSET,
+    order_return_date_min: datetime.datetime | Unset = UNSET,
+    order_return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
     order_created_date_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
@@ -43,8 +43,6 @@ def _get_kwargs(
         json_ids = ids
 
     params["ids"] = json_ids
-
-    params["sales_order_id"] = sales_order_id
 
     params["status"] = status
 
@@ -70,7 +68,9 @@ def _get_kwargs(
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
 
-    params["return_order_no"] = return_order_no
+    params["order_no"] = order_no
+
+    params["return_location_id"] = return_location_id
 
     json_refund_status: str | Unset = UNSET
     if not isinstance(refund_status, Unset):
@@ -78,15 +78,15 @@ def _get_kwargs(
 
     params["refund_status"] = json_refund_status
 
-    json_return_date_min: str | Unset = UNSET
-    if not isinstance(return_date_min, Unset):
-        json_return_date_min = return_date_min.isoformat()
-    params["return_date_min"] = json_return_date_min
+    json_order_return_date_min: str | Unset = UNSET
+    if not isinstance(order_return_date_min, Unset):
+        json_order_return_date_min = order_return_date_min.isoformat()
+    params["order_return_date_min"] = json_order_return_date_min
 
-    json_return_date_max: str | Unset = UNSET
-    if not isinstance(return_date_max, Unset):
-        json_return_date_max = return_date_max.isoformat()
-    params["return_date_max"] = json_return_date_max
+    json_order_return_date_max: str | Unset = UNSET
+    if not isinstance(order_return_date_max, Unset):
+        json_order_return_date_max = order_return_date_max.isoformat()
+    params["order_return_date_max"] = json_order_return_date_max
 
     json_order_created_date_min: str | Unset = UNSET
     if not isinstance(order_created_date_min, Unset):
@@ -155,17 +155,17 @@ def sync_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    sales_order_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-    return_order_no: str | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    return_location_id: int | Unset = UNSET,
     refund_status: SalesReturnRefundStatus | Unset = UNSET,
-    return_date_min: datetime.datetime | Unset = UNSET,
-    return_date_max: datetime.datetime | Unset = UNSET,
+    order_return_date_min: datetime.datetime | Unset = UNSET,
+    order_return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
     order_created_date_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesReturnListResponse]:
@@ -179,17 +179,17 @@ def sync_detailed(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        sales_order_id (int | Unset):
         status (str | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
-        return_order_no (str | Unset):
+        order_no (str | Unset):
+        return_location_id (int | Unset):
         refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
-        return_date_min (datetime.datetime | Unset):
-        return_date_max (datetime.datetime | Unset):
+        order_return_date_min (datetime.datetime | Unset):
+        order_return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
         order_created_date_max (datetime.datetime | Unset):
 
@@ -206,17 +206,17 @@ def sync_detailed(
         limit=limit,
         page=page,
         ids=ids,
-        sales_order_id=sales_order_id,
         status=status,
         include_deleted=include_deleted,
         created_at_min=created_at_min,
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
-        return_order_no=return_order_no,
+        order_no=order_no,
+        return_location_id=return_location_id,
         refund_status=refund_status,
-        return_date_min=return_date_min,
-        return_date_max=return_date_max,
+        order_return_date_min=order_return_date_min,
+        order_return_date_max=order_return_date_max,
         order_created_date_min=order_created_date_min,
         order_created_date_max=order_created_date_max,
     )
@@ -234,17 +234,17 @@ def sync(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    sales_order_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-    return_order_no: str | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    return_location_id: int | Unset = UNSET,
     refund_status: SalesReturnRefundStatus | Unset = UNSET,
-    return_date_min: datetime.datetime | Unset = UNSET,
-    return_date_max: datetime.datetime | Unset = UNSET,
+    order_return_date_min: datetime.datetime | Unset = UNSET,
+    order_return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
     order_created_date_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | SalesReturnListResponse | None:
@@ -258,17 +258,17 @@ def sync(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        sales_order_id (int | Unset):
         status (str | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
-        return_order_no (str | Unset):
+        order_no (str | Unset):
+        return_location_id (int | Unset):
         refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
-        return_date_min (datetime.datetime | Unset):
-        return_date_max (datetime.datetime | Unset):
+        order_return_date_min (datetime.datetime | Unset):
+        order_return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
         order_created_date_max (datetime.datetime | Unset):
 
@@ -286,17 +286,17 @@ def sync(
         limit=limit,
         page=page,
         ids=ids,
-        sales_order_id=sales_order_id,
         status=status,
         include_deleted=include_deleted,
         created_at_min=created_at_min,
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
-        return_order_no=return_order_no,
+        order_no=order_no,
+        return_location_id=return_location_id,
         refund_status=refund_status,
-        return_date_min=return_date_min,
-        return_date_max=return_date_max,
+        order_return_date_min=order_return_date_min,
+        order_return_date_max=order_return_date_max,
         order_created_date_min=order_created_date_min,
         order_created_date_max=order_created_date_max,
     ).parsed
@@ -308,17 +308,17 @@ async def asyncio_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    sales_order_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-    return_order_no: str | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    return_location_id: int | Unset = UNSET,
     refund_status: SalesReturnRefundStatus | Unset = UNSET,
-    return_date_min: datetime.datetime | Unset = UNSET,
-    return_date_max: datetime.datetime | Unset = UNSET,
+    order_return_date_min: datetime.datetime | Unset = UNSET,
+    order_return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
     order_created_date_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesReturnListResponse]:
@@ -332,17 +332,17 @@ async def asyncio_detailed(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        sales_order_id (int | Unset):
         status (str | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
-        return_order_no (str | Unset):
+        order_no (str | Unset):
+        return_location_id (int | Unset):
         refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
-        return_date_min (datetime.datetime | Unset):
-        return_date_max (datetime.datetime | Unset):
+        order_return_date_min (datetime.datetime | Unset):
+        order_return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
         order_created_date_max (datetime.datetime | Unset):
 
@@ -359,17 +359,17 @@ async def asyncio_detailed(
         limit=limit,
         page=page,
         ids=ids,
-        sales_order_id=sales_order_id,
         status=status,
         include_deleted=include_deleted,
         created_at_min=created_at_min,
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
-        return_order_no=return_order_no,
+        order_no=order_no,
+        return_location_id=return_location_id,
         refund_status=refund_status,
-        return_date_min=return_date_min,
-        return_date_max=return_date_max,
+        order_return_date_min=order_return_date_min,
+        order_return_date_max=order_return_date_max,
         order_created_date_min=order_created_date_min,
         order_created_date_max=order_created_date_max,
     )
@@ -385,17 +385,17 @@ async def asyncio(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    sales_order_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-    return_order_no: str | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    return_location_id: int | Unset = UNSET,
     refund_status: SalesReturnRefundStatus | Unset = UNSET,
-    return_date_min: datetime.datetime | Unset = UNSET,
-    return_date_max: datetime.datetime | Unset = UNSET,
+    order_return_date_min: datetime.datetime | Unset = UNSET,
+    order_return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
     order_created_date_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | SalesReturnListResponse | None:
@@ -409,17 +409,17 @@ async def asyncio(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        sales_order_id (int | Unset):
         status (str | Unset):
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
-        return_order_no (str | Unset):
+        order_no (str | Unset):
+        return_location_id (int | Unset):
         refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
-        return_date_min (datetime.datetime | Unset):
-        return_date_max (datetime.datetime | Unset):
+        order_return_date_min (datetime.datetime | Unset):
+        order_return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
         order_created_date_max (datetime.datetime | Unset):
 
@@ -438,17 +438,17 @@ async def asyncio(
             limit=limit,
             page=page,
             ids=ids,
-            sales_order_id=sales_order_id,
             status=status,
             include_deleted=include_deleted,
             created_at_min=created_at_min,
             created_at_max=created_at_max,
             updated_at_min=updated_at_min,
             updated_at_max=updated_at_max,
-            return_order_no=return_order_no,
+            order_no=order_no,
+            return_location_id=return_location_id,
             refund_status=refund_status,
-            return_date_min=return_date_min,
-            return_date_max=return_date_max,
+            order_return_date_min=order_return_date_min,
+            order_return_date_max=order_return_date_max,
             order_created_date_min=order_created_date_min,
             order_created_date_max=order_created_date_max,
         )
