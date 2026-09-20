@@ -12,9 +12,11 @@ from attrs import (
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.batch_transaction import BatchTransaction
     from ..models.manufacturing_order_operation_row import (
         ManufacturingOrderOperationRow,
+    )
+    from ..models.manufacturing_order_production_batch_transaction import (
+        ManufacturingOrderProductionBatchTransaction,
     )
     from ..models.manufacturing_order_production_ingredient import (
         ManufacturingOrderProductionIngredient,
@@ -44,7 +46,7 @@ class CreateManufacturingOrderProductionRequest:
     completed_quantity: float
     completed_date: datetime.datetime | Unset = UNSET
     is_final: bool | Unset = UNSET
-    batch_transaction: BatchTransaction | Unset = UNSET
+    batch_transaction: ManufacturingOrderProductionBatchTransaction | Unset = UNSET
     ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
     operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
     serial_numbers: list[int] | Unset = UNSET
@@ -118,9 +120,11 @@ class CreateManufacturingOrderProductionRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.batch_transaction import BatchTransaction
         from ..models.manufacturing_order_operation_row import (
             ManufacturingOrderOperationRow,
+        )
+        from ..models.manufacturing_order_production_batch_transaction import (
+            ManufacturingOrderProductionBatchTransaction,
         )
         from ..models.manufacturing_order_production_ingredient import (
             ManufacturingOrderProductionIngredient,
@@ -144,11 +148,13 @@ class CreateManufacturingOrderProductionRequest:
         is_final = d.pop("is_final", UNSET)
 
         _batch_transaction = d.pop("batch_transaction", UNSET)
-        batch_transaction: BatchTransaction | Unset
+        batch_transaction: ManufacturingOrderProductionBatchTransaction | Unset
         if isinstance(_batch_transaction, Unset):
             batch_transaction = UNSET
         else:
-            batch_transaction = BatchTransaction.from_dict(_batch_transaction)
+            batch_transaction = ManufacturingOrderProductionBatchTransaction.from_dict(
+                _batch_transaction
+            )
 
         _ingredients = d.pop("ingredients", UNSET)
         ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET

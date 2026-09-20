@@ -1,4 +1,4 @@
-"""Pin required-field sets for create endpoints against the live tenant (#1045).
+"""Pin create-request validation against the live tenant (#1045, #1042).
 
 #1034 relaxed two ``required`` lists to match the live gateway, dropping
 ``stock_adjustment_number`` from ``CreateStockAdjustmentRequest`` and
@@ -11,12 +11,11 @@ omission are different claims, and only the first had been checked.
 wire nor upstream, and the client shipped a body the API answered with 422.
 A published spec is not evidence.
 
-**These tests create nothing.** They POST an *empty* body and read the
-validation error. Validation runs before creation, so no tenant data is
-written and the SDT-tagging + cleanup contract in ``README.md`` does not
-apply. The 422 enumerates precisely which properties the API considers
-required, which is exactly the claim under test — a far cheaper and safer
-probe than creating a real stock adjustment and deleting it afterwards
+**These tests create nothing.** They POST an empty body or a deliberately
+invalid manufacturing-order ID and read the validation error. Validation
+runs before creation, so no tenant data is written and the SDT-tagging +
+cleanup contract in ``README.md`` does not apply. The 422 reports required
+and disallowed properties without creating and deleting real records
 (which would move inventory on the tenant in between).
 
 Assertions are written as **subset/absence** checks rather than exact-set
@@ -98,4 +97,56 @@ async def test_stock_transfer_number_is_not_required(
         "stock_transfer_rows",
     } <= required, (
         f"Expected the three location/row fields to be required; got {required}"
+    )
+
+
+async def test_production_batch_transaction_rejects_quantity(
+    live_client: KatanaClient,
+) -> None:
+    """``batch_transaction`` on a production takes ``batch_id`` alone (#1042).
+
+    Our spec pointed this at the shared ``BatchTransaction``, which requires
+    ``quantity`` — so every body built through the generated client was
+    rejected. Upstream's endpoint-specific ``CompletePartiallyBatchDto``
+    declares only ``batch_id`` under ``additionalProperties: false``.
+
+    Creates nothing: ``manufacturing_order_id`` is deliberately invalid, so
+    the request never reaches record creation. Schema validation reports the
+    extra property alongside the bad id, which is what we assert on.
+    """
+    invalid_id = {"manufacturing_order_id": -1, "completed_quantity": 1}
+
+    async def _errors(body: dict[str, Any]) -> list[str]:
+        response = await live_client.get_async_httpx_client().post(
+            "/manufacturing_order_productions", json=body
+        )
+        assert response.status_code == 422, (
+            f"expected 422 from validation, got {response.status_code}"
+        )
+        details = response.json().get("error", {}).get("details", [])
+        assert any(
+            d.get("path") == "/manufacturing_order_id" and d.get("code") == "minimum"
+            for d in details
+        ), (
+            f"Expected validation to reject the invalid manufacturing order ID: {details}"
+        )
+        return [
+            f"{d.get('path')}:{d.get('code')}"
+            for d in details
+            if "batch_transaction" in str(d.get("path", ""))
+        ]
+
+    with_quantity = await _errors(
+        {**invalid_id, "batch_transaction": {"batch_id": 1, "quantity": 1}}
+    )
+    assert any("additionalProperties" in e for e in with_quantity), (
+        "Sending `quantity` inside batch_transaction is expected to be rejected "
+        f"as an additional property; got {with_quantity}"
+    )
+
+    batch_id_only = await _errors({**invalid_id, "batch_transaction": {"batch_id": 1}})
+    assert not any("additionalProperties" in e for e in batch_id_only), (
+        "batch_id alone must be accepted by the schema; got "
+        f"{batch_id_only} — if this fires, the endpoint's batch_transaction "
+        "shape changed again."
     )

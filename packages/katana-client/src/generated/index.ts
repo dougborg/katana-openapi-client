@@ -1344,6 +1344,7 @@ export type {
   ManufacturingOrderOperationRowListResponse,
   ManufacturingOrderOperationRowResponse,
   ManufacturingOrderProduction,
+  ManufacturingOrderProductionBatchTransaction,
   ManufacturingOrderProductionIngredient,
   ManufacturingOrderProductionIngredientListResponse,
   ManufacturingOrderProductionIngredientResponse,

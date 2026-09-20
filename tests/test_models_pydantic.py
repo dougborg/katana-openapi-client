@@ -636,6 +636,62 @@ class TestProductionSerialNumbers:
             )
 
 
+class TestProductionBatchTransaction:
+    """Production allocations send batch_id alone, unlike shared allocations (#1042)."""
+
+    def test_batch_id_only_round_trips_through_both_clients(self) -> None:
+        from katana_public_api_client.models import (
+            CreateManufacturingOrderProductionRequest as AttrsRequest,
+            ManufacturingOrderProductionBatchTransaction as AttrsBatch,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CreateManufacturingOrderProductionRequest,
+        )
+
+        request = AttrsRequest(
+            manufacturing_order_id=3001,
+            completed_quantity=25,
+            batch_transaction=AttrsBatch(batch_id=101),
+        )
+        expected = {
+            "manufacturing_order_id": 3001,
+            "completed_quantity": 25,
+            "batch_transaction": {"batch_id": 101},
+        }
+        assert request.to_dict() == expected
+        assert AttrsRequest.from_dict(expected).to_dict() == expected
+        pydantic_request = CreateManufacturingOrderProductionRequest.from_attrs(request)
+        assert pydantic_request.model_dump(exclude_none=True) == expected
+        assert pydantic_request.to_attrs().to_dict() == expected
+
+    def test_production_rejects_quantity(self) -> None:
+        from pydantic import ValidationError
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CreateManufacturingOrderProductionRequest,
+        )
+
+        with pytest.raises(ValidationError) as exc:
+            CreateManufacturingOrderProductionRequest.model_validate(
+                {
+                    "manufacturing_order_id": 3001,
+                    "completed_quantity": 25,
+                    "batch_transaction": {"batch_id": 101, "quantity": 25},
+                }
+            )
+        assert any(
+            error["loc"] == ("batch_transaction", "quantity")
+            and error["type"] == "extra_forbidden"
+            for error in exc.value.errors()
+        )
+
+    def test_shared_batch_transaction_keeps_quantity(self) -> None:
+        from katana_public_api_client.models import BatchTransaction
+
+        allocation = BatchTransaction(batch_id=101, quantity=25)
+        assert allocation.to_dict() == {"batch_id": 101, "quantity": 25}
+
+
 class TestWireNullTolerance:
     """Generated ``from_dict`` parsers must tolerate ``null`` for spec-nullable fields.
 
