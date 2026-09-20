@@ -54,8 +54,10 @@ jobs:
     env:
       KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
       KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
-      KATANA_TEST_LEDGER_DIR: ${{ runner.temp }}/katana-test-ledgers
     steps:
+      - name: Configure test artifact ledger
+        run: echo "KATANA_TEST_LEDGER_DIR=$RUNNER_TEMP/katana-test-ledgers" >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
