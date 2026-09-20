@@ -149,6 +149,7 @@ async def test_get_variant_details_surfaces_every_variant_field():
     assert result.minimum_order_quantity == 1
     # Nested
     assert len(result.config_attributes) == 2
+    assert result.custom_fields is not None
     assert len(result.custom_fields) == 1
     # Timestamps — deleted_at is the pre-#346 gap:
     assert result.created_at == "2024-01-15T08:00:00+00:00"
