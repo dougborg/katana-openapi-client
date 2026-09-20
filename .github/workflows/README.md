@@ -66,8 +66,8 @@ release-please's own branch (`release-please--*`) in this repository
 **Purpose:** Glue that keeps the release PR internally consistent - resyncs `uv.lock`
 to the versions release-please just bumped, and keeps
 `katana_mcp_server/pyproject.toml`'s `katana-openapi-client>=X` floor equal to the
-client version the PR proposes. Both land as a commit on the release PR branch, never
-on `main`.
+client version the PR proposes. It also formats the generated client changelog to
+satisfy CI. These changes land as a commit on the release PR branch, never on `main`.
 
 **Permissions:** `contents: write`
 

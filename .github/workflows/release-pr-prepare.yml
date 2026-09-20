@@ -3,7 +3,7 @@ name: Release PR Prepare
 # Glue that runs ONLY on release-please's own PR branch, never on main. It
 # resyncs uv.lock to the versions release-please just bumped and keeps the
 # MCP server's client-version floor (katana_mcp_server/pyproject.toml's
-# katana-openapi-client>=X) truthful. Both changes land as a commit on the
+# katana-openapi-client>=X) truthful. Changes land as a commit on the
 # release PR branch, so they merge atomically with the version bump in a
 # single commit - nothing here ever touches main directly.
 #
@@ -75,17 +75,20 @@ jobs:
       - name: Resync uv.lock
         run: uv lock
 
+      - name: Format generated client changelog
+        run: uv run --frozen --extra dev mdformat docs/CHANGELOG.md --wrap 88
+
       - name: Commit if changed
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- uv.lock katana_mcp_server/pyproject.toml; then
+          if git diff --quiet -- uv.lock katana_mcp_server/pyproject.toml docs/CHANGELOG.md; then
             echo "Nothing to commit"
             exit 0
           fi
           git config user.name "dougborg-release-please[bot]"
           git config user.email "309159260+dougborg-release-please[bot]@users.noreply.github.com"
-          git add uv.lock katana_mcp_server/pyproject.toml
-          git commit -m "chore(release): sync uv.lock and MCP client pin"
+          git add uv.lock katana_mcp_server/pyproject.toml docs/CHANGELOG.md
+          git commit -m "chore(release): sync lockfile, client pin, and changelog formatting"
           git push origin "HEAD:$HEAD_REF"
