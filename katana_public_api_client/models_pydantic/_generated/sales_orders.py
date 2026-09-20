@@ -10,7 +10,12 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Optional
 
-from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
+from pydantic import (
+    AnyUrl,
+    AwareDatetime,
+    ConfigDict,
+    Field,
+)
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,

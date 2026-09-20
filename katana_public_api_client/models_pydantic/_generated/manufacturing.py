@@ -11,7 +11,11 @@ from enum import StrEnum
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from pydantic import AwareDatetime, ConfigDict, Field
+from pydantic import (
+    AwareDatetime,
+    ConfigDict,
+    Field,
+)
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
@@ -112,6 +116,12 @@ class ManufacturingOrderIngredientTraceabilityRequest(KatanaPydanticBase):
 
 
 class CreateManufacturingOrderRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     status: Annotated[
         Status | None,
         Field(
@@ -166,6 +176,12 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
 
 
 class UpdateManufacturingOrderRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     status: Annotated[
         ManufacturingOrderStatus | None,
         Field(description="Updated production status of the manufacturing order"),
@@ -274,6 +290,12 @@ class ManufacturingOrderOperationProduction(DeletableEntity):
 
 
 class CreateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     manufacturing_order_id: Annotated[
         int,
         Field(description="ID of the manufacturing order this ingredient belongs to"),
@@ -306,6 +328,12 @@ class CreateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
 
 
 class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     variant_id: Annotated[
         int | None,
         Field(description="Updated ID of the ingredient variant being consumed"),
@@ -521,6 +549,12 @@ class BomRow(KatanaPydanticBase):
 
 
 class CreateBomRowRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     product_item_id: Annotated[
         int,
         Field(
@@ -563,6 +597,12 @@ class BatchCreateBomRowsRequest(KatanaPydanticBase):
 
 
 class UpdateBomRowRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     ingredient_variant_id: Annotated[
         int | None,
         Field(
@@ -923,6 +963,12 @@ class ManufacturingOrderOperationRow(DeletableEntity):
 
 
 class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     manufacturing_order_id: Annotated[
         int,
         Field(description="ID of the manufacturing order this operation belongs to"),
@@ -984,6 +1030,12 @@ class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     operation_id: Annotated[
         int | None, Field(description="ID of the operation being performed")
     ] = None

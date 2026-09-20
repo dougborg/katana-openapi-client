@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.update_customer_request_custom_fields_type_0 import (
+        UpdateCustomerRequestCustomFieldsType0,
+    )
+
 
 T = TypeVar("T", bound="UpdateCustomerRequest")
 
@@ -21,6 +27,7 @@ class UpdateCustomerRequest:
             'discount_rate': 7.5, 'default_shipping_id': 2}
     """
 
+    custom_fields: Unset | UpdateCustomerRequestCustomFieldsType0 | None = UNSET
     name: str | Unset = UNSET
     first_name: str | Unset | None = UNSET
     last_name: str | Unset | None = UNSET
@@ -35,6 +42,18 @@ class UpdateCustomerRequest:
     default_shipping_id: int | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_customer_request_custom_fields_type_0 import (
+            UpdateCustomerRequestCustomFieldsType0,
+        )
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, UpdateCustomerRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         name = self.name
 
         first_name: str | Unset | None
@@ -106,6 +125,8 @@ class UpdateCustomerRequest:
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if name is not UNSET:
             field_dict["name"] = name
         if first_name is not UNSET:
@@ -135,7 +156,33 @@ class UpdateCustomerRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.update_customer_request_custom_fields_type_0 import (
+            UpdateCustomerRequestCustomFieldsType0,
+        )
+
         d = dict(src_dict)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> Unset | UpdateCustomerRequestCustomFieldsType0 | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = UpdateCustomerRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(Unset | UpdateCustomerRequestCustomFieldsType0 | None, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         name = d.pop("name", UNSET)
 
         def _parse_first_name(data: object) -> str | Unset | None:
@@ -240,6 +287,7 @@ class UpdateCustomerRequest:
         )
 
         update_customer_request = cls(
+            custom_fields=custom_fields,
             name=name,
             first_name=first_name,
             last_name=last_name,

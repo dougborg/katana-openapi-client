@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -9,6 +9,12 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.create_bom_row_request_custom_fields_type_0 import (
+        CreateBomRowRequestCustomFieldsType0,
+    )
+
 
 T = TypeVar("T", bound="CreateBomRowRequest")
 
@@ -25,16 +31,29 @@ class CreateBomRowRequest:
     product_item_id: int
     product_variant_id: int
     ingredient_variant_id: int
+    custom_fields: CreateBomRowRequestCustomFieldsType0 | Unset | None = UNSET
     quantity: float | Unset | None = UNSET
     notes: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_bom_row_request_custom_fields_type_0 import (
+            CreateBomRowRequestCustomFieldsType0,
+        )
+
         product_item_id = self.product_item_id
 
         product_variant_id = self.product_variant_id
 
         ingredient_variant_id = self.ingredient_variant_id
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, CreateBomRowRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         quantity: float | Unset | None
         if isinstance(self.quantity, Unset):
@@ -57,6 +76,8 @@ class CreateBomRowRequest:
                 "ingredient_variant_id": ingredient_variant_id,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if quantity is not UNSET:
             field_dict["quantity"] = quantity
         if notes is not UNSET:
@@ -66,12 +87,37 @@ class CreateBomRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_bom_row_request_custom_fields_type_0 import (
+            CreateBomRowRequestCustomFieldsType0,
+        )
+
         d = dict(src_dict)
         product_item_id = d.pop("product_item_id")
 
         product_variant_id = d.pop("product_variant_id")
 
         ingredient_variant_id = d.pop("ingredient_variant_id")
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateBomRowRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = CreateBomRowRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CreateBomRowRequestCustomFieldsType0 | Unset | None, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         def _parse_quantity(data: object) -> float | Unset | None:
             if data is None:
@@ -95,6 +141,7 @@ class CreateBomRowRequest:
             product_item_id=product_item_id,
             product_variant_id=product_variant_id,
             ingredient_variant_id=ingredient_variant_id,
+            custom_fields=custom_fields,
             quantity=quantity,
             notes=notes,
         )

@@ -10,7 +10,7 @@ from __future__ import annotations
 import datetime
 import enum
 import types
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -23,6 +23,7 @@ from typing import (
     get_origin,
 )
 
+from pydantic import RootModel
 from sqlmodel import SQLModel
 from sqlmodel._compat import SQLModelConfig
 
@@ -39,13 +40,6 @@ def _is_unset(value: Any) -> bool:
     fields that were not provided in the API response.
     """
     return type(value).__name__ == "Unset"
-
-
-def _get_unset() -> Any:
-    """Get the UNSET sentinel value from client_types."""
-    from ..client_types import UNSET
-
-    return UNSET
 
 
 # Katana serializes some absent values as the literal *string* ``"null"`` or
@@ -203,6 +197,14 @@ class KatanaPydanticBase(SQLModel):
 
             # Convert UNSET -> None
             if _is_unset(value):
+                name = (
+                    field_name[:-1]
+                    if field_name.endswith("_") and not field_name.startswith("_")
+                    else field_name
+                )
+                field_info = cls.model_fields.get(name)
+                if field_info is not None and not field_info.is_required():
+                    continue
                 value = None
             elif isinstance(value, list):
                 # Handle lists of nested objects
@@ -261,68 +263,59 @@ class KatanaPydanticBase(SQLModel):
             msg = f"No attrs model registered for {type(self).__name__}"
             raise RuntimeError(msg)
 
-        # Get UNSET sentinel
-        unset = _get_unset()
-
-        # Build kwargs for attrs constructor
-        kwargs: dict[str, Any] = {}
-
-        # Get attrs field info to know which fields accept UNSET
-        attrs_fields: dict[str, Any] = {}
-        if hasattr(attrs_class, "__attrs_attrs__"):
-            attrs_attrs = cast(Iterable[Any], attrs_class.__attrs_attrs__)
-            for attr in attrs_attrs:
-                attrs_fields[attr.name] = attr
-
-        for field_name, field_value in self.model_dump().items():
-            # Map field names (type -> type_ for attrs)
-            attrs_field_name = field_name
-            # Check if attrs model uses trailing underscore (skip private fields)
-            if not field_name.startswith("_") and f"{field_name}_" in attrs_fields:
-                attrs_field_name = f"{field_name}_"
-
-            # Convert None -> UNSET where the attrs field type includes Unset
-            converted_value = field_value
-            if field_value is None and attrs_field_name in attrs_fields:
-                # Check if the field type includes Unset
-                attr_info = attrs_fields[attrs_field_name]
-                type_hint = attr_info.type if hasattr(attr_info, "type") else None
-                if type_hint is not None and "Unset" in str(type_hint):
-                    converted_value = unset
-
-            # Handle nested objects
-            if isinstance(converted_value, dict):
-                # Try to find the corresponding attrs class for nested objects
-                nested_pydantic_class = _get_field_type(type(self), field_name)
-                if nested_pydantic_class and issubclass(
-                    nested_pydantic_class, KatanaPydanticBase
-                ):
-                    nested_attrs_class = _registry.get_attrs_class(
-                        nested_pydantic_class
-                    )
-                    if nested_attrs_class and hasattr(nested_attrs_class, "from_dict"):
-                        from_dict_fn = cast(
-                            Callable[[dict[str, Any]], Any],
-                            nested_attrs_class.from_dict,
-                        )
-                        converted_value = from_dict_fn(converted_value)
-            elif isinstance(converted_value, list):
-                # Keep the typed items: model_dump() has already reduced nested
-                # models to dicts, which attrs serializers cannot call to_dict()
-                # on. Converting the original items also preserves their own
-                # None -> UNSET rules (including omitted batch quantity).
-                converted_value = [
-                    _convert_to_attrs_value(item, _registry, attrs_fields, None)
-                    for item in getattr(self, field_name)
-                ]
-            else:
-                converted_value = _convert_to_attrs_value(
-                    converted_value, _registry, attrs_fields, attrs_field_name
+        # The generated parser knows each field's actual wire shape, including
+        # free-form object wrappers, unions and RootModel-backed legacy arrays.
+        # Reconstruct through it instead of guessing nested types from generic
+        # annotations or passing model_dump dictionaries to attrs constructors.
+        data = self.model_dump(mode="json", by_alias=True, exclude_unset=True)
+        attrs_fields = {
+            attr.name: attr for attr in getattr(attrs_class, "__attrs_attrs__", ())
+        }
+        for field_name, field_info in type(self).model_fields.items():
+            wire_name = field_info.serialization_alias or field_info.alias or field_name
+            if wire_name in data and data[wire_name] is not None:
+                data[wire_name] = _nested_wire_value(
+                    getattr(self, field_name), data[wire_name]
                 )
+            attrs_name = (
+                f"{field_name}_" if f"{field_name}_" in attrs_fields else field_name
+            )
+            attr = attrs_fields.get(attrs_name)
+            if data.get(wire_name) is not None or attr is None:
+                continue
+            annotation = str(attr.type)
+            if "Unset" in annotation and (
+                field_name not in self.model_fields_set or "None" not in annotation
+            ):
+                data.pop(wire_name, None)
+        if not hasattr(attrs_class, "from_dict"):
+            raise TypeError(
+                f"Registered attrs model {attrs_class.__name__} has no wire parser"
+            )
+        from_dict = cast(Callable[[dict[str, Any]], Any], attrs_class.from_dict)
+        return from_dict(data)
 
-            kwargs[attrs_field_name] = converted_value
 
-        return attrs_class(**kwargs)
+def _nested_wire_value(value: Any, serialized: Any) -> Any:
+    """Apply nested models' UNSET/null rules without losing maps or root arrays."""
+    from . import _registry
+
+    if isinstance(value, KatanaPydanticBase):
+        if _registry.get_attrs_class(type(value)) is not None:
+            return value.to_attrs().to_dict()
+    elif isinstance(value, RootModel):
+        return _nested_wire_value(value.root, serialized)
+    elif isinstance(value, list) and isinstance(serialized, list):
+        return [
+            _nested_wire_value(item, wire)
+            for item, wire in zip(value, serialized, strict=True)
+        ]
+    elif isinstance(value, dict) and isinstance(serialized, dict):
+        return {
+            key: _nested_wire_value(value[key], wire)
+            for key, wire in serialized.items()
+        }
+    return serialized
 
 
 def _convert_nested_value(value: Any, registry: Any) -> Any:
@@ -393,71 +386,3 @@ def _convert_nested_value(value: Any, registry: Any) -> Any:
         )
 
     return value
-
-
-def _convert_to_attrs_value(
-    value: Any,
-    registry: Any,
-    attrs_fields: dict[str, Any],
-    field_name: str | None,
-) -> Any:
-    """Convert a value from pydantic to attrs representation."""
-    if value is None:
-        return value
-
-    # Handle pydantic models -> attrs models
-    if isinstance(value, KatanaPydanticBase):
-        return value.to_attrs()
-
-    # Handle enums - the attrs model expects enum instances
-    if isinstance(value, str) and field_name and field_name in attrs_fields:
-        attr_info = attrs_fields[field_name]
-        type_hint = attr_info.type if hasattr(attr_info, "type") else None
-        # Try to reconstruct enum from string value
-        if type_hint:
-            enum_class = _extract_enum_class(type_hint)
-            if enum_class:
-                try:
-                    return enum_class(value)
-                except ValueError:
-                    pass
-
-    return value
-
-
-def _extract_enum_class(type_hint: Any) -> type[enum.Enum] | None:
-    """Extract an enum class from a type hint."""
-    # Handle Union types
-    origin = get_origin(type_hint)
-    if origin is not None:
-        args = get_args(type_hint)
-        for arg in args:
-            result = _extract_enum_class(arg)
-            if result:
-                return result
-        return None
-
-    # Check if it's an enum class
-    if isinstance(type_hint, type) and issubclass(type_hint, enum.Enum):
-        return type_hint
-
-    return None
-
-
-def _get_field_type(
-    model_class: type[KatanaPydanticBase], field_name: str
-) -> type | None:
-    """Get the type of a field from a pydantic model class."""
-    if field_name in model_class.model_fields:
-        field_info = model_class.model_fields[field_name]
-        annotation = field_info.annotation
-        if annotation:
-            # Handle Optional types
-            origin = get_origin(annotation)
-            if origin is not None:
-                args = get_args(annotation)
-                for arg in args:
-                    if arg is not type(None):
-                        return arg
-            return annotation
-    return None

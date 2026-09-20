@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.update_purchase_order_row_request_custom_fields_type_0 import (
+        UpdatePurchaseOrderRowRequestCustomFieldsType0,
+    )
+
 
 T = TypeVar("T", bound="UpdatePurchaseOrderRowRequest")
 
@@ -20,6 +26,7 @@ class UpdatePurchaseOrderRowRequest:
             'arrival_date': '2024-02-15T10:00:00Z'}
     """
 
+    custom_fields: Unset | UpdatePurchaseOrderRowRequestCustomFieldsType0 | None = UNSET
     quantity: float | Unset = UNSET
     variant_id: int | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
@@ -33,6 +40,20 @@ class UpdatePurchaseOrderRowRequest:
     location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_purchase_order_row_request_custom_fields_type_0 import (
+            UpdatePurchaseOrderRowRequestCustomFieldsType0,
+        )
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, UpdatePurchaseOrderRowRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         quantity = self.quantity
 
         variant_id = self.variant_id
@@ -62,6 +83,8 @@ class UpdatePurchaseOrderRowRequest:
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if quantity is not UNSET:
             field_dict["quantity"] = quantity
         if variant_id is not UNSET:
@@ -89,7 +112,37 @@ class UpdatePurchaseOrderRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.update_purchase_order_row_request_custom_fields_type_0 import (
+            UpdatePurchaseOrderRowRequestCustomFieldsType0,
+        )
+
         d = dict(src_dict)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> Unset | UpdatePurchaseOrderRowRequestCustomFieldsType0 | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    UpdatePurchaseOrderRowRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                Unset | UpdatePurchaseOrderRowRequestCustomFieldsType0 | None, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         quantity = d.pop("quantity", UNSET)
 
         variant_id = d.pop("variant_id", UNSET)
@@ -123,6 +176,7 @@ class UpdatePurchaseOrderRowRequest:
         location_id = d.pop("location_id", UNSET)
 
         update_purchase_order_row_request = cls(
+            custom_fields=custom_fields,
             quantity=quantity,
             variant_id=variant_id,
             tax_rate_id=tax_rate_id,

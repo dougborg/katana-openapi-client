@@ -169,3 +169,22 @@ def test_function_body_end_uses_indentation(regen: Any) -> None:
     body = sample[:end]
     assert "from_dict" not in body
     assert "_parse_customer_ref" not in body
+
+
+def test_valid_empty_object_is_not_normalized_to_null(regen: ModuleType) -> None:
+    result, count = regen._insert_empty_dict_normalization(
+        _TYPED_PARSER, empty_object_classes={"SalesOrderShippingFee"}
+    )
+    assert count == 0
+    assert result == _TYPED_PARSER
+
+
+def test_nullable_array_keeps_empty_dict_normalization(regen: ModuleType) -> None:
+    array_parser = _TYPED_PARSER.replace(
+        "isinstance(data, dict)", "isinstance(data, list)"
+    ).replace("cast(Mapping[str, Any], data)", "cast(Mapping[str, Any], item_data)")
+    result, count = regen._insert_empty_dict_normalization(
+        array_parser, empty_object_classes={"SalesOrderShippingFee"}
+    )
+    assert count == 1
+    assert "if isinstance(data, dict) and not data:" in result

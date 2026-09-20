@@ -8,6 +8,9 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.create_supplier_request_custom_fields_type_0 import (
+        CreateSupplierRequestCustomFieldsType0,
+    )
     from ..models.supplier_address_request import SupplierAddressRequest
 
 
@@ -25,6 +28,7 @@ class CreateSupplierRequest:
     """
 
     name: str
+    custom_fields: CreateSupplierRequestCustomFieldsType0 | Unset | None = UNSET
     currency: str | Unset = UNSET
     email: str | Unset = UNSET
     phone: str | Unset = UNSET
@@ -32,7 +36,19 @@ class CreateSupplierRequest:
     addresses: list[SupplierAddressRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_supplier_request_custom_fields_type_0 import (
+            CreateSupplierRequestCustomFieldsType0,
+        )
+
         name = self.name
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, CreateSupplierRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         currency = self.currency
 
@@ -56,6 +72,8 @@ class CreateSupplierRequest:
                 "name": name,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if currency is not UNSET:
             field_dict["currency"] = currency
         if email is not UNSET:
@@ -71,12 +89,36 @@ class CreateSupplierRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_supplier_request_custom_fields_type_0 import (
+            CreateSupplierRequestCustomFieldsType0,
+        )
         from ..models.supplier_address_request import (
             SupplierAddressRequest,
         )
 
         d = dict(src_dict)
         name = d.pop("name")
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateSupplierRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = CreateSupplierRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CreateSupplierRequestCustomFieldsType0 | Unset | None, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         currency = d.pop("currency", UNSET)
 
@@ -99,6 +141,7 @@ class CreateSupplierRequest:
 
         create_supplier_request = cls(
             name=name,
+            custom_fields=custom_fields,
             currency=currency,
             email=email,
             phone=phone,

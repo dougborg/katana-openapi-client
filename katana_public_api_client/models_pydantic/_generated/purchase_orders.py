@@ -10,7 +10,12 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, Optional
 
-from pydantic import AwareDatetime, ConfigDict, Field, RootModel
+from pydantic import (
+    AwareDatetime,
+    ConfigDict,
+    Field,
+    RootModel,
+)
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
@@ -227,6 +232,12 @@ class UpdatePurchaseOrderRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     order_no: Annotated[
         str | None,
         Field(
@@ -511,6 +522,12 @@ class CreatePurchaseOrderRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     purchase_order_id: Annotated[
         int,
         Field(
@@ -585,6 +602,12 @@ class UpdatePurchaseOrderRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     quantity: Annotated[
         float | None,
         Field(description="Updatable only when received_date is null", le=1e17),
@@ -763,6 +786,12 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     order_no: Annotated[
         str | None,
         Field(

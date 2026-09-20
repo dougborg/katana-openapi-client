@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from ..models.update_variant_request_custom_fields_item import (
         UpdateVariantRequestCustomFieldsItem,
     )
+    from ..models.update_variant_request_custom_fields_type_0 import (
+        UpdateVariantRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="UpdateVariantRequest")
@@ -42,9 +45,17 @@ class UpdateVariantRequest:
     lead_time: int | Unset | None = UNSET
     minimum_order_quantity: float | Unset = UNSET
     config_attributes: list[UpdateVariantRequestConfigAttributesItem] | Unset = UNSET
-    custom_fields: list[UpdateVariantRequestCustomFieldsItem] | Unset = UNSET
+    custom_fields: (
+        list[UpdateVariantRequestCustomFieldsItem]
+        | Unset
+        | UpdateVariantRequestCustomFieldsType0
+    ) = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_variant_request_custom_fields_type_0 import (
+            UpdateVariantRequestCustomFieldsType0,
+        )
+
         sku = self.sku
 
         sales_price = self.sales_price
@@ -74,12 +85,16 @@ class UpdateVariantRequest:
                 config_attributes_item = config_attributes_item_data.to_dict()
                 config_attributes.append(config_attributes_item)
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
+        custom_fields: dict[str, Any] | list[dict[str, Any]] | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, UpdateVariantRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for custom_fields_type_1_item_data in self.custom_fields:
+                custom_fields_type_1_item = custom_fields_type_1_item_data.to_dict()
+                custom_fields.append(custom_fields_type_1_item)
 
         field_dict: dict[str, Any] = {}
 
@@ -114,6 +129,9 @@ class UpdateVariantRequest:
         )
         from ..models.update_variant_request_custom_fields_item import (
             UpdateVariantRequestCustomFieldsItem,
+        )
+        from ..models.update_variant_request_custom_fields_type_0 import (
+            UpdateVariantRequestCustomFieldsType0,
         )
 
         d = dict(src_dict)
@@ -155,16 +173,41 @@ class UpdateVariantRequest:
 
                 config_attributes.append(config_attributes_item)
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[UpdateVariantRequestCustomFieldsItem] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = UpdateVariantRequestCustomFieldsItem.from_dict(
-                    cast(Mapping[str, Any], custom_fields_item_data)
+        def _parse_custom_fields(
+            data: object,
+        ) -> (
+            list[UpdateVariantRequestCustomFieldsItem]
+            | Unset
+            | UpdateVariantRequestCustomFieldsType0
+        ):
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = UpdateVariantRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
                 )
 
-                custom_fields.append(custom_fields_item)
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            if not isinstance(data, list):
+                raise TypeError()
+            custom_fields_type_1 = []
+            _custom_fields_type_1 = data
+            for custom_fields_type_1_item_data in _custom_fields_type_1:
+                custom_fields_type_1_item = (
+                    UpdateVariantRequestCustomFieldsItem.from_dict(
+                        cast(Mapping[str, Any], custom_fields_type_1_item_data)
+                    )
+                )
+
+                custom_fields_type_1.append(custom_fields_type_1_item)
+
+            return custom_fields_type_1
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         update_variant_request = cls(
             sku=sku,

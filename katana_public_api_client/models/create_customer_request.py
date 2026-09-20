@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from ..models.create_customer_request_addresses_item import (
         CreateCustomerRequestAddressesItem,
     )
+    from ..models.create_customer_request_custom_fields_type_0 import (
+        CreateCustomerRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="CreateCustomerRequest")
@@ -31,6 +34,7 @@ class CreateCustomerRequest:
     """
 
     name: str
+    custom_fields: CreateCustomerRequestCustomFieldsType0 | Unset | None = UNSET
     first_name: str | Unset | None = UNSET
     last_name: str | Unset | None = UNSET
     company: str | Unset | None = UNSET
@@ -45,7 +49,19 @@ class CreateCustomerRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_customer_request_custom_fields_type_0 import (
+            CreateCustomerRequestCustomFieldsType0,
+        )
+
         name = self.name
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, CreateCustomerRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         first_name: str | Unset | None
         if isinstance(self.first_name, Unset):
@@ -121,6 +137,8 @@ class CreateCustomerRequest:
                 "name": name,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if first_name is not UNSET:
             field_dict["first_name"] = first_name
         if last_name is not UNSET:
@@ -151,9 +169,33 @@ class CreateCustomerRequest:
         from ..models.create_customer_request_addresses_item import (
             CreateCustomerRequestAddressesItem,
         )
+        from ..models.create_customer_request_custom_fields_type_0 import (
+            CreateCustomerRequestCustomFieldsType0,
+        )
 
         d = dict(src_dict)
         name = d.pop("name")
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateCustomerRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = CreateCustomerRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CreateCustomerRequestCustomFieldsType0 | Unset | None, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         def _parse_first_name(data: object) -> str | Unset | None:
             if data is None:
@@ -258,6 +300,7 @@ class CreateCustomerRequest:
 
         create_customer_request = cls(
             name=name,
+            custom_fields=custom_fields,
             first_name=first_name,
             last_name=last_name,
             company=company,

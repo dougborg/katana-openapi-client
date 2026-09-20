@@ -50,10 +50,16 @@ from .cost_distribution_method import CostDistributionMethod
 from .create_bin_transfer_request import CreateBinTransferRequest
 from .create_bin_transfer_row_request import CreateBinTransferRowRequest
 from .create_bom_row_request import CreateBomRowRequest
+from .create_bom_row_request_custom_fields_type_0 import (
+    CreateBomRowRequestCustomFieldsType0,
+)
 from .create_custom_field_definition_request import CreateCustomFieldDefinitionRequest
 from .create_customer_address_request import CreateCustomerAddressRequest
 from .create_customer_request import CreateCustomerRequest
 from .create_customer_request_addresses_item import CreateCustomerRequestAddressesItem
+from .create_customer_request_custom_fields_type_0 import (
+    CreateCustomerRequestCustomFieldsType0,
+)
 from .create_demand_forecast_request import CreateDemandForecastRequest
 from .create_demand_forecast_request_periods_item import (
     CreateDemandForecastRequestPeriodsItem,
@@ -64,6 +70,9 @@ from .create_inventory_safety_stock_level_request import (
 )
 from .create_manufacturing_order_operation_row_request import (
     CreateManufacturingOrderOperationRowRequest,
+)
+from .create_manufacturing_order_operation_row_request_custom_fields_type_0 import (
+    CreateManufacturingOrderOperationRowRequestCustomFieldsType0,
 )
 from .create_manufacturing_order_operation_row_request_status import (
     CreateManufacturingOrderOperationRowRequestStatus,
@@ -77,7 +86,13 @@ from .create_manufacturing_order_recipe_row_request import (
 from .create_manufacturing_order_recipe_row_request_batch_transactions_item import (
     CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
 )
+from .create_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+    CreateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+)
 from .create_manufacturing_order_request import CreateManufacturingOrderRequest
+from .create_manufacturing_order_request_custom_fields_type_0 import (
+    CreateManufacturingOrderRequestCustomFieldsType0,
+)
 from .create_manufacturing_order_request_status import (
     CreateManufacturingOrderRequestStatus,
 )
@@ -103,7 +118,13 @@ from .create_purchase_order_additional_cost_row_request import (
 )
 from .create_purchase_order_initial_status import CreatePurchaseOrderInitialStatus
 from .create_purchase_order_request import CreatePurchaseOrderRequest
+from .create_purchase_order_request_custom_fields_type_0 import (
+    CreatePurchaseOrderRequestCustomFieldsType0,
+)
 from .create_purchase_order_row_request import CreatePurchaseOrderRowRequest
+from .create_purchase_order_row_request_custom_fields_type_0 import (
+    CreatePurchaseOrderRowRequestCustomFieldsType0,
+)
 from .create_recipes_request import CreateRecipesRequest
 from .create_recipes_request_rows_item import CreateRecipesRequestRowsItem
 from .create_sales_order_address_request import CreateSalesOrderAddressRequest
@@ -160,6 +181,9 @@ from .create_stocktake_row_request_stocktake_rows_item import (
 )
 from .create_supplier_address_request import CreateSupplierAddressRequest
 from .create_supplier_request import CreateSupplierRequest
+from .create_supplier_request_custom_fields_type_0 import (
+    CreateSupplierRequestCustomFieldsType0,
+)
 from .create_tax_rate_request import CreateTaxRateRequest
 from .create_variant_request import CreateVariantRequest
 from .create_variant_request_config_attributes_item import (
@@ -167,6 +191,9 @@ from .create_variant_request_config_attributes_item import (
 )
 from .create_variant_request_custom_fields_item import (
     CreateVariantRequestCustomFieldsItem,
+)
+from .create_variant_request_custom_fields_type_0 import (
+    CreateVariantRequestCustomFieldsType0,
 )
 from .create_webhook_request import CreateWebhookRequest
 from .custom_field import CustomField
@@ -548,11 +575,20 @@ from .update_bin_transfer_request import UpdateBinTransferRequest
 from .update_bin_transfer_row_request import UpdateBinTransferRowRequest
 from .update_bin_transfer_status_request import UpdateBinTransferStatusRequest
 from .update_bom_row_request import UpdateBomRowRequest
+from .update_bom_row_request_custom_fields_type_0 import (
+    UpdateBomRowRequestCustomFieldsType0,
+)
 from .update_custom_field_definition_request import UpdateCustomFieldDefinitionRequest
 from .update_customer_address_request import UpdateCustomerAddressRequest
 from .update_customer_request import UpdateCustomerRequest
+from .update_customer_request_custom_fields_type_0 import (
+    UpdateCustomerRequestCustomFieldsType0,
+)
 from .update_manufacturing_order_operation_row_request import (
     UpdateManufacturingOrderOperationRowRequest,
+)
+from .update_manufacturing_order_operation_row_request_custom_fields_type_0 import (
+    UpdateManufacturingOrderOperationRowRequestCustomFieldsType0,
 )
 from .update_manufacturing_order_production_ingredient_request import (
     UpdateManufacturingOrderProductionIngredientRequest,
@@ -566,7 +602,13 @@ from .update_manufacturing_order_recipe_row_request import (
 from .update_manufacturing_order_recipe_row_request_batch_transactions_item import (
     UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
 )
+from .update_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+    UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+)
 from .update_manufacturing_order_request import UpdateManufacturingOrderRequest
+from .update_manufacturing_order_request_custom_fields_type_0 import (
+    UpdateManufacturingOrderRequestCustomFieldsType0,
+)
 from .update_material_request import UpdateMaterialRequest
 from .update_material_request_configs_item import UpdateMaterialRequestConfigsItem
 from .update_outsourced_purchase_order_recipe_row_request import (
@@ -576,13 +618,22 @@ from .update_price_list_customer_request import UpdatePriceListCustomerRequest
 from .update_price_list_request import UpdatePriceListRequest
 from .update_price_list_row_request import UpdatePriceListRowRequest
 from .update_product_operation_row_request import UpdateProductOperationRowRequest
+from .update_product_operation_row_request_custom_fields_type_0 import (
+    UpdateProductOperationRowRequestCustomFieldsType0,
+)
 from .update_product_request import UpdateProductRequest
 from .update_product_request_configs_item import UpdateProductRequestConfigsItem
 from .update_purchase_order_additional_cost_row_request import (
     UpdatePurchaseOrderAdditionalCostRowRequest,
 )
 from .update_purchase_order_request import UpdatePurchaseOrderRequest
+from .update_purchase_order_request_custom_fields_type_0 import (
+    UpdatePurchaseOrderRequestCustomFieldsType0,
+)
 from .update_purchase_order_row_request import UpdatePurchaseOrderRowRequest
+from .update_purchase_order_row_request_custom_fields_type_0 import (
+    UpdatePurchaseOrderRowRequestCustomFieldsType0,
+)
 from .update_recipe_row_request import UpdateRecipeRowRequest
 from .update_sales_order_address_request import UpdateSalesOrderAddressRequest
 from .update_sales_order_fulfillment_request import UpdateSalesOrderFulfillmentRequest
@@ -605,6 +656,9 @@ from .update_sales_order_status import UpdateSalesOrderStatus
 from .update_sales_return_request import UpdateSalesReturnRequest
 from .update_sales_return_row_request import UpdateSalesReturnRowRequest
 from .update_service_request import UpdateServiceRequest
+from .update_service_request_custom_fields_type_0 import (
+    UpdateServiceRequestCustomFieldsType0,
+)
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_transfer_request import UpdateStockTransferRequest
 from .update_stock_transfer_status_request import UpdateStockTransferStatusRequest
@@ -612,12 +666,18 @@ from .update_stocktake_request import UpdateStocktakeRequest
 from .update_stocktake_row_request import UpdateStocktakeRowRequest
 from .update_supplier_address_request import UpdateSupplierAddressRequest
 from .update_supplier_request import UpdateSupplierRequest
+from .update_supplier_request_custom_fields_type_0 import (
+    UpdateSupplierRequestCustomFieldsType0,
+)
 from .update_variant_request import UpdateVariantRequest
 from .update_variant_request_config_attributes_item import (
     UpdateVariantRequestConfigAttributesItem,
 )
 from .update_variant_request_custom_fields_item import (
     UpdateVariantRequestCustomFieldsItem,
+)
+from .update_variant_request_custom_fields_type_0 import (
+    UpdateVariantRequestCustomFieldsType0,
 )
 from .update_webhook_request import UpdateWebhookRequest
 from .user import User
@@ -698,20 +758,25 @@ __all__ = (
     "CreateBinTransferRequest",
     "CreateBinTransferRowRequest",
     "CreateBomRowRequest",
+    "CreateBomRowRequestCustomFieldsType0",
     "CreateCustomFieldDefinitionRequest",
     "CreateCustomerAddressRequest",
     "CreateCustomerRequest",
     "CreateCustomerRequestAddressesItem",
+    "CreateCustomerRequestCustomFieldsType0",
     "CreateDemandForecastRequest",
     "CreateDemandForecastRequestPeriodsItem",
     "CreateInventoryReorderPointRequest",
     "CreateInventorySafetyStockLevelRequest",
     "CreateManufacturingOrderOperationRowRequest",
+    "CreateManufacturingOrderOperationRowRequestCustomFieldsType0",
     "CreateManufacturingOrderOperationRowRequestStatus",
     "CreateManufacturingOrderProductionRequest",
     "CreateManufacturingOrderRecipeRowRequest",
     "CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem",
+    "CreateManufacturingOrderRecipeRowRequestCustomFieldsType0",
     "CreateManufacturingOrderRequest",
+    "CreateManufacturingOrderRequestCustomFieldsType0",
     "CreateManufacturingOrderRequestStatus",
     "CreateMaterialRequest",
     "CreateOutsourcedPurchaseOrderRecipeRowRequest",
@@ -727,7 +792,9 @@ __all__ = (
     "CreatePurchaseOrderAdditionalCostRowRequest",
     "CreatePurchaseOrderInitialStatus",
     "CreatePurchaseOrderRequest",
+    "CreatePurchaseOrderRequestCustomFieldsType0",
     "CreatePurchaseOrderRowRequest",
+    "CreatePurchaseOrderRowRequestCustomFieldsType0",
     "CreateRecipesRequest",
     "CreateRecipesRequestRowsItem",
     "CreateSalesOrderAddressRequest",
@@ -762,10 +829,12 @@ __all__ = (
     "CreateStocktakeRowRequestStocktakeRowsItem",
     "CreateSupplierAddressRequest",
     "CreateSupplierRequest",
+    "CreateSupplierRequestCustomFieldsType0",
     "CreateTaxRateRequest",
     "CreateVariantRequest",
     "CreateVariantRequestConfigAttributesItem",
     "CreateVariantRequestCustomFieldsItem",
+    "CreateVariantRequestCustomFieldsType0",
     "CreateWebhookRequest",
     "CustomField",
     "CustomFieldChoice",
@@ -1068,15 +1137,20 @@ __all__ = (
     "UpdateBinTransferRowRequest",
     "UpdateBinTransferStatusRequest",
     "UpdateBomRowRequest",
+    "UpdateBomRowRequestCustomFieldsType0",
     "UpdateCustomFieldDefinitionRequest",
     "UpdateCustomerAddressRequest",
     "UpdateCustomerRequest",
+    "UpdateCustomerRequestCustomFieldsType0",
     "UpdateManufacturingOrderOperationRowRequest",
+    "UpdateManufacturingOrderOperationRowRequestCustomFieldsType0",
     "UpdateManufacturingOrderProductionIngredientRequest",
     "UpdateManufacturingOrderProductionRequest",
     "UpdateManufacturingOrderRecipeRowRequest",
     "UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem",
+    "UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0",
     "UpdateManufacturingOrderRequest",
+    "UpdateManufacturingOrderRequestCustomFieldsType0",
     "UpdateMaterialRequest",
     "UpdateMaterialRequestConfigsItem",
     "UpdateOutsourcedPurchaseOrderRecipeRowRequest",
@@ -1084,11 +1158,14 @@ __all__ = (
     "UpdatePriceListRequest",
     "UpdatePriceListRowRequest",
     "UpdateProductOperationRowRequest",
+    "UpdateProductOperationRowRequestCustomFieldsType0",
     "UpdateProductRequest",
     "UpdateProductRequestConfigsItem",
     "UpdatePurchaseOrderAdditionalCostRowRequest",
     "UpdatePurchaseOrderRequest",
+    "UpdatePurchaseOrderRequestCustomFieldsType0",
     "UpdatePurchaseOrderRowRequest",
+    "UpdatePurchaseOrderRowRequestCustomFieldsType0",
     "UpdateRecipeRowRequest",
     "UpdateSalesOrderAddressRequest",
     "UpdateSalesOrderFulfillmentRequest",
@@ -1103,6 +1180,7 @@ __all__ = (
     "UpdateSalesReturnRequest",
     "UpdateSalesReturnRowRequest",
     "UpdateServiceRequest",
+    "UpdateServiceRequestCustomFieldsType0",
     "UpdateStockAdjustmentRequest",
     "UpdateStockTransferRequest",
     "UpdateStockTransferStatusRequest",
@@ -1110,9 +1188,11 @@ __all__ = (
     "UpdateStocktakeRowRequest",
     "UpdateSupplierAddressRequest",
     "UpdateSupplierRequest",
+    "UpdateSupplierRequestCustomFieldsType0",
     "UpdateVariantRequest",
     "UpdateVariantRequestConfigAttributesItem",
     "UpdateVariantRequestCustomFieldsItem",
+    "UpdateVariantRequestCustomFieldsType0",
     "UpdateWebhookRequest",
     "User",
     "UserInfo",

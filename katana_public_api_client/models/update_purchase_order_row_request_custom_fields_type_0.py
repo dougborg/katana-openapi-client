@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, TypeVar
+
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
+
+T = TypeVar("T", bound="UpdatePurchaseOrderRowRequestCustomFieldsType0")
+
+
+@_attrs_define
+class UpdatePurchaseOrderRowRequestCustomFieldsType0:
+    """Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array.
+    Availability and allowed definitions depend on the account's custom-field configuration.
+
+    """
+
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+
+        field_dict: dict[str, Any] = {}
+        field_dict.update(self.additional_properties)
+
+        return field_dict
+
+    @classmethod
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        d = dict(src_dict)
+        update_purchase_order_row_request_custom_fields_type_0 = cls()
+
+        update_purchase_order_row_request_custom_fields_type_0.additional_properties = d
+        return update_purchase_order_row_request_custom_fields_type_0
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

@@ -16,6 +16,9 @@ from ..models.create_manufacturing_order_request_status import (
 
 if TYPE_CHECKING:
     from ..models.batch_transaction import BatchTransaction
+    from ..models.create_manufacturing_order_request_custom_fields_type_0 import (
+        CreateManufacturingOrderRequestCustomFieldsType0,
+    )
     from ..models.manufacturing_order_traceability_request import (
         ManufacturingOrderTraceabilityRequest,
     )
@@ -37,6 +40,9 @@ class CreateManufacturingOrderRequest:
     variant_id: int
     location_id: int
     planned_quantity: float
+    custom_fields: CreateManufacturingOrderRequestCustomFieldsType0 | Unset | None = (
+        UNSET
+    )
     status: CreateManufacturingOrderRequestStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     actual_quantity: float | Unset = UNSET
@@ -48,11 +54,25 @@ class CreateManufacturingOrderRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_manufacturing_order_request_custom_fields_type_0 import (
+            CreateManufacturingOrderRequestCustomFieldsType0,
+        )
+
         variant_id = self.variant_id
 
         location_id = self.location_id
 
         planned_quantity = self.planned_quantity
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, CreateManufacturingOrderRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
@@ -95,6 +115,8 @@ class CreateManufacturingOrderRequest:
                 "planned_quantity": planned_quantity,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if status is not UNSET:
             field_dict["status"] = status
         if order_no is not UNSET:
@@ -117,6 +139,9 @@ class CreateManufacturingOrderRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.batch_transaction import BatchTransaction
+        from ..models.create_manufacturing_order_request_custom_fields_type_0 import (
+            CreateManufacturingOrderRequestCustomFieldsType0,
+        )
         from ..models.manufacturing_order_traceability_request import (
             ManufacturingOrderTraceabilityRequest,
         )
@@ -127,6 +152,31 @@ class CreateManufacturingOrderRequest:
         location_id = d.pop("location_id")
 
         planned_quantity = d.pop("planned_quantity")
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateManufacturingOrderRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    CreateManufacturingOrderRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                CreateManufacturingOrderRequestCustomFieldsType0 | Unset | None, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         _status = d.pop("status", UNSET)
         status: CreateManufacturingOrderRequestStatus | Unset
@@ -183,6 +233,7 @@ class CreateManufacturingOrderRequest:
             variant_id=variant_id,
             location_id=location_id,
             planned_quantity=planned_quantity,
+            custom_fields=custom_fields,
             status=status,
             order_no=order_no,
             actual_quantity=actual_quantity,

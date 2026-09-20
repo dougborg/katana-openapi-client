@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from ..models.create_manufacturing_order_recipe_row_request_batch_transactions_item import (
         CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
     )
+    from ..models.create_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+        CreateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+    )
     from ..models.manufacturing_order_ingredient_traceability_request import (
         ManufacturingOrderIngredientTraceabilityRequest,
     )
@@ -35,6 +38,9 @@ class CreateManufacturingOrderRecipeRowRequest:
     manufacturing_order_id: int
     variant_id: int
     planned_quantity_per_unit: float
+    custom_fields: (
+        CreateManufacturingOrderRecipeRowRequestCustomFieldsType0 | Unset | None
+    ) = UNSET
     notes: str | Unset = UNSET
     total_actual_quantity: float | Unset = UNSET
     batch_transactions: (
@@ -44,11 +50,26 @@ class CreateManufacturingOrderRecipeRowRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+            CreateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+        )
+
         manufacturing_order_id = self.manufacturing_order_id
 
         variant_id = self.variant_id
 
         planned_quantity_per_unit = self.planned_quantity_per_unit
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields,
+            CreateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         notes = self.notes
 
@@ -77,6 +98,8 @@ class CreateManufacturingOrderRecipeRowRequest:
                 "planned_quantity_per_unit": planned_quantity_per_unit,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if notes is not UNSET:
             field_dict["notes"] = notes
         if total_actual_quantity is not UNSET:
@@ -93,6 +116,9 @@ class CreateManufacturingOrderRecipeRowRequest:
         from ..models.create_manufacturing_order_recipe_row_request_batch_transactions_item import (
             CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
         )
+        from ..models.create_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+            CreateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+        )
         from ..models.manufacturing_order_ingredient_traceability_request import (
             ManufacturingOrderIngredientTraceabilityRequest,
         )
@@ -103,6 +129,34 @@ class CreateManufacturingOrderRecipeRowRequest:
         variant_id = d.pop("variant_id")
 
         planned_quantity_per_unit = d.pop("planned_quantity_per_unit")
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateManufacturingOrderRecipeRowRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    CreateManufacturingOrderRecipeRowRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                CreateManufacturingOrderRecipeRowRequestCustomFieldsType0
+                | Unset
+                | None,
+                data,
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         notes = d.pop("notes", UNSET)
 
@@ -140,6 +194,7 @@ class CreateManufacturingOrderRecipeRowRequest:
             manufacturing_order_id=manufacturing_order_id,
             variant_id=variant_id,
             planned_quantity_per_unit=planned_quantity_per_unit,
+            custom_fields=custom_fields,
             notes=notes,
             total_actual_quantity=total_actual_quantity,
             batch_transactions=batch_transactions,
