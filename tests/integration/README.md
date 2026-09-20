@@ -70,39 +70,49 @@ artifacts.
 
 ### The SDT-tagging + cleanup contract
 
-Reuse the ledger machinery in
-[`scripts/spec_drift_verify.py`](../../scripts/spec_drift_verify.py) — the same pattern
-the spec-drift probes use:
+Use the `live_artifacts` fixture alongside `live_client`. Give each created parent a
+unique `live_artifacts.tag("NAME")` identity and call `live_artifacts.record(...)`
+immediately after creation, before further assertions:
 
-1. **Tag every created artifact** with the date-stamped `SDT-<date>` prefix so it's
-   greppable in the Katana UI and unambiguously test-owned:
+```python
+async def test_write(live_client, live_artifacts):
+    response = await live_client.get_async_httpx_client().post(
+        "/customers", json={"name": live_artifacts.tag("CUSTOMER")}
+    )
+    response.raise_for_status()
+    customer = response.json()
+    live_artifacts.record(
+        endpoint="/customers", entity_id=customer["id"], issue="#your-issue"
+    )
+    # Assertions or further operations on this test-owned customer go here.
+```
 
-   ```python
-   from scripts.spec_drift_verify import SDT_PREFIX, tagged, record_artifact
+The fixture verifies `/factory` before yielding, records each resource with its
+`factory_id` and base URL, and deletes resources in reverse creation order in a
+`finally` block. Record children separately only when they need their own DELETE;
+children that disappear with a tracked parent are covered by that parent's cleanup. Do
+not register pre-existing tenant records.
 
-   name = f"[{SDT_PREFIX}] Smoke Material"  # or tagged("WIDGET-001") for a SKU
-   ```
+Each fixture has a separate persistent JSONL file using the spec-drift ledger row
+format. The files contain resource IDs and tenant fingerprints, never credentials. Set
+`KATANA_TEST_LEDGER_DIR` to choose a directory; otherwise they live under
+`katana-test-ledgers` in the system temporary directory. Successful deletions are marked
+in the ledger. Failed deletions remain pending, fail the test teardown, and can be
+retried with:
 
-1. **Record it to the ledger immediately after the create succeeds** so cleanup can find
-   it even if the test later crashes:
+```bash
+uv run python -m katana_public_api_client.testing_artifacts
+# Or recover downloaded CI ledgers:
+uv run python -m katana_public_api_client.testing_artifacts --ledger-dir ./ledgers
+```
 
-   ```python
-   record_artifact(endpoint="/materials", entity_id=created.id, issue="#837")
-   ```
+Recovery uses `make_test_client()` and refuses missing or mismatched tenant fingerprints
+before deleting anything from a ledger. It never falls back to the production key. The
+nightly/opt-in CI job retries cleanup after the tests and uploads ledger files with its
+report so failed cleanup remains inspectable and recoverable.
 
-1. **Clean up** by walking the ledger in reverse and issuing the matching `DELETE`s:
-
-   ```bash
-   uv run python scripts/spec_drift_verify.py cleanup
-   ```
-
-   Re-running cleanup is safe — already-deleted rows are skipped.
-
-> **Note:** the `spec_drift_verify.py` ledger client authenticates with
-> `KATANA_API_KEY`, because it predates this suite and targets the spec-drift probe
-> tenant. When wiring write tests against the **test** tenant, point the cleanup at the
-> same tenant your test wrote to — don't mix `KATANA_API_KEY` and `KATANA_TEST_API_KEY`
-> artifacts in one ledger run.
+The older `scripts/spec_drift_verify.py cleanup` command uses `KATANA_API_KEY`; use the
+test-only recovery command above for this suite.
 
 ## Adding a test
 

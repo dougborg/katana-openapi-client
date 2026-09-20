@@ -16,14 +16,12 @@ Cleanup: the ecommerce fields are **create-only** (PATCH rejects them), so
 there's no in-place revert — cleanup is a delete. Per the SDT-tagging contract
 (``tests/integration/README.md``) every created SO is SDT-tagged, recorded to
 the ledger immediately after create (belt-and-suspenders if the process dies),
-and deleted in a ``finally`` block. Skips when ``KATANA_TEST_API_KEY`` is unset
+and deleted by the ``live_artifacts`` fixture in a ``finally`` block. Skips when ``KATANA_TEST_API_KEY`` is unset
 (the skip lives in the ``live_client`` fixture).
 """
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -32,7 +30,6 @@ from katana_mcp.web_urls import ecommerce_storefront_url
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.sales_order import (
     create_sales_order,
-    delete_sales_order,
     get_all_sales_orders,
     get_sales_order,
 )
@@ -41,21 +38,8 @@ from katana_public_api_client.models import CreateSalesOrderRequest, SalesOrder
 from katana_public_api_client.models.create_sales_order_request_sales_order_rows_item import (
     CreateSalesOrderRequestSalesOrderRowsItem,
 )
+from katana_public_api_client.testing_artifacts import LiveTestArtifacts
 from katana_public_api_client.utils import unwrap_as, unwrap_data
-
-_scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
-# Scope the sys.path mutation to just this import: insert, import, then remove
-# in a finally so the entry doesn't linger for the whole test session (where it
-# could shadow other imports or shift resolution order). spec_drift_verify is
-# cached in sys.modules after the first import, so dropping the path is safe.
-sys.path.insert(0, _scripts_dir)
-try:
-    from spec_drift_verify import (  # type: ignore[import-not-found]
-        SDT_PREFIX,
-        record_artifact,
-    )
-finally:
-    sys.path.remove(_scripts_dir)
 
 pytestmark = [pytest.mark.integration, pytest.mark.live, pytest.mark.asyncio]
 
@@ -112,6 +96,7 @@ async def _known_customer_and_variant(client: KatanaClient) -> tuple[int, int]:
 )
 async def test_ecommerce_fields_round_trip_and_build_link(
     live_client: KatanaClient,
+    live_artifacts: LiveTestArtifacts,
     order_type: str,
     store: str,
     order_id: str,
@@ -121,7 +106,7 @@ async def test_ecommerce_fields_round_trip_and_build_link(
 
     request = CreateSalesOrderRequest(
         customer_id=customer_id,
-        order_no=f"{SDT_PREFIX}-ECOM-{order_type}",
+        order_no=live_artifacts.tag(f"ECOM-{order_type}"),
         sales_order_rows=[
             CreateSalesOrderRequestSalesOrderRowsItem(quantity=1, variant_id=variant_id)
         ],
@@ -138,37 +123,27 @@ async def test_ecommerce_fields_round_trip_and_build_link(
     # surface as a confusing error in record_artifact / get / delete below.
     assert so_id is not None, "create_sales_order returned a SalesOrder without an id"
 
-    # Enter the try BEFORE recording the artifact: once so_id is known the SO
-    # exists on the tenant and must be deleted, so any failure from here on
-    # (including record_artifact itself) has to fall through to the finally.
-    try:
-        record_artifact(endpoint="/sales_orders", entity_id=so_id, issue="#913")
-        got = await get_sales_order.asyncio_detailed(client=live_client, id=so_id)
-        parsed = unwrap_as(got, SalesOrder)
-        # The literal camelCase key must round-trip with no coercion.
-        assert _clean(parsed.ecommerce_order_type) == order_type
-        assert _clean(parsed.ecommerce_store_name) == store
-        assert _clean(parsed.ecommerce_order_id) == order_id
-        # And the persisted values build exactly the expected storefront link.
-        assert (
-            ecommerce_storefront_url(
-                _clean(parsed.ecommerce_order_type),
-                _clean(parsed.ecommerce_store_name),
-                _clean(parsed.ecommerce_order_id),
-            )
-            == expected_url
+    live_artifacts.record(endpoint="/sales_orders", entity_id=so_id, issue="#913")
+    got = await get_sales_order.asyncio_detailed(client=live_client, id=so_id)
+    parsed = unwrap_as(got, SalesOrder)
+    # The literal camelCase key must round-trip with no coercion.
+    assert _clean(parsed.ecommerce_order_type) == order_type
+    assert _clean(parsed.ecommerce_store_name) == store
+    assert _clean(parsed.ecommerce_order_id) == order_id
+    # And the persisted values build exactly the expected storefront link.
+    assert (
+        ecommerce_storefront_url(
+            _clean(parsed.ecommerce_order_type),
+            _clean(parsed.ecommerce_store_name),
+            _clean(parsed.ecommerce_order_id),
         )
-    finally:
-        deleted = await delete_sales_order.asyncio_detailed(
-            client=live_client, id=so_id
-        )
-        assert deleted.status_code in (200, 204), (
-            f"cleanup delete returned {deleted.status_code}"
-        )
+        == expected_url
+    )
 
 
 async def test_ecommerce_fields_are_create_only_patch_rejected(
     live_client: KatanaClient,
+    live_artifacts: LiveTestArtifacts,
 ) -> None:
     """The ecommerce_* fields are create-only: ``PATCH /sales_orders/{id}``
     rejects them outright (HTTP 422 ``additionalProperties``) and leaves the
@@ -181,7 +156,7 @@ async def test_ecommerce_fields_are_create_only_patch_rejected(
 
     request = CreateSalesOrderRequest(
         customer_id=customer_id,
-        order_no=f"{SDT_PREFIX}-ECOM-PATCH",
+        order_no=live_artifacts.tag("ECOM-PATCH"),
         sales_order_rows=[
             CreateSalesOrderRequestSalesOrderRowsItem(quantity=1, variant_id=variant_id)
         ],
@@ -195,55 +170,45 @@ async def test_ecommerce_fields_are_create_only_patch_rejected(
     so_id = _clean(unwrap_as(created, SalesOrder).id)
     assert so_id is not None, "create_sales_order returned a SalesOrder without an id"
 
-    try:
-        record_artifact(endpoint="/sales_orders", entity_id=so_id, issue="#913")
-        # The generated update model has no ecommerce_* params (the spec omits
-        # them from UpdateSalesOrderRequest), so send a raw PATCH to prove the
-        # *server* rejects them — not just our client.
-        resp = await live_client.get_async_httpx_client().patch(
-            f"/sales_orders/{so_id}",
-            json={
-                "ecommerce_order_type": "wooCommerce",
-                "ecommerce_store_name": "patched.example.com",
-                "ecommerce_order_id": "999999",
-            },
-        )
-        assert resp.status_code == 422, (
-            f"expected 422 rejecting ecommerce_* on PATCH, got {resp.status_code}"
-        )
-        # Assert on the structured Ajv error payload rather than substring-
-        # matching the message text, which is brittle to formatting changes.
-        # Katana wraps error bodies in {"error": {...}} on the wire (verified
-        # live), while the spec models DetailedErrorResponse flat ({"details":
-        # [...]}); tolerate both envelopes so the assertion is robust to that
-        # documented-vs-actual difference. Each rejected field surfaces as a
-        # details entry with code "additionalProperties" and info.additionalProperty.
-        payload = resp.json()
-        details = payload.get("error", payload).get("details") or []
-        rejected = {
-            prop
-            for d in details
-            if d.get("code") == "additionalProperties"
-            and (prop := (d.get("info") or {}).get("additionalProperty")) is not None
-        }
-        assert {
-            "ecommerce_order_type",
-            "ecommerce_store_name",
-            "ecommerce_order_id",
-        } <= rejected, (
-            f"PATCH did not reject all three ecommerce_* fields; got {rejected}"
-        )
+    live_artifacts.record(endpoint="/sales_orders", entity_id=so_id, issue="#913")
+    # The generated update model has no ecommerce_* params (the spec omits
+    # them from UpdateSalesOrderRequest), so send a raw PATCH to prove the
+    # *server* rejects them — not just our client.
+    resp = await live_client.get_async_httpx_client().patch(
+        f"/sales_orders/{so_id}",
+        json={
+            "ecommerce_order_type": "wooCommerce",
+            "ecommerce_store_name": "patched.example.com",
+            "ecommerce_order_id": "999999",
+        },
+    )
+    assert resp.status_code == 422, (
+        f"expected 422 rejecting ecommerce_* on PATCH, got {resp.status_code}"
+    )
+    # Assert on the structured Ajv error payload rather than substring-
+    # matching the message text, which is brittle to formatting changes.
+    # Katana wraps error bodies in {"error": {...}} on the wire (verified
+    # live), while the spec models DetailedErrorResponse flat ({"details":
+    # [...]}); tolerate both envelopes so the assertion is robust to that
+    # documented-vs-actual difference. Each rejected field surfaces as a
+    # details entry with code "additionalProperties" and info.additionalProperty.
+    payload = resp.json()
+    details = payload.get("error", payload).get("details") or []
+    rejected = {
+        prop
+        for d in details
+        if d.get("code") == "additionalProperties"
+        and (prop := (d.get("info") or {}).get("additionalProperty")) is not None
+    }
+    assert {
+        "ecommerce_order_type",
+        "ecommerce_store_name",
+        "ecommerce_order_id",
+    } <= rejected, f"PATCH did not reject all three ecommerce_* fields; got {rejected}"
 
-        # And the persisted values are untouched by the rejected PATCH.
-        got = await get_sales_order.asyncio_detailed(client=live_client, id=so_id)
-        parsed = unwrap_as(got, SalesOrder)
-        assert _clean(parsed.ecommerce_order_type) == "shopify"
-        assert _clean(parsed.ecommerce_store_name) == "acme.myshopify.com"
-        assert _clean(parsed.ecommerce_order_id) == "111111"
-    finally:
-        deleted = await delete_sales_order.asyncio_detailed(
-            client=live_client, id=so_id
-        )
-        assert deleted.status_code in (200, 204), (
-            f"cleanup delete returned {deleted.status_code}"
-        )
+    # And the persisted values are untouched by the rejected PATCH.
+    got = await get_sales_order.asyncio_detailed(client=live_client, id=so_id)
+    parsed = unwrap_as(got, SalesOrder)
+    assert _clean(parsed.ecommerce_order_type) == "shopify"
+    assert _clean(parsed.ecommerce_store_name) == "acme.myshopify.com"
+    assert _clean(parsed.ecommerce_order_id) == "111111"

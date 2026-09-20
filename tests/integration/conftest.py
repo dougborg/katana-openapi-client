@@ -27,6 +27,10 @@ from katana_public_api_client.testing import (
     MissingTestCredentialsError,
     make_test_client,
 )
+from katana_public_api_client.testing_artifacts import (
+    LiveTestArtifacts,
+    live_test_artifacts,
+)
 
 
 @pytest_asyncio.fixture
@@ -46,3 +50,10 @@ async def live_client() -> AsyncIterator[KatanaClient]:
 
     async with client:
         yield client
+
+
+@pytest_asyncio.fixture
+async def live_artifacts(live_client: KatanaClient) -> AsyncIterator[LiveTestArtifacts]:
+    """Persist test-owned resources and delete them even when assertions fail."""
+    async with live_test_artifacts(client=live_client) as artifacts:
+        yield artifacts
