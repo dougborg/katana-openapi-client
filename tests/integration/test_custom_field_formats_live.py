@@ -53,7 +53,7 @@ async def test_object_input_validation(
     assert any(error["code"] == "type" for error in _custom_errors(rejected))
     for value in [{}, None]:
         accepted_shape = await http.request(method, path, json={"custom_fields": value})
-        assert accepted_shape.status_code >= 400
+        assert accepted_shape.status_code in {400, 404, 422}
         assert not _custom_errors(accepted_shape)
         # A lookup/domain error does not prove values can be persisted, only
         # that this format reaches the endpoint after gateway validation.
@@ -72,7 +72,7 @@ async def test_variant_service_union_validation(
         response = await http.request(
             method, path, json={**base, "custom_fields": value}
         )
-        assert response.status_code >= 400
+        assert response.status_code in {400, 404, 422}
         assert not _custom_errors(response)
     invalid = await http.request(
         method, path, json={**base, "custom_fields": {"not-a-uuid": "test"}}

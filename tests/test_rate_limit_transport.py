@@ -449,9 +449,12 @@ class TestRateLimitTransportResetGate:
         # Replace pyrate's acquire with a spy that lets us close the gate
         # while the request is "queued" (i.e., between the first
         # gate-wait and the forward).
+        gate_closed = asyncio.Event()
+
         async def acquire_then_close_gate(*_args: object, **_kwargs: object) -> bool:
             transport._reset_gate.clear()
             transport._reset_until_epoch_ms = 999_999_999_999
+            gate_closed.set()
             return True
 
         cast(Any, transport._limiter).try_acquire_async = acquire_then_close_gate
@@ -460,8 +463,7 @@ class TestRateLimitTransportResetGate:
         request_task = asyncio.create_task(
             transport.handle_async_request(_make_request())
         )
-        await asyncio.sleep(0)  # let it reach the wait
-        await asyncio.sleep(0)
+        await gate_closed.wait()
         assert not request_task.done(), (
             "request should be parked on the post-acquire gate re-check, "
             "not have forwarded into an engaged-window"
