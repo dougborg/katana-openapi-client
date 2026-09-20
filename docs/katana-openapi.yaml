@@ -2325,34 +2325,27 @@ components:
         archived_at: null
         deleted_at: null
     MaterialConfig:
-      description: Configuration option for a material that defines variant attributes
-      allOf:
-        - $ref: "#/components/schemas/BaseEntity"
-        - type: object
-          properties:
-            name:
-              type: string
-              description: Configuration attribute name (e.g., Grade, Thickness, Color)
-            values:
-              type: array
-              description: Array of possible values for this configuration attribute
-              items:
-                type: string
-            material_id:
-              type: integer
-              description: ID of the material this configuration belongs to
-          required:
-            - name
-            - values
-            - material_id
+      description: Configuration option supplied while creating a material variant
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - values
+      properties:
+        name:
+          type: string
+          description: Configuration attribute name (e.g., Grade, Thickness, Color)
+        values:
+          type: array
+          description: Array of possible values for this configuration attribute
+          items:
+            type: string
       example:
-        id: 101
         name: Grade
         values:
           - "Premium"
           - "Standard"
           - "Economy"
-        material_id: 1
     ItemConfig:
       description: Configuration option for products and materials that defines variant attributes
       allOf:
@@ -5442,19 +5435,15 @@ components:
         purchase_uom: sheet
         purchase_uom_conversion_rate: 2.0
         configs:
-          - id: 1
-            name: Grade
+          - name: Grade
             values:
               - "304"
               - "316"
-            material_id: 1
-          - id: 2
-            name: Thickness
+          - name: Thickness
             values:
               - 1.5mm
               - 2.0mm
               - 3.0mm
-            material_id: 1
         variants:
           - sku: STEEL-304-1.5MM
             sales_price: 65.00
@@ -5731,12 +5720,12 @@ components:
           minItems: 1
           description: |-
             When updating configs, all configs and values must be provided. Existing ones are matched,
-                    new ones are created, and configs not provided in the update are deleted.
+                    new ones are created, and configs not provided in the update are deleted. Each config must
+                    identify itself with either id or name.
           items:
             type: object
             additionalProperties: false
             required:
-              - name
               - values
             properties:
               id:
@@ -5744,6 +5733,7 @@ components:
                 description: If config ID is used to map the config, then name is ignored.
               name:
                 type: string
+                description: Config name used to map the config when id is omitted.
               values:
                 type: array
                 items:
@@ -5767,7 +5757,6 @@ components:
         purchase_uom_conversion_rate: 2.0
         configs:
           - id: 101
-            name: Grade
             values:
               - "304"
               - "316"
