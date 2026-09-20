@@ -1012,8 +1012,11 @@ async def modify_stock_transfer(
       with a 400; the action surfaces the API error in the response.
 
     Stock-transfer rows are immutable after creation — the Katana API does
-    not expose row-CRUD endpoints. To remove a transfer entirely, use the
-    sibling ``delete_stock_transfer`` tool.
+    not expose row-CRUD endpoints. If you got a row wrong, post a
+    compensating ``create_stock_adjustment`` and verify the observed source
+    and destination inventory, movement history, and transfer status in the
+    current tenant. Do not assume a delete/recreate sequence has a fixed
+    inventory effect.
 
     Two-step flow: ``preview=true`` (default) returns a per-action preview;
     ``preview=false`` executes the plan in canonical order (header before
