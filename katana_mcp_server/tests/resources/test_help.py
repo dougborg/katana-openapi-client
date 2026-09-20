@@ -19,6 +19,7 @@ from katana_mcp.resources.help import (
     HELP_RESOURCES,
     HELP_TOOLS,
     HELP_WORKFLOWS,
+    get_help_custom_fields,
     get_help_index,
     get_help_resources,
     get_help_tools,
@@ -169,6 +170,7 @@ class TestRegisterResources:
 
         uri_to_handler = {kwargs["uri"]: handler for kwargs, handler in registrations}
         assert uri_to_handler == {
+            "katana://help/custom-fields": get_help_custom_fields,
             "katana://help": get_help_index,
             "katana://help/workflows": get_help_workflows,
             "katana://help/tools": get_help_tools,

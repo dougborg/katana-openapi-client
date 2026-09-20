@@ -49,6 +49,7 @@ def _get_sync_fns() -> dict[type[Any], Any]:
     if _sync_fns is None:
         from katana_mcp.typed_cache.sync import (
             ensure_additional_costs_synced,
+            ensure_custom_field_definitions_synced,
             ensure_customers_synced,
             ensure_factory_synced,
             ensure_locations_synced,
@@ -63,6 +64,7 @@ def _get_sync_fns() -> dict[type[Any], Any]:
         from katana_public_api_client.models_pydantic._generated import (
             CachedAdditionalCost,
             CachedCustomer,
+            CachedCustomFieldDefinition,
             CachedFactory,
             CachedLocation,
             CachedMaterial,
@@ -80,6 +82,7 @@ def _get_sync_fns() -> dict[type[Any], Any]:
             CachedMaterial: ensure_materials_synced,
             CachedService: ensure_services_synced,
             CachedSupplier: ensure_suppliers_synced,
+            CachedCustomFieldDefinition: ensure_custom_field_definitions_synced,
             CachedCustomer: ensure_customers_synced,
             CachedLocation: ensure_locations_synced,
             CachedTaxRate: ensure_tax_rates_synced,

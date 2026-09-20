@@ -11,7 +11,7 @@ Resources:
 - katana://help/resources - Resource descriptions and usage
 """
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from katana_mcp.logging import get_logger
 
@@ -34,6 +34,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 | `katana://help/workflows` | Step-by-step workflow guides |
 | `katana://help/tools` | Tool reference with examples |
 | `katana://help/resources` | Available data resources |
+| `katana://help/custom-fields` | Custom-field UUIDs, labels, types, and choices |
 
 ## Core Capabilities
 
@@ -477,6 +478,15 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 """
 
 HELP_TOOLS = """
+## Custom-field definitions
+
+- `list_custom_field_definitions(entity_type?, include_deleted=false)`: discover
+  cached definition UUIDs, labels, types, and complete choices.
+- `get_custom_field_definition(definition_id)`: fetch a definition live and refresh
+  its cached record.
+
+See `katana://help/custom-fields` for active choices grouped by resource type.
+
 # Katana Tool Reference
 
 Detailed guide for all available MCP tools.
@@ -2295,6 +2305,11 @@ Complete catalog of products, materials, and services.
 > floods agent context — searchable tools with bounded `limit` solve the
 > same lookup needs without the size problem.
 
+## Custom-field discovery
+
+`katana://help/custom-fields` lists configured definitions grouped by resource type,
+including choice IDs and labels. Availability depends on account features.
+
 ## Help Resources
 
 ### katana://help
@@ -2379,6 +2394,72 @@ async def get_help_resources() -> str:
     return HELP_RESOURCES
 
 
+async def get_help_custom_fields(context: Context) -> str:
+    """Discover the account's custom-field definitions and active choices."""
+    from katana_mcp.tools.foundation.custom_fields import (
+        ListCustomFieldDefinitionsRequest,
+        _list_custom_field_definitions_impl,
+    )
+    from katana_public_api_client.models_pydantic._generated import (
+        CustomFieldEntityType,
+    )
+
+    response = await _list_custom_field_definitions_impl(
+        request=ListCustomFieldDefinitionsRequest(), context=context
+    )
+    lines = [
+        "# Custom Fields",
+        "",
+        f"Currently configured: {response.total_count} definitions.",
+        "Availability depends on the account's custom-field features.",
+        "",
+    ]
+
+    def cell(value: object) -> str:
+        return str(value).replace("|", "\\|").replace("\n", " ").replace("\r", " ")
+
+    for entity_type in CustomFieldEntityType:
+        lines.extend(
+            [
+                f"## {entity_type.value}",
+                "",
+                "| UUID | Label | Type | Choices |",
+                "|---|---|---|---|",
+            ]
+        )
+        definitions = [d for d in response.definitions if d.entity_type == entity_type]
+        for definition in definitions:
+            choices = definition.options.choices if definition.options else []
+            active = [choice for choice in choices if not choice.deleted]
+            summary = (
+                ", ".join(f"{choice.id}: {cell(choice.label)}" for choice in active)
+                or "—"
+            )
+            deleted_count = len(choices) - len(active)
+            if deleted_count:
+                summary += (
+                    f" ({deleted_count} deleted choices retained for historical lookup)"
+                )
+            lines.append(
+                f"| {definition.id} | {cell(definition.label)} | {definition.field_type} | {summary} |"
+            )
+        if not definitions:
+            lines.append("| (none configured) | | | |")
+        lines.append("")
+    lines.extend(
+        [
+            "## Using custom fields",
+            "",
+            "Read and write values with `custom_fields` keyed by definition UUID.",
+            "In Katana search filters, use camelCase: `customFields.<uuid>`.",
+            '`{"customFields.<uuid>": 2}` matches choice ID 2; '
+            '`{"customFields.<uuid>": null}` matches empty values.',
+            "Use `get_custom_field_definition` for live detail and complete choice history.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 # ============================================================================
 # Registration
 # ============================================================================
@@ -2390,6 +2471,12 @@ def register_resources(mcp: FastMCP) -> None:
     Args:
         mcp: FastMCP server instance to register resources with
     """
+    mcp.resource(
+        uri="katana://help/custom-fields",
+        name="Custom Fields Guide",
+        description="Account custom-field UUIDs, labels, types, and active choices",
+    )(get_help_custom_fields)
+
     # Register katana://help resource
     mcp.resource(
         uri="katana://help",
@@ -2425,5 +2512,6 @@ def register_resources(mcp: FastMCP) -> None:
             "katana://help/workflows",
             "katana://help/tools",
             "katana://help/resources",
+            "katana://help/custom-fields",
         ],
     )

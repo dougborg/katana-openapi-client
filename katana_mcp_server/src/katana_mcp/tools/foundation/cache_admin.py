@@ -76,6 +76,7 @@ CacheEntityType = Literal[
     "operator",
     "factory",
     "additional_cost",
+    "custom_field_definition",
 ]
 
 
@@ -100,7 +101,8 @@ class RebuildCacheRequest(BaseModel):
             "stock_adjustment, stock_transfer, bin_transfer) and catalog "
             "entities "
             "(variant, product, material, service, customer, supplier, "
-            "location, tax_rate, operator, factory, additional_cost)."
+            "location, tax_rate, operator, factory, additional_cost, "
+            "custom_field_definition)."
         ),
     )
     preview: bool = Field(

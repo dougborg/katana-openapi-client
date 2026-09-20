@@ -34,6 +34,7 @@ from .bom import register_tools as register_bom_tools
 from .cache_admin import register_tools as register_cache_admin_tools
 from .catalog import register_tools as register_catalog_tools
 from .corrections import register_tools as register_corrections_tools
+from .custom_fields import register_tools as register_custom_field_tools
 from .customers import register_tools as register_customers_tools
 from .inventory import register_tools as register_inventory_tools
 from .items import register_tools as register_items_tools
@@ -55,6 +56,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_items_tools(mcp)
     register_inventory_tools(mcp)
     register_customers_tools(mcp)
+    register_custom_field_tools(mcp)
     register_purchase_order_tools(mcp)
     register_sales_order_tools(mcp)
     register_catalog_tools(mcp)
