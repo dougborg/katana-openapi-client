@@ -29,7 +29,8 @@ def test_definition_delete_states(render_scenario, is_preview):
     )
     assert (
         frame.get_by_text(
-            "Delete Sales Rep; values will no longer appear on records", exact=True
+            "Custom field Sales Rep will be deleted; values will no longer appear on records",
+            exact=True,
         ).count()
         == 1
     )

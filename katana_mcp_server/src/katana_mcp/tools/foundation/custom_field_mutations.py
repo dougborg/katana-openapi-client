@@ -248,7 +248,7 @@ async def _create_custom_field_definition_impl(
         definition=definition,
         payload=payload,
         changes=[
-            f"Create {request.label} ({request.field_type}) for {request.entity_type}"
+            f"New custom field: {request.label} ({request.field_type}) for {request.entity_type}"
         ],
     )
 
@@ -327,7 +327,9 @@ async def _delete_custom_field_definition_impl(
         operation="delete",
         definition=current,
         payload={"id": str(request.definition_id)},
-        changes=[f"Delete {current.label}; values will no longer appear on records"],
+        changes=[
+            f"Custom field {current.label} will be deleted; values will no longer appear on records"
+        ],
     )
 
 

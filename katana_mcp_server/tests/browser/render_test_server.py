@@ -1954,7 +1954,7 @@ def _custom_field_card(*, operation: str, is_preview: bool) -> PrefabApp:
         "definition": {"id": definition_id, "label": "Sales Rep"},
         "payload": {"id": definition_id} if operation == "delete" else payload,
         "changes": [
-            "Delete Sales Rep; values will no longer appear on records"
+            "Custom field Sales Rep will be deleted; values will no longer appear on records"
             if operation == "delete"
             else "Add 1 choices; retire 1 choices"
         ],
