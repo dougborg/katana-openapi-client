@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.117.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.116.0...mcp-v0.117.0) (2026-09-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client:** Variant/service custom fields accept UUID maps or legacy arrays; legacy update entries now require field_name and field_value and are limited to three. Pydantic-to-attrs conversion preserves explicit nullable values and omitted fields.
+
+### Features
+
+* **client:** support endpoint-specific custom field inputs ([#1062](https://github.com/dougborg/katana-openapi-client/issues/1062)) ([150766b](https://github.com/dougborg/katana-openapi-client/commit/150766b477114373973c09efd394f522c591413e))
+* **mcp:** expose manufacturing traceability allocations ([#1059](https://github.com/dougborg/katana-openapi-client/issues/1059)) ([65bb993](https://github.com/dougborg/katana-openapi-client/commit/65bb9930cccb02592056188db524de1f18c38165))
+
 ## [0.116.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.115.0...mcp-v0.116.0) (2026-09-20)
 
 
