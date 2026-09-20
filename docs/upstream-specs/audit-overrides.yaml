@@ -112,37 +112,6 @@ overrides:
       local a typed `anyOf[$ref:CustomFieldOptions, null]` carrying the
       server-assigned choice `id`s. Local is strictly more precise.
 
-  # --- manufacturing_order_operation_rows PATCH: local over-constrains -------
-  - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
-    kind: only_local
-    field: manufacturing_order_id
-    category: upstream_correct_local_wrong
-    reason: >-
-      Local declares `manufacturing_order_id` on the PATCH body; live does not.
-      A PATCH addressed by {id} shouldn't need to reassign its parent MO — we
-      likely invented this field. Pending live-API probe (#830 F1).
-    fix_tracked_in: "#830"
-
-  - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
-    kind: required_diff
-    live_required: []
-    local_required: [manufacturing_order_id, status]
-    category: upstream_correct_local_wrong
-    reason: >-
-      Local requires manufacturing_order_id + status on PATCH; live requires
-      neither. Over-requiring blocks valid partial updates. Pending #830 F1.
-    fix_tracked_in: "#830"
-
-  # --- manufacturing_orders PATCH: serial_numbers assignment ----------------
-  - endpoint: "PATCH /manufacturing_orders/{id}"
-    kind: only_local
-    field: serial_numbers
-    category: intentional_local_divergence
-    reason: >-
-      Local exposes `serial_numbers` on the MO PATCH body to support assigning
-      serials on completion; the live gateway under-documents it. Believed
-      correct against the real wire contract; confirm under #830 F2.
-
   # --- manufacturing_order_productions: typed batch_transaction -------------
   - endpoint: "POST /manufacturing_order_productions"
     kind: type_diff
@@ -178,18 +147,6 @@ overrides:
     reason: >-
       Same untyped-`quantity` omission as the POST variant. Recommend Katana
       add `type: number` (#528 A5).
-
-  # --- serial_numbers POST: upstream under-documents required keys ----------
-  - endpoint: "POST /serial_numbers"
-    kind: required_diff
-    live_required: [resource_id]
-    local_required: [resource_id, resource_type, serial_numbers]
-    category: local_correct_upstream_wrong
-    reason: >-
-      Live marks only `resource_id` required, but the call cannot succeed
-      without `resource_type` and the `serial_numbers` payload — upstream
-      under-documents the required set. Local matches the real contract.
-      Recommend Katana mark all three required (#830).
 
   # --- bin_transfer_rows.quantity: upstream under-documents the type --------
   - endpoint: "POST /bin_transfer_rows"

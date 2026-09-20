@@ -833,12 +833,12 @@ class CreateSerialNumbersRequest(KatanaPydanticBase):
         extra="forbid",
     )
     resource_type: Annotated[
-        CreateSerialNumberResourceType, Field(description="Resource type")
-    ]
+        CreateSerialNumberResourceType | None, Field(description="Resource type")
+    ] = None
     resource_id: Annotated[int, Field(description="Resource ID")]
     serial_numbers: Annotated[
-        list[str], Field(description="List of serial numbers to create")
-    ]
+        list[str] | None, Field(description="List of serial numbers to create")
+    ] = None
 
 
 class DeleteSerialNumbersRequest(KatanaPydanticBase):

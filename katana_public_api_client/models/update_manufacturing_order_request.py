@@ -42,7 +42,6 @@ class UpdateManufacturingOrderRequest:
     done_date: datetime.datetime | Unset = UNSET
     additional_info: str | Unset = UNSET
     batch_transactions: list[BatchTransaction] | Unset = UNSET
-    serial_numbers: list[int] | Unset = UNSET
     traceability: list[ManufacturingOrderTraceabilityRequest] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -82,10 +81,6 @@ class UpdateManufacturingOrderRequest:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        serial_numbers: list[int] | Unset = UNSET
-        if not isinstance(self.serial_numbers, Unset):
-            serial_numbers = self.serial_numbers
-
         traceability: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.traceability, Unset):
             traceability = []
@@ -118,8 +113,6 @@ class UpdateManufacturingOrderRequest:
             field_dict["additional_info"] = additional_info
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
-        if serial_numbers is not UNSET:
-            field_dict["serial_numbers"] = serial_numbers
         if traceability is not UNSET:
             field_dict["traceability"] = traceability
 
@@ -186,8 +179,6 @@ class UpdateManufacturingOrderRequest:
 
                 batch_transactions.append(batch_transactions_item)
 
-        serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
-
         _traceability = d.pop("traceability", UNSET)
         traceability: list[ManufacturingOrderTraceabilityRequest] | Unset = UNSET
         if _traceability is not UNSET:
@@ -211,7 +202,6 @@ class UpdateManufacturingOrderRequest:
             done_date=done_date,
             additional_info=additional_info,
             batch_transactions=batch_transactions,
-            serial_numbers=serial_numbers,
             traceability=traceability,
         )
 

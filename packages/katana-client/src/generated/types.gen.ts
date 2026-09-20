@@ -2300,10 +2300,6 @@ export type UpdateManufacturingOrderRequest = {
    */
   batch_transactions?: Array<BatchTransaction>;
   /**
-   * Serial number IDs allocated to the produced units of this manufacturing order. Required when the MO's finished-good variant is serial-tracked; the count must equal `actual_quantity`.
-   */
-  serial_numbers?: Array<number>;
-  /**
    * Updated batch / serial allocations for the produced quantity.
    */
   traceability?: Array<ManufacturingOrderTraceabilityRequest>;
@@ -2611,10 +2607,6 @@ export type CreateManufacturingOrderOperationRowRequest = {
  */
 export type UpdateManufacturingOrderOperationRowRequest = {
   /**
-   * ID of the manufacturing order this operation row belongs to
-   */
-  manufacturing_order_id: number;
-  /**
    * ID of the operation being performed
    */
   operation_id?: number;
@@ -2661,7 +2653,7 @@ export type UpdateManufacturingOrderOperationRowRequest = {
   /**
    * Current status of the operation
    */
-  status: ManufacturingOperationStatus;
+  status?: ManufacturingOperationStatus;
   /**
    * Operators assigned to perform this operation
    */
@@ -10101,13 +10093,13 @@ export type UpdateSalesReturnRowRequest = {
 };
 
 /**
- * Request payload for creating serial numbers for a resource
+ * Create or transfer serial numbers. Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content); supply resource_type and serial_numbers to mint or transfer labels (#830).
  */
 export type CreateSerialNumbersRequest = {
   /**
    * Resource type
    */
-  resource_type: CreateSerialNumberResourceType;
+  resource_type?: CreateSerialNumberResourceType;
   /**
    * Resource ID
    */
@@ -10115,7 +10107,7 @@ export type CreateSerialNumbersRequest = {
   /**
    * List of serial numbers to create
    */
-  serial_numbers: Array<string>;
+  serial_numbers?: Array<string>;
 };
 
 /**
@@ -21732,6 +21724,10 @@ export type CreateSerialNumbersResponses = {
    *
    */
   200: CreateSerialNumbersResponse;
+  /**
+   * No operation performed when resource_type is omitted
+   */
+  204: void;
 };
 
 export type CreateSerialNumbersResponse2 =
