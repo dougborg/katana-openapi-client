@@ -126,13 +126,6 @@ PAIRINGS: list[Pairing] = [
             "batch_transactions": (
                 "Production-time concern; flows through fulfill_order."
             ),
-            "traceability": (
-                "Same production-time concern as batch_transactions, which it "
-                "supersedes — batch/serial allocation for the quantity the MO "
-                "will produce, not a creation-time input. Added to the API "
-                "spec in #1031; exposing it on the MCP tool is tracked in "
-                "#1051."
-            ),
         },
     ),
     # ---- create_stock_adjustment ----

@@ -12,11 +12,77 @@ row already carries explicit source/target bins.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Self
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset
-from katana_public_api_client.models import TraceabilityRequest
+from katana_public_api_client.models import (
+    ManufacturingOrderIngredientTraceabilityRequest,
+    ManufacturingOrderTraceabilityRequest,
+    TraceabilityRequest,
+)
+
+
+class ManufacturingOutputAllocation(BaseModel):
+    """Allocate produced units to a batch and/or serial; output has no bin axis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: int | None = Field(default=None, description="Produced batch ID")
+    serial_number_id: int | None = Field(
+        default=None, description="Existing serial number ID for one produced unit"
+    )
+    quantity: float = Field(default=1, gt=0, description="Produced allocation quantity")
+
+    @model_validator(mode="after")
+    def serial_is_one_unit(self) -> Self:
+        if self.serial_number_id is not None and self.quantity != 1:
+            raise ValueError("A serial allocation must have quantity 1")
+        return self
+
+
+class ManufacturingIngredientAllocation(BaseModel):
+    """Draw consumed ingredients from a batch and/or bin; no serial axis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: int | None = Field(default=None, description="Consumed batch ID")
+    bin_location_id: int | None = Field(default=None, description="Source bin ID")
+    quantity: float = Field(default=1, gt=0, description="Consumed allocation quantity")
+
+
+def build_manufacturing_output_allocations(
+    items: list[ManufacturingOutputAllocation] | None,
+) -> list[ManufacturingOrderTraceabilityRequest] | Unset:
+    """Omit absent allocations while retaining an explicit empty list."""
+    if items is None:
+        return UNSET
+    return [
+        ManufacturingOrderTraceabilityRequest(
+            batch_id=to_unset(item.batch_id),
+            serial_number_id=to_unset(item.serial_number_id),
+            quantity=item.quantity,
+        )
+        for item in items
+    ]
+
+
+def build_manufacturing_ingredient_allocations(
+    items: list[ManufacturingIngredientAllocation] | None,
+) -> list[ManufacturingOrderIngredientTraceabilityRequest] | Unset:
+    """Convert ingredient allocations without adding the forbidden serial axis."""
+    if items is None:
+        return UNSET
+    return [
+        ManufacturingOrderIngredientTraceabilityRequest(
+            batch_id=to_unset(item.batch_id),
+            bin_location_id=to_unset(item.bin_location_id),
+            quantity=item.quantity,
+        )
+        for item in items
+    ]
 
 
 class TraceabilityInput(BaseModel):

@@ -11,17 +11,19 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import WireDatetime
 from katana_mcp.tools.foundation._traceability import (
+    ManufacturingOutputAllocation,
     TraceabilityInput,
+    build_manufacturing_output_allocations,
     build_traceability_requests,
 )
 from katana_mcp.tools.tool_result_utils import (
@@ -117,6 +119,27 @@ class FulfillOrderRequest(BaseModel):
             "order_type='sales' (use ``rows`` for per-row sales-order serials)."
         ),
     )
+    traceability: list[ManufacturingOutputAllocation] | None = Field(
+        default=None,
+        description="Manufacturing output batch/serial allocations, as an alternative to serial_numbers. Sales allocations belong in rows[].traceability.",
+    )
+
+    @model_validator(mode="after")
+    def validate_manufacturing_allocations(self) -> Self:
+        if self.traceability is not None:
+            if self.order_type != "manufacturing":
+                raise ValueError("Sales traceability belongs in rows[].traceability")
+            if self.serial_numbers:
+                raise ValueError("Supply traceability or serial_numbers, not both")
+            serials = [
+                item.serial_number_id
+                for item in self.traceability
+                if item.serial_number_id is not None
+            ]
+            if len(serials) != len(set(serials)):
+                raise ValueError("Each produced serial number must appear once")
+        return self
+
     completed_at: WireDatetime | None = Field(
         default=None,
         description=(
@@ -193,6 +216,10 @@ class FulfilledRowInfo(BaseModel):
             "for batch-tracked variants. ``None`` when the row carries no "
             "batch transactions."
         ),
+    )
+    manufacturing_traceability: list[ManufacturingOutputAllocation] | None = Field(
+        default=None,
+        description="Requested manufacturing output allocations, preserved for confirmation",
     )
     price_per_unit: float | None = None
     row_total: float | None = Field(
@@ -369,6 +396,15 @@ async def _fulfill_manufacturing_order(
     current_status = mo.status.value if mo.status else "UNKNOWN"
     variant_id = unwrap_unset(mo.variant_id, None)
     actual_quantity = unwrap_unset(mo.actual_quantity, None)
+    allocation_serials = (
+        [
+            item.serial_number_id
+            for item in request.traceability
+            if item.serial_number_id is not None
+        ]
+        if request.traceability is not None
+        else request.serial_numbers
+    )
 
     is_serial_tracked, sku, display_name = await _resolve_variant_serial_info(
         services, variant_id
@@ -385,9 +421,9 @@ async def _fulfill_manufacturing_order(
         "Finished goods will be added to stock",
         "Raw materials will be consumed from inventory based on BOM",
     ]
-    if is_serial_tracked and request.serial_numbers:
+    if is_serial_tracked and allocation_serials:
         inventory_updates.append(
-            f"Finished-good serials to attach: {request.serial_numbers}"
+            f"Finished-good serials to attach: {allocation_serials}"
         )
     if request.completed_at is not None:
         inventory_updates.append(
@@ -412,8 +448,8 @@ async def _fulfill_manufacturing_order(
             order_number=order_number,
             sku=sku,
             is_serial_tracked=is_serial_tracked,
-            actual_quantity=actual_quantity,
-            serial_numbers=request.serial_numbers,
+            actual_quantity=actual_quantity or 1,
+            serial_numbers=allocation_serials,
         )
     )
 
@@ -422,17 +458,22 @@ async def _fulfill_manufacturing_order(
     # the same payload — the success card's table shouldn't differ from
     # the preview's except for the date timestamp the API stamped.
     mo_batch_transactions = unwrap_unset(getattr(mo, "batch_transactions", None), None)
+    if request.traceability is not None:
+        mo_batch_transactions = [
+            item for item in request.traceability if item.batch_id is not None
+        ]
     fulfilled_rows = [
         _build_fulfilled_row_manufacturing(
             variant_id=variant_id,
             sku=sku,
             display_name=display_name,
-            actual_quantity=actual_quantity,
-            serial_numbers=request.serial_numbers,
+            actual_quantity=actual_quantity or 1,
+            serial_numbers=allocation_serials,
             batch_transactions=mo_batch_transactions,
             order_id=request.order_id,
         )
     ]
+    fulfilled_rows[0].manufacturing_traceability = request.traceability
     rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
     katana_url = katana_web_url("manufacturing_order", request.order_id)
 
@@ -562,6 +603,7 @@ async def _fulfill_manufacturing_order(
         completed_date=to_unset(request.completed_at),
         is_final=True,
         serial_numbers=to_unset(request.serial_numbers),
+        traceability=build_manufacturing_output_allocations(request.traceability),
         # ingredients / operations intentionally omitted — Katana auto-
         # consumes from the MO's recipe (documented behavior).
     )
@@ -606,11 +648,12 @@ async def _fulfill_manufacturing_order(
             sku=sku,
             display_name=display_name,
             actual_quantity=final_actual_quantity,
-            serial_numbers=request.serial_numbers,
+            serial_numbers=allocation_serials,
             batch_transactions=final_batch_transactions,
             order_id=request.order_id,
         )
     ]
+    success_rows[0].manufacturing_traceability = request.traceability
     success_rows_count, success_total_qty, success_total_value = (
         _summarize_fulfilled_rows(success_rows)
     )
@@ -1244,7 +1287,7 @@ def _build_mo_serial_warnings(
     if not serial_numbers and (qty or 0) > 0:
         warnings.append(
             f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} "
-            f"({sku}) is serial-tracked. Pass serial_numbers (one "
+            f"({sku}) is serial-tracked. Pass serial_numbers or traceability (one "
             "SerialNumber ID per unit produced) to mark the order DONE."
         )
     elif serial_numbers is not None and qty is not None and len(serial_numbers) != qty:
