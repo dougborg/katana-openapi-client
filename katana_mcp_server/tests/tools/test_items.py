@@ -2321,9 +2321,17 @@ async def test_modify_item_add_variant_injects_parent_id_for_product():
         patch(
             "katana_public_api_client.api.product.get_product.asyncio_detailed",
             new_callable=AsyncMock,
-        ),
+        ) as mock_get_product,
         patch(_MODIFY_ITEM_UNWRAP_AS, return_value=mock_variant),
     ):
+        # A missing diff snapshot is the intended setup for this focused
+        # variant-request test. Return a real error-shaped response so the
+        # best-effort fetch path raises and returns None instead of leaking an
+        # unawaited AsyncMock's auto-created ``to_dict``/``model_dump``
+        # coroutine into prior-state serialization.
+        mock_get_product.return_value = MagicMock(
+            status_code=404, parsed=None, content=b""
+        )
         request = ModifyItemRequest(
             id=42,
             type=ItemType.PRODUCT,
