@@ -935,9 +935,9 @@ export type ArchivableDeletableEntity = BaseEntity & {
 };
 
 /**
- * Configuration option for a material that defines variant attributes
+ * Configuration option supplied while creating a material variant
  */
-export type MaterialConfig = BaseEntity & {
+export type MaterialConfig = {
   /**
    * Configuration attribute name (e.g., Grade, Thickness, Color)
    */
@@ -946,10 +946,6 @@ export type MaterialConfig = BaseEntity & {
    * Array of possible values for this configuration attribute
    */
   values: Array<string>;
-  /**
-   * ID of the material this configuration belongs to
-   */
-  material_id: number;
 };
 
 /**
@@ -3271,14 +3267,18 @@ export type UpdateMaterialRequest = {
   purchase_uom_conversion_rate?: number;
   /**
    * When updating configs, all configs and values must be provided. Existing ones are matched,
-   * new ones are created, and configs not provided in the update are deleted.
+   * new ones are created, and configs not provided in the update are deleted. Each config must
+   * identify itself with either id or name.
    */
   configs?: Array<{
     /**
      * If config ID is used to map the config, then name is ignored.
      */
     id?: number;
-    name: string;
+    /**
+     * Config name used to map the config when id is omitted.
+     */
+    name?: string;
     values: Array<string>;
   }>;
   /**

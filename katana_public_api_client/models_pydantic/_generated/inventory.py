@@ -58,7 +58,10 @@ from .common import (
 from .contacts import CachedSupplier, Supplier, SupplierItemCode
 
 
-class MaterialConfig(BaseEntity):
+class MaterialConfig(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
     name: Annotated[
         str,
         Field(
@@ -68,9 +71,6 @@ class MaterialConfig(BaseEntity):
     values: Annotated[
         list[str],
         Field(description="Array of possible values for this configuration attribute"),
-    ]
-    material_id: Annotated[
-        int, Field(description="ID of the material this configuration belongs to")
     ]
 
 
@@ -379,7 +379,7 @@ class UpdateMaterialRequest(KatanaPydanticBase):
     configs: Annotated[
         list[Config] | None,
         Field(
-            description="When updating configs, all configs and values must be provided. Existing ones are matched,\n        new ones are created, and configs not provided in the update are deleted.",
+            description="When updating configs, all configs and values must be provided. Existing ones are matched,\n        new ones are created, and configs not provided in the update are deleted. Each config must\n        identify itself with either id or name.",
             min_length=1,
         ),
     ] = None

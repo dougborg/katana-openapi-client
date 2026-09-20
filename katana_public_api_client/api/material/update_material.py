@@ -98,9 +98,9 @@ def sync_detailed(
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
             'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
             'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
-            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
-            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
-            'Matte']}], 'custom_field_collection_id': 201}.
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'values': ['304',
+            '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}],
+            'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,9 +141,9 @@ def sync(
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
             'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
             'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
-            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
-            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
-            'Matte']}], 'custom_field_collection_id': 201}.
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'values': ['304',
+            '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}],
+            'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -179,9 +179,9 @@ async def asyncio_detailed(
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
             'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
             'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
-            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
-            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
-            'Matte']}], 'custom_field_collection_id': 201}.
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'values': ['304',
+            '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}],
+            'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -220,9 +220,9 @@ async def asyncio(
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
             'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
             'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
-            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
-            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
-            'Matte']}], 'custom_field_collection_id': 201}.
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'values': ['304',
+            '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}],
+            'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

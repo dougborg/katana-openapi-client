@@ -683,7 +683,10 @@ class Config(KatanaPydanticBase):
             description="If config ID is used to map the config, then name is ignored."
         ),
     ] = None
-    name: str
+    name: Annotated[
+        str | None,
+        Field(description="Config name used to map the config when id is omitted."),
+    ] = None
     values: list[str]
 
 
