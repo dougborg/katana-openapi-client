@@ -1123,30 +1123,6 @@ class CustomField4(KatanaPydanticBase):
     field_value: Annotated[str, Field(description="Custom field value", max_length=100)]
 
 
-class CustomFields2Item(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    field_name: Annotated[
-        str,
-        Field(
-            description="Name of the custom field (matches a configured field's ``name``)",
-            max_length=40,
-        ),
-    ]
-    field_value: Annotated[str, Field(description="Value to set for this custom field")]
-
-
-class CustomFields2(RootModel[list[CustomFields2Item]]):
-    root: Annotated[
-        list[CustomFields2Item],
-        Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
-            max_length=3,
-        ),
-    ]
-
-
 class DemandForecastPeriod(KatanaPydanticBase):
     period_start: Annotated[
         AwareDatetime,
@@ -1516,8 +1492,18 @@ class AssignedOperator(KatanaPydanticBase):
     ] = None
 
 
-class CustomFieldValue(CustomFields2Item):
-    pass
+class CustomFieldValue(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    field_name: Annotated[
+        str,
+        Field(
+            description="Name of the custom field (matches a configured field's ``name``)",
+            max_length=40,
+        ),
+    ]
+    field_value: Annotated[str, Field(description="Value to set for this custom field")]
 
 
 class CustomFieldModel(KatanaPydanticBase):
@@ -1732,6 +1718,16 @@ class ProductOperationRowListResponse(KatanaPydanticBase):
             description="Array of product operation rows returned by this page of the list response"
         ),
     ] = None
+
+
+class CustomFields2(RootModel[list[CustomFieldValue]]):
+    root: Annotated[
+        list[CustomFieldValue],
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            max_length=3,
+        ),
+    ]
 
 
 class VariantSearchFilter(KatanaPydanticBase):

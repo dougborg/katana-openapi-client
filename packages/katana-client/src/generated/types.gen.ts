@@ -8381,8 +8381,9 @@ export type CustomFieldsCollection = {
  * **dict keyed by custom field definition ``id`` (UUID)** registered
  * through ``/custom_field_definitions`` (see ``CustomFieldDefinition``
  * and the ``custom_fields`` property on ``SalesOrder`` /
- * ``SalesOrderRow``). The two surfaces coexist intentionally; Katana
- * has not migrated items/variants to the dict shape.
+ * ``SalesOrderRow``). The two surfaces coexist. Variant and service
+ * update requests also accept the UUID-keyed map when that feature
+ * is enabled for the account; this schema describes the legacy item.
  *
  */
 export type CustomFieldValue = {

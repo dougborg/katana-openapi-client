@@ -5,14 +5,21 @@ from pathlib import Path
 
 import pytest
 import yaml
+from jsonschema import Draft202012Validator
 from pydantic import ValidationError
+from referencing import Registry
+from referencing.jsonschema import DRAFT202012
 
 from katana_public_api_client import models
 from katana_public_api_client.models_pydantic import _generated
 
-SCHEMAS = yaml.safe_load(
+SPEC = yaml.safe_load(
     (Path(__file__).parents[1] / "docs" / "katana-openapi.yaml").read_text()
-)["components"]["schemas"]
+)
+SCHEMAS = SPEC["components"]["schemas"]
+SCHEMA_REGISTRY = Registry().with_resource(
+    "urn:katana", DRAFT202012.create_resource(SPEC)
+)
 OBJECT_REQUESTS = [
     "CreateBomRowRequest",
     "UpdateBomRowRequest",
@@ -77,6 +84,9 @@ def test_object_custom_fields_reject_legacy_arrays(name: str) -> None:
 )
 def test_union_custom_fields_preserve_both_formats(name: str, value: object) -> None:
     body = _payload(name, value)
+    Draft202012Validator(
+        {"$ref": f"urn:katana#/components/schemas/{name}"}, registry=SCHEMA_REGISTRY
+    ).validate(body)
     attrs_request = getattr(models, name).from_dict(deepcopy(body))
     assert attrs_request.to_dict()["custom_fields"] == value
     pydantic_request = getattr(_generated, name).model_validate(body)

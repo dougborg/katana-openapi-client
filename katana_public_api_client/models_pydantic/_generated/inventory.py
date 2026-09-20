@@ -741,76 +741,6 @@ class CreateServiceVariantRequest(KatanaPydanticBase):
     ] = None
 
 
-class UpdateServiceRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    name: Annotated[str | None, Field(description="The service's unique name")] = None
-    uom: Annotated[
-        str | None,
-        Field(
-            description="The unit used to measure the quantity of the service (e.g. pcs, hours)",
-            max_length=7,
-        ),
-    ] = None
-    category_name: Annotated[
-        str | None,
-        Field(
-            description="A string used to group similar items for better organization and analysis"
-        ),
-    ] = None
-    additional_info: Annotated[
-        str | None,
-        Field(
-            description="A string attached to the object to add any internal comments, links to external files, additional\ninstructions, etc.\n"
-        ),
-    ] = None
-    is_sellable: Annotated[
-        bool | None,
-        Field(description="Sellable services can be added to Quotes and Sales orders"),
-    ] = None
-    is_archived: Annotated[
-        bool | None, Field(description="Whether the service is archived or not")
-    ] = None
-    sales_price: Annotated[
-        float | None,
-        Field(
-            description="Default sales price (excluding tax)", ge=0.0, le=100000000000.0
-        ),
-    ] = None
-    default_cost: Annotated[
-        float | None,
-        Field(
-            description="Default cost which is used to calculate profit",
-            ge=0.0,
-            le=100000000000.0,
-        ),
-    ] = None
-    sku: Annotated[
-        str | None, Field(description="A unique service code for the primary variant")
-    ] = None
-    custom_field_collection_id: Annotated[
-        int | None,
-        Field(
-            description="ID of the custom field collection to associate with this service",
-            le=2147483647,
-        ),
-    ] = None
-    custom_fields: Annotated[
-        dict[
-            constr(
-                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-            ),
-            str | float | bool | None,
-        ]
-        | CustomFields2
-        | None,
-        Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
-        ),
-    ] = None
-
-
 class CreateInventoryReorderPointRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -1266,6 +1196,76 @@ class CreateServiceRequest(KatanaPydanticBase):
             min_length=1,
         ),
     ]
+
+
+class UpdateServiceRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    name: Annotated[str | None, Field(description="The service's unique name")] = None
+    uom: Annotated[
+        str | None,
+        Field(
+            description="The unit used to measure the quantity of the service (e.g. pcs, hours)",
+            max_length=7,
+        ),
+    ] = None
+    category_name: Annotated[
+        str | None,
+        Field(
+            description="A string used to group similar items for better organization and analysis"
+        ),
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(
+            description="A string attached to the object to add any internal comments, links to external files, additional\ninstructions, etc.\n"
+        ),
+    ] = None
+    is_sellable: Annotated[
+        bool | None,
+        Field(description="Sellable services can be added to Quotes and Sales orders"),
+    ] = None
+    is_archived: Annotated[
+        bool | None, Field(description="Whether the service is archived or not")
+    ] = None
+    sales_price: Annotated[
+        float | None,
+        Field(
+            description="Default sales price (excluding tax)", ge=0.0, le=100000000000.0
+        ),
+    ] = None
+    default_cost: Annotated[
+        float | None,
+        Field(
+            description="Default cost which is used to calculate profit",
+            ge=0.0,
+            le=100000000000.0,
+        ),
+    ] = None
+    sku: Annotated[
+        str | None, Field(description="A unique service code for the primary variant")
+    ] = None
+    custom_field_collection_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the custom field collection to associate with this service",
+            le=2147483647,
+        ),
+    ] = None
+    custom_fields: Annotated[
+        dict[
+            constr(
+                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            ),
+            str | float | bool | None,
+        ]
+        | CustomFields2
+        | None,
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+        ),
+    ] = None
 
 
 class InventoryItem(ArchivableEntity):
