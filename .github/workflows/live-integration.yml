@@ -20,8 +20,7 @@ name: Live integration
 #   - dispatch  : manual run from the Actions tab
 #   - PR + label: opt-in only, via the ``needs-live-test`` label. There is no
 #                 automatic live run on every PR (live calls cost real API
-#                 quota and mutate nothing only because these tests are
-#                 read-only — a write test would need the SDT-cleanup path).
+#                 quota; write tests use SDT-tagging and tenant-scoped cleanup).
 #
 # Soft-fail by design (mirrors ``spec-drift-audit.yml``): results surface via
 # the job summary + an uploaded artifact; a red suite does not block. Promote
@@ -55,6 +54,7 @@ jobs:
     env:
       KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
       KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+      KATANA_TEST_LEDGER_DIR: ${{ runner.temp }}/katana-test-ledgers
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -88,12 +88,18 @@ jobs:
           set -o pipefail
           uv run poe test-integration-live | tee live-integration-report.txt
 
+      - name: Retry test artifact cleanup
+        if: always() && env.KATANA_TEST_API_KEY != ''
+        run: uv run python -m katana_public_api_client.testing_artifacts
+
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: live-integration-report
-          path: live-integration-report.txt
+          path: |
+            live-integration-report.txt
+            ${{ env.KATANA_TEST_LEDGER_DIR }}/*.jsonl
           retention-days: 30
 
       - name: Render summary
