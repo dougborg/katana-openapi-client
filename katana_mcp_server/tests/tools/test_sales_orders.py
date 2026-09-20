@@ -271,11 +271,15 @@ async def test_create_sales_order_confirm_success():
 
 
 @pytest.mark.asyncio
-async def test_create_sales_order_forwards_new_header_and_row_fields():
+async def test_create_sales_order_forwards_new_header_and_row_fields(monkeypatch):
     """Tracking, ecommerce, custom_fields, order_created_date, and row-level
     attributes supplied on the request must reach the API call body
     (#627 — write-side parity sweep).
     """
+    monkeypatch.setattr(
+        "katana_mcp.tools.foundation.sales_orders.validate_custom_field_values",
+        AsyncMock(return_value=[]),
+    )
     from katana_mcp.tools.foundation.sales_orders import (
         SalesOrderRowAttribute,
     )
@@ -320,7 +324,7 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
             ecommerce_order_type="shopify_order",
             ecommerce_store_name="Acme Online Store",
             ecommerce_order_id="store-order-12345",
-            custom_fields={"PO Reference": "PO-12345"},
+            custom_fields={"00000000-0000-0000-0000-000000000001": "PO-12345"},
             preview=False,
         )
         await _create_sales_order_impl(request, context)
@@ -339,7 +343,9 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
     assert api_body.ecommerce_order_type == "shopify_order"
     assert api_body.ecommerce_store_name == "Acme Online Store"
     assert api_body.ecommerce_order_id == "store-order-12345"
-    assert api_body.custom_fields.to_dict() == {"PO Reference": "PO-12345"}
+    assert api_body.custom_fields.to_dict() == {
+        "00000000-0000-0000-0000-000000000001": "PO-12345"
+    }
 
     # Row-level attributes
     row = api_body.sales_order_rows[0]
@@ -1536,6 +1542,7 @@ def _make_mock_so(
     field can assign it explicitly after the call.
     """
     so = MagicMock()
+    so.custom_fields = UNSET
     so.id = id
     so.order_no = order_no
     so.customer_id = customer_id
@@ -1589,6 +1596,7 @@ def _make_mock_row(
     doesn't leak MagicMock instances through Pydantic validation.
     """
     r = MagicMock()
+    r.custom_fields = UNSET
     r.id = id
     r.variant_id = variant_id
     r.quantity = quantity
@@ -2378,6 +2386,7 @@ def _make_mock_so_all_fields(*, so_id: int = 2001) -> MagicMock:
     )
 
     so = MagicMock()
+    so.custom_fields = {}
     so.id = so_id
     so.order_no = "SO-2024-001"
     so.customer_id = 1501
@@ -2423,6 +2432,7 @@ def _make_mock_so_all_fields(*, so_id: int = 2001) -> MagicMock:
 
     # One fully populated row so every SalesOrderRowDetail field has a value
     row = MagicMock()
+    row.custom_fields = {}
     row.id = 2501
     row.variant_id = 2101
     row.quantity = 2.0

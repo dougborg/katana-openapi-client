@@ -381,6 +381,10 @@ def _convert(spec: EntitySpec, attrs_obj: Any) -> tuple[Any, list[Any]]:
 
     exclude = {spec.rows_field} if spec.rows_field else set()
     parent_data = api_obj.model_dump(exclude=exclude)
+    if "custom_fields_present" in spec.cache_cls.model_fields:
+        parent_data["custom_fields_present"] = (
+            "custom_fields" in api_obj.model_fields_set
+        )
     # Singleton endpoints (Factory) don't ship an ``id`` on the wire,
     # but the cache class needs one as PK. Pin id=1 here so
     # ``model_validate`` succeeds; postprocess hooks can still mutate
@@ -398,6 +402,10 @@ def _convert(spec: EntitySpec, attrs_obj: Any) -> tuple[Any, list[Any]]:
         api_rows = getattr(api_obj, spec.rows_field) or []
         for api_row in api_rows:
             row_data = api_row.model_dump()
+            if "custom_fields_present" in spec.child_cls.model_fields:
+                row_data["custom_fields_present"] = (
+                    "custom_fields" in api_row.model_fields_set
+                )
             row_data[spec.fk_field] = api_obj.id
             children.append(spec.child_cls.model_validate(row_data))
 

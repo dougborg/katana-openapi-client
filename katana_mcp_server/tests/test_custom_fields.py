@@ -122,6 +122,7 @@ async def test_discovery_filters_deleted_and_groups_help(context_with_typed_cach
         assert "Retired" not in help_text
         assert "1 deleted choices" in help_text
         assert "Row \\| label" in help_text
+        assert "custom_fields.<uuid>" in help_text
         all_definitions = await _list_custom_field_definitions_impl(
             request=ListCustomFieldDefinitionsRequest(include_deleted=True),
             context=context,
