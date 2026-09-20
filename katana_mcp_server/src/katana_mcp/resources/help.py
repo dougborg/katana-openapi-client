@@ -478,6 +478,12 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 """
 
 HELP_TOOLS = """
+# Katana Tool Reference
+
+Detailed guide for all available MCP tools.
+
+---
+
 ## Custom-field definitions
 
 - `list_custom_field_definitions(entity_type?, include_deleted=false)`: discover
@@ -485,13 +491,22 @@ HELP_TOOLS = """
 - `get_custom_field_definition(definition_id)`: fetch a definition live and refresh
   its cached record.
 
+- `create_custom_field_definition(label, field_type, entity_type, choices?, source?,
+  description?, preview=true)`: preview a new definition; singleSelect requires choices.
+- `update_custom_field_definition(definition_id, label?, description?, choices?,
+  choice_changes?, preview=true)`: preview definition edits. `choices` is the complete
+  desired active label list; missing labels are retired. For a partial edit, use
+  `choice_changes={"add": ["New"], "remove": [2]}`. Existing IDs remain available
+  for historical values. Omit description to preserve it; null clears it.
+- `delete_custom_field_definition(definition_id, preview=true)`: preview deletion;
+  values disappear from record reads after deletion. Confirm applies the change.
+
+Definition writes refresh the cache immediately. The list API lacks an
+include-deleted parameter; if another client deletes a definition and the API omits
+its tombstone, use `rebuild_cache(entity_types=["custom_field_definition"])` to
+refresh the complete set.
+
 See `katana://help/custom-fields` for active choices grouped by resource type.
-
-# Katana Tool Reference
-
-Detailed guide for all available MCP tools.
-
----
 
 ## Inventory & Catalog Tools
 
@@ -2450,7 +2465,8 @@ async def get_help_custom_fields(context: Context) -> str:
         [
             "## Using custom fields",
             "",
-            "Read and write values with `custom_fields` keyed by definition UUID.",
+            "Sales-order header and row values use `custom_fields` keyed by definition UUID.",
+            "These definitions describe SalesOrder and SalesOrderRow fields; other resources may use different contracts.",
             "In Katana search filters, use camelCase: `customFields.<uuid>`.",
             '`{"customFields.<uuid>": 2}` matches choice ID 2; '
             '`{"customFields.<uuid>": null}` matches empty values.',
