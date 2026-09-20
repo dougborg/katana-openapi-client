@@ -32,8 +32,24 @@ jobs:
           permission-pull-requests: write
 
       - name: Run release-please
+        id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Check out release tag helper
+        if: steps.release.outputs.releases_created == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Creating a draft release does not create its Git ref. The App token
+      # ensures these tag pushes trigger publish.yml (GITHUB_TOKEN would not).
+      - name: Create tags for draft releases
+        if: steps.release.outputs.releases_created == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_OUTPUTS: ${{ toJSON(steps.release.outputs) }}
+        run: python3 scripts/ensure_release_tags.py
