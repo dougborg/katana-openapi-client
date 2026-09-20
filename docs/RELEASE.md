@@ -55,6 +55,12 @@ point `release-please.yml` runs one more time, sees the merge, and creates
 `client-vX.Y.Z` / `mcp-vX.Y.Z` tags plus a **draft** GitHub Release for each package
 that changed.
 
+GitHub does not create Git refs for draft releases. After release-please creates the
+drafts, the workflow explicitly creates each tag at the action's reported commit SHA
+using the GitHub App token. This triggers publishing while keeping the release mutable
+for artifact uploads. An existing tag is accepted only if it points to the same commit;
+the workflow never moves release tags.
+
 ### 4. Tags trigger publishing
 
 [`publish.yml`](../.github/workflows/publish.yml) is the **only** workflow that builds
@@ -185,6 +191,9 @@ Only do this if the automated pipeline is broken. Prefer fixing the workflow.
 
 ### Release stuck in draft
 
+- If no publishing run exists, check the release workflow's **Create tags for draft
+  releases** step and confirm the Git ref exists. A draft release alone cannot trigger
+  the tag-based publishing workflow.
 - Each `publish.yml` job publishes to PyPI, uploads build artifacts, and *then* runs
   `gh release edit --draft=false`. If the job failed before that last step, the draft
   release is expected to remain in draft - check the workflow run for the actual failure
