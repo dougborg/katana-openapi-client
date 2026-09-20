@@ -28,6 +28,13 @@ against [`release-please-config.json`](../release-please-config.json) /
 - if that release PR was just merged, creates the tag(s) + a **draft** GitHub Release
   for each changed package at the merge commit.
 
+Release creation and release-PR preparation are separate action invocations. The first
+only creates releases for merged PRs. If it created a release, the workflow creates the
+exact Git refs and skips preparing another PR during that run. Otherwise, a second
+invocation only updates the next release PR. This avoids scanning for a just-released
+manifest version before its draft release has a Git ref, which previously replayed old
+history into a spurious version bump. The sequence uses action outputs, not delays.
+
 This workflow **never pushes to `main` itself** - it only writes to the release PR
 branch or creates tags/releases at a commit that already exists on `main`. There is no
 job here to race with another job over who pushes next.
