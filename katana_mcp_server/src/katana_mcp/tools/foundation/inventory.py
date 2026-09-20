@@ -2517,8 +2517,10 @@ async def update_stock_adjustment(
     `preview=false` prompts the user for confirmation and applies the update
     via PATCH. At least one updatable field must be supplied
     (stock_adjustment_number, stock_adjustment_date, location_id, reason,
-    additional_info). Row-level changes are not supported — create a new
-    adjustment for that.
+    additional_info). Row-level changes are not supported. If you got a row
+    wrong, post a compensating ``create_stock_adjustment`` — rows are
+    immutable post-creation — then verify the observed inventory and movement
+    history in the current tenant.
     """
     from katana_mcp.tools.prefab_ui import build_stock_adjustment_update_ui
     from katana_mcp.tools.tool_result_utils import make_tool_result
@@ -2579,7 +2581,8 @@ async def _delete_stock_adjustment_impl(
 
     Preview mode fetches the adjustment (via the list endpoint filter) so the
     caller can see what will be removed before applying. Apply mode calls the
-    API's DELETE endpoint, which reverses the associated inventory changes.
+    API's DELETE endpoint. The caller must verify the resulting inventory and
+    movement history in the current tenant.
     """
     from katana_public_api_client.api.stock_adjustment import (
         delete_stock_adjustment as api_delete_stock_adjustment,
@@ -2685,7 +2688,7 @@ async def delete_stock_adjustment(
     Two-step flow: `preview=true` (default) returns a preview (including the
     adjustment number, location, and row count that would be affected);
     `preview=false` prompts the user for confirmation, then calls DELETE.
-    Deleting a stock adjustment reverses the associated inventory movements.
+    Verify the resulting inventory and movement history in the current tenant.
     """
     from katana_mcp.tools.prefab_ui import build_stock_adjustment_delete_ui
     from katana_mcp.tools.tool_result_utils import make_tool_result

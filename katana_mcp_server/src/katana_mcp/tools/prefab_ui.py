@@ -3411,9 +3411,8 @@ def build_stock_adjustment_delete_ui(
     """Build the delete-stock-adjustment preview card with direct-apply rail.
 
     Surfaces the identifying details (number, location, row count) so the
-    user can sanity-check before confirming. Apply path reverses the
-    associated inventory movements server-side — that consequence is
-    called out in the footer copy.
+    user can sanity-check before confirming. The footer directs the operator
+    to verify the observed inventory and movement history after deletion.
     """
     is_preview = bool(response.get("is_preview"))
     state: dict[str, Any] = {}
@@ -3472,8 +3471,8 @@ def build_stock_adjustment_delete_ui(
             if is_preview:
                 Muted(
                     content=(
-                        "Deleting reverses the associated inventory "
-                        "movements server-side. This cannot be undone."
+                        "Confirm the resulting inventory and movement history "
+                        "after deletion. This cannot be undone."
                     )
                 )
                 with If("error"):
