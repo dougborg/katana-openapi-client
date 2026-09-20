@@ -5908,6 +5908,7 @@ def build_so_create_ui(
 
     state = _init_create_card_state(response)
     state.update(applied_fees_state)
+    state["response"] = response
 
     with (
         PrefabApp(state=state, css_class="p-4") as app,
@@ -5939,6 +5940,16 @@ def build_so_create_ui(
                 name=response.get("location_name"),
                 entity_id=response.get("location_id"),
             )
+            if (
+                confirm_request is not None
+                and "custom_fields" in confirm_request.model_fields_set
+            ):
+                fields = response.get("custom_fields")
+                Text(
+                    content=f"Custom fields: {fields}"
+                    if fields is not None
+                    else "Custom fields: clear all values"
+                )
             _render_so_shipping_fees_section(
                 shipping_fee_outcomes,
                 is_preview=is_preview,
@@ -6740,6 +6751,7 @@ _SO_HEADER_FIELD_SPEC: tuple[
     # conversion-date update rendered NO diff lines on the card.
     ("Conversion rate", ("conversion_rate",), (), False),
     ("Conversion date", ("conversion_date",), (), False),
+    ("Custom fields", ("custom_fields",), ("custom_fields",), False),
     ("Customer ref", ("customer_ref",), ("customer_ref",), True),
     ("Tracking #", ("tracking_number",), ("tracking_number",), True),
     ("Tracking URL", ("tracking_number_url",), (), False),

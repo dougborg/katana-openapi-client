@@ -48,6 +48,13 @@ from katana_mcp.tools._modification_dispatch import (
     safe_fetch_for_diff,
     unset_dict,
 )
+from katana_mcp.tools.custom_field_values import (
+    CustomFieldValuesRequest,
+    custom_fields_read_kwargs,
+    encode_custom_fields,
+    prepare_custom_field_plan,
+    validate_custom_field_values,
+)
 from katana_mcp.tools.foundation._traceability import (
     TraceabilityInput,
     build_traceability_requests,
@@ -117,7 +124,9 @@ from katana_public_api_client.models import (
     CreateSalesOrderRequestCustomFieldsType0 as APISOCustomFieldsMap,
     CreateSalesOrderRequestSalesOrderRowsItem,
     CreateSalesOrderRequestSalesOrderRowsItemAttributesItem as APISORowAttributeItem,
+    CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
     CreateSalesOrderRowRequest as APICreateSORowRequest,
+    CreateSalesOrderRowRequestCustomFieldsType0,
     CreateSalesOrderShippingFeeRequest as APICreateSOShippingFeeRequest,
     CreateSalesOrderStatus,
     SalesOrder,
@@ -130,7 +139,9 @@ from katana_public_api_client.models import (
     UpdateSalesOrderAddressRequest as APIUpdateSOAddressRequest,
     UpdateSalesOrderFulfillmentRequest as APIUpdateSOFulfillmentRequest,
     UpdateSalesOrderRequest as APIUpdateSalesOrderRequest,
+    UpdateSalesOrderRequestCustomFieldsType0,
     UpdateSalesOrderRowRequest as APIUpdateSORowRequest,
+    UpdateSalesOrderRowRequestCustomFieldsType0,
     UpdateSalesOrderShippingFeeRequest as APIUpdateSOShippingFeeRequest,
     UpdateSalesOrderStatus,
 )
@@ -138,6 +149,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedCustomer,
     CachedLocation,
     CachedVariant,
+    CustomFieldEntityType,
 )
 from katana_public_api_client.utils import unwrap_as
 
@@ -164,7 +176,7 @@ class SalesOrderRowAttribute(BaseModel):
     value: str = Field(..., description="Attribute value")
 
 
-class SalesOrderItem(BaseModel):
+class SalesOrderItem(CustomFieldValuesRequest):
     """Line item for a sales order."""
 
     model_config = ConfigDict(extra="forbid")
@@ -283,7 +295,7 @@ SalesOrderStatusLiteral = Literal["NOT_SHIPPED", "PENDING", "PACKED", "DELIVERED
 _CREATE_TERMINAL_STATUSES: tuple[str, ...] = ("PACKED", "DELIVERED")
 
 
-class CreateSalesOrderRequest(BaseModel):
+class CreateSalesOrderRequest(CustomFieldValuesRequest):
     """Request to create a sales order."""
 
     model_config = ConfigDict(extra="forbid")
@@ -364,16 +376,6 @@ class CreateSalesOrderRequest(BaseModel):
             "Original order ID from the ecommerce platform — used to "
             "cross-reference the Katana SO back to the storefront record and to "
             "build the storefront deep-link. Create-only."
-        ),
-    )
-    custom_fields: dict[str, Any] | None = Field(
-        default=None,
-        description=(
-            "Custom-field values attached to the sales order header, keyed by "
-            "configured field name (e.g. `{'PO Reference': 'PO-12345'}`). "
-            "Names must already exist on the SO custom-field collection "
-            "(configured via Katana's UI) and value types must match each "
-            "field's configured type."
         ),
     )
     status: SalesOrderStatusLiteral | None = Field(
@@ -469,6 +471,7 @@ class ShippingFeeOutcome(BaseModel):
 class SalesOrderResponse(BaseModel):
     """Response from creating a sales order."""
 
+    custom_fields: dict[str, Any] | None = None
     id: int | None = None
     order_number: str
     customer_id: int
@@ -646,6 +649,24 @@ async def _create_sales_order_impl(
     )
 
     requested_fees = request.shipping_fees or []
+    custom_field_warnings = await validate_custom_field_values(
+        values=[
+            (CustomFieldEntityType.sales_order, request.custom_fields),
+            *(
+                (CustomFieldEntityType.sales_order_row, item.custom_fields)
+                for item in request.items
+            ),
+        ],
+        context=context,
+    )
+    if custom_field_warnings:
+        return SalesOrderResponse(
+            order_number=request.order_number,
+            customer_id=request.customer_id,
+            is_preview=True,
+            warnings=custom_field_warnings,
+            message="Fix the custom-field values before creating this order.",
+        )
 
     # Resolve customer + location names once, up front, so every return
     # path (preview / refusal / success) carries the resolved Tier-3
@@ -754,6 +775,7 @@ async def _create_sales_order_impl(
                 "Review the order details",
                 "Set preview=false to create the sales order",
             ],
+            custom_fields=request.custom_fields,
             message=f"Preview: Sales order {request.order_number} with {len(request.items)} items"
             + (f" totaling {total_estimate:.2f}" if total_estimate > 0 else ""),
         )
@@ -816,6 +838,10 @@ async def _create_sales_order_impl(
                 location_id=to_unset(item.location_id),
                 total_discount=to_unset(item.total_discount),
                 attributes=row_attributes,
+                custom_fields=encode_custom_fields(
+                    request=item,
+                    map_type=CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
+                ),
             )
             so_rows.append(row)
 
@@ -846,9 +872,9 @@ async def _create_sales_order_impl(
         # datetime.now(UTC) hardcode silently overwrote any caller intent and
         # blocked back-fills, mirroring the create_purchase_order regression
         # that #605 / #627 fixed.
-        custom_fields_map: APISOCustomFieldsMap | Unset = UNSET
-        if request.custom_fields is not None:
-            custom_fields_map = APISOCustomFieldsMap.from_dict(request.custom_fields)
+        custom_fields_map = encode_custom_fields(
+            request=request, map_type=APISOCustomFieldsMap
+        )
 
         api_request = APICreateSalesOrderRequest(
             order_no=request.order_number,
@@ -1020,6 +1046,7 @@ async def _create_sales_order_impl(
 
         return SalesOrderResponse(
             id=so.id,
+            **custom_fields_read_kwargs(record=so),
             order_number=so.order_no,
             customer_id=so.customer_id,
             customer_name=apply_customer_name,
@@ -2116,7 +2143,7 @@ async def _fetch_so_shipping_fee(
 # ----------------------------------------------------------------------------
 
 
-class SOHeaderPatch(BaseModel):
+class SOHeaderPatch(CustomFieldValuesRequest):
     """Header fields to patch on an SO. Status is included here — the Katana
     PATCH endpoint accepts it as a regular field."""
 
@@ -2171,7 +2198,7 @@ class SOHeaderPatch(BaseModel):
     tracking_number_url: str | None = Field(default=None, description="Tracking URL")
 
 
-class SORowAdd(BaseModel):
+class SORowAdd(CustomFieldValuesRequest):
     """A new line item to add to the SO."""
 
     model_config = ConfigDict(extra="forbid")
@@ -2190,7 +2217,7 @@ class SORowAdd(BaseModel):
     total_discount: float | None = Field(default=None, description="Total discount")
 
 
-class SORowUpdate(BaseModel):
+class SORowUpdate(CustomFieldValuesRequest):
     """Patch to an existing SO row."""
 
     model_config = ConfigDict(extra="forbid")
@@ -2480,12 +2507,25 @@ class DeleteSalesOrderRequest(ConfirmableRequest):
 
 def _build_update_header_request(patch: SOHeaderPatch) -> APIUpdateSalesOrderRequest:
     return APIUpdateSalesOrderRequest(
-        **unset_dict(patch, transforms={"status": UpdateSalesOrderStatus})
+        custom_fields=encode_custom_fields(
+            request=patch, map_type=UpdateSalesOrderRequestCustomFieldsType0
+        ),
+        **unset_dict(
+            patch,
+            transforms={"status": UpdateSalesOrderStatus},
+            exclude=("custom_fields",),
+        ),
     )
 
 
 def _build_create_row_request(so_id: int, row: SORowAdd) -> APICreateSORowRequest:
-    return APICreateSORowRequest(sales_order_id=so_id, **unset_dict(row))
+    return APICreateSORowRequest(
+        sales_order_id=so_id,
+        custom_fields=encode_custom_fields(
+            request=row, map_type=CreateSalesOrderRowRequestCustomFieldsType0
+        ),
+        **unset_dict(row, exclude=("custom_fields",)),
+    )
 
 
 def _build_update_row_request(patch: SORowUpdate) -> APIUpdateSORowRequest:
@@ -2494,7 +2534,10 @@ def _build_update_row_request(patch: SORowUpdate) -> APIUpdateSORowRequest:
     # ``model_dump``s sub-models to plain dicts).
     return APIUpdateSORowRequest(
         traceability=build_traceability_requests(patch.traceability),
-        **unset_dict(patch, exclude=("id", "traceability")),
+        custom_fields=encode_custom_fields(
+            request=patch, map_type=UpdateSalesOrderRowRequestCustomFieldsType0
+        ),
+        **unset_dict(patch, exclude=("id", "traceability", "custom_fields")),
     )
 
 
@@ -2582,6 +2625,32 @@ async def _modify_sales_order_impl(
             "add/update/delete_fulfillments, or "
             "add/update/delete_shipping_fees. To remove the SO entirely, "
             "use delete_sales_order."
+        )
+
+    custom_field_warnings = await validate_custom_field_values(
+        values=[
+            (
+                CustomFieldEntityType.sales_order,
+                request.update_header.custom_fields if request.update_header else None,
+            ),
+            *(
+                (CustomFieldEntityType.sales_order_row, row.custom_fields)
+                for row in (request.add_rows or [])
+            ),
+            *(
+                (CustomFieldEntityType.sales_order_row, row.custom_fields)
+                for row in (request.update_rows or [])
+            ),
+        ],
+        context=context,
+    )
+    if custom_field_warnings:
+        return ModificationResponse(
+            entity_type="sales_order",
+            entity_id=request.id,
+            is_preview=True,
+            warnings=custom_field_warnings,
+            message="Fix the custom-field values before applying changes.",
         )
 
     existing_so = await _fetch_sales_order_attrs(services, request.id)
@@ -2763,6 +2832,7 @@ async def _modify_sales_order_impl(
     # back to the GET there: it runs post-apply and reflects the final row state.
     # Only row CRUD matters: address / fulfillment / shipping-fee sub-payloads
     # don't touch ``sales_order_rows``, so they keep the optimization.
+    prepare_custom_field_plan(plan=plan)
     so_no_row_crud = not (
         request.add_rows or request.update_rows or request.delete_row_ids
     )

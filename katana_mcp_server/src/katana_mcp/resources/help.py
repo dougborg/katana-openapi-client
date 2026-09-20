@@ -487,6 +487,15 @@ Detailed guide for all available MCP tools.
 
 ---
 
+## Custom-field values on sales orders
+
+`create_sales_order.custom_fields` and each item accept a map from definition UUID
+ to value. `modify_sales_order.update_header`, `add_rows`, and `update_rows` accept
+ the same field. Omit `custom_fields` to preserve values, send null to clear all,
+ or send a map to merge selected keys; `{}` changes no keys. Nonempty maps are
+ validated against active SalesOrder or SalesOrderRow definitions before apply.
+ Discover definitions first; support depends on the account's enabled features.
+
 ## Custom-field definitions
 
 - `list_custom_field_definitions(entity_type?, include_deleted=false)`: discover
