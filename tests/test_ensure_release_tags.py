@@ -70,3 +70,19 @@ def test_permission_failure_does_not_attempt_create() -> None:
     ):
         ensure_release_tags(OUTPUTS, "owner/repo", "test-token")
     assert api.call_count == 1
+
+
+def test_api_transport_is_pinned_to_github() -> None:
+    from scripts.ensure_release_tags import _api
+
+    with patch("scripts.ensure_release_tags.HTTPSConnection") as connection:
+        response = connection.return_value.getresponse.return_value
+        response.status = 200
+        response.read.return_value = b'{"ok": true}'
+        assert _api("GET", "repos/owner/repo/git/refs", "test-token") == {"ok": True}
+    connection.assert_called_once_with("api.github.com", timeout=30)
+    assert connection.return_value.request.call_args.args == (
+        "GET",
+        "/repos/owner/repo/git/refs",
+    )
+    connection.return_value.close.assert_called_once()

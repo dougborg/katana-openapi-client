@@ -9,25 +9,38 @@ from __future__ import annotations
 import json
 import os
 import re
+from http.client import HTTPSConnection
 from typing import Any
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 
 
 def _api(method: str, path: str, token: str, body: dict[str, str] | None = None) -> Any:
-    request = Request(
-        f"https://api.github.com/{path}",
-        method=method,
-        data=json.dumps(body).encode() if body is not None else None,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
-    )
-    with urlopen(request, timeout=30) as response:
-        return json.load(response)
+    connection = HTTPSConnection("api.github.com", timeout=30)
+    try:
+        connection.request(
+            method,
+            f"/{path}",
+            body=json.dumps(body) if body is not None else None,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "User-Agent": "katana-release-tags",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        )
+        response = connection.getresponse()
+        if response.status >= 400:
+            raise HTTPError(
+                f"https://api.github.com/{path}",
+                response.status,
+                response.reason,
+                response.headers,
+                None,
+            )
+        return json.loads(response.read())
+    finally:
+        connection.close()
 
 
 def ensure_release_tags(outputs: dict[str, str], repository: str, token: str) -> None:
