@@ -1458,6 +1458,7 @@ async def test_get_variant_details():
     assert result.minimum_order_quantity == 10.0
     assert len(result.config_attributes) == 2
     assert result.config_attributes[0]["config_name"] == "Size"
+    assert result.custom_fields is not None
     assert len(result.custom_fields) == 1
     assert result.custom_fields[0]["field_name"] == "Warranty"
 
@@ -1641,7 +1642,7 @@ async def test_get_variant_details_minimal_fields():
     assert result.lead_time is None
     assert result.minimum_order_quantity is None
     assert result.config_attributes == []
-    assert result.custom_fields == []
+    assert result.custom_fields is None
 
 
 @pytest.mark.asyncio

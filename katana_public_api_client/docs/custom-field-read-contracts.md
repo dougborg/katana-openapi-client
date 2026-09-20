@@ -59,6 +59,17 @@ availability or universal list/detail behavior. The earlier issue's product-deta
 null observation may describe different tenant data; the current schema permits
 that undeclared property.
 
+## MCP variant detail
+
+`get_variant_details` preserves null versus an empty array in its
+`custom_fields` result. It no longer converts both to `[]`. Populated legacy
+arrays still retain their field names and values.
+
+The existing `CachedVariant` column stores both an omitted wire field and explicit
+null as `None`; therefore a cached detail result cannot recover that distinction.
+The MCP response reports null for either state. This bounded correction adds no
+presence column and does not claim exact omission preservation through the cache.
+
 ## Repeat the probe
 
 From a checkout with test credentials configured:

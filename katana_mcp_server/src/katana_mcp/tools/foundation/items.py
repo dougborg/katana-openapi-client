@@ -2026,7 +2026,10 @@ class VariantDetailsResponse(SoftDeletableResponse):
 
     # Configuration & Custom Fields
     config_attributes: list[dict[str, str]] = Field(default_factory=list)
-    custom_fields: list[dict[str, str]] = Field(default_factory=list)
+    custom_fields: list[dict[str, str]] | None = Field(
+        default=None,
+        description="Legacy custom-field values, null when unavailable, or an array (which may be empty).",
+    )
 
     # Metadata
     created_at: str | None = None
@@ -2192,7 +2195,11 @@ def _dict_to_variant_details(
         lead_time=_attr(v, "lead_time"),
         minimum_order_quantity=_attr(v, "minimum_order_quantity"),
         config_attributes=_dump_list(_attr(v, "config_attributes")),
-        custom_fields=_dump_list(_attr(v, "custom_fields")),
+        custom_fields=(
+            _dump_list(fields)
+            if (fields := _attr(v, "custom_fields")) is not None
+            else None
+        ),
         created_at=_iso_or_none(_attr(v, "created_at")),
         updated_at=_iso_or_none(_attr(v, "updated_at")),
         deleted_at=_iso_or_none(_attr(v, "deleted_at")),
