@@ -52,6 +52,12 @@ from katana_mcp.tools._modification_dispatch import (
     safe_fetch_for_diff,
     unset_dict,
 )
+from katana_mcp.tools.foundation._traceability import (
+    ManufacturingIngredientAllocation,
+    ManufacturingOutputAllocation,
+    build_manufacturing_ingredient_allocations,
+    build_manufacturing_output_allocations,
+)
 from katana_mcp.tools.list_coercion import (
     CoercedIntListOpt,
     CoercedStrListOpt,
@@ -222,6 +228,11 @@ class CreateManufacturingOrderRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    traceability: list[ManufacturingOutputAllocation] | None = Field(
+        default=None,
+        description="Batch/serial allocations for produced units; no bin axis. Omit to leave unchanged; [] sends an empty allocation list.",
+    )
+
     variant_id: int | None = Field(
         default=None,
         description="Variant ID to manufacture (required for standalone MOs)",
@@ -303,6 +314,7 @@ class ManufacturingOrderResponse(BaseModel):
     order_created_date: datetime | None = None
     production_deadline_date: datetime | None = None
     additional_info: str | None = None
+    requested_traceability: list[ManufacturingOutputAllocation] | None = None
     is_preview: bool
     warnings: list[str] = Field(
         default_factory=list,
@@ -327,6 +339,10 @@ async def _create_manufacturing_order_impl(
     """
     # Validate input based on mode
     is_make_to_order = request.sales_order_row_id is not None
+    if is_make_to_order and request.traceability is not None:
+        raise ValueError(
+            "Make-to-order creation does not accept traceability; use modify_manufacturing_order on the created MO"
+        )
     if not is_make_to_order:
         missing = [
             name
@@ -462,6 +478,7 @@ async def _create_manufacturing_order_impl(
             order_created_date=request.order_created_date,
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
+            requested_traceability=request.traceability,
             is_preview=True,
             warnings=warnings,
             next_actions=next_actions,
@@ -531,6 +548,9 @@ async def _create_manufacturing_order_impl(
                 order_created_date=to_unset(request.order_created_date),
                 production_deadline_date=to_unset(request.production_deadline_date),
                 additional_info=to_unset(request.additional_info),
+                traceability=build_manufacturing_output_allocations(
+                    request.traceability
+                ),
             )
 
             from katana_public_api_client.api.manufacturing_order import (
@@ -579,6 +599,7 @@ async def _create_manufacturing_order_impl(
             order_created_date=order_created_date,
             production_deadline_date=production_deadline_date,
             additional_info=additional_info,
+            requested_traceability=request.traceability,
             is_preview=False,
             warnings=apply_warnings,
             katana_url=katana_web_url("manufacturing_order", mo.id),
@@ -2452,6 +2473,11 @@ class MOHeaderPatch(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    traceability: list[ManufacturingOutputAllocation] | None = Field(
+        default=None,
+        description="Batch/serial allocations for produced units; no bin axis. Omit to leave unchanged; [] sends an empty allocation list.",
+    )
+
     order_no: str | None = Field(default=None, description="New order number")
     variant_id: int | None = Field(
         default=None,
@@ -2529,6 +2555,11 @@ class MORecipeRowAdd(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    traceability: list[ManufacturingIngredientAllocation] | None = Field(
+        default=None,
+        description="Batch/bin allocations for consumed ingredients; no serial axis. Omit to leave unchanged; [] sends an empty allocation list.",
+    )
+
     variant_id: int = Field(..., description="Variant ID of the ingredient")
     planned_quantity_per_unit: float = Field(..., description="Quantity per unit", gt=0)
     notes: str | None = Field(
@@ -2556,6 +2587,11 @@ class MORecipeRowUpdate(BaseModel):
     """Patch to an existing MO recipe row."""
 
     model_config = ConfigDict(extra="forbid")
+
+    traceability: list[ManufacturingIngredientAllocation] | None = Field(
+        default=None,
+        description="Batch/bin allocations for consumed ingredients; no serial axis. Omit to leave unchanged; [] sends an empty allocation list.",
+    )
 
     id: int = Field(..., description="Recipe row ID")
     variant_id: int | None = Field(
@@ -2697,6 +2733,11 @@ class MOProductionAdd(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    traceability: list[ManufacturingOutputAllocation] | None = Field(
+        default=None,
+        description="Batch/serial allocations for produced units; no bin axis. Omit to leave unchanged; [] sends an empty allocation list.",
+    )
+
     completed_quantity: float = Field(
         ..., description="Quantity produced in this production record", gt=0
     )
@@ -2728,6 +2769,11 @@ class MOProductionUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    traceability: list[ManufacturingOutputAllocation] | None = Field(
+        default=None,
+        description="Batch/serial allocations for produced units; no bin axis. Omit to leave unchanged; [] sends an empty allocation list.",
+    )
+
     id: int = Field(..., description="Production record ID")
     production_date: WireDatetime | None = Field(
         default=None,
@@ -2756,7 +2802,7 @@ class ModifyManufacturingOrderRequest(ConfirmableRequest):
             "status (NOT_STARTED/IN_PROGRESS/DONE/BLOCKED/PARTIALLY_COMPLETED "
             "— transitions validated server-side), planned_quantity (>0), "
             "actual_quantity (>=0), order_created_date, "
-            "production_deadline_date, done_date, additional_info."
+            "production_deadline_date, done_date, additional_info, traceability (batch/serial allocations)."
         ),
     )
     add_recipe_rows: list[MORecipeRowAdd] | None = Field(
@@ -2764,7 +2810,7 @@ class ModifyManufacturingOrderRequest(ConfirmableRequest):
         description=(
             "New recipe rows (ingredients). Each: variant_id (int, required), "
             "planned_quantity_per_unit (float, required, >0), notes, "
-            "total_actual_quantity (>=0)."
+            "total_actual_quantity (>=0), traceability (batch/bin allocations)."
         ),
     )
     update_recipe_rows: list[MORecipeRowUpdate] | None = Field(
@@ -2772,7 +2818,7 @@ class ModifyManufacturingOrderRequest(ConfirmableRequest):
         description=(
             "Patches to existing recipe rows. Each entry: id (int, required) "
             "+ any subset of variant_id, planned_quantity_per_unit, notes, "
-            "total_actual_quantity."
+            "total_actual_quantity, traceability (batch/bin allocations)."
         ),
     )
     delete_recipe_row_ids: list[int] | None = Field(
@@ -2808,14 +2854,14 @@ class ModifyManufacturingOrderRequest(ConfirmableRequest):
             "New production records (completion logs). Each: "
             "completed_quantity (float, required, >0), completed_date, "
             "is_final (bool — marks as final production record), "
-            "serial_numbers (list[str] — for serial-tracked variants)."
+            "serial_numbers (list[int] — existing serial IDs) or traceability (batch/serial allocations)."
         ),
     )
     update_productions: list[MOProductionUpdate] | None = Field(
         default=None,
         description=(
             "Patches to existing production records. Each entry: id (int, "
-            "required), production_date."
+            "required), production_date, traceability (batch/serial allocations)."
         ),
     )
     delete_production_ids: list[int] | None = Field(
@@ -2847,7 +2893,12 @@ def _build_update_header_request(
     Katana's wipe-on-omit doesn't destroy MO notes during a header
     rename (see its docstring for the full workaround story).
     """
-    kwargs = unset_dict(patch, transforms={"status": ManufacturingOrderStatus})
+    kwargs = unset_dict(
+        patch,
+        exclude=("traceability",),
+        transforms={"status": ManufacturingOrderStatus},
+    )
+    kwargs["traceability"] = build_manufacturing_output_allocations(patch.traceability)
     kwargs["additional_info"] = patch_additional_info(
         patch.additional_info,
         existing_mo.additional_info if existing_mo is not None else UNSET,
@@ -2875,8 +2926,11 @@ def _build_create_recipe_row_request(
 ) -> APICreateMORecipeRowRequest:
     return APICreateMORecipeRowRequest(
         manufacturing_order_id=mo_id,
+        traceability=build_manufacturing_ingredient_allocations(row.traceability),
         **unset_dict(
-            row, transforms={"batch_transactions": _convert_recipe_batch_transactions}
+            row,
+            exclude=("traceability",),
+            transforms={"batch_transactions": _convert_recipe_batch_transactions},
         ),
     )
 
@@ -2885,11 +2939,12 @@ def _build_update_recipe_row_request(
     patch: MORecipeRowUpdate,
 ) -> APIUpdateMORecipeRowRequest:
     return APIUpdateMORecipeRowRequest(
+        traceability=build_manufacturing_ingredient_allocations(patch.traceability),
         **unset_dict(
             patch,
-            exclude=("id",),
+            exclude=("id", "traceability"),
             transforms={"batch_transactions": _convert_recipe_batch_transactions},
-        )
+        ),
     )
 
 
@@ -2929,14 +2984,19 @@ def _build_create_production_request(
     mo_id: int, prod: MOProductionAdd
 ) -> APICreateMOProductionRequest:
     return APICreateMOProductionRequest(
-        manufacturing_order_id=mo_id, **unset_dict(prod)
+        manufacturing_order_id=mo_id,
+        traceability=build_manufacturing_output_allocations(prod.traceability),
+        **unset_dict(prod, exclude=("traceability",)),
     )
 
 
 def _build_update_production_request(
     patch: MOProductionUpdate,
 ) -> APIUpdateMOProductionRequest:
-    return APIUpdateMOProductionRequest(**unset_dict(patch, exclude=("id",)))
+    return APIUpdateMOProductionRequest(
+        traceability=build_manufacturing_output_allocations(patch.traceability),
+        **unset_dict(patch, exclude=("id", "traceability")),
+    )
 
 
 # ----------------------------------------------------------------------------
