@@ -282,6 +282,9 @@ from .manufacturing_order_operation_row_list_response import (
     ManufacturingOrderOperationRowListResponse,
 )
 from .manufacturing_order_production import ManufacturingOrderProduction
+from .manufacturing_order_production_batch_transaction import (
+    ManufacturingOrderProductionBatchTransaction,
+)
 from .manufacturing_order_production_ingredient import (
     ManufacturingOrderProductionIngredient,
 )
@@ -858,6 +861,7 @@ __all__ = (
     "ManufacturingOrderOperationRow",
     "ManufacturingOrderOperationRowListResponse",
     "ManufacturingOrderProduction",
+    "ManufacturingOrderProductionBatchTransaction",
     "ManufacturingOrderProductionIngredient",
     "ManufacturingOrderProductionIngredientListResponse",
     "ManufacturingOrderProductionIngredientResponse",

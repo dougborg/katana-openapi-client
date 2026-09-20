@@ -148,11 +148,14 @@ overrides:
     kind: type_diff
     field: batch_transaction
     live: "object"
-    local: "$ref:BatchTransaction"
+    local: "$ref:ManufacturingOrderProductionBatchTransaction"
     category: intentional_local_divergence
     reason: >-
-      Typed $ref:BatchTransaction vs upstream's free-form `object`. Local is
-      strictly more precise (#528 A1).
+      Upstream inlines `CompletePartiallyBatchDto`, so this reads as a bare
+      `object`; we name it so the generated clients get a real type. Field
+      sets match (batch_id only). Originally #528 A1; retargeted from the
+      shared $ref:BatchTransaction in #1042, which required a `quantity`
+      this endpoint rejects.
 
   # --- sales_return_rows.quantity: upstream under-documents the type --------
   - endpoint: "POST /sales_return_rows"
@@ -814,17 +817,3 @@ overrides:
       Upstream inlines the request body, so `filter` renders as a bare
       `object`; we name the clause `PurchaseOrderSearchFilter` so the generated
       clients get a real type. Field sets match.
-
-  # --- MO productions: batch_transaction sub-field ---------------------------
-  - endpoint: "POST /manufacturing_order_productions"
-    kind: only_local
-    field: batch_transaction.quantity
-    category: upstream_correct_local_wrong
-    fix_tracked_in: "#1042"
-    reason: >-
-      Local points `batch_transaction` at the shared `BatchTransaction`
-      component, which requires `quantity`; upstream's endpoint-specific
-      `CompletePartiallyBatchDto` declares only `batch_id` and sets
-      `additionalProperties: false`, so sending `quantity` may be rejected.
-      Unverified — this is a write endpoint, so probing it creates real
-      production records. See the issue.

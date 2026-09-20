@@ -1072,6 +1072,24 @@ export type BatchStockUpdate = {
 export type BatchResponse = Batch & UpdatableEntity;
 
 /**
+ * Batch allocation for a manufacturing order production run.
+ *
+ * Deliberately **not** the shared ``BatchTransaction``: this endpoint
+ * takes the batch alone. The produced amount is already given by
+ * ``completed_quantity`` on the request body, so a per-batch
+ * ``quantity`` would be redundant — and upstream's
+ * ``CompletePartiallyBatchDto`` sets ``additionalProperties: false``,
+ * so sending one is rejected with 422 (verified against the live API
+ * 2026-09-18, #1042).
+ */
+export type ManufacturingOrderProductionBatchTransaction = {
+  /**
+   * ID of the batch the produced quantity is allocated to.
+   */
+  batch_id: number;
+};
+
+/**
  * Represents a quantity transaction for a specific batch in manufacturing, sales, or inventory operations
  *
  */
@@ -2298,9 +2316,9 @@ export type CreateManufacturingOrderProductionRequest = {
    */
   is_final?: boolean;
   /**
-   * Batch transaction allocation for this production run
+   * Batch allocation for this production run
    */
-  batch_transaction?: BatchTransaction;
+  batch_transaction?: ManufacturingOrderProductionBatchTransaction;
   /**
    * Ingredients consumed during this production run
    */

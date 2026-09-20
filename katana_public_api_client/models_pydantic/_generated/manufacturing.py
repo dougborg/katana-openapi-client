@@ -51,6 +51,20 @@ class ManufacturingOrderStatus(StrEnum):
     done = "DONE"
 
 
+class ManufacturingOrderProductionBatchTransaction(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int,
+        Field(
+            description="ID of the batch the produced quantity is allocated to.",
+            ge=0,
+            le=2147483647,
+        ),
+    ]
+
+
 class ManufacturingOrderTraceabilityRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -1240,8 +1254,8 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
         ),
     ] = None
     batch_transaction: Annotated[
-        BatchTransaction | None,
-        Field(description="Batch transaction allocation for this production run"),
+        ManufacturingOrderProductionBatchTransaction | None,
+        Field(description="Batch allocation for this production run"),
     ] = None
     ingredients: Annotated[
         list[ManufacturingOrderProductionIngredient] | None,

@@ -2553,6 +2553,28 @@ components:
         updated_at: "2024-01-15T08:00:00.000Z"
         variant_id: 1001
         batch_barcode: "0317"
+    ManufacturingOrderProductionBatchTransaction:
+      type: object
+      additionalProperties: false
+      description: |-
+        Batch allocation for a manufacturing order production run.
+
+        Deliberately **not** the shared ``BatchTransaction``: this endpoint
+        takes the batch alone. The produced amount is already given by
+        ``completed_quantity`` on the request body, so a per-batch
+        ``quantity`` would be redundant — and upstream's
+        ``CompletePartiallyBatchDto`` sets ``additionalProperties: false``,
+        so sending one is rejected with 422 (verified against the live API
+        2026-09-18, #1042).
+      required:
+        - batch_id
+      properties:
+        batch_id:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+          description: ID of the batch the produced quantity is allocated to.
+
     BatchTransaction:
       type: object
       description: |
@@ -4231,8 +4253,8 @@ components:
           type: boolean
           description: Whether this is the final production run that completes the manufacturing order
         batch_transaction:
-          description: Batch transaction allocation for this production run
-          $ref: "#/components/schemas/BatchTransaction"
+          description: Batch allocation for this production run
+          $ref: "#/components/schemas/ManufacturingOrderProductionBatchTransaction"
         ingredients:
           type: array
           description: Ingredients consumed during this production run

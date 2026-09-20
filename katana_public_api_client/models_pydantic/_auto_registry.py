@@ -369,6 +369,9 @@ from katana_public_api_client.models.manufacturing_order_operation_row_list_resp
 from katana_public_api_client.models.manufacturing_order_production import (
     ManufacturingOrderProduction as AttrsManufacturingOrderProduction,
 )
+from katana_public_api_client.models.manufacturing_order_production_batch_transaction import (
+    ManufacturingOrderProductionBatchTransaction as AttrsManufacturingOrderProductionBatchTransaction,
+)
 from katana_public_api_client.models.manufacturing_order_production_ingredient import (
     ManufacturingOrderProductionIngredient as AttrsManufacturingOrderProductionIngredient,
 )
@@ -1048,6 +1051,7 @@ from ._generated.manufacturing import (
     ManufacturingOrderOperationRow as PydanticManufacturingOrderOperationRow,
     ManufacturingOrderOperationRowListResponse as PydanticManufacturingOrderOperationRowListResponse,
     ManufacturingOrderProduction as PydanticManufacturingOrderProduction,
+    ManufacturingOrderProductionBatchTransaction as PydanticManufacturingOrderProductionBatchTransaction,
     ManufacturingOrderProductionIngredient as PydanticManufacturingOrderProductionIngredient,
     ManufacturingOrderProductionIngredientListResponse as PydanticManufacturingOrderProductionIngredientListResponse,
     ManufacturingOrderProductionIngredientResponse as PydanticManufacturingOrderProductionIngredientResponse,
@@ -1394,6 +1398,10 @@ def register_all_models() -> None:
         PydanticManufacturingOrderOperationRowListResponse,
     )
     register(AttrsManufacturingOrderProduction, PydanticManufacturingOrderProduction)
+    register(
+        AttrsManufacturingOrderProductionBatchTransaction,
+        PydanticManufacturingOrderProductionBatchTransaction,
+    )
     register(
         AttrsManufacturingOrderProductionIngredient,
         PydanticManufacturingOrderProductionIngredient,
