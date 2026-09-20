@@ -307,17 +307,14 @@ class KatanaPydanticBase(SQLModel):
                         )
                         converted_value = from_dict_fn(converted_value)
             elif isinstance(converted_value, list):
-                # Handle lists of nested objects
-                new_list = []
-                for item in converted_value:
-                    if isinstance(item, dict):
-                        # We'd need more type info to convert dicts in lists properly
-                        new_list.append(item)
-                    else:
-                        new_list.append(
-                            _convert_to_attrs_value(item, _registry, attrs_fields, None)
-                        )
-                converted_value = new_list
+                # Keep the typed items: model_dump() has already reduced nested
+                # models to dicts, which attrs serializers cannot call to_dict()
+                # on. Converting the original items also preserves their own
+                # None -> UNSET rules (including omitted batch quantity).
+                converted_value = [
+                    _convert_to_attrs_value(item, _registry, attrs_fields, None)
+                    for item in getattr(self, field_name)
+                ]
             else:
                 converted_value = _convert_to_attrs_value(
                     converted_value, _registry, attrs_fields, attrs_field_name

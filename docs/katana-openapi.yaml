@@ -2575,6 +2575,25 @@ components:
           maximum: 2147483647
           description: ID of the batch the produced quantity is allocated to.
 
+    SalesOrderRowBatchTransactionUpdate:
+      type: object
+      additionalProperties: false
+      description: >-
+        Batch allocation on a sales order row update. Omitting quantity sets
+        the allocation to zero; it does not preserve its previous quantity
+        (verified against the live API, #1053).
+      required:
+        - batch_id
+      properties:
+        batch_id:
+          type: integer
+          maximum: 2147483647
+          description: ID of the batch for the allocation
+        quantity:
+          type: number
+          description: Allocated quantity; omission resets it to zero
+      example:
+        batch_id: 1109
     BatchTransaction:
       type: object
       description: |
@@ -4492,7 +4511,11 @@ components:
       properties:
         batch_transactions:
           type: array
-          description: Batch transactions for tracking ingredient consumption from specific batches
+          description: >-
+            Batch transactions for ingredient consumption. Each allocation needs
+            a positive quantity: the live API rejects its omission with
+            "Traceability entries without a serial number must provide a positive
+            quantity", despite the upstream DTO marking quantity optional (#1053).
           items:
             $ref: "#/components/schemas/BatchTransaction"
         traceability:
@@ -10076,7 +10099,7 @@ components:
           type: array
           description: Batch transactions for inventory tracking
           items:
-            $ref: "#/components/schemas/BatchTransaction"
+            $ref: "#/components/schemas/SalesOrderRowBatchTransactionUpdate"
         serial_number_transactions:
           type: array
           description: Serial number transactions for tracking

@@ -568,6 +568,9 @@ from katana_public_api_client.models.sales_order_list_response import (
 from katana_public_api_client.models.sales_order_row import (
     SalesOrderRow as AttrsSalesOrderRow,
 )
+from katana_public_api_client.models.sales_order_row_batch_transaction_update import (
+    SalesOrderRowBatchTransactionUpdate as AttrsSalesOrderRowBatchTransactionUpdate,
+)
 from katana_public_api_client.models.sales_order_row_list_response import (
     SalesOrderRowListResponse as AttrsSalesOrderRowListResponse,
 )
@@ -1117,6 +1120,7 @@ from ._generated.sales_orders import (
     SalesOrderFulfillmentRowRequest as PydanticSalesOrderFulfillmentRowRequest,
     SalesOrderListResponse as PydanticSalesOrderListResponse,
     SalesOrderRow as PydanticSalesOrderRow,
+    SalesOrderRowBatchTransactionUpdate as PydanticSalesOrderRowBatchTransactionUpdate,
     SalesOrderRowListResponse as PydanticSalesOrderRowListResponse,
     SalesOrderRowSearchFilter as PydanticSalesOrderRowSearchFilter,
     SalesOrderRowSearchRequest as PydanticSalesOrderRowSearchRequest,
@@ -1521,6 +1525,10 @@ def register_all_models() -> None:
     )
     register(AttrsSalesOrderListResponse, PydanticSalesOrderListResponse)
     register(AttrsSalesOrderRow, PydanticSalesOrderRow)
+    register(
+        AttrsSalesOrderRowBatchTransactionUpdate,
+        PydanticSalesOrderRowBatchTransactionUpdate,
+    )
     register(AttrsSalesOrderRowListResponse, PydanticSalesOrderRowListResponse)
     register(AttrsSalesOrderRowSearchFilter, PydanticSalesOrderRowSearchFilter)
     register(AttrsSalesOrderRowSearchRequest, PydanticSalesOrderRowSearchRequest)

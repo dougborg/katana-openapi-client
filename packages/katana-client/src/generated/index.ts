@@ -1511,6 +1511,7 @@ export type {
   SalesOrderListResponse,
   SalesOrderProductionStatus,
   SalesOrderRow,
+  SalesOrderRowBatchTransactionUpdate,
   SalesOrderRowId,
   SalesOrderRowListResponse,
   SalesOrderRowSearchFilter,

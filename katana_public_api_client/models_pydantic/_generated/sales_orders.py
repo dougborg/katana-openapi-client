@@ -34,7 +34,6 @@ from .common import (
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
 from .stock import (
-    BatchTransaction,
     BatchTransaction6,
     BatchTransaction8,
     BatchTransaction9,
@@ -106,6 +105,19 @@ class UpdateSalesOrderStatus(StrEnum):
     pending = "PENDING"
     packed = "PACKED"
     delivered = "DELIVERED"
+
+
+class SalesOrderRowBatchTransactionUpdate(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int, Field(description="ID of the batch for the allocation", le=2147483647)
+    ]
+    quantity: Annotated[
+        float | None,
+        Field(description="Allocated quantity; omission resets it to zero"),
+    ] = None
 
 
 class SalesOrderRow(DeletableEntity):
@@ -307,7 +319,7 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
         Field(description="Total discount amount applied to this line item"),
     ] = None
     batch_transactions: Annotated[
-        list[BatchTransaction] | None,
+        list[SalesOrderRowBatchTransactionUpdate] | None,
         Field(description="Batch transactions for inventory tracking"),
     ] = None
     serial_number_transactions: Annotated[

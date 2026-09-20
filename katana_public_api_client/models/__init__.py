@@ -455,6 +455,9 @@ from .sales_order_list_response import SalesOrderListResponse
 from .sales_order_production_status import SalesOrderProductionStatus
 from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
+from .sales_order_row_batch_transaction_update import (
+    SalesOrderRowBatchTransactionUpdate,
+)
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
 from .sales_order_row_custom_fields_type_0 import SalesOrderRowCustomFieldsType0
 from .sales_order_row_list_response import SalesOrderRowListResponse
@@ -986,6 +989,7 @@ __all__ = (
     "SalesOrderProductionStatus",
     "SalesOrderRow",
     "SalesOrderRowAttributesItem",
+    "SalesOrderRowBatchTransactionUpdate",
     "SalesOrderRowBatchTransactionsItem",
     "SalesOrderRowCustomFieldsType0",
     "SalesOrderRowListResponse",
