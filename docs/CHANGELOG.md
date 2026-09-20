@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## [0.83.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.82.0...client-v0.83.0) (2026-09-20)
+
+### ⚠ BREAKING CHANGES
+
+- **client:** Variant/service custom fields accept UUID maps or legacy arrays; legacy
+  update entries now require field_name and field_value and are limited to three.
+  Pydantic-to-attrs conversion preserves explicit nullable values and omitted fields.
+- **client:** Remove unsupported manufacturing_order_id from operation PATCH and
+  serial_numbers from MO PATCH; relax operation and serial-create required fields.
+
+### Features
+
+- **client:** support endpoint-specific custom field inputs
+  ([#1062](https://github.com/dougborg/katana-openapi-client/issues/1062))
+  ([150766b](https://github.com/dougborg/katana-openapi-client/commit/150766b477114373973c09efd394f522c591413e))
+- **mcp:** expose manufacturing traceability allocations
+  ([#1059](https://github.com/dougborg/katana-openapi-client/issues/1059))
+  ([65bb993](https://github.com/dougborg/katana-openapi-client/commit/65bb9930cccb02592056188db524de1f18c38165))
+
+### Bug Fixes
+
+- **ci:** create tags for draft releases
+  ([#1061](https://github.com/dougborg/katana-openapi-client/issues/1061))
+  ([7b9e61e](https://github.com/dougborg/katana-openapi-client/commit/7b9e61e3a7d427e228ae20c0d69ea2a12b812715))
+- **client:** align manufacturing request contracts with live API
+  ([#1060](https://github.com/dougborg/katana-openapi-client/issues/1060))
+  ([d7a830f](https://github.com/dougborg/katana-openapi-client/commit/d7a830fd7c12d2c5e27116c1bc6bfae0afe36cc3))
+- **client:** allow omitted sales row batch quantity
+  ([#1058](https://github.com/dougborg/katana-openapi-client/issues/1058))
+  ([0325e16](https://github.com/dougborg/katana-openapi-client/commit/0325e16f8b05deb71bde77ee0158f7f2f681e89d))
+- **client:** scope live write cleanup to the test tenant
+  ([#1057](https://github.com/dougborg/katana-openapi-client/issues/1057))
+  ([9395e1e](https://github.com/dougborg/katana-openapi-client/commit/9395e1ecde3527023b6c9d4e37ecca58111528a2))
+
 ## [0.82.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.81.0...client-v0.82.0) (2026-09-20)
 
 ### ⚠ BREAKING CHANGES
