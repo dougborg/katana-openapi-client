@@ -264,6 +264,11 @@ class CacheTableSpec:
 # ``CacheTableSpec()`` means "default cache table, no overrides".
 CACHE_TABLES: dict[str, CacheTableSpec] = {
     "SalesOrder": CacheTableSpec(
+        extra_fields=(
+            CacheExtraField(
+                name="custom_fields_present", python_type="bool", default="False"
+            ),
+        ),
         # ``shipping_fee`` is a single nested object; ``addresses`` is a
         # list of nested ``SalesOrderAddress``. ``custom_fields`` is a
         # tenant-keyed dict (see #734). All three stay JSON because
@@ -271,6 +276,11 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
         json_columns=("shipping_fee", "addresses", "custom_fields"),
     ),
     "SalesOrderRow": CacheTableSpec(
+        extra_fields=(
+            CacheExtraField(
+                name="custom_fields_present", python_type="bool", default="False"
+            ),
+        ),
         json_columns=(
             "attributes",
             "batch_transactions",

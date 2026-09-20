@@ -1807,6 +1807,7 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
     sales_order: Mapped[Optional["CachedSalesOrder"]] = Relationship(
         back_populates="sales_order_rows"
     )
+    custom_fields_present: Mapped[bool] = False
 
 
 class CachedSalesOrder(DeletableEntity, table=True):
@@ -1983,3 +1984,4 @@ class CachedSalesOrder(DeletableEntity, table=True):
             description='Custom field values for the sales order, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label.\nEach value matches the definition\'s ``field_type``: string\nfor ``shortText`` / ``url``, number for ``number``, boolean\nfor ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or\nthe integer choice ``id`` for ``singleSelect``. Example\n(keys are definition UUIDs):\n``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}`` — a\n``shortText`` value and a ``singleSelect`` choice ``id``.\n``null`` when no values are set. Values for soft-deleted\ndefinitions are stripped from read responses. Keys are\ntenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating\nthem.\n',
         ),
     ] = None
+    custom_fields_present: Mapped[bool] = False
