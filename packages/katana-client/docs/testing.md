@@ -52,15 +52,24 @@ The TypeScript client follows the same testing principles as the Python client:
 ### Development Workflow
 
 ```bash
+# Run this from the repository root, before entering this package.
+npm install --global npm@10.9.9
+cd packages/katana-client
+npm ci
+
 # Run all tests
-pnpm test
+npm test
 
 # Watch mode for development
-pnpm test:watch
+npm run test:watch
 
 # Run with coverage
-pnpm test:coverage
+npm run test:coverage
 ```
+
+The package declares `npm@10.9.9` in `package.json`. npm 10.9.9 enforces that
+version through `devEngines`, while older npm releases can ignore `devEngines`;
+always run the pin command before installing or testing the package.
 
 ### From Repository Root
 
@@ -69,7 +78,7 @@ pnpm test:coverage
 cd packages/katana-client
 
 # Run tests
-pnpm test
+npm test
 ```
 
 ### Test Output
@@ -338,7 +347,7 @@ Integration tests require a real API key and hit the actual Katana API.
 export KATANA_API_KEY=your-api-key
 
 # Run integration tests
-pnpm test -- --grep "integration"
+npm test -- --grep "integration"
 ```
 
 ### Writing Integration Tests
@@ -389,7 +398,7 @@ describe('Integration Tests', () => {
 ### Running Coverage
 
 ```bash
-pnpm test:coverage
+npm run test:coverage
 ```
 
 ### Coverage Report
