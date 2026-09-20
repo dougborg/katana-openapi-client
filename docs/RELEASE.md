@@ -40,10 +40,11 @@ branches in this repository - never a fork). It:
 
 - keeps `katana_mcp_server/pyproject.toml`'s `katana-openapi-client>=X` floor equal to
   the client version proposed by the release PR, and
-- re-runs `uv lock` so `uv.lock` matches the bumped versions.
+- re-runs `uv lock` so `uv.lock` matches the bumped versions, and
+- formats the generated client changelog with `mdformat` to satisfy CI.
 
-If either changed, it commits directly to the release PR branch. Because this lands on
-the PR branch, the fix merges **atomically** with the version bump in a single commit
+If any changed, it commits directly to the release PR branch. Because this lands on the
+PR branch, the fix merges **atomically** with the version bump in a single commit
 
 - there is no follow-up commit to `main` the way the old `sync-lockfile` job worked.
 
