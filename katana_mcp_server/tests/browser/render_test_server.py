@@ -1923,7 +1923,60 @@ def _so_correct_fail_fast_header_skipped_response(*, is_preview: bool = False) -
     }
 
 
+def _custom_field_card(*, operation: str, is_preview: bool) -> PrefabApp:
+    from katana_mcp.tools.custom_field_ui import build_definition_mutation_ui
+    from katana_mcp.tools.foundation.custom_field_mutations import (
+        DeleteCustomFieldDefinitionRequest,
+        UpdateCustomFieldDefinitionRequest,
+    )
+
+    definition_id = "00000000-0000-0000-0000-000000000001"
+    payload = {
+        "options": {
+            "choices": [
+                {"id": 1, "label": "Alex", "deleted": False},
+                {"id": 2, "label": "Sam", "deleted": True},
+                {"label": "Taylor"},
+            ]
+        },
+    }
+    request_data = {"definition_id": definition_id, "preview": is_preview}
+    request = (
+        DeleteCustomFieldDefinitionRequest.model_validate(request_data)
+        if operation == "delete"
+        else UpdateCustomFieldDefinitionRequest.model_validate(
+            {**request_data, "choices": ["Alex", "Taylor"]}
+        )
+    )
+    response = {
+        "is_preview": is_preview,
+        "operation": operation,
+        "definition": {"id": definition_id, "label": "Sales Rep"},
+        "payload": {"id": definition_id} if operation == "delete" else payload,
+        "changes": [
+            "Custom field Sales Rep will be deleted; values will no longer appear on records"
+            if operation == "delete"
+            else "Add 1 choices; retire 1 choices"
+        ],
+    }
+    return build_definition_mutation_ui(
+        response=response, request=request, tool=f"{operation}_custom_field_definition"
+    )
+
+
 SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
+    "custom_field_update_preview": lambda: _custom_field_card(
+        operation="update", is_preview=True
+    ),
+    "custom_field_update_applied": lambda: _custom_field_card(
+        operation="update", is_preview=False
+    ),
+    "custom_field_delete_preview": lambda: _custom_field_card(
+        operation="delete", is_preview=True
+    ),
+    "custom_field_delete_applied": lambda: _custom_field_card(
+        operation="delete", is_preview=False
+    ),
     # Trivial sanity card — minimal Prefab tree with no DataTable. Used to
     # isolate whether the iframe pipeline works at all vs. a card-specific
     # rendering bug.

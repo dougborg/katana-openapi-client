@@ -27,11 +27,12 @@ def test_register_all_resources_registers_exactly_the_expected_uris():
     expected = {
         # inventory (1)
         "katana://inventory/items",
-        # help (4)
+        # help
         "katana://help",
         "katana://help/workflows",
         "katana://help/tools",
         "katana://help/resources",
+        "katana://help/custom-fields",
     }
     assert registered == expected, (
         f"Registration set drifted.\n"

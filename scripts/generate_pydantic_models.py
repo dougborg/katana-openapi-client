@@ -224,6 +224,8 @@ class CacheTableSpec:
     ``CACHE_RELATIONSHIPS`` (list of parent→child links) stays separate
     because it has different cardinality.
 
+    - ``primary_key_type``: Python type for the SQL primary key. Defaults
+      to ``int``; UUID-keyed resources retain their API identifier type.
     - ``name_override``: post-rename base name (no ``Cached`` prefix) used
       to derive both the cache class name and the SQLAlchemy
       ``__tablename__`` when the API class name reads awkwardly. Example:
@@ -248,6 +250,7 @@ class CacheTableSpec:
       parent's nested-list/nested-object fields can't be inferred as columns.
     """
 
+    primary_key_type: str = "int"
     name_override: str | None = None
     extra_fields: tuple[CacheExtraField, ...] = ()
     json_columns: tuple[str, ...] = ()
@@ -433,6 +436,9 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
         json_columns=("legal_address",),
     ),
     "AdditionalCost": CacheTableSpec(),
+    "CustomFieldDefinition": CacheTableSpec(
+        primary_key_type="UUID", json_columns=("options",)
+    ),
 }
 
 
@@ -1323,10 +1329,15 @@ def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassI
         if cls.name not in cache_class_names:
             fixed.append(cls)
             continue
-        # Strip any existing in-body `id: Annotated[int, Field(...)]`
-        # declaration. Multi-line tolerant (description may wrap).
+        primary_key_type = next(
+            spec.primary_key_type
+            for name, spec in CACHE_TABLES.items()
+            if _cached_name(name) == cls.name
+        )
+        # Strip any existing in-body id declaration before adding the SQL key.
+        # Multi-line tolerant (description may wrap).
         stripped = re.sub(
-            r"    id:\s*Annotated\[int,\s*Field\([^)]*\)\][^\n]*\n",
+            rf"    id:\s*Annotated\[{primary_key_type},\s*Field\([^)]*\)\][^\n]*\n",
             "",
             cls.source,
             count=1,
@@ -1335,7 +1346,7 @@ def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassI
         # Uses SQLField (sqlmodel.Field alias) for the SQL-specific
         # ``primary_key`` kwarg; pydantic.Field doesn't accept it.
         id_line = (
-            "    id: Annotated[int, SQLField(primary_key=True, "
+            f"    id: Annotated[{primary_key_type}, SQLField(primary_key=True, "
             'description="Unique identifier")]\n'
         )
         new_source, n = re.subn(

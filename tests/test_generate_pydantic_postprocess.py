@@ -593,3 +593,24 @@ def test_generated_inventory_movement_timestamps_typed() -> None:
             f"{field_name} regressed to Any — restore_phantom_any_timestamps "
             "should keep it AwareDatetime"
         )
+
+
+@pytest.mark.parametrize(
+    ("entity", "identifier_type"),
+    [("CustomFieldDefinition", "UUID"), ("Customer", "int")],
+)
+def test_cache_primary_key_preserves_identifier_type(gen, entity, identifier_type):
+    """UUID resources retain UUID keys without changing integer-keyed tables."""
+    cls = _make_cls(
+        gen=gen,
+        name=gen._cached_name(entity),
+        body=(
+            "    model_config = ConfigDict(frozen=False)\n\n"
+            f'    id: Annotated[{identifier_type}, Field(description="ID")]\n'
+        ),
+    )
+    [result] = gen.inject_primary_key_in_table_classes(classes=[cls])
+    assert result.source.count("    id:") == 1
+    assert (
+        f"id: Annotated[{identifier_type}, SQLField(primary_key=True" in result.source
+    )

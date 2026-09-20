@@ -2272,3 +2272,59 @@ class CachedOperator(DeletableEntity, table=True):
     ]
 
     operator_name: Mapped[str]
+
+
+class CachedCustomFieldDefinition(KatanaPydanticBase, table=True):
+    __tablename__ = "custom_field_definition"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[UUID], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    label: Annotated[
+        Mapped[str],
+        Field(description="Display label shown in the Katana UI", max_length=255),
+    ]
+    field_type: Annotated[
+        Mapped[CustomFieldType],
+        Field(description="Field input type. Immutable after creation."),
+    ]
+    entity_type: Annotated[
+        Mapped[CustomFieldEntityType],
+        Field(
+            description="Resource type the definition applies to. Immutable after creation."
+        ),
+    ]
+    source: Annotated[
+        Mapped[str],
+        Field(
+            description="Caller-provided identifier of the integration that owns the\nfield (e.g. your application slug). Namespaces and audits\ndefinitions. Immutable after creation.\n",
+            max_length=255,
+        ),
+    ]
+    description: Annotated[
+        Mapped[str | None],
+        Field(description="Optional long-form description of the field's purpose"),
+    ] = None
+    options: Annotated[
+        Mapped[CustomFieldOptions | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Choice configuration. Present and meaningful only when\n``field_type`` is ``singleSelect``; ``null`` for every other\ntype. Each choice carries its server-assigned integer ``id``\n(the value stored on the entity) and ``label``; soft-deleted\nchoices remain in the array so historical values stay\nresolvable.\n",
+        ),
+    ] = None
+    created_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp when the definition was created"),
+    ] = None
+    updated_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp when the definition was last updated"),
+    ] = None
+    deleted_at: Annotated[
+        Mapped[datetime | None],
+        Field(
+            description="Soft-delete timestamp; ``null`` for a live definition. Deleting\na definition (``DELETE /custom_field_definitions/{id}``) is a\nsoft delete — its values are stripped from read responses but\nthe definition is retained.\n"
+        ),
+    ] = None

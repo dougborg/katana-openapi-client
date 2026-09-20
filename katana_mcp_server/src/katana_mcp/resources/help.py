@@ -11,7 +11,7 @@ Resources:
 - katana://help/resources - Resource descriptions and usage
 """
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from katana_mcp.logging import get_logger
 
@@ -34,6 +34,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 | `katana://help/workflows` | Step-by-step workflow guides |
 | `katana://help/tools` | Tool reference with examples |
 | `katana://help/resources` | Available data resources |
+| `katana://help/custom-fields` | Custom-field UUIDs, labels, types, and choices |
 
 ## Core Capabilities
 
@@ -482,6 +483,30 @@ HELP_TOOLS = """
 Detailed guide for all available MCP tools.
 
 ---
+
+## Custom-field definitions
+
+- `list_custom_field_definitions(entity_type?, include_deleted=false)`: discover
+  cached definition UUIDs, labels, types, and complete choices.
+- `get_custom_field_definition(definition_id)`: fetch a definition live and refresh
+  its cached record.
+
+- `create_custom_field_definition(label, field_type, entity_type, choices?, source?,
+  description?, preview=true)`: preview a new definition; singleSelect requires choices.
+- `update_custom_field_definition(definition_id, label?, description?, choices?,
+  choice_changes?, preview=true)`: preview definition edits. `choices` is the complete
+  desired active label list; missing labels are retired. For a partial edit, use
+  `choice_changes={"add": ["New"], "remove": [2]}`. Existing IDs remain available
+  for historical values. Omit description to preserve it; null clears it.
+- `delete_custom_field_definition(definition_id, preview=true)`: preview deletion;
+  values disappear from record reads after deletion. Confirm applies the change.
+
+Definition writes refresh the cache immediately. The list API lacks an
+include-deleted parameter; if another client deletes a definition and the API omits
+its tombstone, use `rebuild_cache(entity_types=["custom_field_definition"])` to
+refresh the complete set.
+
+See `katana://help/custom-fields` for active choices grouped by resource type.
 
 ## Inventory & Catalog Tools
 
@@ -2295,6 +2320,11 @@ Complete catalog of products, materials, and services.
 > floods agent context — searchable tools with bounded `limit` solve the
 > same lookup needs without the size problem.
 
+## Custom-field discovery
+
+`katana://help/custom-fields` lists configured definitions grouped by resource type,
+including choice IDs and labels. Availability depends on account features.
+
 ## Help Resources
 
 ### katana://help
@@ -2379,6 +2409,70 @@ async def get_help_resources() -> str:
     return HELP_RESOURCES
 
 
+async def get_help_custom_fields(context: Context) -> str:
+    """Discover the account's custom-field definitions and active choices."""
+    from katana_mcp.tools.foundation.custom_fields import (
+        ListCustomFieldDefinitionsRequest,
+        _list_custom_field_definitions_impl,
+    )
+    from katana_public_api_client.models_pydantic._generated import (
+        CustomFieldEntityType,
+    )
+
+    response = await _list_custom_field_definitions_impl(
+        request=ListCustomFieldDefinitionsRequest(), context=context
+    )
+    lines = [
+        "# Custom Fields",
+        "",
+        f"Currently configured: {response.total_count} definitions.",
+        "Availability depends on the account's custom-field features.",
+        "",
+    ]
+
+    def cell(value: object) -> str:
+        return str(value).replace("|", "\\|").replace("\n", " ").replace("\r", " ")
+
+    for entity_type in CustomFieldEntityType:
+        lines.extend(
+            [
+                f"## {entity_type.value}",
+                "",
+                "| UUID | Label | Type | Choices |",
+                "|---|---|---|---|",
+            ]
+        )
+        definitions = [d for d in response.definitions if d.entity_type == entity_type]
+        for definition in definitions:
+            choices = definition.options.choices if definition.options else []
+            active = [choice for choice in choices if not choice.deleted]
+            summary = (
+                ", ".join(f"{choice.id}: {cell(choice.label)}" for choice in active)
+                or "—"
+            )
+            deleted_count = len(choices) - len(active)
+            if deleted_count:
+                summary += (
+                    f" ({deleted_count} deleted choices retained for historical lookup)"
+                )
+            lines.append(
+                f"| {definition.id} | {cell(definition.label)} | {definition.field_type} | {summary} |"
+            )
+        if not definitions:
+            lines.append("| (none configured) | | | |")
+        lines.append("")
+    lines.extend(
+        [
+            "## Using custom fields",
+            "",
+            "Sales-order header and row values use `custom_fields` keyed by definition UUID.",
+            "These definitions describe SalesOrder and SalesOrderRow fields; other resources may use different contracts.",
+            "Use `get_custom_field_definition` for live detail and complete choice history.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 # ============================================================================
 # Registration
 # ============================================================================
@@ -2390,6 +2484,12 @@ def register_resources(mcp: FastMCP) -> None:
     Args:
         mcp: FastMCP server instance to register resources with
     """
+    mcp.resource(
+        uri="katana://help/custom-fields",
+        name="Custom Fields Guide",
+        description="Account custom-field UUIDs, labels, types, and active choices",
+    )(get_help_custom_fields)
+
     # Register katana://help resource
     mcp.resource(
         uri="katana://help",
@@ -2425,5 +2525,6 @@ def register_resources(mcp: FastMCP) -> None:
             "katana://help/workflows",
             "katana://help/tools",
             "katana://help/resources",
+            "katana://help/custom-fields",
         ],
     )

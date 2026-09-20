@@ -40,6 +40,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from katana_mcp.logging import get_logger
 from katana_public_api_client.api.additional_costs import get_additional_costs
 from katana_public_api_client.api.bin_transfer import get_all_bin_transfers
+from katana_public_api_client.api.custom_fields import get_all_custom_field_definitions
 from katana_public_api_client.api.customer import get_all_customers
 from katana_public_api_client.api.factory import get_factory
 from katana_public_api_client.api.location import get_all_locations
@@ -76,6 +77,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedBinTransfer,
     CachedBinTransferRow,
     CachedCustomer,
+    CachedCustomFieldDefinition,
     CachedFactory,
     CachedLocation,
     CachedManufacturingOrder,
@@ -96,6 +98,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedTaxRate,
     CachedVariant,
     Customer as PydanticCustomer,
+    CustomFieldDefinition as PydanticCustomFieldDefinition,
     Factory as PydanticFactory,
     Location as PydanticLocation,
     ManufacturingOrder as PydanticManufacturingOrder,
@@ -1064,6 +1067,15 @@ _SERVICE_SPEC = EntitySpec(
 )
 
 
+_CUSTOM_FIELD_DEFINITION_SPEC = EntitySpec(
+    entity_key="custom_field_definition",
+    api_fn=get_all_custom_field_definitions,
+    cache_cls=CachedCustomFieldDefinition,
+    pydantic_cls=PydanticCustomFieldDefinition,
+    supports_include_deleted=False,
+)
+
+
 _CUSTOMER_SPEC = EntitySpec(
     entity_key="customer",
     api_fn=get_all_customers,
@@ -1302,6 +1314,13 @@ async def ensure_factory_synced(client: KatanaClient, cache: TypedCacheEngine) -
     await _ensure_synced(client, cache, _FACTORY_SPEC)
 
 
+async def ensure_custom_field_definitions_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Sync definition labels, types, and choices for custom-field discovery."""
+    await _ensure_synced(client=client, cache=cache, spec=_CUSTOM_FIELD_DEFINITION_SPEC)
+
+
 async def ensure_additional_costs_synced(
     client: KatanaClient, cache: TypedCacheEngine
 ) -> None:
@@ -1325,6 +1344,7 @@ ENTITY_SPECS: dict[str, EntitySpec] = {
     "material": _MATERIAL_SPEC,
     "variant": _VARIANT_SPEC,
     "service": _SERVICE_SPEC,
+    "custom_field_definition": _CUSTOM_FIELD_DEFINITION_SPEC,
     "customer": _CUSTOMER_SPEC,
     "supplier": _SUPPLIER_SPEC,
     "location": _LOCATION_SPEC,
