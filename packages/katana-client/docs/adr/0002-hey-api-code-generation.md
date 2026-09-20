@@ -30,6 +30,13 @@ specification. This ensures type safety and keeps the client in sync with the AP
 
 Use **@hey-api/openapi-ts** for code generation.
 
+### Package Manager
+
+Retain npm for this package, including its existing `package-lock.json` and
+npm-based CI workflow. The package pins `npm@10.9.9`; a repository-wide pnpm
+workspace migration is deferred until a concrete benefit justifies changing
+the lockfile and contributor workflow.
+
 ### Reasons
 
 1. **Generates both types and SDK**: Unlike openapi-typescript which only generates
@@ -114,7 +121,7 @@ const { data, error } = await getAllProducts({ client });
 ### Regeneration
 
 ```bash
-pnpm run generate
+npm run generate
 ```
 
 ### Build Output
@@ -130,7 +137,7 @@ export * from './generated/types.gen.js';
 ### Version Update Process
 
 1. Update OpenAPI spec
-1. Run `pnpm run generate`
+1. Run `npm run generate`
 1. Run tests to verify compatibility
 1. Commit generated changes
 

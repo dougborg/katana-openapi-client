@@ -304,6 +304,14 @@ jobs:
           cache: "npm"
           cache-dependency-path: packages/katana-client/package-lock.json
 
+      - name: Pin npm
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: npm install --global npm@10.9.9
+
+      - name: Verify npm version
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: test "$(npm --version)" = "10.9.9"
+
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         run: npm ci

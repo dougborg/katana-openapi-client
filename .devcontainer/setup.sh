@@ -15,6 +15,14 @@ fi
 
 uv --version
 
+# Keep the independent TypeScript package on the npm version used by CI. Modern
+# npm checks the package's devEngines entry; older npm releases can ignore it.
+TS_NPM_VERSION="10.9.9"
+echo "📦 Installing npm ${TS_NPM_VERSION} for the TypeScript client..."
+npm install --global "npm@${TS_NPM_VERSION}"
+test "$(npm --version)" = "${TS_NPM_VERSION}"
+npm --prefix packages/katana-client ci
+
 # Sync dependencies (should be fast due to prebuild cache)
 echo "📚 Syncing dependencies (using prebuild cache)..."
 uv sync --all-extras

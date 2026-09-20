@@ -8,6 +8,7 @@ Guidance for Claude Code working with this repository.
 uv sync --all-extras                # Install dependencies
 uv run pre-commit install           # Setup hooks (installs both pre-commit AND pre-push)
 uv run playwright install chromium  # Headless browser for Prefab UI render tests
+npm install --global npm@10.9.9  # TS client tooling is pinned by packages/katana-client/package.json
 npm --prefix packages/katana-client ci  # TS client deps (needed for regenerate-all / generate-ts)
 cp .env.example .env                # Add KATANA_API_KEY
 ```

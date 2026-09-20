@@ -25,6 +25,20 @@ pnpm add katana-openapi-client
 yarn add katana-openapi-client
 ```
 
+## Development
+
+From the repository root, install the package's pinned npm version before
+installing its dependencies:
+
+```bash
+npm install --global npm@10.9.9
+npm --prefix packages/katana-client ci
+```
+
+The package declares `npm@10.9.9` in `package.json`. npm 10.9.9 checks that
+declaration through `devEngines`; older npm releases may ignore `devEngines`,
+so use the pin command above as the contributor entrypoint.
+
 ## Quick Start
 
 ```typescript

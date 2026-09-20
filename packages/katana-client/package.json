@@ -64,8 +64,16 @@
     "url": "https://github.com/dougborg/katana-openapi-client/issues"
   },
   "homepage": "https://github.com/dougborg/katana-openapi-client/tree/main/packages/katana-client#readme",
+  "packageManager": "npm@10.9.9",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": "10.9.9",
+      "onFail": "error"
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",
