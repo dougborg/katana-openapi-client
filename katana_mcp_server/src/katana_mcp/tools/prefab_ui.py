@@ -3500,6 +3500,94 @@ def build_stock_adjustment_delete_ui(
     return app
 
 
+def build_sales_return_delete_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the sales-return deletion preview/apply card.
+
+    Imported returns can reject deletion. The failed apply response carries
+    Katana's original 412/422 text in its action result, so render that text
+    directly instead of replacing it with a generic error.
+    """
+    is_preview = bool(response.get("is_preview"))
+    prior_state = response.get("prior_state") or {}
+    actions = response.get("actions") or []
+    action_error = next(
+        (str(action["error"]) for action in actions if action.get("error")), None
+    )
+    state: dict[str, Any] = {"sales_return": response}
+    apply_action: list[Action] | None = None
+    cancel_action: list[Action] | None = None
+    if is_preview:
+        state.update(_APPLY_RAIL_STATE_INIT)
+        apply_action = _build_apply_action(confirm_tool, confirm_request)
+        cancel_action = _build_cancel_action("the sales-return deletion")
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content="Delete Sales Return")
+            if response.get("entity_id") is not None:
+                Badge(label=f"#{response['entity_id']}", variant="outline")
+            Badge(
+                label="PREVIEW"
+                if is_preview
+                else ("FAILED" if action_error else "DELETED"),
+                variant="secondary"
+                if is_preview
+                else ("destructive" if action_error else "default"),
+            )
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Text(content=response["message"])
+            with Row(gap=4):
+                Metric(label="Return", value=str(prior_state.get("order_no") or "—"))
+                Metric(
+                    label="Rows",
+                    value=str(len(prior_state.get("sales_return_rows") or [])),
+                )
+            if prior_state.get("sales_order_id") is not None:
+                Text(content=f"Source sales order ID: {prior_state['sales_order_id']}")
+            if prior_state.get("status"):
+                Text(content=f"Return status: {prior_state['status']}")
+            if action_error:
+                with Alert(variant="destructive", icon="circle-alert"):
+                    AlertTitle(content="Deletion failed")
+                    AlertDescription(content=action_error)
+            if is_preview:
+                Muted(
+                    content=(
+                        "Confirm only after reviewing this return. Imported returns "
+                        "may be managed by their source integration and reject deletion."
+                    )
+                )
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        with CardFooter(), Row(gap=2):
+            if apply_action is not None and cancel_action is not None:
+                with If("applied"):
+                    Muted(content="Sales return deleted.")
+                with Elif("error"):
+                    Muted(content="Apply failed — see error above.")
+                with Elif("cancelled"):
+                    Muted(content="Cancelled. No changes were made.")
+                with Else():
+                    Muted(content="This is a preview. No changes have been made.")
+                _render_apply_button_row(
+                    confirm_label="Confirm & Delete",
+                    apply_action=apply_action,
+                    cancel_action=cancel_action,
+                )
+    return app
+
+
 # ============================================================================
 # Order UIs (Preview + Created)
 # ============================================================================

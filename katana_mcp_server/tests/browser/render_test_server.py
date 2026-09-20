@@ -37,6 +37,7 @@ from katana_mcp.tools.prefab_ui import (
     build_mo_modify_ui,
     build_po_modify_ui,
     build_product_bom_ui,
+    build_sales_return_delete_ui,
     build_search_results_ui,
     build_so_create_ui,
     build_so_detail_ui,
@@ -831,6 +832,28 @@ def _stock_adjustment_delete_response(*, is_preview: bool) -> dict:
             if is_preview
             else "Stock adjustment SA-FY26-Q2-001 (id=9876) deleted; "
             "associated inventory movements reversed"
+        ),
+    }
+
+
+def _sales_return_delete_response(*, is_preview: bool) -> dict:
+    """Build a realistic sales-return deletion preview/result payload."""
+    return {
+        "entity_type": "sales_return",
+        "entity_id": 8101,
+        "is_preview": is_preview,
+        "actions": [{"operation": "delete", "succeeded": None, "changes": []}],
+        "prior_state": {
+            "id": 8101,
+            "order_no": "RO-8101",
+            "sales_order_id": 7101,
+            "status": "NOT_RETURNED",
+            "sales_return_rows": [{"id": 1}, {"id": 2}],
+        },
+        "message": (
+            "Preview: delete sales return 8101"
+            if is_preview
+            else "Deleted sales return 8101"
         ),
     }
 
@@ -2027,6 +2050,16 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         _stock_adjustment_delete_response(is_preview=False),
         confirm_request=_StubRequest(),
         confirm_tool="delete_stock_adjustment",
+    ),
+    "sales_return_delete_preview": lambda: build_sales_return_delete_ui(
+        _sales_return_delete_response(is_preview=True),
+        confirm_request=_StubRequest(id=8101),
+        confirm_tool="delete_sales_return",
+    ),
+    "sales_return_delete_applied": lambda: build_sales_return_delete_ui(
+        _sales_return_delete_response(is_preview=False),
+        confirm_request=_StubRequest(id=8101),
+        confirm_tool="delete_sales_return",
     ),
     # Customer create card (#817) — preview + applied + addresses variants.
     "customer_create_preview": lambda: build_customer_create_ui(

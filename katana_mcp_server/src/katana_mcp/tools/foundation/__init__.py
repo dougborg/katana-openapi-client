@@ -46,6 +46,7 @@ from .orders import register_tools as register_order_tools
 from .purchase_orders import register_tools as register_purchase_order_tools
 from .reference import register_tools as register_reference_tools
 from .sales_orders import register_tools as register_sales_order_tools
+from .sales_returns import register_tools as register_sales_return_tools
 from .serial_numbers import register_tools as register_serial_number_tools
 from .stock_transfers import register_tools as register_stock_transfer_tools
 
@@ -63,6 +64,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_custom_field_mutation_tools(mcp)
     register_purchase_order_tools(mcp)
     register_sales_order_tools(mcp)
+    register_sales_return_tools(mcp)
     register_catalog_tools(mcp)
     register_manufacturing_order_tools(mcp)
     register_order_tools(mcp)
