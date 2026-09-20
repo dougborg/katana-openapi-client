@@ -1090,6 +1090,20 @@ export type ManufacturingOrderProductionBatchTransaction = {
 };
 
 /**
+ * Batch allocation on a sales order row update. Omitting quantity sets the allocation to zero; it does not preserve its previous quantity (verified against the live API, #1053).
+ */
+export type SalesOrderRowBatchTransactionUpdate = {
+  /**
+   * ID of the batch for the allocation
+   */
+  batch_id: number;
+  /**
+   * Allocated quantity; omission resets it to zero
+   */
+  quantity?: number;
+};
+
+/**
  * Represents a quantity transaction for a specific batch in manufacturing, sales, or inventory operations
  *
  */
@@ -2417,7 +2431,7 @@ export type ManufacturingOrderProductionIngredient = {
  */
 export type UpdateManufacturingOrderProductionIngredientRequest = {
   /**
-   * Batch transactions for tracking ingredient consumption from specific batches
+   * Batch transactions for ingredient consumption. Each allocation needs a positive quantity: the live API rejects its omission with "Traceability entries without a serial number must provide a positive quantity", despite the upstream DTO marking quantity optional (#1053).
    */
   batch_transactions?: Array<BatchTransaction>;
   /**
@@ -6183,7 +6197,7 @@ export type UpdateSalesOrderRowRequest = {
   /**
    * Batch transactions for inventory tracking
    */
-  batch_transactions?: Array<BatchTransaction>;
+  batch_transactions?: Array<SalesOrderRowBatchTransactionUpdate>;
   /**
    * Serial number transactions for tracking
    */

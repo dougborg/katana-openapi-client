@@ -692,6 +692,46 @@ class TestProductionBatchTransaction:
         assert allocation.to_dict() == {"batch_id": 101, "quantity": 25}
 
 
+class TestSalesRowBatchQuantity:
+    """Sales row omission is valid; ingredient consumption still needs quantity."""
+
+    @pytest.mark.parametrize("quantity", [None, 0, 2.5])
+    def test_update_round_trip(self, quantity: float | None) -> None:
+        from katana_public_api_client.models import (
+            UpdateSalesOrderRowRequest as AttrsRequest,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            UpdateSalesOrderRowRequest,
+        )
+
+        allocation: dict[str, float | int] = {"batch_id": 101}
+        if quantity is not None:
+            allocation["quantity"] = quantity
+        expected = {"batch_transactions": [allocation]}
+        attrs_request = AttrsRequest.from_dict(expected)
+        assert attrs_request.to_dict() == expected
+        request = UpdateSalesOrderRowRequest.from_attrs(attrs_request)
+        assert request.model_dump(exclude_none=True) == expected
+        assert request.to_attrs().to_dict() == expected
+
+    def test_ingredient_quantity_remains_required(self) -> None:
+        from pydantic import ValidationError
+
+        from katana_public_api_client.models_pydantic._generated import (
+            UpdateManufacturingOrderProductionIngredientRequest,
+        )
+
+        with pytest.raises(ValidationError) as exc:
+            UpdateManufacturingOrderProductionIngredientRequest.model_validate(
+                {"batch_transactions": [{"batch_id": 101}]}
+            )
+        assert any(
+            error["loc"] == ("batch_transactions", 0, "quantity")
+            and error["type"] == "missing"
+            for error in exc.value.errors()
+        )
+
+
 class TestWireNullTolerance:
     """Generated ``from_dict`` parsers must tolerate ``null`` for spec-nullable fields.
 

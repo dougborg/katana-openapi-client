@@ -8,7 +8,9 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.batch_transaction import BatchTransaction
+    from ..models.sales_order_row_batch_transaction_update import (
+        SalesOrderRowBatchTransactionUpdate,
+    )
     from ..models.traceability_request import TraceabilityRequest
     from ..models.update_sales_order_row_request_attributes_item import (
         UpdateSalesOrderRowRequestAttributesItem,
@@ -38,7 +40,7 @@ class UpdateSalesOrderRowRequest:
     tax_rate_id: int | Unset = UNSET
     location_id: int | Unset = UNSET
     total_discount: float | Unset = UNSET
-    batch_transactions: list[BatchTransaction] | Unset = UNSET
+    batch_transactions: list[SalesOrderRowBatchTransactionUpdate] | Unset = UNSET
     serial_number_transactions: (
         list[UpdateSalesOrderRowRequestSerialNumberTransactionsItem] | Unset
     ) = UNSET
@@ -133,7 +135,9 @@ class UpdateSalesOrderRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.batch_transaction import BatchTransaction
+        from ..models.sales_order_row_batch_transaction_update import (
+            SalesOrderRowBatchTransactionUpdate,
+        )
         from ..models.traceability_request import TraceabilityRequest
         from ..models.update_sales_order_row_request_attributes_item import (
             UpdateSalesOrderRowRequestAttributesItem,
@@ -159,11 +163,11 @@ class UpdateSalesOrderRowRequest:
         total_discount = d.pop("total_discount", UNSET)
 
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        batch_transactions: list[BatchTransaction] | Unset = UNSET
+        batch_transactions: list[SalesOrderRowBatchTransactionUpdate] | Unset = UNSET
         if _batch_transactions is not UNSET:
             batch_transactions = []
             for batch_transactions_item_data in _batch_transactions:
-                batch_transactions_item = BatchTransaction.from_dict(
+                batch_transactions_item = SalesOrderRowBatchTransactionUpdate.from_dict(
                     cast(Mapping[str, Any], batch_transactions_item_data)
                 )
 

@@ -257,7 +257,7 @@ class UpdateManufacturingOrderProductionIngredientRequest(KatanaPydanticBase):
     batch_transactions: Annotated[
         list[BatchTransaction] | None,
         Field(
-            description="Batch transactions for tracking ingredient consumption from specific batches"
+            description='Batch transactions for ingredient consumption. Each allocation needs a positive quantity: the live API rejects its omission with "Traceability entries without a serial number must provide a positive quantity", despite the upstream DTO marking quantity optional (#1053).'
         ),
     ] = None
     traceability: Annotated[

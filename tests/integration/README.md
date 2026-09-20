@@ -125,3 +125,15 @@ test-only recovery command above for this suite.
 - Assert **structurally**, not exactly: the test tenant's data drifts, so check
   "authenticated + parsed into the right model" (`is_success`, `unwrap_as`,
   `unwrap_data`), never "there are exactly N rows".
+
+### Reusable batch fixture
+
+The batch quantity regression uses `fixtures/reusable_batch.json`, which records the
+single SDT-tagged product and batch explicitly approved for retention. Katana has no
+batch-delete endpoint. The test never creates another batch or product, verifies the
+factory and API URL before writing, and deletes its temporary sales order through
+`live_artifacts`. These fixture IDs are test data, not credentials.
+
+For another test tenant, set `KATANA_TEST_BATCH_FIXTURE` to a JSON file with the same
+fields describing an approved fixture in that tenant. A tenant mismatch fails before
+any write; the test never falls back to production credentials or creates a replacement.
