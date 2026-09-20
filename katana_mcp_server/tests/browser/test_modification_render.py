@@ -29,7 +29,9 @@ class TestModificationCardRender:
         references crash the renderer; mustache form works. The card
         builders in :mod:`prefab_ui` must always emit mustache form.
         """
-        bare = render_scenario("datatable_state")
+        bare = render_scenario(
+            "datatable_state", expected_error="some is not a function"
+        )
         # Bare-string ref triggers ``t.some is not a function`` — body is empty.
         assert bare.locator("table").count() == 0, (
             "bare-string state ref unexpectedly rendered — renderer "
