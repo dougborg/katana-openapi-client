@@ -11,6 +11,9 @@ from ..models.manufacturing_operation_type import ManufacturingOperationType
 
 if TYPE_CHECKING:
     from ..models.operator import Operator
+    from ..models.update_manufacturing_order_operation_row_request_custom_fields_type_0 import (
+        UpdateManufacturingOrderOperationRowRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="UpdateManufacturingOrderOperationRowRequest")
@@ -26,6 +29,9 @@ class UpdateManufacturingOrderOperationRowRequest:
             '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}
     """
 
+    custom_fields: (
+        Unset | UpdateManufacturingOrderOperationRowRequestCustomFieldsType0 | None
+    ) = UNSET
     operation_id: int | Unset = UNSET
     type_: ManufacturingOperationType | Unset = UNSET
     operation_name: str | Unset = UNSET
@@ -41,6 +47,21 @@ class UpdateManufacturingOrderOperationRowRequest:
     completed_by_operators: list[Operator] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_manufacturing_order_operation_row_request_custom_fields_type_0 import (
+            UpdateManufacturingOrderOperationRowRequestCustomFieldsType0,
+        )
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields,
+            UpdateManufacturingOrderOperationRowRequestCustomFieldsType0,
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         operation_id = self.operation_id
 
         type_: str | Unset = UNSET
@@ -84,6 +105,8 @@ class UpdateManufacturingOrderOperationRowRequest:
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if operation_id is not UNSET:
             field_dict["operation_id"] = operation_id
         if type_ is not UNSET:
@@ -116,8 +139,40 @@ class UpdateManufacturingOrderOperationRowRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.operator import Operator
+        from ..models.update_manufacturing_order_operation_row_request_custom_fields_type_0 import (
+            UpdateManufacturingOrderOperationRowRequestCustomFieldsType0,
+        )
 
         d = dict(src_dict)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> (
+            Unset | UpdateManufacturingOrderOperationRowRequestCustomFieldsType0 | None
+        ):
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = UpdateManufacturingOrderOperationRowRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                Unset
+                | UpdateManufacturingOrderOperationRowRequestCustomFieldsType0
+                | None,
+                data,
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         operation_id = d.pop("operation_id", UNSET)
 
         _type_ = d.pop("type", UNSET)
@@ -173,6 +228,7 @@ class UpdateManufacturingOrderOperationRowRequest:
                 completed_by_operators.append(completed_by_operators_item)
 
         update_manufacturing_order_operation_row_request = cls(
+            custom_fields=custom_fields,
             operation_id=operation_id,
             type_=type_,
             operation_name=operation_name,

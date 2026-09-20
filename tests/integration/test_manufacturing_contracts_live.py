@@ -47,10 +47,16 @@ async def test_manufacturing_partial_update_contracts(
         f"/manufacturing_order_operation_rows/{row_id}",
         json={"operation_name": live_artifacts.tag("CONTRACT-OP")},
     )
-    assert renamed.status_code == 422
-    assert (
-        renamed.json()["error"]["message"] == "Invalid manufacturing order operation id"
-    )
+    # Katana deployments report this missing-row lookup as either a domain
+    # validation error or NotFoundError. Both prove the name-only payload
+    # passed gateway validation; the malformed-name control below must still
+    # be rejected by that gateway.
+    missing_row_errors = {
+        422: "Invalid manufacturing order operation id",
+        404: "Invalid manufacturing order operation row id",
+    }
+    assert renamed.status_code in missing_row_errors
+    assert renamed.json()["error"]["message"] == missing_row_errors[renamed.status_code]
     invalid = await http.patch(
         f"/manufacturing_order_operation_rows/{row_id}", json={"operation_name": 123}
     )

@@ -13,6 +13,9 @@ from ..models.create_purchase_order_initial_status import (
 from ..models.purchase_order_entity_type import PurchaseOrderEntityType
 
 if TYPE_CHECKING:
+    from ..models.create_purchase_order_request_custom_fields_type_0 import (
+        CreatePurchaseOrderRequestCustomFieldsType0,
+    )
     from ..models.purchase_order_row_request import PurchaseOrderRowRequest
 
 
@@ -36,6 +39,9 @@ class CreatePurchaseOrderRequest:
         location_id (int): Primary location where the purchased items will be received and stored
         purchase_order_rows (list[PurchaseOrderRowRequest]): List of line items being ordered, including quantities and
             pricing
+        custom_fields (CreatePurchaseOrderRequestCustomFieldsType0 | None | Unset): Custom field values keyed by
+            definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed
+            definitions depend on the account's custom-field configuration.
         order_no (str | Unset): Unique purchase order number for tracking and reference. Optional —
             Katana auto-generates a sequential ``PO-N`` value when omitted.
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for materials or outsourced for
@@ -51,6 +57,7 @@ class CreatePurchaseOrderRequest:
     supplier_id: int
     location_id: int
     purchase_order_rows: list[PurchaseOrderRowRequest]
+    custom_fields: CreatePurchaseOrderRequestCustomFieldsType0 | Unset | None = UNSET
     order_no: str | Unset = UNSET
     entity_type: PurchaseOrderEntityType | Unset = UNSET
     currency: str | Unset = UNSET
@@ -61,6 +68,10 @@ class CreatePurchaseOrderRequest:
     tracking_location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_purchase_order_request_custom_fields_type_0 import (
+            CreatePurchaseOrderRequestCustomFieldsType0,
+        )
+
         supplier_id = self.supplier_id
 
         location_id = self.location_id
@@ -69,6 +80,16 @@ class CreatePurchaseOrderRequest:
         for purchase_order_rows_item_data in self.purchase_order_rows:
             purchase_order_rows_item = purchase_order_rows_item_data.to_dict()
             purchase_order_rows.append(purchase_order_rows_item)
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, CreatePurchaseOrderRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         order_no = self.order_no
 
@@ -103,6 +124,8 @@ class CreatePurchaseOrderRequest:
                 "purchase_order_rows": purchase_order_rows,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if order_no is not UNSET:
             field_dict["order_no"] = order_no
         if entity_type is not UNSET:
@@ -124,6 +147,9 @@ class CreatePurchaseOrderRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_purchase_order_request_custom_fields_type_0 import (
+            CreatePurchaseOrderRequestCustomFieldsType0,
+        )
         from ..models.purchase_order_row_request import (
             PurchaseOrderRowRequest,
         )
@@ -141,6 +167,31 @@ class CreatePurchaseOrderRequest:
             )
 
             purchase_order_rows.append(purchase_order_rows_item)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreatePurchaseOrderRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    CreatePurchaseOrderRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                CreatePurchaseOrderRequestCustomFieldsType0 | Unset | None, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         order_no = d.pop("order_no", UNSET)
 
@@ -184,6 +235,7 @@ class CreatePurchaseOrderRequest:
             supplier_id=supplier_id,
             location_id=location_id,
             purchase_order_rows=purchase_order_rows,
+            custom_fields=custom_fields,
             order_no=order_no,
             entity_type=entity_type,
             currency=currency,

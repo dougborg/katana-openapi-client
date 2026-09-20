@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -9,6 +9,12 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.update_bom_row_request_custom_fields_type_0 import (
+        UpdateBomRowRequestCustomFieldsType0,
+    )
+
 
 T = TypeVar("T", bound="UpdateBomRowRequest")
 
@@ -21,12 +27,25 @@ class UpdateBomRowRequest:
         {'quantity': 3.0, 'notes': 'Updated quantity based on new specifications'}
     """
 
+    custom_fields: Unset | UpdateBomRowRequestCustomFieldsType0 | None = UNSET
     ingredient_variant_id: int | Unset = UNSET
     quantity: float | Unset | None = UNSET
     notes: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_bom_row_request_custom_fields_type_0 import (
+            UpdateBomRowRequestCustomFieldsType0,
+        )
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, UpdateBomRowRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         ingredient_variant_id = self.ingredient_variant_id
 
         quantity: float | Unset | None
@@ -44,6 +63,8 @@ class UpdateBomRowRequest:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if ingredient_variant_id is not UNSET:
             field_dict["ingredient_variant_id"] = ingredient_variant_id
         if quantity is not UNSET:
@@ -55,7 +76,33 @@ class UpdateBomRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.update_bom_row_request_custom_fields_type_0 import (
+            UpdateBomRowRequestCustomFieldsType0,
+        )
+
         d = dict(src_dict)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> Unset | UpdateBomRowRequestCustomFieldsType0 | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = UpdateBomRowRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(Unset | UpdateBomRowRequestCustomFieldsType0 | None, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         ingredient_variant_id = d.pop("ingredient_variant_id", UNSET)
 
         def _parse_quantity(data: object) -> float | Unset | None:
@@ -77,6 +124,7 @@ class UpdateBomRowRequest:
         notes = _parse_notes(d.pop("notes", UNSET))
 
         update_bom_row_request = cls(
+            custom_fields=custom_fields,
             ingredient_variant_id=ingredient_variant_id,
             quantity=quantity,
             notes=notes,

@@ -11,7 +11,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import (
+    Field,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 

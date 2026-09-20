@@ -611,8 +611,8 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
 
 # Eligibility for the empty-dict-as-null post-processor (#509). A ``_parse_*``
 # helper is patched only when both ``None`` and ``Unset`` checks are present —
-# that signals ``None`` is a valid return value, so empty-dict-as-null is
-# semantically correct. Multi-variant oneOf parsers (e.g. Material | Product |
+# that signals ``None`` is a valid return value. Object alternatives which
+# accept an empty mapping are excluded; their {} must not become null. Multi-variant oneOf parsers (e.g. Material | Product |
 # Unset) lack the ``None`` check and are correctly skipped.
 _PARSE_HEADER_RE = re.compile(
     r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
@@ -647,6 +647,19 @@ def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
         print(f"   ⚠️  Models directory not found: {models_dir}")
         return
 
+    # A nullable object with no required fields accepts {} as a real value.
+    # In particular, {} custom_fields must not turn into null (clear-all).
+    empty_object_classes: set[str] = set()
+    for candidate in models_dir.glob("*.py"):
+        candidate_source = candidate.read_text(encoding="utf-8")
+        class_match = re.search(r"^class (\w+)", candidate_source, re.MULTILINE)
+        if (
+            class_match
+            and "def from_dict(" in candidate_source
+            and not re.search(r'\bd\.pop\("[^"\n]+"\)', candidate_source)
+        ):
+            empty_object_classes.add(class_match.group(1))
+
     file_count = 0
     helper_count = 0
     for model_file in sorted(models_dir.glob("*.py")):
@@ -659,7 +672,9 @@ def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
         if ".from_dict(" not in content:
             continue
 
-        new_content, count = _insert_empty_dict_normalization(content)
+        new_content, count = _insert_empty_dict_normalization(
+            content, empty_object_classes
+        )
         if count > 0:
             model_file.write_text(new_content, encoding="utf-8")
             file_count += 1
@@ -671,7 +686,9 @@ def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
         print("   (no eligible helpers found — already patched or none exist)")
 
 
-def _insert_empty_dict_normalization(content: str) -> tuple[str, int]:
+def _insert_empty_dict_normalization(
+    content: str, empty_object_classes: set[str] | None = None
+) -> tuple[str, int]:
     """Insert ``_EMPTY_DICT_EARLY_RETURN`` after each eligible ``_parse_*`` header.
 
     Eligibility:
@@ -693,6 +710,18 @@ def _insert_empty_dict_normalization(content: str) -> tuple[str, int]:
         if ".from_dict(" not in body:
             continue
         if _EMPTY_DICT_MARKER in body:
+            continue
+        # Only direct object alternatives can accept the outer {}. A list's
+        # item parser may also accept {}, but the list itself cannot.
+        alternatives = re.findall(
+            r"(\w+)\.from_dict\(\s*(?:cast\(Mapping\[str,\s*Any\],\s*)?data\b",
+            body,
+        )
+        if (
+            alternatives
+            and empty_object_classes is not None
+            and any(name in empty_object_classes for name in alternatives)
+        ):
             continue
 
         new_content = (

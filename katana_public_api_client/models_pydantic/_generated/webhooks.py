@@ -11,7 +11,11 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import AnyUrl, ConfigDict, Field
+from pydantic import (
+    AnyUrl,
+    ConfigDict,
+    Field,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 

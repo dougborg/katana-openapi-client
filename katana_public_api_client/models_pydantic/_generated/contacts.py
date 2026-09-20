@@ -9,7 +9,12 @@ To regenerate, run:
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar
 
-from pydantic import ConfigDict, EmailStr, Field, RootModel
+from pydantic import (
+    ConfigDict,
+    EmailStr,
+    Field,
+    RootModel,
+)
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
@@ -61,6 +66,12 @@ class UpdateSupplierRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     name: Annotated[
         str | None,
         Field(description="Business name of the supplier company or individual"),
@@ -205,6 +216,12 @@ class CustomerAddress(DeletableEntity):
 
 
 class CreateCustomerRequest(KatanaPydanticBase):
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     name: Annotated[
         str,
         Field(
@@ -260,6 +277,12 @@ class UpdateCustomerRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     name: Annotated[
         str | None,
         Field(
@@ -557,6 +580,12 @@ class CreateSupplierRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration."
+        ),
+    ] = None
     name: Annotated[
         str, Field(description="Business name of the supplier company or individual")
     ]

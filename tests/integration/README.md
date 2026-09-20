@@ -16,6 +16,10 @@ Part of the live test-environment epic —
 uv run poe test-integration-live      # selects `-m live` (every test in this dir)
 ```
 
+The live-test deadline includes fixture cleanup and allows for Katana's minute-long
+rate-limit windows. It is intentionally longer than the unit-test deadline so a valid
+retry wait does not interrupt deletion of a temporary resource.
+
 The suite **skips entirely** unless `KATANA_TEST_API_KEY` is set — so a bare
 `uv run poe test-integration-live` on a fork, in CI without the secret, or on a laptop
 that's never been configured is a green no-op, not a failure.

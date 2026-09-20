@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.create_purchase_order_row_request_custom_fields_type_0 import (
+        CreatePurchaseOrderRowRequestCustomFieldsType0,
+    )
+
 
 T = TypeVar("T", bound="CreatePurchaseOrderRowRequest")
 
@@ -24,6 +30,7 @@ class CreatePurchaseOrderRowRequest:
     quantity: float
     variant_id: int
     price_per_unit: float
+    custom_fields: CreatePurchaseOrderRowRequestCustomFieldsType0 | Unset | None = UNSET
     tax_rate_id: int | Unset = UNSET
     tax_name: str | Unset = UNSET
     tax_rate: str | Unset = UNSET
@@ -34,6 +41,10 @@ class CreatePurchaseOrderRowRequest:
     location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_purchase_order_row_request_custom_fields_type_0 import (
+            CreatePurchaseOrderRowRequestCustomFieldsType0,
+        )
+
         purchase_order_id = self.purchase_order_id
 
         quantity = self.quantity
@@ -41,6 +52,16 @@ class CreatePurchaseOrderRowRequest:
         variant_id = self.variant_id
 
         price_per_unit = self.price_per_unit
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, CreatePurchaseOrderRowRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         tax_rate_id = self.tax_rate_id
 
@@ -70,6 +91,8 @@ class CreatePurchaseOrderRowRequest:
                 "price_per_unit": price_per_unit,
             }
         )
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
         if tax_name is not UNSET:
@@ -91,6 +114,10 @@ class CreatePurchaseOrderRowRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_purchase_order_row_request_custom_fields_type_0 import (
+            CreatePurchaseOrderRowRequestCustomFieldsType0,
+        )
+
         d = dict(src_dict)
         purchase_order_id = d.pop("purchase_order_id")
 
@@ -99,6 +126,31 @@ class CreatePurchaseOrderRowRequest:
         variant_id = d.pop("variant_id")
 
         price_per_unit = d.pop("price_per_unit")
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreatePurchaseOrderRowRequestCustomFieldsType0 | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    CreatePurchaseOrderRowRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                CreatePurchaseOrderRowRequestCustomFieldsType0 | Unset | None, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
@@ -126,6 +178,7 @@ class CreatePurchaseOrderRowRequest:
             quantity=quantity,
             variant_id=variant_id,
             price_per_unit=price_per_unit,
+            custom_fields=custom_fields,
             tax_rate_id=tax_rate_id,
             tax_name=tax_name,
             tax_rate=tax_rate,

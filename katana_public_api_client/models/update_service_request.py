@@ -9,6 +9,9 @@ from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.custom_field_value import CustomFieldValue
+    from ..models.update_service_request_custom_fields_type_0 import (
+        UpdateServiceRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="UpdateServiceRequest")
@@ -34,9 +37,15 @@ class UpdateServiceRequest:
     default_cost: float | Unset | None = UNSET
     sku: str | Unset = UNSET
     custom_field_collection_id: int | Unset | None = UNSET
-    custom_fields: list[CustomFieldValue] | Unset = UNSET
+    custom_fields: (
+        list[CustomFieldValue] | Unset | UpdateServiceRequestCustomFieldsType0
+    ) = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_service_request_custom_fields_type_0 import (
+            UpdateServiceRequestCustomFieldsType0,
+        )
+
         name = self.name
 
         uom = self.uom
@@ -69,12 +78,16 @@ class UpdateServiceRequest:
         else:
             custom_field_collection_id = self.custom_field_collection_id
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
+        custom_fields: dict[str, Any] | list[dict[str, Any]] | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, UpdateServiceRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for custom_fields_type_1_item_data in self.custom_fields:
+                custom_fields_type_1_item = custom_fields_type_1_item_data.to_dict()
+                custom_fields.append(custom_fields_type_1_item)
 
         field_dict: dict[str, Any] = {}
 
@@ -107,6 +120,9 @@ class UpdateServiceRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.custom_field_value import CustomFieldValue
+        from ..models.update_service_request_custom_fields_type_0 import (
+            UpdateServiceRequestCustomFieldsType0,
+        )
 
         d = dict(src_dict)
         name = d.pop("name", UNSET)
@@ -152,16 +168,35 @@ class UpdateServiceRequest:
             d.pop("custom_field_collection_id", UNSET)
         )
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[CustomFieldValue] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = CustomFieldValue.from_dict(
-                    cast(Mapping[str, Any], custom_fields_item_data)
+        def _parse_custom_fields(
+            data: object,
+        ) -> list[CustomFieldValue] | Unset | UpdateServiceRequestCustomFieldsType0:
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = UpdateServiceRequestCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
                 )
 
-                custom_fields.append(custom_fields_item)
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            if not isinstance(data, list):
+                raise TypeError()
+            custom_fields_type_1 = []
+            _custom_fields_type_1 = data
+            for custom_fields_type_1_item_data in _custom_fields_type_1:
+                custom_fields_type_1_item = CustomFieldValue.from_dict(
+                    cast(Mapping[str, Any], custom_fields_type_1_item_data)
+                )
+
+                custom_fields_type_1.append(custom_fields_type_1_item)
+
+            return custom_fields_type_1
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         update_service_request = cls(
             name=name,

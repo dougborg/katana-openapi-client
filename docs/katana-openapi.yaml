@@ -3977,6 +3977,15 @@ components:
         - planned_quantity
         - location_id
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         status:
           type: string
           enum:
@@ -4025,6 +4034,7 @@ components:
             Batch / serial allocations for the quantity this manufacturing order will produce.
           items:
             $ref: "#/components/schemas/ManufacturingOrderTraceabilityRequest"
+
       example:
         variant_id: 2101
         planned_quantity: 50
@@ -4194,6 +4204,15 @@ components:
       description: Request payload for updating an existing manufacturing order's properties and production parameters.
       type: object
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         status:
           description: Updated production status of the manufacturing order
           $ref: "#/components/schemas/ManufacturingOrderStatus"
@@ -4238,6 +4257,7 @@ components:
             Updated batch / serial allocations for the produced quantity.
           items:
             $ref: "#/components/schemas/ManufacturingOrderTraceabilityRequest"
+
       example:
         planned_quantity: 75
         additional_info: Increased quantity due to additional customer demand
@@ -4660,6 +4680,15 @@ components:
         - manufacturing_order_id
         - status
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         manufacturing_order_id:
           type: integer
           description: ID of the manufacturing order this operation belongs to
@@ -4704,6 +4733,7 @@ components:
           description: Operators assigned to perform this operation
           items:
             $ref: "#/components/schemas/Operator"
+
       example:
         manufacturing_order_id: 1001
         operation_id: 201
@@ -4721,6 +4751,15 @@ components:
       type: object
       additionalProperties: false
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         operation_id:
           type: integer
           description: ID of the operation being performed
@@ -4766,6 +4805,7 @@ components:
           description: List of operators who completed this operation
           items:
             $ref: "#/components/schemas/Operator"
+
       example:
         operation_name: Assembly
         total_actual_time: 52.3
@@ -4814,6 +4854,15 @@ components:
         - variant_id
         - planned_quantity_per_unit
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         manufacturing_order_id:
           type: integer
           description: ID of the manufacturing order this ingredient belongs to
@@ -4850,6 +4899,7 @@ components:
             Batch / bin allocations for the ingredient quantity consumed by this recipe row.
           items:
             $ref: "#/components/schemas/ManufacturingOrderIngredientTraceabilityRequest"
+
       example:
         manufacturing_order_id: 1001
         variant_id: 2002
@@ -4867,6 +4917,15 @@ components:
         requirements
       type: object
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         variant_id:
           type: integer
           description: Updated ID of the ingredient variant being consumed
@@ -4897,6 +4956,7 @@ components:
             Updated batch / bin allocations for the consumed ingredient quantity.
           items:
             $ref: "#/components/schemas/ManufacturingOrderIngredientTraceabilityRequest"
+
       example:
         variant_id: 2002
         notes: Used organic ingredients as requested by customer
@@ -6186,6 +6246,15 @@ components:
         - location_id
         - purchase_order_rows
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         order_no:
           type: string
           description: |
@@ -6246,6 +6315,7 @@ components:
         properties:
           tracking_location_id:
             type: "null"
+
       example:
         order_no: PO-2024-0156
         entity_type: regular
@@ -6744,6 +6814,15 @@ components:
       type: object
       additionalProperties: false
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         order_no:
           type: string
           minLength: 3
@@ -6779,6 +6858,7 @@ components:
         additional_info:
           type: string
           description: Optional notes or special instructions for the supplier
+
       example:
         order_no: PO-2024-0156-REVISED
         expected_arrival_date: "2024-02-20T00:00:00Z"
@@ -7118,6 +7198,15 @@ components:
         - quantity
         - variant_id
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         purchase_order_id:
           type: integer
           maximum: 2147483647
@@ -7172,6 +7261,7 @@ components:
           description: |-
             Destination location for this row, enabling multi-location receiving on a
             single purchase order. Defaults to the order-level location when omitted.
+
       example:
         purchase_order_id: 156
         quantity: 50
@@ -7186,6 +7276,15 @@ components:
       type: object
       additionalProperties: false
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         quantity:
           type: number
           maximum: 100000000000000000
@@ -7236,6 +7335,7 @@ components:
           description: |-
             Destination location for this row (multi-location receiving). Updatable only
             when received_date is null.
+
       example:
         quantity: 275
         price_per_unit: 2.95
@@ -7309,6 +7409,15 @@ components:
       required:
         - name
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         name:
           type: string
           description: Business name of the supplier company or individual
@@ -7330,6 +7439,7 @@ components:
           items:
             $ref: "#/components/schemas/SupplierAddressRequest"
           description: List of addresses to associate with this supplier
+
       example:
         name: Premium Kitchen Supplies Ltd
         currency: USD
@@ -7467,6 +7577,15 @@ components:
       type: object
       additionalProperties: false
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         name:
           type: string
           description: Business name of the supplier company or individual
@@ -7484,6 +7603,7 @@ components:
         comment:
           type: string
           description: Optional notes or comments about the supplier relationship
+
       example:
         name: Premium Kitchen Supplies Ltd
         email: orders@premiumkitchen.com
@@ -7828,22 +7948,35 @@ components:
                 type: string
                 description: Value for this configuration attribute (e.g., Blue, Large)
         custom_fields:
-          type: array
-          maxItems: 3
-          description: 'Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)'
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - field_name
-              - field_value
-            properties:
-              field_name:
-                type: string
-                description: Name of the custom field
-              field_value:
-                type: string
-                description: Value stored in the custom field
+          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
+            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          anyOf:
+            - type: object
+              propertyNames:
+                pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+              additionalProperties:
+                type:
+                  - string
+                  - number
+                  - boolean
+                  - 'null'
+            - type: array
+              maxItems: 3
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - field_name
+                  - field_value
+                properties:
+                  field_name:
+                    type: string
+                    description: Name of the custom field
+                  field_value:
+                    type: string
+                    description: Value stored in the custom field
+                title: CustomFieldsItem
+
       example:
         sku: KNF-PRO-12PC-WD
         sales_price: 399.99
@@ -8063,21 +8196,35 @@ components:
                 type: string
                 description: Value of the configuration attribute for this variant
         custom_fields:
-          type: array
-          description: |
-            Additional custom field values associated with this variant, in
-            the legacy ``[{field_name, field_value}]`` array shape
-            (configured via ``/custom_fields_collections``; distinct from
-            the sales-order ``custom_fields`` dict — see ``CustomFieldValue``).
-          items:
-            type: object
-            properties:
-              field_name:
-                type: string
-                description: Name of the custom field
-              field_value:
-                type: string
-                description: Value of the custom field for this variant
+          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
+            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          anyOf:
+            - type: object
+              propertyNames:
+                pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+              additionalProperties:
+                type:
+                  - string
+                  - number
+                  - boolean
+                  - 'null'
+            - type: array
+              maxItems: 3
+              items:
+                type: object
+                properties:
+                  field_name:
+                    type: string
+                    description: Name of the custom field
+                  field_value:
+                    type: string
+                    description: Value of the custom field for this variant
+                title: CustomFieldsItem
+                additionalProperties: false
+                required:
+                  - field_name
+                  - field_value
+
       example:
         sku: KNF-PRO-8PC-UPD
         sales_price: 319.99
@@ -8895,17 +9042,23 @@ components:
           maximum: 2147483647
           description: ID of the custom field collection to associate with this service
         custom_fields:
-          type: array
-          maxItems: 3
-          description: |
-            Custom field values to attach to the service, in the legacy
-            ``[{field_name, field_value}]`` array shape. Field names must
-            match those configured for the ``service`` resource type (see
-            ``GET /custom_fields_collections``). This is distinct from the
-            sales-order ``custom_fields`` dict keyed by
-            ``/custom_field_definitions`` UUIDs — see ``CustomFieldValue``.
-          items:
-            $ref: "#/components/schemas/CustomFieldValue"
+          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
+            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          anyOf:
+            - type: object
+              propertyNames:
+                pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+              additionalProperties:
+                type:
+                  - string
+                  - number
+                  - boolean
+                  - 'null'
+            - type: array
+              maxItems: 3
+              items:
+                $ref: '#/components/schemas/CustomFieldValue'
+
       example:
         name: Updated Assembly Service
         uom: hours
@@ -9295,6 +9448,15 @@ components:
       description: Request payload for creating a new customer with contact and business information
       type: object
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         name:
           type: string
           description: Customer display name, either individual name or company name
@@ -9379,6 +9541,7 @@ components:
                 type: string
       required:
         - name
+
       example:
         name: Gourmet Bistro Group
         first_name: Elena
@@ -9396,6 +9559,15 @@ components:
       type: object
       additionalProperties: false
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         name:
           type: string
           description: Customer display name, either individual name or company name
@@ -9455,6 +9627,7 @@ components:
             - integer
             - "null"
           description: Default shipping address ID for this customer
+
       example:
         name: Gourmet Bistro Group
         first_name: Elena
@@ -12213,6 +12386,15 @@ components:
       type: object
       description: Request payload for creating a new BOM row
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         product_item_id:
           type: integer
           minimum: 1
@@ -12244,6 +12426,7 @@ components:
         - product_item_id
         - product_variant_id
         - ingredient_variant_id
+
       example:
         product_item_id: 3001
         product_variant_id: 2001
@@ -12277,6 +12460,15 @@ components:
       type: object
       description: Request payload for updating an existing BOM row. Only provided fields will be updated.
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         ingredient_variant_id:
           type: integer
           minimum: 1
@@ -12294,6 +12486,7 @@ components:
             - string
             - "null"
           description: Additional notes for this BOM row
+
       example:
         quantity: 3.0
         notes: Updated quantity based on new specifications
@@ -12645,8 +12838,9 @@ components:
         **dict keyed by custom field definition ``id`` (UUID)** registered
         through ``/custom_field_definitions`` (see ``CustomFieldDefinition``
         and the ``custom_fields`` property on ``SalesOrder`` /
-        ``SalesOrderRow``). The two surfaces coexist intentionally; Katana
-        has not migrated items/variants to the dict shape.
+        ``SalesOrderRow``). The two surfaces coexist. Variant and service
+        update requests also accept the UUID-keyed map when that feature
+        is enabled for the account; this schema describes the legacy item.
       type: object
       additionalProperties: false
       required:
@@ -14714,6 +14908,15 @@ components:
       type: object
       additionalProperties: false
       properties:
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            allowed definitions depend on the account's custom-field configuration.
         operation_id:
           type: integer
           description: ID of the operation

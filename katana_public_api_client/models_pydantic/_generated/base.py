@@ -11,7 +11,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import (
+    ConfigDict,
+    Field,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from katana_public_api_client.models_pydantic._mapped_shim import Mapped

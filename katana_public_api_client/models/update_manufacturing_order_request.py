@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from ..models.manufacturing_order_traceability_request import (
         ManufacturingOrderTraceabilityRequest,
     )
+    from ..models.update_manufacturing_order_request_custom_fields_type_0 import (
+        UpdateManufacturingOrderRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="UpdateManufacturingOrderRequest")
@@ -31,6 +34,9 @@ class UpdateManufacturingOrderRequest:
             'production_deadline_date': '2024-01-30T17:00:00Z'}
     """
 
+    custom_fields: Unset | UpdateManufacturingOrderRequestCustomFieldsType0 | None = (
+        UNSET
+    )
     status: ManufacturingOrderStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     variant_id: int | Unset = UNSET
@@ -46,6 +52,20 @@ class UpdateManufacturingOrderRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_manufacturing_order_request_custom_fields_type_0 import (
+            UpdateManufacturingOrderRequestCustomFieldsType0,
+        )
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, UpdateManufacturingOrderRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
@@ -91,6 +111,8 @@ class UpdateManufacturingOrderRequest:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if status is not UNSET:
             field_dict["status"] = status
         if order_no is not UNSET:
@@ -124,8 +146,37 @@ class UpdateManufacturingOrderRequest:
         from ..models.manufacturing_order_traceability_request import (
             ManufacturingOrderTraceabilityRequest,
         )
+        from ..models.update_manufacturing_order_request_custom_fields_type_0 import (
+            UpdateManufacturingOrderRequestCustomFieldsType0,
+        )
 
         d = dict(src_dict)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> Unset | UpdateManufacturingOrderRequestCustomFieldsType0 | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    UpdateManufacturingOrderRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                Unset | UpdateManufacturingOrderRequestCustomFieldsType0 | None, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         _status = d.pop("status", UNSET)
         status: ManufacturingOrderStatus | Unset
         if isinstance(_status, Unset):
@@ -191,6 +242,7 @@ class UpdateManufacturingOrderRequest:
                 traceability.append(traceability_item)
 
         update_manufacturing_order_request = cls(
+            custom_fields=custom_fields,
             status=status,
             order_no=order_no,
             variant_id=variant_id,

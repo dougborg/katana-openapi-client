@@ -11,7 +11,12 @@ from enum import IntEnum, StrEnum
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from pydantic import AwareDatetime, ConfigDict, Field, RootModel
+from pydantic import (
+    AwareDatetime,
+    ConfigDict,
+    Field,
+    RootModel,
+)
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
@@ -864,6 +869,16 @@ class CustomField2(KatanaPydanticBase):
     field_value: Annotated[str, Field(description="Value stored in the custom field")]
 
 
+class CustomFields(RootModel[list[CustomField2]]):
+    root: Annotated[
+        list[CustomField2],
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            max_length=3,
+        ),
+    ]
+
+
 class ConfigAttribute2(ConfigAttribute):
     pass
 
@@ -882,13 +897,24 @@ class ConfigAttribute3(KatanaPydanticBase):
     ] = None
 
 
-class CustomField4(KatanaPydanticBase):
-    field_name: Annotated[str | None, Field(description="Name of the custom field")] = (
-        None
+class CustomFields1Item(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
     )
+    field_name: Annotated[str, Field(description="Name of the custom field")]
     field_value: Annotated[
-        str | None, Field(description="Value of the custom field for this variant")
-    ] = None
+        str, Field(description="Value of the custom field for this variant")
+    ]
+
+
+class CustomFields1(RootModel[list[CustomFields1Item]]):
+    root: Annotated[
+        list[CustomFields1Item],
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            max_length=3,
+        ),
+    ]
 
 
 class VariantDefaultStorageBinLink(KatanaPydanticBase):
@@ -1089,7 +1115,7 @@ class Event(StrEnum):
     product_recipe_row_updated = "product_recipe_row.updated"
 
 
-class CustomField5(KatanaPydanticBase):
+class CustomField4(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
@@ -1692,6 +1718,16 @@ class ProductOperationRowListResponse(KatanaPydanticBase):
             description="Array of product operation rows returned by this page of the list response"
         ),
     ] = None
+
+
+class CustomFields2(RootModel[list[CustomFieldValue]]):
+    root: Annotated[
+        list[CustomFieldValue],
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            max_length=3,
+        ),
+    ]
 
 
 class VariantSearchFilter(KatanaPydanticBase):

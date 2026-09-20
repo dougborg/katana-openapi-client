@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from ..models.update_manufacturing_order_recipe_row_request_batch_transactions_item import (
         UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
     )
+    from ..models.update_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+        UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="UpdateManufacturingOrderRecipeRowRequest")
@@ -32,6 +35,9 @@ class UpdateManufacturingOrderRecipeRowRequest:
             'quantity': 2.7}]}
     """
 
+    custom_fields: (
+        Unset | UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0 | None
+    ) = UNSET
     variant_id: int | Unset = UNSET
     notes: str | Unset = UNSET
     planned_quantity_per_unit: float | Unset = UNSET
@@ -43,6 +49,21 @@ class UpdateManufacturingOrderRecipeRowRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+            UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+        )
+
+        custom_fields: dict[str, Any] | Unset | None
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields,
+            UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         variant_id = self.variant_id
 
         notes = self.notes
@@ -68,6 +89,8 @@ class UpdateManufacturingOrderRecipeRowRequest:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if variant_id is not UNSET:
             field_dict["variant_id"] = variant_id
         if notes is not UNSET:
@@ -91,8 +114,40 @@ class UpdateManufacturingOrderRecipeRowRequest:
         from ..models.update_manufacturing_order_recipe_row_request_batch_transactions_item import (
             UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
         )
+        from ..models.update_manufacturing_order_recipe_row_request_custom_fields_type_0 import (
+            UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0,
+        )
 
         d = dict(src_dict)
+
+        def _parse_custom_fields(
+            data: object,
+        ) -> Unset | UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0 | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                Unset
+                | UpdateManufacturingOrderRecipeRowRequestCustomFieldsType0
+                | None,
+                data,
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         variant_id = d.pop("variant_id", UNSET)
 
         notes = d.pop("notes", UNSET)
@@ -130,6 +185,7 @@ class UpdateManufacturingOrderRecipeRowRequest:
                 traceability.append(traceability_item)
 
         update_manufacturing_order_recipe_row_request = cls(
+            custom_fields=custom_fields,
             variant_id=variant_id,
             notes=notes,
             planned_quantity_per_unit=planned_quantity_per_unit,

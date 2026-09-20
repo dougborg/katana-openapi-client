@@ -144,27 +144,24 @@ and is what the generator handles cleanly.
 
 ______________________________________________________________________
 
-## Two custom-fields surfaces coexist — never unify them
+## Custom-field request formats depend on the endpoint and account
 
-Katana exposes **two unrelated** custom-fields mechanisms. They look similar but have
-different wire shapes, different configuration endpoints, and different key semantics.
-Keep them separate in the spec; do not "DRY" one into the other.
+The legacy `[{field_name, field_value}]` array uses names configured through
+`/custom_fields_collections`. The newer object form uses definition UUIDs from
+`/custom_field_definitions`. Preserve these different key semantics.
 
-|                      | Legacy (items)                          | New (sales orders)             |
-| -------------------- | --------------------------------------- | ------------------------------ |
-| **Entities**         | Variant / Product / Material / Service  | `SalesOrder` / `SalesOrderRow` |
-| **Wire shape**       | `[{field_name, field_value}]` **array** | `{<uuid>: value}` **dict**     |
-| **Configured via**   | `/custom_fields_collections`            | `/custom_field_definitions`    |
-| **Key**              | configured field **name**               | definition **`id`** (UUID)     |
-| **Canonical schema** | `CustomFieldValue`                      | `CustomFieldDefinition`        |
+Order, row, customer, supplier, BOM, and manufacturing request DTOs accept a free-form
+nullable object. Variant create/update and service update requests accept either a
+UUID-keyed scalar map or the legacy array (at most three entries). Map values are
+strings, numbers, booleans, or null; nested objects and non-UUID keys are rejected. The
+live test account rejects nonempty variant maps with an account-feature error, even
+though they pass gateway validation. Do not infer that every tenant can use the object
+format, or that request support changes the response shape.
 
-The array surface is modelled by `CustomFieldValue` and the dict surface by
-`CustomFieldDefinition` + the `CustomFieldOptions` choice schemas. The dict values are
-typed by the definition's `field_type` (string / number / boolean / `YYYY-MM-DD` / URL
-string / integer choice `id` for `singleSelect`). `entity_type` is intentionally
-narrowed to the two live values — add a new entity type only once the live API accepts
-it. Katana has **not** migrated items/variants to the dict shape; if/when it does, that
-is a deliberate, separately-tracked spec change, not a silent unification here.
+Keep missing fields, `{}`, and `null` distinct in serialization. An empty object is
+valid input and must not be normalized to null. Add definition entity types only after
+verifying their separate API contract; request-field support alone does not prove that a
+definition can be created for that entity type.
 
 Sales-order custom-field **search** paths use snake_case `custom_fields.<uuid>` in
 `where`/`order` (matching the request/response body), per Katana's live

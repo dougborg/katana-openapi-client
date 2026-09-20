@@ -2089,6 +2089,12 @@ export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel & Dele
  */
 export type CreateManufacturingOrderRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * Initial production status. ``NOT_STARTED`` is the only value
    * accepted on create; transition to other statuses via
    * ``PATCH /manufacturing_orders/{id}``.
@@ -2255,6 +2261,12 @@ export type ManufacturingOrder = {
  * Request payload for updating an existing manufacturing order's properties and production parameters.
  */
 export type UpdateManufacturingOrderRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Updated production status of the manufacturing order
    */
@@ -2547,6 +2559,12 @@ export type ManufacturingOrderOperationRow = {
  */
 export type CreateManufacturingOrderOperationRowRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * ID of the manufacturing order this operation belongs to
    */
   manufacturing_order_id: number;
@@ -2606,6 +2624,12 @@ export type CreateManufacturingOrderOperationRowRequest = {
  * Request payload for updating a manufacturing order operation row with actual completion data
  */
 export type UpdateManufacturingOrderOperationRowRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * ID of the operation being performed
    */
@@ -2688,6 +2712,12 @@ export type ManufacturingOrderOperationProduction = {
  */
 export type CreateManufacturingOrderRecipeRowRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * ID of the manufacturing order this ingredient belongs to
    */
   manufacturing_order_id: number;
@@ -2730,6 +2760,12 @@ export type CreateManufacturingOrderRecipeRowRequest = {
  * Request payload for updating a manufacturing order recipe row with actual consumption data and revised requirements
  */
 export type UpdateManufacturingOrderRecipeRowRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Updated ID of the ingredient variant being consumed
    */
@@ -3547,6 +3583,12 @@ export type ProductListResponse = {
  */
 export type CreatePurchaseOrderRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * Unique purchase order number for tracking and reference. Optional —
    * Katana auto-generates a sequential ``PO-N`` value when omitted.
    *
@@ -3890,6 +3932,12 @@ export type PurchaseOrderRowListResponse = {
  */
 export type UpdatePurchaseOrderRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED
    */
   order_no?: string;
@@ -4130,6 +4178,12 @@ export type PurchaseOrderReceiveRequest = Array<PurchaseOrderReceiveRow> | Purch
  */
 export type CreatePurchaseOrderRowRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * Unique identifier of the purchase order to add this line item to
    */
   purchase_order_id: number;
@@ -4187,6 +4241,12 @@ export type CreatePurchaseOrderRowRequest = {
  * Request payload for updating an existing purchase order line item's details and status
  */
 export type UpdatePurchaseOrderRowRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Updatable only when received_date is null
    */
@@ -4281,6 +4341,12 @@ export type PurchaseOrderAccountingMetadataListResponse = {
  * Request payload for creating a new supplier with contact information and addresses
  */
 export type CreateSupplierRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Business name of the supplier company or individual
    */
@@ -4389,6 +4455,12 @@ export type SupplierListResponse = {
  * Request payload for updating an existing supplier's contact information and details
  */
 export type UpdateSupplierRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Business name of the supplier company or individual
    */
@@ -4641,18 +4713,22 @@ export type CreateVariantRequest = {
     config_value: string;
   }>;
   /**
-   * Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)
+   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
    */
-  custom_fields?: Array<{
-    /**
-     * Name of the custom field
-     */
-    field_name: string;
-    /**
-     * Value stored in the custom field
-     */
-    field_value: string;
-  }>;
+  custom_fields?:
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | Array<{
+        /**
+         * Name of the custom field
+         */
+        field_name: string;
+        /**
+         * Value stored in the custom field
+         */
+        field_value: string;
+      }>;
 };
 
 /**
@@ -4800,22 +4876,22 @@ export type UpdateVariantRequest = {
     config_value?: string;
   }>;
   /**
-   * Additional custom field values associated with this variant, in
-   * the legacy ``[{field_name, field_value}]`` array shape
-   * (configured via ``/custom_fields_collections``; distinct from
-   * the sales-order ``custom_fields`` dict — see ``CustomFieldValue``).
-   *
+   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
    */
-  custom_fields?: Array<{
-    /**
-     * Name of the custom field
-     */
-    field_name?: string;
-    /**
-     * Value of the custom field for this variant
-     */
-    field_value?: string;
-  }>;
+  custom_fields?:
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | Array<{
+        /**
+         * Name of the custom field
+         */
+        field_name: string;
+        /**
+         * Value of the custom field for this variant
+         */
+        field_value: string;
+      }>;
 };
 
 /**
@@ -5383,15 +5459,13 @@ export type UpdateServiceRequest = {
    */
   custom_field_collection_id?: number | null;
   /**
-   * Custom field values to attach to the service, in the legacy
-   * ``[{field_name, field_value}]`` array shape. Field names must
-   * match those configured for the ``service`` resource type (see
-   * ``GET /custom_fields_collections``). This is distinct from the
-   * sales-order ``custom_fields`` dict keyed by
-   * ``/custom_field_definitions`` UUIDs — see ``CustomFieldValue``.
-   *
+   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
    */
-  custom_fields?: Array<CustomFieldValue>;
+  custom_fields?:
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | Array<CustomFieldValue>;
 };
 
 /**
@@ -5632,6 +5706,12 @@ export type CustomerListResponse = {
  */
 export type CreateCustomerRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * Customer display name, either individual name or company name
    */
   name: string;
@@ -5697,6 +5777,12 @@ export type CreateCustomerRequest = {
  * Request payload for updating an existing customer with contact and business information
  */
 export type UpdateCustomerRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Customer display name, either individual name or company name
    */
@@ -7984,6 +8070,12 @@ export type BomRow = {
  */
 export type CreateBomRowRequest = {
   /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * ID of the product item this BOM row belongs to
    */
   product_item_id: number;
@@ -8019,6 +8111,12 @@ export type BatchCreateBomRowsRequest = {
  * Request payload for updating an existing BOM row. Only provided fields will be updated.
  */
 export type UpdateBomRowRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * ID of the ingredient variant used in this BOM row
    */
@@ -8283,8 +8381,9 @@ export type CustomFieldsCollection = {
  * **dict keyed by custom field definition ``id`` (UUID)** registered
  * through ``/custom_field_definitions`` (see ``CustomFieldDefinition``
  * and the ``custom_fields`` property on ``SalesOrder`` /
- * ``SalesOrderRow``). The two surfaces coexist intentionally; Katana
- * has not migrated items/variants to the dict shape.
+ * ``SalesOrderRow``). The two surfaces coexist. Variant and service
+ * update requests also accept the UUID-keyed map when that feature
+ * is enabled for the account; this schema describes the legacy item.
  *
  */
 export type CustomFieldValue = {
@@ -9790,6 +9889,12 @@ export type CreateProductOperationRowsRequest = {
  * Request payload for updating a product operation row
  */
 export type UpdateProductOperationRowRequest = {
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and allowed definitions depend on the account's custom-field configuration.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * ID of the operation
    */

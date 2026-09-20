@@ -90,6 +90,9 @@ PAIRINGS: list[Pairing] = [
     Pairing(
         mcp_cls=CreatePurchaseOrderRequest,
         api_cls=ApiCreatePORequest,
+        allowed_drops={
+            "custom_fields": "MCP custom-field authoring needs definition discovery and account capability handling; tracked in #806.",
+        },
         renames={
             "order_no": "order_number",
             "purchase_order_rows": "items",
@@ -119,6 +122,7 @@ PAIRINGS: list[Pairing] = [
         mcp_cls=CreateManufacturingOrderRequest,
         api_cls=ApiCreateMORequest,
         allowed_drops={
+            "custom_fields": "MCP custom-field authoring needs definition discovery and account capability handling; tracked in #806.",
             "status": ("Only NOT_STARTED is valid at creation; the impl hardcodes it."),
             "actual_quantity": (
                 "Computed from production runs — not a creation-time concern."
