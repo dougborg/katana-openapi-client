@@ -69,9 +69,12 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **fulfill_order** - Complete manufacturing or sales orders
 - **create_sales_order** - Create sales orders with preview/apply
 - **list_sales_orders** - List SOs with customer/status/date filters
+- **list_sales_returns** - Find return orders, including those attached to an SO
+- **get_sales_return** - Inspect a return order and its returned rows
 - **get_sales_order** - Look up an SO with full details
 - **modify_sales_order** - Unified modify: header, rows, addresses, fulfillments, shipping fees (multi-action, preview/apply)
 - **delete_sales_order** - Delete an SO (Katana cascades child rows)
+- **delete_sales_return** - Preview and delete a return order
 - **correct_sales_order** - Edit a closed (DELIVERED) SO without losing its `picked_date` / fulfillment metadata. Reopens, edits lines keyed by current variant, then re-closes preserving close-state. See "Closed-Record Corrections" below.
 
 ### Stock Transfers
@@ -1698,6 +1701,45 @@ addresses / fulfillments / shipping fees server-side.
 **Parameters:**
 - `id` (required): Sales order ID
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+### list_sales_returns
+List return orders. Use `sales_order_id` to find returns attached to a sales
+order; Katana ignores that upstream filter, so this tool fetches all pages and
+filters locally before applying `limit`.
+
+**Parameters:**
+- `sales_order_id` (optional): source sales-order ID
+- `order_no` (optional): exact return-order number
+- `return_location_id` (optional): return receiving location
+- `status` (optional): `NOT_RETURNED`, `RETURNED_ALL`, or `RESTOCKED_ALL`
+- `refund_status` (optional): `NOT_REFUNDED`, `PARTIALLY_REFUNDED`, or `REFUNDED`
+- `include_deleted` (optional): include soft-deleted returns
+- `limit` (optional, default 50): maximum matching returns returned
+
+**Returns:** return IDs, source sales-order IDs, return-order numbers, statuses,
+refund status, dates, and row counts.
+
+---
+
+### get_sales_return
+Get one return order by ID, including every returned row. Each row includes its
+ID, variant, linked fulfillment/sales-order rows, quantity, refund price,
+return reason, restock location, and batch transactions.
+
+---
+
+### delete_sales_return
+Delete a sales return using preview/apply confirmation.
+
+**Parameters:**
+- `id` (required): sales return ID
+- `preview` (optional, default true): true=preview, false=delete
+
+The preview includes the return snapshot and rows. Imported returns may reject
+deletion; Katana's 412/422 error message is returned unchanged so use the
+source integration when it says the return cannot be updated in Katana.
 
 ---
 
