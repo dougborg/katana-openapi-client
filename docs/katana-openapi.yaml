@@ -780,13 +780,20 @@ components:
         items:
           type: integer
       in: query
-    return_order_no:
-      name: return_order_no
+    sales_return_order_no:
+      name: order_no
       in: query
-      description: Filters sales returns by an order number
+      description: Filters sales returns by their return order number.
       required: false
       schema:
         type: string
+    sales_return_location_id:
+      name: return_location_id
+      in: query
+      description: Filters sales returns by their return location ID.
+      required: false
+      schema:
+        type: integer
     refund_status:
       name: refund_status
       in: query
@@ -794,18 +801,18 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/SalesReturnRefundStatus"
-    return_date_min:
-      name: return_date_min
+    order_return_date_min:
+      name: order_return_date_min
       in: query
-      description: Minimum value for return_date range. Must be compatible with ISO 8601 format
+      description: Minimum value for order return date range. Must be compatible with ISO 8601 format.
       required: false
       schema:
         type: string
         format: date-time
-    return_date_max:
-      name: return_date_max
+    order_return_date_max:
+      name: order_return_date_max
       in: query
-      description: Maximum value for return_date range. Must be compatible with ISO 8601 format
+      description: Maximum value for order return date range. Must be compatible with ISO 8601 format.
       required: false
       schema:
         type: string
@@ -20942,17 +20949,17 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"
-        - $ref: "#/components/parameters/sales_order_id"
         - $ref: "#/components/parameters/status"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/created_at_min"
         - $ref: "#/components/parameters/created_at_max"
         - $ref: "#/components/parameters/updated_at_min"
         - $ref: "#/components/parameters/updated_at_max"
-        - $ref: "#/components/parameters/return_order_no"
+        - $ref: "#/components/parameters/sales_return_order_no"
+        - $ref: "#/components/parameters/sales_return_location_id"
         - $ref: "#/components/parameters/refund_status"
-        - $ref: "#/components/parameters/return_date_min"
-        - $ref: "#/components/parameters/return_date_max"
+        - $ref: "#/components/parameters/order_return_date_min"
+        - $ref: "#/components/parameters/order_return_date_max"
         - $ref: "#/components/parameters/order_created_date_min"
         - $ref: "#/components/parameters/order_created_date_max"
       responses:

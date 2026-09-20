@@ -10917,9 +10917,14 @@ export type ManufacturingOrderIds = Array<number>;
 export type ProductionIds = Array<number>;
 
 /**
- * Filters sales returns by an order number
+ * Filters sales returns by their return order number.
  */
-export type ReturnOrderNo = string;
+export type SalesReturnOrderNo = string;
+
+/**
+ * Filters sales returns by their return location ID.
+ */
+export type SalesReturnLocationId = number;
 
 /**
  * Filters sales returns by a refund status
@@ -10927,14 +10932,14 @@ export type ReturnOrderNo = string;
 export type RefundStatus = SalesReturnRefundStatus;
 
 /**
- * Minimum value for return_date range. Must be compatible with ISO 8601 format
+ * Minimum value for order return date range. Must be compatible with ISO 8601 format.
  */
-export type ReturnDateMin = string;
+export type OrderReturnDateMin = string;
 
 /**
- * Maximum value for return_date range. Must be compatible with ISO 8601 format
+ * Maximum value for order return date range. Must be compatible with ISO 8601 format.
  */
-export type ReturnDateMax = string;
+export type OrderReturnDateMax = string;
 
 /**
  * Minimum value for order_created_date range. Must be compatible with ISO 8601 format
@@ -16646,10 +16651,6 @@ export type GetAllSalesReturnsData = {
      */
     ids?: Array<number>;
     /**
-     * Filter by sales order ID
-     */
-    sales_order_id?: number;
-    /**
      * Filter by status
      */
     status?: string;
@@ -16674,21 +16675,25 @@ export type GetAllSalesReturnsData = {
      */
     updated_at_max?: string;
     /**
-     * Filters sales returns by an order number
+     * Filters sales returns by their return order number.
      */
-    return_order_no?: string;
+    order_no?: string;
+    /**
+     * Filters sales returns by their return location ID.
+     */
+    return_location_id?: number;
     /**
      * Filters sales returns by a refund status
      */
     refund_status?: SalesReturnRefundStatus;
     /**
-     * Minimum value for return_date range. Must be compatible with ISO 8601 format
+     * Minimum value for order return date range. Must be compatible with ISO 8601 format.
      */
-    return_date_min?: string;
+    order_return_date_min?: string;
     /**
-     * Maximum value for return_date range. Must be compatible with ISO 8601 format
+     * Maximum value for order return date range. Must be compatible with ISO 8601 format.
      */
-    return_date_max?: string;
+    order_return_date_max?: string;
     /**
      * Minimum value for order_created_date range. Must be compatible with ISO 8601 format
      */
