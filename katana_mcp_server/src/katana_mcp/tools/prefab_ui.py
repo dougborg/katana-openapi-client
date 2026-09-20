@@ -3472,8 +3472,8 @@ def build_stock_adjustment_delete_ui(
             if is_preview:
                 Muted(
                     content=(
-                        "Deleting reverses the associated inventory "
-                        "movements server-side. This cannot be undone."
+                        "Confirm the resulting inventory and movement history "
+                        "after deletion. This cannot be undone."
                     )
                 )
                 with If("error"):

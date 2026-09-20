@@ -245,13 +245,14 @@ the same `variant_id`, so variant-keyed lookup would be ambiguous. Look
 up current row IDs via `get_purchase_order` before calling
 `correct_purchase_order`.
 
-**No `correct_stock_transfer`** — stock transfers don't fit the pattern:
-no completion timestamp on the model and rows are immutable, so the
-close-state pattern adds no value. For corrections:
-`create_stock_adjustment` at the destination location for quantity
-discrepancies; `delete_stock_transfer` + `create_stock_transfer` for
-wrong variants; `modify_stock_transfer` for header metadata (works on
-RECEIVED transfers as-is).
+**No `correct_stock_transfer` or `correct_stock_adjustment`** — their rows
+are immutable after creation, so neither supports the reopen-and-edit
+workflow. Use `modify_stock_transfer` or `update_stock_adjustment` for
+header metadata. If a row is wrong, post a compensating
+`create_stock_adjustment` only after reading the affected inventory and
+movement history before and after the transfer's status change. Do not
+assume that deleting and recreating a record produces the same inventory
+effect; verify the resulting inventory and status in the current tenant.
 
 ## Output Format
 
@@ -816,7 +817,9 @@ Update header fields on an existing stock adjustment.
 - `preview` (optional, default true): true = preview, false = apply (prompts)
 
 **Safety:** At least one updatable field is required. Row-level edits are not supported
-via this tool — create a new adjustment for that.
+via this tool. If you got a row wrong, post a compensating adjustment — rows are
+immutable post-creation. Read the affected inventory and movement history before and
+after applying it.
 
 **Returns:** Updated adjustment summary plus a summary of the field changes applied.
 
@@ -829,9 +832,9 @@ Delete an existing stock adjustment by ID.
 - `id` (required): Stock adjustment ID
 - `preview` (optional, default true): true = preview, false = delete (prompts)
 
-**Safety:** Deletion reverses the associated inventory movements; the preview returns
-the adjustment number, location, and row count so the change is inspectable before
-applying.
+**Safety:** The preview returns the adjustment number, location, and row count so the
+change is inspectable before applying. Confirm the resulting inventory and movement
+history after deletion; the effect must be verified in the current tenant.
 
 ---
 
@@ -2060,7 +2063,10 @@ these as two separate PATCH endpoints
 Stock-transfer rows are immutable post-creation — Katana doesn't expose
 row-CRUD endpoints. Note: Katana doesn't expose a GET-by-id endpoint for
 stock transfers either, so previews show every supplied field as
-`(prior unknown) → new`.
+`(prior unknown) → new`. If you got a row wrong, post a compensating
+adjustment — rows are immutable post-creation. Read the source and
+destination inventory and the transfer status before and after the
+compensation; do not assume a delete/recreate sequence has a fixed effect.
 
 ---
 

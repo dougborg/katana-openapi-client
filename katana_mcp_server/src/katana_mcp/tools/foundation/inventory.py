@@ -2579,7 +2579,8 @@ async def _delete_stock_adjustment_impl(
 
     Preview mode fetches the adjustment (via the list endpoint filter) so the
     caller can see what will be removed before applying. Apply mode calls the
-    API's DELETE endpoint, which reverses the associated inventory changes.
+    API's DELETE endpoint. The caller must verify the resulting inventory and
+    movement history in the current tenant.
     """
     from katana_public_api_client.api.stock_adjustment import (
         delete_stock_adjustment as api_delete_stock_adjustment,
@@ -2685,7 +2686,7 @@ async def delete_stock_adjustment(
     Two-step flow: `preview=true` (default) returns a preview (including the
     adjustment number, location, and row count that would be affected);
     `preview=false` prompts the user for confirmation, then calls DELETE.
-    Deleting a stock adjustment reverses the associated inventory movements.
+    Verify the resulting inventory and movement history in the current tenant.
     """
     from katana_mcp.tools.prefab_ui import build_stock_adjustment_delete_ui
     from katana_mcp.tools.tool_result_utils import make_tool_result
