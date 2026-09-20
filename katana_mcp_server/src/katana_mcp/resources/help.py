@@ -2467,9 +2467,6 @@ async def get_help_custom_fields(context: Context) -> str:
             "",
             "Sales-order header and row values use `custom_fields` keyed by definition UUID.",
             "These definitions describe SalesOrder and SalesOrderRow fields; other resources may use different contracts.",
-            "In Katana search filters, use camelCase: `customFields.<uuid>`.",
-            '`{"customFields.<uuid>": 2}` matches choice ID 2; '
-            '`{"customFields.<uuid>": null}` matches empty values.',
             "Use `get_custom_field_definition` for live detail and complete choice history.",
         ]
     )
