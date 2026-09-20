@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## [0.82.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.81.0...client-v0.82.0) (2026-09-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client:** the search request models change shape. `SalesOrderSearchRequest` / `SalesOrderRowSearchRequest` now take `filter`, `order`, `limit` and `page` at the top level; `order`/`limit`/ `page` are no longer nested inside `filter`, and the `where` level is gone. `SalesOrderSearchWhere` / `SalesOrderRowSearchWhere` are renamed to `SalesOrderSearchFilter` / `SalesOrderRowSearchFilter`, replacing the former envelope schemas of those names. No working call can break — the previous shape was rejected with 422 by the API.
+
+### Features
+
+* **audit:** compare inline request bodies and nested request sub-objects ([#1049](https://github.com/dougborg/katana-openapi-client/issues/1049)) ([01d0f95](https://github.com/dougborg/katana-openapi-client/commit/01d0f95af14aead372c193ade81282378cfbfbf7))
+* **client:** add inventory-signals and MO production-ingredients list endpoints ([#1039](https://github.com/dougborg/katana-openapi-client/issues/1039)) ([d915ae2](https://github.com/dougborg/katana-openapi-client/commit/d915ae2ac234433849342ab0e0d917ad4acf60df)), closes [#1032](https://github.com/dougborg/katana-openapi-client/issues/1032)
+* **client:** add manufacturing-order and sales-order rerank endpoints ([#1037](https://github.com/dougborg/katana-openapi-client/issues/1037)) ([2b0e31c](https://github.com/dougborg/katana-openapi-client/commit/2b0e31ce22dd354c61f07598ffb45b03f40587a2)), closes [#1032](https://github.com/dougborg/katana-openapi-client/issues/1032)
+* **client:** fix broken search request shape and add 4 search endpoints ([#1041](https://github.com/dougborg/katana-openapi-client/issues/1041)) ([8964472](https://github.com/dougborg/katana-openapi-client/commit/8964472e90bfa9d6c64384b6160c90cf382dafc2))
+* **client:** model traceability on manufacturing-order request DTOs ([#1052](https://github.com/dougborg/katana-openapi-client/issues/1052)) ([8dd7a16](https://github.com/dougborg/katana-openapi-client/commit/8dd7a161170a7b5581bc5b73a5b624b47df50b74))
+* **client:** sync spec with 2026-09-18 upstream refresh ([#1034](https://github.com/dougborg/katana-openapi-client/issues/1034)) ([b810da4](https://github.com/dougborg/katana-openapi-client/commit/b810da4856a668b40484dea2f4c2528122956dbd))
+* **release:** migrate to release-please manifest-mode release automation ([#1005](https://github.com/dougborg/katana-openapi-client/issues/1005)) ([ec4a0d0](https://github.com/dougborg/katana-openapi-client/commit/ec4a0d0fff8ed89f6a0a8f04dd43e704ebd73992))
+
+
+### Bug Fixes
+
+* **ci:** realign zizmor artipacked ignores after App-token migration ([#1003](https://github.com/dougborg/katana-openapi-client/issues/1003)) ([ee97394](https://github.com/dougborg/katana-openapi-client/commit/ee9739410d9ef1ed64c35ebe0271dfc382e64f9a))
+* **client:** use batch-id-only allocations for production requests ([#1054](https://github.com/dougborg/katana-openapi-client/issues/1054)) ([153aa7f](https://github.com/dougborg/katana-openapi-client/commit/153aa7f4ff16050dd15265453337c846b90a5b93)), closes [#1042](https://github.com/dougborg/katana-openapi-client/issues/1042)
+* **deps:** clear 23 transitive CVEs from uv.lock ([#1036](https://github.com/dougborg/katana-openapi-client/issues/1036)) ([534ed4f](https://github.com/dougborg/katana-openapi-client/commit/534ed4fcf2417c73a882ac566e3f9f10c15ae3d0))
+* **tests:** align MCP package asyncio_mode with the root ([#1004](https://github.com/dougborg/katana-openapi-client/issues/1004)) ([27ee3a1](https://github.com/dougborg/katana-openapi-client/commit/27ee3a1f3e2cd5c8581aed6d702a626ef35bb48f))
+
 ## v0.81.0 (2026-07-25)
 
 ### Bug Fixes
