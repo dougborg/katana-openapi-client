@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterator
+from contextlib import nullcontext
 from pathlib import Path
 from urllib.parse import quote
 
@@ -103,6 +104,11 @@ def apps_dev_server() -> Iterator[str]:
         env={
             **os.environ,
             "FASTMCP_LOG_LEVEL": "WARNING",
+            # Exercise the renderer shipped with the locked Prefab version.
+            # Fetching its CDN bundle per page makes card tests depend on CDN
+            # download speed, even though the identical bundle is installed.
+            "PREFAB_RENDERER_URL": "",
+            "PREFAB_BUNDLED_RENDERER": "1",
             **({"BROWSER": "true"} if sys.platform != "win32" else {}),
         },
         stdout=subprocess.DEVNULL,
@@ -172,14 +178,29 @@ def render_scenario(apps_dev_server: str, page: Page):
     returns the iframe FrameLocator after waiting for it to render.
     """
 
-    def _go(scenario_name: str, *, wait_ms: int = 8000):
+    def _go(scenario_name: str, *, expected_error: str | None = None):
         url = f"{apps_dev_server}/launch?tool=render_scenario&args=" + quote(
             json.dumps({"name": scenario_name})
         )
-        page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        # The iframe needs time for app-bridge handshake + renderer mount +
-        # tool-result push. 8s is comfortable in CI.
-        page.wait_for_timeout(wait_ms)
-        return page.frame_locator("#app-frame")
+        # The negative renderer-contract test must observe the actual error;
+        # an empty iframe before initialization is not evidence of a crash.
+        error_event = (
+            page.expect_event(
+                "pageerror",
+                predicate=lambda error: expected_error in str(error),
+                timeout=30000,
+            )
+            if expected_error is not None
+            else nullcontext()
+        )
+        with error_event:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            # apps_dev shows the iframe after the bridge handshake and tool
+            # result delivery. React's DOM commit can follow that notification.
+            page.locator("#app-frame").wait_for(state="visible", timeout=30000)
+        frame = page.frame_locator("#app-frame")
+        if expected_error is None:
+            frame.locator("#root > *").first.wait_for(state="visible", timeout=30000)
+        return frame
 
     return _go
