@@ -105,7 +105,9 @@ async def test_discovery_filters_deleted_and_groups_help(context_with_typed_cach
             request=ListCustomFieldDefinitionsRequest(), context=context
         )
         assert result.total_count == 2
-        assert result.definitions[0].options.choices[1].label == "Retired"
+        options = result.definitions[0].options
+        assert options is not None
+        assert options.choices[1].label == "Retired"
         filtered = await _list_custom_field_definitions_impl(
             request=ListCustomFieldDefinitionsRequest(
                 entity_type=CustomFieldEntityType.sales_order_row
