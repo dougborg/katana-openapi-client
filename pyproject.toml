@@ -557,7 +557,9 @@ test-integration = "pytest -n 4 -m 'integration and not schema_validation and no
 # Sequential by design: hits a live API, so we don't fan out concurrent calls.
 # Auto-skips when KATANA_TEST_API_KEY is unset (the live_client fixture skips),
 # so this is a green no-op on forks / in CI without the secret.
-test-integration-live = "pytest -m live --timeout=60"
+# A live test includes fixture cleanup and may wait through Katana's minute-long
+# rate-limit window. Leave room for two retry windows plus requests/teardown.
+test-integration-live = "pytest -m live --timeout=180"
 # Live MCP-server smoke tests (issue #837 Phase 4). Selected by the `smoke`
 # marker; exercises read-only MCP tool impls through a real Services (client +
 # typed cache) against the test tenant. Auto-skips without KATANA_TEST_API_KEY.
