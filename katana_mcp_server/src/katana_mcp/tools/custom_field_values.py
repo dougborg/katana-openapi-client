@@ -1,6 +1,7 @@
 """Custom-field value validation and omission-safe request shaping."""
 
 import math
+from collections.abc import Sequence
 from datetime import date
 from typing import Any
 from uuid import UUID
@@ -174,3 +175,57 @@ def custom_fields_read_kwargs(*, record: Any) -> dict[str, Any]:
             else {}
         )
     return {"custom_fields": value.to_dict() if hasattr(value, "to_dict") else value}
+
+
+class ResolvedCustomField(BaseModel):
+    definition_id: str
+    label: str | None = None
+    field_type: str | None = None
+    value: Any
+    value_label: str | None = None
+
+
+class CustomFieldValuesResponse(CustomFieldValuesRequest):
+    """Preserve read values without inventing empty fields when omitted."""
+
+    custom_fields_resolved: list[ResolvedCustomField] = Field(default_factory=list)
+
+    custom_fields: dict[str, Any] | None = Field(
+        default=None,
+        description="Custom-field UUID/value map, null when cleared, omitted when not returned by Katana.",
+    )
+
+
+async def resolve_custom_field_values(
+    *, records: Sequence[CustomFieldValuesResponse], context: Context
+) -> None:
+    """Join labels once per result batch, retaining unknown and retired values."""
+    populated = [record for record in records if record.custom_fields]
+    if not populated:
+        return
+    response = await _list_custom_field_definitions_impl(
+        request=ListCustomFieldDefinitionsRequest(include_deleted=True), context=context
+    )
+    definitions = {
+        str(definition.id): definition for definition in response.definitions
+    }
+    for record in populated:
+        resolved = []
+        for identifier, value in (record.custom_fields or {}).items():
+            definition = definitions.get(identifier)
+            choices = (
+                definition.options.choices if definition and definition.options else []
+            )
+            value_label = next(
+                (choice.label for choice in choices if choice.id == value), None
+            )
+            resolved.append(
+                ResolvedCustomField(
+                    definition_id=identifier,
+                    label=definition.label if definition else None,
+                    field_type=definition.field_type.value if definition else None,
+                    value=value,
+                    value_label=value_label,
+                )
+            )
+        record.custom_fields_resolved = resolved

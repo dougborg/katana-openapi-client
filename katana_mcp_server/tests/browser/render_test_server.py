@@ -767,6 +767,26 @@ def _so_create_response_with_shipping_fees(
     return base
 
 
+def _so_custom_field_card(*, is_preview: bool, clear: bool = False) -> PrefabApp:
+    from katana_mcp.tools.foundation.sales_orders import CreateSalesOrderRequest
+
+    fields = None if clear else {"00000000-0000-0000-0000-000000000001": "Priority"}
+    request = CreateSalesOrderRequest.model_validate(
+        {
+            "customer_id": 1501,
+            "order_number": "SO-CF-001",
+            "custom_fields": fields,
+            "items": [{"variant_id": 1, "quantity": 1, "custom_fields": fields}],
+            "preview": is_preview,
+        }
+    )
+    response = _so_create_response_with_shipping_fees(is_preview=is_preview)
+    response["custom_fields"] = fields
+    return build_so_create_ui(
+        response, confirm_request=request, confirm_tool="create_sales_order"
+    )
+
+
 def _stock_adjustment_response(*, is_preview: bool, n_rows: int = 3) -> dict:
     """Build a canned StockAdjustmentResponse dict with N rows."""
     rows = [
@@ -2112,6 +2132,11 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # APPLIED / FAILED status pills, and the destructive Alert on partial
     # failure so a future regression (e.g. the rows-binding shape from #629)
     # can't silently break the surface.
+    "so_custom_field_preview": lambda: _so_custom_field_card(is_preview=True),
+    "so_custom_field_clear_preview": lambda: _so_custom_field_card(
+        is_preview=True, clear=True
+    ),
+    "so_custom_field_applied": lambda: _so_custom_field_card(is_preview=False),
     "so_create_with_fees_preview": lambda: build_so_create_ui(
         _so_create_response_with_shipping_fees(
             is_preview=True,

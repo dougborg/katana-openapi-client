@@ -487,6 +487,19 @@ Detailed guide for all available MCP tools.
 
 ---
 
+## Structured sales-order search
+
+`search_sales_orders(filter?, order?, limit=50, page=1)` and
+`search_sales_order_rows(filter?, order?, limit=50, page=1)` call Katana live.
+Filter predicates and and/or groups pass through unchanged; each call uses API
+quota. Results include raw custom-field values and `custom_fields_resolved`
+labels. Retired choice labels remain available for historical values. The page
+limit is 200; pagination metadata reports the API's totals when provided.
+Use `list_sales_orders` for cache-backed basic filtering. Custom-field keys use
+`custom_fields.<uuid>` inside `filter`, for example
+`{"filter": {"custom_fields.<uuid>": 2}}` for a single-select choice ID.
+Use `list_custom_field_definitions` to find the UUID and available choice IDs.
+
 ## Custom-field values on sales orders
 
 `create_sales_order.custom_fields` and each item accept a map from definition UUID
@@ -2518,6 +2531,8 @@ async def get_help_custom_fields(context: Context) -> str:
             "",
             "Sales-order header and row values use `custom_fields` keyed by definition UUID.",
             "These definitions describe SalesOrder and SalesOrderRow fields; other resources may use different contracts.",
+            "Use `custom_fields.<uuid>` inside the `filter` argument to the sales-order search tools.",
+            'Example: `{"filter": {"custom_fields.<uuid>": 2}}` uses choice ID 2.',
             "Use `get_custom_field_definition` for live detail and complete choice history.",
         ]
     )

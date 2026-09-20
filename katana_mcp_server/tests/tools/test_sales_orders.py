@@ -1542,6 +1542,7 @@ def _make_mock_so(
     field can assign it explicitly after the call.
     """
     so = MagicMock()
+    so.custom_fields = UNSET
     so.id = id
     so.order_no = order_no
     so.customer_id = customer_id
@@ -1595,6 +1596,7 @@ def _make_mock_row(
     doesn't leak MagicMock instances through Pydantic validation.
     """
     r = MagicMock()
+    r.custom_fields = UNSET
     r.id = id
     r.variant_id = variant_id
     r.quantity = quantity
@@ -2384,6 +2386,7 @@ def _make_mock_so_all_fields(*, so_id: int = 2001) -> MagicMock:
     )
 
     so = MagicMock()
+    so.custom_fields = {}
     so.id = so_id
     so.order_no = "SO-2024-001"
     so.customer_id = 1501
@@ -2429,6 +2432,7 @@ def _make_mock_so_all_fields(*, so_id: int = 2001) -> MagicMock:
 
     # One fully populated row so every SalesOrderRowDetail field has a value
     row = MagicMock()
+    row.custom_fields = {}
     row.id = 2501
     row.variant_id = 2101
     row.quantity = 2.0

@@ -5950,6 +5950,14 @@ def build_so_create_ui(
                     if fields is not None
                     else "Custom fields: clear all values"
                 )
+            for index, item in enumerate(getattr(confirm_request, "items", []), 1):
+                if "custom_fields" in item.model_fields_set:
+                    fields = item.custom_fields
+                    Text(
+                        content=f"Item {index} custom fields: {fields}"
+                        if fields is not None
+                        else f"Item {index} custom fields: clear all values"
+                    )
             _render_so_shipping_fees_section(
                 shipping_fee_outcomes,
                 is_preview=is_preview,

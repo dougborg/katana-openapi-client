@@ -50,9 +50,11 @@ from katana_mcp.tools._modification_dispatch import (
 )
 from katana_mcp.tools.custom_field_values import (
     CustomFieldValuesRequest,
+    CustomFieldValuesResponse,
     custom_fields_read_kwargs,
     encode_custom_fields,
     prepare_custom_field_plan,
+    resolve_custom_field_values,
     validate_custom_field_values,
 )
 from katana_mcp.tools.foundation._traceability import (
@@ -468,10 +470,9 @@ class ShippingFeeOutcome(BaseModel):
     )
 
 
-class SalesOrderResponse(BaseModel):
+class SalesOrderResponse(CustomFieldValuesResponse):
     """Response from creating a sales order."""
 
-    custom_fields: dict[str, Any] | None = None
     id: int | None = None
     order_number: str
     customer_id: int
@@ -775,7 +776,7 @@ async def _create_sales_order_impl(
                 "Review the order details",
                 "Set preview=false to create the sales order",
             ],
-            custom_fields=request.custom_fields,
+            **request.model_dump(include={"custom_fields"}),
             message=f"Preview: Sales order {request.order_number} with {len(request.items)} items"
             + (f" totaling {total_estimate:.2f}" if total_estimate > 0 else ""),
         )
@@ -1203,9 +1204,10 @@ class ListSalesOrdersRequest(BaseModel):
     )
 
 
-class SalesOrderRowInfo(BaseModel):
+class SalesOrderRowInfo(CustomFieldValuesResponse):
     """Summary of a sales order line item."""
 
+    sales_order_id: int | None = None
     id: int
     variant_id: int | None
     sku: str | None
@@ -1222,7 +1224,7 @@ class SalesOrderRowInfo(BaseModel):
     linked_manufacturing_order_id: int | None
 
 
-class SalesOrderSummary(BaseModel):
+class SalesOrderSummary(CustomFieldValuesResponse):
     """Summary row for a sales order in a list."""
 
     id: int
@@ -1456,6 +1458,8 @@ async def _list_sales_orders_impl(
         if request.include_rows:
             row_infos = [
                 SalesOrderRowInfo(
+                    sales_order_id=so.id,
+                    **custom_fields_read_kwargs(record=r),
                     id=r.id,
                     variant_id=r.variant_id,
                     sku=_row_attr(_variant_for_row(r), "sku"),
@@ -1468,6 +1472,7 @@ async def _list_sales_orders_impl(
             ]
         orders.append(
             SalesOrderSummary(
+                **custom_fields_read_kwargs(record=so),
                 id=so.id,
                 order_no=so.order_no,
                 customer_id=so.customer_id,
@@ -1485,6 +1490,10 @@ async def _list_sales_orders_impl(
             )
         )
 
+    await resolve_custom_field_values(
+        records=[*orders, *(row for order in orders for row in (order.rows or []))],
+        context=context,
+    )
     return ListSalesOrdersResponse(
         orders=orders, total_count=len(orders), pagination=pagination
     )
@@ -1536,7 +1545,7 @@ class GetSalesOrderRequest(BaseModel):
     order_id: int | None = Field(default=None, description="Sales order ID")
 
 
-class SalesOrderRowDetail(SoftDeletableResponse):
+class SalesOrderRowDetail(SoftDeletableResponse, CustomFieldValuesResponse):
     """Full sales order row — every field on ``SalesOrderRow`` surfaced.
 
     Used inside ``GetSalesOrderResponse.rows`` where we want the exhaustive
@@ -1614,7 +1623,7 @@ class SalesOrderShippingFeeInfo(BaseModel):
     description: str | None = None
 
 
-class GetSalesOrderResponse(SoftDeletableResponse):
+class GetSalesOrderResponse(SoftDeletableResponse, CustomFieldValuesResponse):
     """Full sales order details. Exhaustive — every field Katana exposes on
     ``SalesOrder`` is surfaced (including nested rows, addresses, and
     shipping fee) so callers don't need follow-up lookups for standard fields.
@@ -1918,6 +1927,7 @@ async def _get_sales_order_impl(
         variant = variants.get(v_id) if v_id is not None else None
         row_details.append(
             SalesOrderRowDetail(
+                **custom_fields_read_kwargs(record=r),
                 id=r.id,
                 variant_id=v_id,
                 sku=_sku_for(variant),
@@ -1953,7 +1963,8 @@ async def _get_sales_order_impl(
             )
         )
 
-    return GetSalesOrderResponse(
+    result = GetSalesOrderResponse(
+        **custom_fields_read_kwargs(record=so),
         id=so.id,
         katana_url=katana_web_url("sales_order", so.id),
         order_no=unwrap_unset(so.order_no, None),
@@ -2006,6 +2017,8 @@ async def _get_sales_order_impl(
         rows=row_details,
         warnings=resolution_warnings,
     )
+    await resolve_custom_field_values(records=[result, *row_details], context=context)
+    return result
 
 
 @observe_tool
