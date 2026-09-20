@@ -46,15 +46,26 @@ async def test_object_input_validation(
     live_client: KatanaClient, method: str, path: str
 ) -> None:
     http = live_client.get_async_httpx_client()
+    # Keep valid custom-field shapes at the gateway with an independently
+    # invalid quantity: Katana's missing-BOM-row lookup can return HTTP 500.
+    control = {"quantity": "invalid"} if path == "/bom_rows/-1" else {}
     # Creates omit mandatory business fields; PATCH targets are nonexistent.
     # The malformed-array control proves the gateway validates before lookup.
-    rejected = await http.request(method, path, json={"custom_fields": []})
+    rejected = await http.request(method, path, json={**control, "custom_fields": []})
     assert rejected.status_code == 422
     assert any(error["code"] == "type" for error in _custom_errors(rejected))
     for value in [{}, None]:
-        accepted_shape = await http.request(method, path, json={"custom_fields": value})
+        accepted_shape = await http.request(
+            method, path, json={**control, "custom_fields": value}
+        )
         assert accepted_shape.status_code in {400, 404, 422}
         assert not _custom_errors(accepted_shape)
+        if control:
+            assert accepted_shape.status_code == 422
+            assert any(
+                detail["path"] == "/quantity" and detail["code"] == "type"
+                for detail in accepted_shape.json()["error"]["details"]
+            )
         # A lookup/domain error does not prove values can be persisted, only
         # that this format reaches the endpoint after gateway validation.
 
