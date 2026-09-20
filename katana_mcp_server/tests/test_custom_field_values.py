@@ -160,25 +160,53 @@ async def test_validation_rejects_deleted_choices_and_wrong_entity():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "expected,actual,valid",
+    "prior,expected,actual,valid",
     [
-        (None, None, True),
-        (None, {FIELD_ID: 2}, False),
-        ({FIELD_ID: 2}, {FIELD_ID: 2, "other": 3}, True),
-        ({FIELD_ID: 2}, {FIELD_ID: 3}, False),
-        ({}, None, True),
+        ({FIELD_ID: 3}, None, None, True),
+        ({FIELD_ID: 3}, None, {}, True),
+        ({FIELD_ID: 3}, None, {FIELD_ID: 2}, False),
+        ({FIELD_ID: 3}, {FIELD_ID: 2}, {FIELD_ID: 2, "other": 3}, True),
+        ({FIELD_ID: 3}, {FIELD_ID: 2}, {FIELD_ID: 3}, False),
+        ({FIELD_ID: 3}, {FIELD_ID: None}, {}, False),
+        ({FIELD_ID: 3}, {FIELD_ID: None}, {FIELD_ID: None}, True),
+        ({FIELD_ID: 3}, {}, {FIELD_ID: 3}, True),
+        ({FIELD_ID: 3}, {}, {}, False),
+        ({FIELD_ID: 3}, {}, None, False),
+        (None, {}, {}, True),
+        ({}, {}, None, True),
     ],
 )
-async def test_verifier_checks_merge_and_clear_semantics(expected, actual, valid):
+async def test_verifier_checks_merge_and_clear_semantics(
+    prior, expected, actual, valid
+):
     action = ActionSpec(
         operation="update_header",
         target_id=1,
-        diff=[FieldChange(field="custom_fields", old={FIELD_ID: 3}, new=expected)],
+        diff=[FieldChange(field="custom_fields", old=prior, new=expected)],
     )
     prepare_custom_field_plan(plan=[action])
     assert action.verify is not None
     verified, _details = await action.verify(SimpleNamespace(custom_fields=actual))
     assert verified is valid
+
+
+@pytest.mark.asyncio
+async def test_verifier_keeps_other_field_checks():
+    action = ActionSpec(
+        operation="update_header",
+        target_id=1,
+        diff=[
+            FieldChange(field="order_no", old="SO-OLD", new="SO-NEW"),
+            FieldChange(field="custom_fields", old={FIELD_ID: 3}, new=None),
+        ],
+    )
+    prepare_custom_field_plan(plan=[action])
+    assert action.verify is not None
+    verified, actual_after = await action.verify(
+        SimpleNamespace(order_no="SO-OLD", custom_fields={})
+    )
+    assert verified is False
+    assert actual_after == {"order_no": "SO-OLD"}
 
 
 @pytest.mark.asyncio

@@ -119,28 +119,43 @@ async def validate_custom_field_values(
 
 
 def prepare_custom_field_plan(*, plan: list[Any]) -> None:
-    """Verify map merge and explicit clears without comparing an entire map."""
+    """Verify map merges, explicit clears, and no-op empty-map patches."""
     from katana_mcp.tools._modification import make_response_verifier
     from katana_public_api_client.client_types import Unset
 
-    def verifier_for(*, diff: list[Any], expected: dict[str, Any] | None):
+    def verifier_for(
+        *,
+        diff: list[Any],
+        expected: dict[str, Any] | None,
+        prior: dict[str, Any] | None,
+    ):
         verify_other_fields = make_response_verifier(diff=diff)
 
         async def verify(outcome: Any):
             verified, actual_after = await verify_other_fields(outcome)
             raw: Any = getattr(outcome, "custom_fields", UNSET)
             actual = raw.to_dict() if hasattr(raw, "to_dict") else raw
-            matches = (
-                actual is None
-                if expected is None
-                else all(
-                    isinstance(actual, dict) and actual.get(key) == value
-                    for key, value in expected.items()
-                )
-            )
             if isinstance(actual, Unset):
                 matches = False
                 actual = "not returned"
+            elif expected is None:
+                # Katana's cleared representation is nullable on the wire but
+                # can be canonicalized to an empty object in a response.
+                matches = actual is None or actual == {}
+            elif expected == {}:
+                # An explicit empty map is a merge no-op. It must preserve the
+                # prior state, while treating null and {} as the same empty
+                # custom-field state.
+                matches = (
+                    (actual is None or isinstance(actual, dict))
+                    and (prior is None or isinstance(prior, dict))
+                    and (actual or {}) == (prior or {})
+                )
+            else:
+                matches = isinstance(actual, dict) and all(
+                    key in actual and actual[key] == value
+                    for key, value in expected.items()
+                )
             if not matches:
                 return False, {**(actual_after or {}), "custom_fields": actual}
             return verified, actual_after
@@ -158,6 +173,7 @@ def prepare_custom_field_plan(*, plan: list[Any]) -> None:
         spec.verify = verifier_for(
             diff=[change for change in spec.diff if change.field != "custom_fields"],
             expected=custom.new,
+            prior=custom.old,
         )
 
 
