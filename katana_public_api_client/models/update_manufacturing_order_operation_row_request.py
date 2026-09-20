@@ -3,10 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
 from ..models.manufacturing_operation_status import ManufacturingOperationStatus
@@ -29,8 +26,6 @@ class UpdateManufacturingOrderOperationRowRequest:
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}
     """
 
-    manufacturing_order_id: int
-    status: ManufacturingOperationStatus
     operation_id: int | Unset = UNSET
     type_: ManufacturingOperationType | Unset = UNSET
     operation_name: str | Unset = UNSET
@@ -41,15 +36,11 @@ class UpdateManufacturingOrderOperationRowRequest:
     total_actual_time: float | Unset = UNSET
     cost_parameter: float | Unset = UNSET
     cost_per_hour: float | Unset = UNSET
+    status: ManufacturingOperationStatus | Unset = UNSET
     assigned_operators: list[Operator] | Unset = UNSET
     completed_by_operators: list[Operator] | Unset = UNSET
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        manufacturing_order_id = self.manufacturing_order_id
-
-        status = self.status.value
-
         operation_id = self.operation_id
 
         type_: str | Unset = UNSET
@@ -72,6 +63,10 @@ class UpdateManufacturingOrderOperationRowRequest:
 
         cost_per_hour = self.cost_per_hour
 
+        status: str | Unset = UNSET
+        if not isinstance(self.status, Unset):
+            status = self.status.value
+
         assigned_operators: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.assigned_operators, Unset):
             assigned_operators = []
@@ -87,13 +82,8 @@ class UpdateManufacturingOrderOperationRowRequest:
                 completed_by_operators.append(completed_by_operators_item)
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "manufacturing_order_id": manufacturing_order_id,
-                "status": status,
-            }
-        )
+
+        field_dict.update({})
         if operation_id is not UNSET:
             field_dict["operation_id"] = operation_id
         if type_ is not UNSET:
@@ -114,6 +104,8 @@ class UpdateManufacturingOrderOperationRowRequest:
             field_dict["cost_parameter"] = cost_parameter
         if cost_per_hour is not UNSET:
             field_dict["cost_per_hour"] = cost_per_hour
+        if status is not UNSET:
+            field_dict["status"] = status
         if assigned_operators is not UNSET:
             field_dict["assigned_operators"] = assigned_operators
         if completed_by_operators is not UNSET:
@@ -126,10 +118,6 @@ class UpdateManufacturingOrderOperationRowRequest:
         from ..models.operator import Operator
 
         d = dict(src_dict)
-        manufacturing_order_id = d.pop("manufacturing_order_id")
-
-        status = ManufacturingOperationStatus(d.pop("status"))
-
         operation_id = d.pop("operation_id", UNSET)
 
         _type_ = d.pop("type", UNSET)
@@ -155,6 +143,13 @@ class UpdateManufacturingOrderOperationRowRequest:
 
         cost_per_hour = d.pop("cost_per_hour", UNSET)
 
+        _status = d.pop("status", UNSET)
+        status: ManufacturingOperationStatus | Unset
+        if isinstance(_status, Unset):
+            status = UNSET
+        else:
+            status = ManufacturingOperationStatus(_status)
+
         _assigned_operators = d.pop("assigned_operators", UNSET)
         assigned_operators: list[Operator] | Unset = UNSET
         if _assigned_operators is not UNSET:
@@ -178,8 +173,6 @@ class UpdateManufacturingOrderOperationRowRequest:
                 completed_by_operators.append(completed_by_operators_item)
 
         update_manufacturing_order_operation_row_request = cls(
-            manufacturing_order_id=manufacturing_order_id,
-            status=status,
             operation_id=operation_id,
             type_=type_,
             operation_name=operation_name,
@@ -190,25 +183,9 @@ class UpdateManufacturingOrderOperationRowRequest:
             total_actual_time=total_actual_time,
             cost_parameter=cost_parameter,
             cost_per_hour=cost_per_hour,
+            status=status,
             assigned_operators=assigned_operators,
             completed_by_operators=completed_by_operators,
         )
 
-        update_manufacturing_order_operation_row_request.additional_properties = d
         return update_manufacturing_order_operation_row_request
-
-    @property
-    def additional_keys(self) -> list[str]:
-        return list(self.additional_properties.keys())
-
-    def __getitem__(self, key: str) -> Any:
-        return self.additional_properties[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.additional_properties[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.additional_properties[key]
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.additional_properties

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -33,11 +33,15 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = CreateSerialNumbersResponse.from_dict(response.json())
 
         return response_200
+
+    if response.status_code == 204:
+        response_204 = cast(Any, None)
+        return response_204
 
     if response.status_code == 400:
         response_400 = ErrorResponse.from_dict(response.json())
@@ -77,7 +81,9 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]:
+) -> Response[
+    Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
+]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,7 +96,9 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]:
+) -> Response[
+    Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
+]:
     """Create serial numbers
 
      Mints new or transfers existing serial numbers to a resource.
@@ -121,8 +129,9 @@ def sync_detailed(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
-            resource
+        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
+            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
+            supply resource_type and serial_numbers to mint or transfer labels (#830).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -130,7 +139,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]
+        Response[Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -148,7 +157,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
     """Create serial numbers
 
      Mints new or transfers existing serial numbers to a resource.
@@ -179,8 +188,9 @@ def sync(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
-            resource
+        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
+            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
+            supply resource_type and serial_numbers to mint or transfer labels (#830).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -188,7 +198,7 @@ def sync(
 
 
     Returns:
-        CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
+        Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
     """
 
     return sync_detailed(
@@ -201,7 +211,9 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]:
+) -> Response[
+    Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
+]:
     """Create serial numbers
 
      Mints new or transfers existing serial numbers to a resource.
@@ -232,8 +244,9 @@ async def asyncio_detailed(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
-            resource
+        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
+            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
+            supply resource_type and serial_numbers to mint or transfer labels (#830).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -241,7 +254,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]
+        Response[Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -257,7 +270,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
     """Create serial numbers
 
      Mints new or transfers existing serial numbers to a resource.
@@ -288,8 +301,9 @@ async def asyncio(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
-            resource
+        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
+            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
+            supply resource_type and serial_numbers to mint or transfer labels (#830).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -297,7 +311,7 @@ async def asyncio(
 
 
     Returns:
-        CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
+        Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
     """
 
     return (

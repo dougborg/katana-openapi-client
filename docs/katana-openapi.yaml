@@ -4232,13 +4232,6 @@ components:
           description: Batch transactions for produced items
           items:
             $ref: "#/components/schemas/BatchTransaction"
-        serial_numbers:
-          type: array
-          description: Serial number IDs allocated to the produced units of this
-            manufacturing order. Required when the MO's finished-good variant is
-            serial-tracked; the count must equal `actual_quantity`.
-          items:
-            type: integer
         traceability:
           type: array
           description: >-
@@ -4726,13 +4719,8 @@ components:
     UpdateManufacturingOrderOperationRowRequest:
       description: Request payload for updating a manufacturing order operation row with actual completion data
       type: object
-      required:
-        - manufacturing_order_id
-        - status
+      additionalProperties: false
       properties:
-        manufacturing_order_id:
-          type: integer
-          description: ID of the manufacturing order this operation row belongs to
         operation_id:
           type: integer
           description: ID of the operation being performed
@@ -4779,7 +4767,6 @@ components:
           items:
             $ref: "#/components/schemas/Operator"
       example:
-        manufacturing_order_id: 1001
         operation_name: Assembly
         total_actual_time: 52.3
         status: COMPLETED
@@ -15017,13 +15004,14 @@ components:
           items:
             $ref: "#/components/schemas/BatchTransactionRequest"
     CreateSerialNumbersRequest:
-      description: Request payload for creating serial numbers for a resource
+      description: >-
+        Create or transfer serial numbers. Only resource_id is required by the
+        gateway. Omitting resource_type is accepted as a no-op (204 No Content);
+        supply resource_type and serial_numbers to mint or transfer labels (#830).
       type: object
       additionalProperties: false
       required:
-        - resource_type
         - resource_id
-        - serial_numbers
       properties:
         resource_type:
           description: Resource type
@@ -24472,6 +24460,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateSerialNumbersResponse"
+        "204":
+          description: No operation performed when resource_type is omitted
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":

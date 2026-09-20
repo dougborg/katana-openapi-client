@@ -214,12 +214,6 @@ class UpdateManufacturingOrderRequest(KatanaPydanticBase):
         list[BatchTransaction] | None,
         Field(description="Batch transactions for produced items"),
     ] = None
-    serial_numbers: Annotated[
-        list[int] | None,
-        Field(
-            description="Serial number IDs allocated to the produced units of this manufacturing order. Required when the MO's finished-good variant is serial-tracked; the count must equal `actual_quantity`."
-        ),
-    ] = None
     traceability: Annotated[
         list[ManufacturingOrderTraceabilityRequest] | None,
         Field(
@@ -987,12 +981,9 @@ class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
 
 
 class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
-    manufacturing_order_id: Annotated[
-        int,
-        Field(
-            description="ID of the manufacturing order this operation row belongs to"
-        ),
-    ]
+    model_config = ConfigDict(
+        extra="forbid",
+    )
     operation_id: Annotated[
         int | None, Field(description="ID of the operation being performed")
     ] = None
@@ -1039,9 +1030,9 @@ class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        ManufacturingOperationStatus,
+        ManufacturingOperationStatus | None,
         Field(description="Current status of the operation"),
-    ]
+    ] = None
     assigned_operators: Annotated[
         list[Operator] | None,
         Field(description="Operators assigned to perform this operation"),
