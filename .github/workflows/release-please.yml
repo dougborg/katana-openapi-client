@@ -31,13 +31,14 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Run release-please
+      - name: Create releases for merged release PRs
         id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true
 
       - name: Check out release tag helper
         if: steps.release.outputs.releases_created == 'true'
@@ -53,3 +54,15 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           RELEASE_OUTPUTS: ${{ toJSON(steps.release.outputs) }}
         run: python3 scripts/ensure_release_tags.py
+
+      # Creating release PRs in the same action invocation would run before
+      # draft tags exist, so the manifest's just-released versions have no
+      # matching release commit. That can replay old history into a bogus bump.
+      - name: Update the next release PR
+        if: steps.release.outputs.releases_created != 'true'
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
