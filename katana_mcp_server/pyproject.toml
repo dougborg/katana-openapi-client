@@ -35,7 +35,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-    "fastmcp>=3.0",
+    "fastmcp>=4.0.3",
     "katana-openapi-client>=0.83.0",
     "prefab-ui>=0.19",
     "pydantic>=2.12.0",

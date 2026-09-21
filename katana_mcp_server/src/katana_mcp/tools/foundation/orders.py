@@ -1982,7 +1982,7 @@ def register_tools(mcp: FastMCP) -> None:
         fulfill_order,
         tags={"orders", "write", "destructive"},
         annotations=ToolAnnotations(
-            readOnlyHint=False, destructiveHint=True, openWorldHint=True
+            read_only_hint=False, destructive_hint=True, open_world_hint=True
         ),
         meta=UI_META,
     )

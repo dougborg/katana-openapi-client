@@ -141,10 +141,10 @@ async def get_custom_field_definition(
 def register_tools(mcp: FastMCP) -> None:
     """Register custom-field discovery tools."""
     annotations = ToolAnnotations(
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=True,
+        read_only_hint=True,
+        destructive_hint=False,
+        idempotent_hint=True,
+        open_world_hint=True,
     )
     mcp.tool(tags={"custom-fields", "read"}, annotations=annotations)(
         list_custom_field_definitions

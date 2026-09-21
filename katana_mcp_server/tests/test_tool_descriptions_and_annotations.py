@@ -213,7 +213,8 @@ def test_destructive_hint_matches_policy(
     tool = registered_tools[tool_name]
     annotations = tool.annotations
     assert annotations is not None, f"{tool_name}: no ToolAnnotations set"
-    actual = annotations.destructiveHint
+    wire_annotations = tool.model_dump(by_alias=True)["annotations"]
+    actual = wire_annotations["destructiveHint"]
     assert actual is expected, (
         f"{tool_name}: destructiveHint policy violation. "
         f"ADR-0015 requires {expected}, got {actual}. "

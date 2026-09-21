@@ -780,13 +780,13 @@ def register_tools(mcp: FastMCP) -> None:
     from katana_mcp.tools.prefab_ui import register_preview_tool
 
     _read = ToolAnnotations(
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=True,
+        read_only_hint=True,
+        destructive_hint=False,
+        idempotent_hint=True,
+        open_world_hint=True,
     )
     _create = ToolAnnotations(
-        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+        read_only_hint=False, destructive_hint=False, open_world_hint=True
     )
 
     mcp.tool(tags={"customers", "read"}, annotations=_read)(search_customers)

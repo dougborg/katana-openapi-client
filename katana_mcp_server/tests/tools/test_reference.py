@@ -586,9 +586,9 @@ class TestRegistration:
             assert "reference" in call.kwargs["tags"]
             assert "read" in call.kwargs["tags"]
             ann = call.kwargs["annotations"]
-            assert ann.readOnlyHint is True
-            assert ann.destructiveHint is False
-            assert ann.idempotentHint is True
+            assert ann.read_only_hint is True
+            assert ann.destructive_hint is False
+            assert ann.idempotent_hint is True
 
         decorated = {call.args[0].__name__ for call in tool_decorator.call_args_list}
         assert decorated == {

@@ -109,6 +109,9 @@ def apps_dev_server() -> Iterator[str]:
             # download speed, even though the identical bundle is installed.
             "PREFAB_RENDERER_URL": "",
             "PREFAB_BUNDLED_RENDERER": "1",
+            # The bundled renderer exceeds MCP 2's 1 MiB SSE event limit.
+            # Use the server's JSON response transport for local resources.
+            "FASTMCP_JSON_RESPONSE": "1",
             **({"BROWSER": "true"} if sys.platform != "win32" else {}),
         },
         stdout=subprocess.DEVNULL,
@@ -182,6 +185,44 @@ def render_scenario(apps_dev_server: str, page: Page):
         url = f"{apps_dev_server}/launch?tool=render_scenario&args=" + quote(
             json.dumps({"name": scenario_name})
         )
+        launch_diagnostics: dict[str, list[str]] = {
+            "console": [],
+            "page_errors": [],
+            "failed_requests": [],
+            "ui_resources": [],
+        }
+        pending_requests: dict[int, str] = {}
+
+        def record(category: str, message: str) -> None:
+            # A broken module can retry noisily; preserve the first useful
+            # events without making the failure report unbounded.
+            if len(launch_diagnostics[category]) < 20:
+                launch_diagnostics[category].append(message)
+
+        def request_started(request):
+            pending_requests[id(request)] = request.url
+
+        def request_finished(request):
+            pending_requests.pop(id(request), None)
+
+        def request_failed(request):
+            pending_requests.pop(id(request), None)
+            record("failed_requests", f"{request.url}: {request.failure}")
+
+        def response_received(response):
+            if "/ui-resource" in response.url:
+                record("ui_resources", f"{response.status} {response.url}")
+
+        page.on(
+            "console",
+            lambda message: record("console", f"{message.type}: {message.text}"),
+        )
+        page.on("pageerror", lambda error: record("page_errors", str(error)))
+        page.on("request", request_started)
+        page.on("requestfinished", request_finished)
+        page.on("requestfailed", request_failed)
+        page.on("response", response_received)
+
         # The negative renderer-contract test must observe the actual error;
         # an empty iframe before initialization is not evidence of a crash.
         error_event = (
@@ -193,14 +234,30 @@ def render_scenario(apps_dev_server: str, page: Page):
             if expected_error is not None
             else nullcontext()
         )
-        with error_event:
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            # apps_dev shows the iframe after the bridge handshake and tool
-            # result delivery. React's DOM commit can follow that notification.
-            page.locator("#app-frame").wait_for(state="visible", timeout=30000)
-        frame = page.frame_locator("#app-frame")
-        if expected_error is None:
-            frame.locator("#root > *").first.wait_for(state="visible", timeout=30000)
+        try:
+            with error_event:
+                page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                # apps_dev shows the iframe after the bridge handshake and tool
+                # result delivery. React's DOM commit can follow that notification.
+                page.locator("#app-frame").wait_for(state="visible", timeout=30000)
+            frame = page.frame_locator("#app-frame")
+            if expected_error is None:
+                frame.locator("#root > *").first.wait_for(
+                    state="visible", timeout=30000
+                )
+        except PlaywrightError as exc:
+            try:
+                status = page.locator("#status").inner_text(timeout=1_000)
+            except PlaywrightError as status_error:
+                status = f"<unavailable: {status_error}>"
+            raise AssertionError(
+                f"{exc}\nlaunch status: {status!r}\n"
+                f"console: {launch_diagnostics['console']!r}\n"
+                f"page errors: {launch_diagnostics['page_errors']!r}\n"
+                f"failed requests: {launch_diagnostics['failed_requests']!r}\n"
+                f"pending requests: {sorted(pending_requests.values())!r}\n"
+                f"ui resources: {launch_diagnostics['ui_resources']!r}"
+            ) from exc
         return frame
 
     return _go
