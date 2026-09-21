@@ -1,8 +1,8 @@
-# Public API gap: cannot fulfill a serial-tracked, make-to-order sales order
+# Historical public API gap: serial-tracked make-to-order fulfillment
 
 **Area:** Sales Order Fulfillments · Serial Numbers · Make-to-order\
-**Severity:** Blocks all API-driven shipping of serial-tracked finished goods produced
-via make-to-order\
+**Historical severity:** Blocked API-driven shipping of serial-tracked finished goods
+produced via make-to-order\
 **Public API base:** `https://api.katanamrp.com/v1`
 
 > **Status:** Submitted to Katana 2026-06-02; this is the consolidated statement after a
@@ -18,16 +18,20 @@ via make-to-order\
 > [#784](https://github.com/dougborg/katana-openapi-client/issues/784),
 > [#849](https://github.com/dougborg/katana-openapi-client/issues/849).
 
-> **Re-probe (2026-09-21): blocked before fulfillment.** In test factory `104008`,
-> serial mint returned 404 for two freshly created linked MOs (`19209084`, `19209103`).
-> For the second MO, both its detail GET and resource-scoped serial-list GET returned
-> 200 before the same serial POST was retried and again returned 404. All temporary
-> resources were cleaned up; no production or fulfillment was performed. This is not
-> evidence that the historical delivery gap remains unchanged. See the
-> [current serial-mint question](../KATANA_API_QUESTIONS.md#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing).
+> **Current result (2026-09-21): supported public path verified.** Completing a linked
+> MO with serial inputs omitted auto-generated its serial in the test tenant. Delivery
+> succeeded both with allocations omitted and with explicit `traceability`, on separate
+> fixtures. Fulfillments `46064748` and `46064801` preserved the requested picked dates
+> and manufacturing provenance. The manual `/serial_numbers` 404 reported earlier did
+> not prevent this workflow; treating manual mint as a prerequisite was incorrect.
 >
-> The findings below describe the June investigation; they are historical until the
-> serial-mint blocker can be resolved and the full path rerun.
+> The June findings below are historical. #784 remains open for our MCP guards, stale
+> guidance, and regression coverage; the broad claim that the public API cannot deliver
+> an MTO serial is no longer supported. See the
+> [current contract review](../investigations/2026-09-21-material-serial-contracts.md)
+> for sources, exact payloads, evidence limits, and cleanup details. The assignment/list
+> adapter mismatch remains a separate
+> [Katana question](../KATANA_API_QUESTIONS.md#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing).
 
 ## Summary (historical investigation)
 
