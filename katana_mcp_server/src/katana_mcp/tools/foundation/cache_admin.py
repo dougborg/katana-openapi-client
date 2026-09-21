@@ -324,10 +324,10 @@ def register_tools(mcp: FastMCP) -> None:
     from mcp.types import ToolAnnotations
 
     _destructive = ToolAnnotations(
-        readOnlyHint=False,
-        destructiveHint=True,
-        idempotentHint=True,
-        openWorldHint=True,
+        read_only_hint=False,
+        destructive_hint=True,
+        idempotent_hint=True,
+        open_world_hint=True,
     )
 
     mcp.tool(tags={"cache", "admin", "destructive"}, annotations=_destructive)(

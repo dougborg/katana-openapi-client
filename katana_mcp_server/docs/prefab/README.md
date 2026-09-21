@@ -18,6 +18,16 @@ Related tests:
 - `katana_mcp_server/tests/browser/` — headless Chromium harness that proves cards
   actually mount.
 
+## Browser harness uses JSON responses for the bundled renderer
+
+The harness forces `PREFAB_BUNDLED_RENDERER=1` so renderer loading uses the installed
+bundle. That renderer is larger than 6 MB. MCP 2's default SSE reader accepts events
+only up to 1 MiB, so `resources/read` fails before the iframe can initialize when it
+uses SSE.
+Keep `FASTMCP_JSON_RESPONSE=1` in the `fastmcp dev apps` subprocess environment in
+`tests/browser/conftest.py`; JSON responses carry the same local resource without that
+SSE event-size limit.
+
 ______________________________________________________________________
 
 ## `DataTable.rows` requires mustache `{{ key }}`, never a bare string

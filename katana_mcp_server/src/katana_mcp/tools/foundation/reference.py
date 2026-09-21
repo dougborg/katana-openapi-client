@@ -612,10 +612,10 @@ def register_tools(mcp: FastMCP) -> None:
     from mcp.types import ToolAnnotations
 
     _read = ToolAnnotations(
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=True,
+        read_only_hint=True,
+        destructive_hint=False,
+        idempotent_hint=True,
+        open_world_hint=True,
     )
 
     mcp.tool(tags={"reference", "read"}, annotations=_read)(list_locations)

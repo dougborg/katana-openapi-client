@@ -1329,7 +1329,7 @@ dependencies = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "babel", specifier = ">=2.17" },
-    { name = "fastmcp", specifier = ">=3.0" },
+    { name = "fastmcp", specifier = ">=4.0.3" },
     { name = "greenlet", specifier = ">=3.0.0" },
     { name = "katana-openapi-client", editable = "." },
     { name = "platformdirs", specifier = ">=4.0.0" },

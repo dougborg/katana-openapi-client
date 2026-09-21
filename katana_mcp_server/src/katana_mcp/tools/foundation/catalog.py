@@ -493,7 +493,7 @@ def register_tools(mcp: FastMCP) -> None:
     from mcp.types import ToolAnnotations
 
     _write = ToolAnnotations(
-        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+        read_only_hint=False, destructive_hint=False, open_world_hint=True
     )
 
     mcp.tool(tags={"catalog", "write"}, annotations=_write, meta=UI_META)(

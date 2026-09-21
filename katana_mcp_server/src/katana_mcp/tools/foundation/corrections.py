@@ -1753,10 +1753,10 @@ def register_tools(mcp: FastMCP) -> None:
     from katana_mcp.tools.prefab_ui import register_preview_tool
 
     _correct = ToolAnnotations(
-        readOnlyHint=False,
-        destructiveHint=True,
-        idempotentHint=True,
-        openWorldHint=True,
+        read_only_hint=False,
+        destructive_hint=True,
+        idempotent_hint=True,
+        open_world_hint=True,
     )
 
     register_preview_tool(
