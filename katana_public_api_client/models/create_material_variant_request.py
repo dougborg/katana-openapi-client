@@ -37,12 +37,12 @@ class CreateMaterialVariantRequest:
     """
 
     sku: str | Unset = UNSET
-    purchase_price: float | Unset = UNSET
+    purchase_price: float | Unset | None = UNSET
     supplier_item_codes: list[str] | Unset = UNSET
     internal_barcode: str | Unset = UNSET
     registered_barcode: str | Unset = UNSET
     lead_time: int | Unset | None = UNSET
-    minimum_order_quantity: float | Unset = UNSET
+    minimum_order_quantity: float | Unset | None = UNSET
     config_attributes: (
         list[CreateMaterialVariantRequestConfigAttributesItem] | Unset
     ) = UNSET
@@ -59,7 +59,11 @@ class CreateMaterialVariantRequest:
 
         sku = self.sku
 
-        purchase_price = self.purchase_price
+        purchase_price: float | Unset | None
+        if isinstance(self.purchase_price, Unset):
+            purchase_price = UNSET
+        else:
+            purchase_price = self.purchase_price
 
         supplier_item_codes: list[str] | Unset = UNSET
         if not isinstance(self.supplier_item_codes, Unset):
@@ -75,7 +79,11 @@ class CreateMaterialVariantRequest:
         else:
             lead_time = self.lead_time
 
-        minimum_order_quantity = self.minimum_order_quantity
+        minimum_order_quantity: float | Unset | None
+        if isinstance(self.minimum_order_quantity, Unset):
+            minimum_order_quantity = UNSET
+        else:
+            minimum_order_quantity = self.minimum_order_quantity
 
         config_attributes: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.config_attributes, Unset):
@@ -136,7 +144,14 @@ class CreateMaterialVariantRequest:
         d = dict(src_dict)
         sku = d.pop("sku", UNSET)
 
-        purchase_price = d.pop("purchase_price", UNSET)
+        def _parse_purchase_price(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
+
+        purchase_price = _parse_purchase_price(d.pop("purchase_price", UNSET))
 
         supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
 
@@ -153,7 +168,16 @@ class CreateMaterialVariantRequest:
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
-        minimum_order_quantity = d.pop("minimum_order_quantity", UNSET)
+        def _parse_minimum_order_quantity(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
+
+        minimum_order_quantity = _parse_minimum_order_quantity(
+            d.pop("minimum_order_quantity", UNSET)
+        )
 
         _config_attributes = d.pop("config_attributes", UNSET)
         config_attributes: (
