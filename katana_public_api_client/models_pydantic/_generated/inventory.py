@@ -38,8 +38,8 @@ from .common import (
     Config2,
     ConfigAttribute,
     ConfigAttribute1,
-    ConfigAttribute2,
     ConfigAttribute3,
+    ConfigAttribute4,
     CustomField,
     CustomField1,
     CustomField3,
@@ -47,6 +47,7 @@ from .common import (
     CustomFields,
     CustomFields1,
     CustomFields2,
+    CustomFields3,
     InventoryItemType,
     InventoryMovementResourceType,
     Location,
@@ -492,6 +493,81 @@ class UpdateProductRequest(KatanaPydanticBase):
     ] = None
 
 
+class CreateMaterialVariantRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    sku: Annotated[
+        str | None,
+        Field(
+            description="Stock keeping unit code for unique identification of this product variant"
+        ),
+    ] = None
+    purchase_price: Annotated[
+        float | None,
+        Field(
+            description="Default purchase cost per unit for this product variant",
+            ge=0.0,
+            le=100000000000.0,
+        ),
+    ] = None
+    supplier_item_codes: Annotated[
+        list[SupplierItemCode] | None,
+        Field(
+            description="Supplier-specific part numbers or SKUs for purchasing this variant"
+        ),
+    ] = None
+    internal_barcode: Annotated[
+        str | None,
+        Field(
+            description="Internal barcode for warehouse scanning and tracking",
+            max_length=40,
+            min_length=3,
+        ),
+    ] = None
+    registered_barcode: Annotated[
+        str | None,
+        Field(
+            description="Official registered barcode (UPC, EAN, etc.) for retail use",
+            max_length=120,
+        ),
+    ] = None
+    lead_time: Annotated[
+        int | None,
+        Field(
+            description="Days required to manufacture or procure this variant", le=999
+        ),
+    ] = None
+    minimum_order_quantity: Annotated[
+        float | None,
+        Field(
+            description="Minimum quantity that must be ordered from suppliers",
+            ge=0.0,
+            le=999999999.0,
+        ),
+    ] = None
+    config_attributes: Annotated[
+        list[ConfigAttribute1] | None,
+        Field(
+            description="Configuration attribute values that define this variant (color, size, etc.)",
+            min_length=1,
+        ),
+    ] = None
+    custom_fields: Annotated[
+        dict[
+            constr(
+                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            ),
+            str | float | bool | None,
+        ]
+        | CustomFields
+        | None,
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+        ),
+    ] = None
+
+
 class CreateVariantRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -581,7 +657,7 @@ class CreateVariantRequest(KatanaPydanticBase):
             ),
             str | float | bool | None,
         ]
-        | CustomFields
+        | CustomFields1
         | None,
         Field(
             description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
@@ -650,7 +726,7 @@ class UpdateVariantRequest(KatanaPydanticBase):
         ),
     ] = None
     config_attributes: Annotated[
-        list[ConfigAttribute3] | None,
+        list[ConfigAttribute4] | None,
         Field(description="Configuration attribute values that define this variant"),
     ] = None
     custom_fields: Annotated[
@@ -660,7 +736,7 @@ class UpdateVariantRequest(KatanaPydanticBase):
             ),
             str | float | bool | None,
         ]
-        | CustomFields1
+        | CustomFields2
         | None,
         Field(
             description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
@@ -1041,7 +1117,7 @@ class CreateMaterialRequest(KatanaPydanticBase):
         ),
     ] = None
     variants: Annotated[
-        list[CreateVariantRequest],
+        list[CreateMaterialVariantRequest],
         Field(
             description="Material variants with specific configurations and properties",
             min_length=1,
@@ -1260,7 +1336,7 @@ class UpdateServiceRequest(KatanaPydanticBase):
             ),
             str | float | bool | None,
         ]
-        | CustomFields2
+        | CustomFields3
         | None,
         Field(
             description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
@@ -1488,7 +1564,7 @@ class VariantResponse(DeletableEntity):
         Field(description="Minimum quantity that must be ordered from suppliers"),
     ] = None
     config_attributes: Annotated[
-        list[ConfigAttribute2] | None,
+        list[ConfigAttribute3] | None,
         Field(description="Configuration attribute values that define this variant"),
     ] = None
     custom_fields: Annotated[

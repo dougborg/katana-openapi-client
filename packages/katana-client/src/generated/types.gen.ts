@@ -3113,7 +3113,7 @@ export type CreateMaterialRequest = {
   /**
    * Material variants with specific configurations and properties
    */
-  variants: Array<CreateVariantRequest>;
+  variants: Array<CreateMaterialVariantRequest>;
 };
 
 /**
@@ -4644,6 +4644,73 @@ export type TaxRateListResponse = {
    * Array of tax rate objects
    */
   data?: Array<TaxRate>;
+};
+
+/**
+ * Variant embedded in POST /materials. The material parent is implicit.
+ * Unlike product creation and POST /variants, this shape rejects sales_price.
+ * Set a material selling price afterward with PATCH /variants/{id}.
+ *
+ */
+export type CreateMaterialVariantRequest = {
+  /**
+   * Stock keeping unit code for unique identification of this product variant
+   */
+  sku?: string;
+  /**
+   * Default purchase cost per unit for this product variant
+   */
+  purchase_price?: number;
+  /**
+   * Supplier-specific part numbers or SKUs for purchasing this variant
+   */
+  supplier_item_codes?: Array<string>;
+  /**
+   * Internal barcode for warehouse scanning and tracking
+   */
+  internal_barcode?: string;
+  /**
+   * Official registered barcode (UPC, EAN, etc.) for retail use
+   */
+  registered_barcode?: string;
+  /**
+   * Days required to manufacture or procure this variant
+   */
+  lead_time?: number | null;
+  /**
+   * Minimum quantity that must be ordered from suppliers
+   */
+  minimum_order_quantity?: number;
+  /**
+   * Configuration attribute values that define this variant (color, size, etc.)
+   */
+  config_attributes?: Array<{
+    /**
+     * Name of the configuration attribute (e.g., Color, Size)
+     */
+    config_name: string;
+    /**
+     * Value for this configuration attribute (e.g., Blue, Large)
+     */
+    config_value: string;
+  }>;
+  /**
+   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+   */
+  custom_fields?:
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | Array<{
+        /**
+         * Name of the custom field
+         */
+        field_name: string;
+        /**
+         * Value stored in the custom field
+         */
+        field_value: string;
+      }>;
 };
 
 /**

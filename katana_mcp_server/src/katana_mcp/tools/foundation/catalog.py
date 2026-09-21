@@ -19,6 +19,7 @@ from katana_mcp.tools.foundation.items import (
     ItemCreateView,
     VariantConfigAttributePatch,
     _validate_purchase_uom_pair,
+    apply_material_sales_price,
     build_item_create_view,
     coerce_variant_config_attributes,
 )
@@ -28,6 +29,8 @@ from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest as ApiCreateMaterialRequest,
+    CreateMaterialVariantRequest,
+    CreateMaterialVariantRequestConfigAttributesItem as ApiMaterialVariantConfigItem,
     CreateProductRequest as ApiCreateProductRequest,
     CreateVariantRequest,
     CreateVariantRequestConfigAttributesItem as ApiCreateVariantConfigItem,
@@ -279,7 +282,13 @@ class CreateMaterialRequest(BaseModel):
     )
     category_name: str | None = Field(default=None, description="Category for grouping")
     is_sellable: bool = Field(default=False, description="Whether material can be sold")
-    sales_price: float | None = Field(default=None, description="Sales price per unit")
+    sales_price: float | None = Field(
+        default=None,
+        ge=0,
+        le=100_000_000_000,
+        allow_inf_nan=False,
+        description="Sales price per unit, applied to the variant after material creation",
+    )
     purchase_price: float | None = Field(
         default=None, description="Purchase cost per unit"
     )
@@ -359,6 +368,7 @@ class CreateMaterialResponse(ItemCreateView):
     """
 
     id: int
+    variant_id: int | None = None
     name: str
     sku: str
     type: str = "material"
@@ -396,14 +406,13 @@ async def _create_material_impl(
         config_attrs = (
             coerce_variant_config_attributes(
                 [c.model_dump() for c in request.config_attributes],
-                ApiCreateVariantConfigItem,
+                ApiMaterialVariantConfigItem,
             )
             if request.config_attributes is not None
             else None
         )
-        variant = CreateVariantRequest(
+        variant = CreateMaterialVariantRequest(
             sku=request.sku,
-            sales_price=to_unset(request.sales_price),
             purchase_price=to_unset(request.purchase_price),
             supplier_item_codes=to_unset(request.supplier_item_codes),
             internal_barcode=to_unset(request.internal_barcode),
@@ -443,11 +452,25 @@ async def _create_material_impl(
             material,
             katana_url=katana_web_url("material", material.id),
         )
+        success = True
+        if request.sales_price is not None:
+            success = await apply_material_sales_price(
+                services=services,
+                material_id=material.id,
+                sales_price=request.sales_price,
+                view=view,
+            )
         return CreateMaterialResponse(
             id=material.id,
+            variant_id=view["variants"][0].id if view["variants"] else None,
+            success=success,
             name=material_name,
             sku=request.sku,
-            message=f"Material '{material_name}' created successfully with SKU {request.sku}",
+            message=(
+                f"Material '{material_name}' created successfully with SKU {request.sku}"
+                if success
+                else f"Material {material.id} was created, but its sales price was not confirmed. Do not repeat creation; see warnings."
+            ),
             **view,
         )
 
@@ -475,6 +498,9 @@ async def create_material(
     PREFER this over create_item when creating materials — simpler, dedicated parameters.
     Materials are items used in manufacturing (not typically sold directly).
     For finished goods, use create_product. Creates the material with a single variant.
+    A requested sales_price is applied afterward. If that step fails, the response
+    preserves the created IDs with success=False and recovery instructions; do not
+    repeat creation.
     """
     from katana_mcp.tools.prefab_ui import build_item_create_ui
 

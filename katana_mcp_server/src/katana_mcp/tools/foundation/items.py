@@ -78,6 +78,8 @@ from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.domain.variant import build_variant_display_name
 from katana_public_api_client.models import (
     CreateMaterialRequest,
+    CreateMaterialVariantRequest,
+    CreateMaterialVariantRequestConfigAttributesItem as APIMaterialVariantConfigItem,
     CreateProductRequest,
     CreateServiceRequest,
     CreateServiceVariantRequest,
@@ -469,7 +471,13 @@ class CreateItemRequest(BaseModel):
     )
     category_name: str | None = Field(default=None, description="Category for grouping")
     is_sellable: bool = Field(default=True, description="Whether item can be sold")
-    sales_price: float | None = Field(default=None, description="Sales price per unit")
+    sales_price: float | None = Field(
+        default=None,
+        ge=0,
+        le=100_000_000_000,
+        allow_inf_nan=False,
+        description="Sales price per unit; material prices are applied after creation",
+    )
     purchase_price: float | None = Field(
         default=None, description="Purchase cost per unit"
     )
@@ -640,6 +648,11 @@ async def _create_item_impl(
             )
             result = await services.client.products.create(api_request)
         elif request.type == ItemType.MATERIAL:
+            material_variant_data = variant.to_dict()
+            material_variant_data.pop("sales_price", None)
+            material_variant = CreateMaterialVariantRequest.from_dict(
+                material_variant_data
+            )
             api_request = CreateMaterialRequest(
                 name=request.name,
                 uom=request.uom,
@@ -651,7 +664,7 @@ async def _create_item_impl(
                     request.purchase_uom_conversion_rate
                 ),
                 additional_info=to_unset(request.additional_info),
-                variants=[variant],
+                variants=[material_variant],
             )
             result = await services.client.materials.create(api_request)
         else:
@@ -672,6 +685,14 @@ async def _create_item_impl(
         result,
         katana_url=_item_katana_url(request.type, result.id),
     )
+    success = True
+    if request.type == ItemType.MATERIAL and request.sales_price is not None:
+        success = await apply_material_sales_price(
+            services=services,
+            material_id=result.id,
+            sales_price=request.sales_price,
+            view=view,
+        )
     variant_id = view["variants"][0].id if view["variants"] else None
     return CreateItemResponse(
         id=result.id,
@@ -679,7 +700,12 @@ async def _create_item_impl(
         type=request.type,
         variant_id=variant_id,
         sku=request.sku,
-        message=f"{request.type.value.title()} '{result_name}' created successfully with SKU {request.sku}",
+        success=success,
+        message=(
+            f"{request.type.value.title()} '{result_name}' created successfully with SKU {request.sku}"
+            if success
+            else f"Material {result.id} was created, but its sales price was not confirmed. Do not repeat creation; see warnings."
+        ),
         **view,
     )
 
@@ -933,6 +959,52 @@ async def build_item_create_view(
         "configs": configs,
         "warnings": warnings,
     }
+
+
+async def apply_material_sales_price(
+    *, services: Any, material_id: int, sales_price: float, view: dict[str, Any]
+) -> bool:
+    """Set a newly created material's price, retaining IDs on partial failure.
+
+    The domain material helper omits nested variants, so resolve the single
+    variant by its new parent ID before PATCH. Never repeat the parent POST.
+    """
+    variant_id: int | None = None
+    try:
+        variants = await services.client.variants.list(material_id=material_id)
+        if len(variants) != 1 or variants[0].material_id != material_id:
+            raise ValueError(
+                "Expected exactly one variant belonging to the new material"
+            )
+        variant = variants[0]
+        variant_id = variant.id
+        summary = _variant_to_summary(variant.model_dump())
+        if summary is not None:
+            view["variants"] = [summary]
+        updated = await services.client.variants.update(
+            variant_id=variant_id,
+            variant_data=APIUpdateVariantRequest(sales_price=sales_price),
+        )
+        summary = _variant_to_summary(updated.model_dump())
+        if summary is not None:
+            view["variants"] = [summary]
+        if updated.sales_price != sales_price:
+            raise ValueError(
+                "The variant response did not confirm the requested sales price"
+            )
+        return True
+    except Exception as exc:
+        target = (
+            f"variant {variant_id}"
+            if variant_id is not None
+            else f"the variant of material {material_id}"
+        )
+        view["warnings"].append(
+            f"Material {material_id} was created, but sales_price={sales_price} on {target} "
+            f"was not confirmed: {exc}. Do not repeat creation. Read the existing variant's "
+            "price, then use modify_item to update that variant if needed."
+        )
+        return False
 
 
 async def _fetch_item_attrs(services: Any, item_id: int, item_type: ItemType) -> Any:
@@ -1431,10 +1503,12 @@ def _coerce_material_configs(
 
 def coerce_variant_config_attributes(
     raw: list[dict[str, Any]],
-    item_cls: type[APICreateVariantConfigItem] | type[APIUpdateVariantConfigItem],
+    item_cls: type[APICreateVariantConfigItem]
+    | type[APIMaterialVariantConfigItem]
+    | type[APIUpdateVariantConfigItem],
 ) -> list[Any]:
     """Map ``VariantConfigAttributePatch`` dicts to the create- or update-side
-    attrs class. Both target classes share the ``config_name`` /
+    attrs class. All target classes share the ``config_name`` /
     ``config_value`` shape — ``item_cls`` chooses which one fits the
     sibling Update*Request."""
     return [

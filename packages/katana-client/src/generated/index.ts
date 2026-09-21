@@ -393,6 +393,7 @@ export type {
   CreateMaterialRequest,
   CreateMaterialResponse,
   CreateMaterialResponses,
+  CreateMaterialVariantRequest,
   CreateOutsourcedPurchaseOrderRecipeRowData,
   CreateOutsourcedPurchaseOrderRecipeRowError,
   CreateOutsourcedPurchaseOrderRecipeRowErrors,

@@ -809,3 +809,16 @@ ______________________________________________________________________
 **Next Steps**: Check out the
 [API Reference](reference/katana_public_api_client/index.md) for detailed endpoint
 documentation, or see [Testing Guide](testing.md) for testing patterns.
+
+### Creating material variants
+
+Use `CreateMaterialVariantRequest` for variants embedded in `CreateMaterialRequest`.
+`CreateVariantRequest` remains the shape for standalone variant creation and product
+creation. Material creation rejects nested `sales_price`, `product_id`, and
+`material_id`; its parent is implicit. After creating a material, set a selling price
+with `UpdateVariantRequest(sales_price=...)` through `client.variants.update(...)`.
+
+The MCP `create_material` and `create_item(type="material")` tools perform this price
+update when a price is supplied. If it fails, they return the created material ID, the
+variant ID when available, `success=False`, and recovery instructions. Read the existing
+variant's price before retrying an update; do not repeat material creation.

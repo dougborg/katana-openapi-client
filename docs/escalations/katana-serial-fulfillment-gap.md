@@ -18,7 +18,18 @@ via make-to-order\
 > [#784](https://github.com/dougborg/katana-openapi-client/issues/784),
 > [#849](https://github.com/dougborg/katana-openapi-client/issues/849).
 
-## Summary
+> **Re-probe (2026-09-21): blocked before fulfillment.** In test factory `104008`,
+> serial mint returned 404 for two freshly created linked MOs (`19209084`, `19209103`).
+> For the second MO, both its detail GET and resource-scoped serial-list GET returned
+> 200 before the same serial POST was retried and again returned 404. All temporary
+> resources were cleaned up; no production or fulfillment was performed. This is not
+> evidence that the historical delivery gap remains unchanged. See the
+> [current serial-mint question](../KATANA_API_QUESTIONS.md#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing).
+>
+> The findings below describe the June investigation; they are historical until the
+> serial-mint blocker can be resolved and the full path rerun.
+
+## Summary (historical investigation)
 
 A serial-tracked sales-order row whose serial was produced through a **make-to-order**
 manufacturing order cannot have a delivered fulfillment recorded via the public REST

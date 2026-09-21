@@ -97,6 +97,16 @@ from .create_manufacturing_order_request_status import (
     CreateManufacturingOrderRequestStatus,
 )
 from .create_material_request import CreateMaterialRequest
+from .create_material_variant_request import CreateMaterialVariantRequest
+from .create_material_variant_request_config_attributes_item import (
+    CreateMaterialVariantRequestConfigAttributesItem,
+)
+from .create_material_variant_request_custom_fields_item import (
+    CreateMaterialVariantRequestCustomFieldsItem,
+)
+from .create_material_variant_request_custom_fields_type_0 import (
+    CreateMaterialVariantRequestCustomFieldsType0,
+)
 from .create_outsourced_purchase_order_recipe_row_request import (
     CreateOutsourcedPurchaseOrderRecipeRowRequest,
 )
@@ -779,6 +789,10 @@ __all__ = (
     "CreateManufacturingOrderRequestCustomFieldsType0",
     "CreateManufacturingOrderRequestStatus",
     "CreateMaterialRequest",
+    "CreateMaterialVariantRequest",
+    "CreateMaterialVariantRequestConfigAttributesItem",
+    "CreateMaterialVariantRequestCustomFieldsItem",
+    "CreateMaterialVariantRequestCustomFieldsType0",
     "CreateOutsourcedPurchaseOrderRecipeRowRequest",
     "CreatePriceListCustomerRequest",
     "CreatePriceListCustomerRequestPriceListCustomersItem",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from katana_public_api_client.models import (
     CreateMaterialRequest,
-    CreateVariantRequest,
+    CreateMaterialVariantRequest,
     MaterialConfig,
     UpdateMaterialRequestConfigsItem,
 )
@@ -17,7 +17,9 @@ from katana_public_api_client.models_pydantic._generated import (
 def test_create_material_config_has_no_response_identifiers() -> None:
     config = MaterialConfig(name="Grade", values=["Premium"])
     request = CreateMaterialRequest(
-        name="Steel", variants=[CreateVariantRequest(sku="STEEL-001")], configs=[config]
+        name="Steel",
+        variants=[CreateMaterialVariantRequest(sku="STEEL-001")],
+        configs=[config],
     )
 
     assert config.to_dict() == {"name": "Grade", "values": ["Premium"]}

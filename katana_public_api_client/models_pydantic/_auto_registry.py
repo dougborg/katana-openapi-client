@@ -129,6 +129,9 @@ from katana_public_api_client.models.create_manufacturing_order_request import (
 from katana_public_api_client.models.create_material_request import (
     CreateMaterialRequest as AttrsCreateMaterialRequest,
 )
+from katana_public_api_client.models.create_material_variant_request import (
+    CreateMaterialVariantRequest as AttrsCreateMaterialVariantRequest,
+)
 from katana_public_api_client.models.create_outsourced_purchase_order_recipe_row_request import (
     CreateOutsourcedPurchaseOrderRecipeRowRequest as AttrsCreateOutsourcedPurchaseOrderRecipeRowRequest,
 )
@@ -1003,6 +1006,7 @@ from ._generated.errors import (
 from ._generated.inventory import (
     CreateInventoryReorderPointRequest as PydanticCreateInventoryReorderPointRequest,
     CreateMaterialRequest as PydanticCreateMaterialRequest,
+    CreateMaterialVariantRequest as PydanticCreateMaterialVariantRequest,
     CreateProductOperationRowItem as PydanticCreateProductOperationRowItem,
     CreateProductOperationRowsRequest as PydanticCreateProductOperationRowsRequest,
     CreateProductRequest as PydanticCreateProductRequest,
@@ -1270,6 +1274,7 @@ def register_all_models() -> None:
         AttrsCreateManufacturingOrderRequest, PydanticCreateManufacturingOrderRequest
     )
     register(AttrsCreateMaterialRequest, PydanticCreateMaterialRequest)
+    register(AttrsCreateMaterialVariantRequest, PydanticCreateMaterialVariantRequest)
     register(
         AttrsCreateOutsourcedPurchaseOrderRecipeRowRequest,
         PydanticCreateOutsourcedPurchaseOrderRecipeRowRequest,
