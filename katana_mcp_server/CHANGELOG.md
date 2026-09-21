@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.118.1](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.118.0...mcp-v0.118.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* restore item config edits and synchronous API calls ([#1085](https://github.com/dougborg/katana-openapi-client/issues/1085)) ([ca70c24](https://github.com/dougborg/katana-openapi-client/commit/ca70c240e7964354bc79ba75d1976f6b2afb5967)), closes [#936](https://github.com/dougborg/katana-openapi-client/issues/936) [#601](https://github.com/dougborg/katana-openapi-client/issues/601)
+
 ## [0.118.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.117.0...mcp-v0.118.0) (2026-09-21)
 
 
