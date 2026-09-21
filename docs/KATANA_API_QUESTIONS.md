@@ -1,12 +1,28 @@
 # Katana API Questions
 
-Questions and inconsistencies discovered during P1-P4 OpenAPI spec alignment (Katana
-spec dated 2026-01-20, 104 paths). Each was originally investigated against the live API
-on 2026-02-07.
+Questions for the Katana API team, with reproduction evidence and the current status of
+our client workarounds. The log began with the 2026-02-07 P1-P4 spec investigation.
 
-**Last swept:** 2026-05-12. Resolved entries are in the table at the bottom; each
-remaining open entry has a "Last verified" line noting the date and method (spec-only vs
-live-API).
+**Last reviewed:** 2026-09-20 against the local spec, the committed 2026-09-18 upstream
+spec snapshots, current client/MCP code, and the live test-tenant findings from
+2026-09-20. Entries distinguish fresh test-tenant reproductions from historical
+observations that were not rerun. Spec agreement does not establish live behavior or
+confirm that an API design is intentional.
+
+### Questions to prioritize with Katana
+
+| Topic                                                                                                           | Question                                                                                 | Evidence                                                       |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [BOM-row HTTP 500](#8-nonexistent-bom-row-update-returns-http-500)                                              | Can missing-row updates return a domain error or 404 instead of 500?                     | Test-tenant reproduction, 2026-09-20                           |
+| [Notes cleared on PATCH](#6-patch-asymmetric-field-wipe-behavior)                                               | Is clearing omitted `additional_info` intentional?                                       | Five historical wipes; SO/ST preserve notes on 2026-09-20      |
+| [Omitted batch quantity](#63-sales-order-row-batch-quantity-omission-resets-the-allocation-to-zero)             | Should an allocation with no quantity reset to zero, preserve the value, or be rejected? | Test-tenant reproduction, 2026-09-20                           |
+| [Stock deletion effects](#72-delete-behavior-on-already-applied-stock_transfer--stock_adjustment-is-unverified) | Does deletion reverse inventory, and what happens to movement history?                   | Live inventory reads inconsistent; deletion effects unverified |
+| [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                          | How can integrations discover which resources support definition-keyed maps?             | Gateway checks and account-feature rejection, 2026-09-20       |
+| [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                      | Which filter is canonical, and can the portal and gateway docs agree?                    | Controlled test-tenant comparison, 2026-09-20                  |
+
+Local-only schema work is identified separately below. The remaining historical live
+checks stay tracked in
+[#603](https://github.com/dougborg/katana-openapi-client/issues/603).
 
 ______________________________________________________________________
 
@@ -14,7 +30,7 @@ ______________________________________________________________________
 
 ### 1.1 Material `serial_tracked` and `operations_in_sequence` not settable via API
 
-**Status: CONFIRMED - not settable**
+**Status: HISTORICALLY REJECTED; still excluded by current request schemas**
 
 The Material GET response includes `serial_tracked` and `operations_in_sequence`, but
 neither field appears in the Create or Update request schemas. By contrast, the Product
@@ -24,47 +40,24 @@ resource includes both fields in its Create and Update schemas.
 `additionalProperties` - the API actively rejects them on update. These are truly
 read-only on materials, despite being writable on products.
 
-**Conclusion:** Intentional API asymmetry between materials and products. Our spec is
-correct as-is. This may be a product-line decision (materials inherit these properties
-from the products they're consumed by), but it's worth confirming with Katana.
+**Ask:** Confirm whether the asymmetry between materials and products is intentional,
+and document how integrations should configure these material properties. The rejection
+alone does not establish inheritance or the product rationale.
 
-**Last verified:** 2026-05-07 (spec-only — `MaterialUpdateDto` in
-`docs/upstream-specs/live-gateway.yaml` still excludes both fields; live-API
-re-verification not re-run).
+**Last verified:** 2026-09-20 (spec-only — both material create/update schemas still
+exclude these fields in the local spec and committed gateway snapshot). Last live
+reproduction: 2026-02-07; not rerun in this review.
 
-### 1.2 `MaterialConfig` schema requires `id` and `material_id` on CREATE
+### 1.2 Material configuration CREATE and UPDATE contracts
 
-**Status: CONFIRMED — spec error; needs follow-up in our local spec**
-
-`CreateMaterialRequest.configs` references the `MaterialConfig` schema, which has `id`
-and `material_id` as required fields. These values don't exist yet when creating a new
-material.
-
-**Investigation (2026-02-07):** Created a material with configs containing only `name`
-and `values` (no `id` or `material_id`). The API accepted it (200 OK) and returned the
-created configs with server-generated identifier fields populated. (The original note
-recorded `product_id` as the parent-ID field name on the response — possibly a typo,
-possibly accurate if Katana's wire shape uses `product_id` even on a material's configs.
-Worth confirming on the next live-API sweep tracked under #603.)
-
-**Live spec (2026-05-07 cross-check):** `live-gateway.yaml` uses an inline
-`ItemVariantConfigDto` (only `values` is required; `id` and `name` are optional).
-
-**Status of fix in our local spec:** This entry's earlier conclusion claimed *"Our spec
-already uses the simplified inline schema for create, which matches reality."* That's
-not currently true: `docs/katana-openapi.yaml` `CreateMaterialRequest.configs` still
-$refs the over-specified `MaterialConfig` schema. The reality and the upstream spec
-agree on the simplified shape; our local spec hasn't been updated yet. **Action:**
-follow-up spec PR to switch to the inline shape (or define a sibling
-`MaterialConfigCreate` and ref it from `CreateMaterialRequest`).
-
-**Last verified:** 2026-05-07 (spec-only).
+*Resolved in [PR #1068](https://github.com/dougborg/katana-openapi-client/pull/1068).
+The verified contract and cleanup evidence are retained below under Resolved Issues.*
 
 ### 1.3 Manufacturing Order cannot be linked to Sales Order via create/update
 
 *Moved to the Resolved Issues table — `/manufacturing_order_make_to_order` is the
-linking endpoint. Linking only happens at MO creation; there is no post-hoc link
-endpoint by design.*
+documented linking endpoint, used at MO creation. No post-hoc linking endpoint is
+documented.*
 
 ### 1.4 Purchase Order `status` in CREATE only accepts one value
 
@@ -72,6 +65,40 @@ endpoint by design.*
 `POST /purchase_orders`. The 2026-02-07 finding (only `NOT_RECEIVED`) is no longer
 current; both `live-gateway.yaml` and our local `CreatePurchaseOrderInitialStatus` enum
 list `[DRAFT, NOT_RECEIVED]` as of 2026-05-07.*
+
+### 1.5 Custom-field request formats and account availability
+
+**Status: FORMATS VERIFIED; account capability discovery needs clarification**
+
+The 2026-09-20 probes distinguish two request formats:
+
+- Seventeen BOM, contact, manufacturing, and purchasing create/update DTOs accept
+  object/null at the gateway and reject legacy arrays.
+- Variant create/update and service update accept legacy arrays and UUID-keyed scalar
+  maps at the gateway. A nonempty valid map reaches a domain error on the test account:
+  `The object custom fields format is not available for this account`.
+- Empty-object creation and explicit-null updates succeeded on test-owned customers and
+  suppliers. Those contacts were deleted afterward. This does not prove that nonempty
+  maps can be persisted on every endpoint or account.
+
+**Local status:** Request models and conversion handling were corrected in
+[PR #1062](https://github.com/dougborg/katana-openapi-client/pull/1062), closing #1030.
+MCP custom-field authoring remains tracked separately in #806. Definition discovery and
+management landed in [PR #1066](https://github.com/dougborg/katana-openapi-client/pull/1066).
+
+**Search/read checks:** Both sales-order search endpoints accept
+`filter: {"custom_fields.<uuid>": null}` and reject the camelCase `customFields` key
+with 422. The test tenant has no definitions, so this verifies filter syntax, not
+matching populated values. The bounded read audit in
+[PR #1071](https://github.com/dougborg/katana-openapi-client/pull/1071) observed absent
+custom fields on product/material lists and details, empty arrays on variants, and no
+services to inspect. Those observations do not establish account-wide map support.
+
+**Asks:** Document the format and null/empty-object behavior per resource; explain the
+account feature requirements and how an integration can discover them before writing.
+
+**Last verified:** 2026-09-20 (live test tenant; see
+[`test_custom_field_formats_live.py`](../tests/integration/test_custom_field_formats_live.py)).
 
 ______________________________________________________________________
 
@@ -92,12 +119,17 @@ wrapped in `{"data": [...]}` like other list endpoints.
 is another non-standard pattern worth noting. If bin locations are ever configured in
 the test account, this should be re-investigated.
 
-**Cross-reference:** The raw-array response shape (no `{"data": [...]}` wrapper) is now
-tracked separately as #575
-(`bug(client): /bin_locations returns bare array, not StorageBinListResponse wrapper`).
-The `name` vs `bin_name` portion of this question remains open.
+**Local status:** The bare-array parser was fixed in
+[PR #903](https://github.com/dougborg/katana-openapi-client/pull/903), closing #575
+after a 2026-06-03 live check. That issue is resolved; it did not establish the field
+names on populated responses. The local `StorageBin` schema describes `name` for lists
+and `bin_name` for requests/detail, but still requires `bin_name`.
 
-**Last verified:** 2026-05-07 (spec-only — no live data to test against).
+**Ask:** Confirm the canonical list/detail names and whether `bin_name` is always
+present in a nonempty list response.
+
+**Last verified:** 2026-09-20 (local schema and merged fix review). Populated-response
+field naming remains unverified by the evidence in this log.
 
 ### 2.2 `ProductOperationRow` uses `product_operation_row_id` instead of `id`
 
@@ -109,7 +141,7 @@ ______________________________________________________________________
 
 ## 3. Read-Only Endpoints Missing Write Operations
 
-**Status: CONFIRMED - write operations do not exist via API**
+**Status: NO WRITE OPERATIONS DOCUMENTED; historical endpoint probes below**
 
 | Resource         | Endpoint            | GET | POST | PATCH | Result              |
 | ---------------- | ------------------- | --- | ---- | ----- | ------------------- |
@@ -128,9 +160,9 @@ ______________________________________________________________________
 - `/operators`: Returns empty list (no operators configured). Cannot test POST without
   data to validate against.
 
-**Conclusion:** These are intentionally read-only API endpoints. Additional costs are
-system presets. Factory settings and operators are UI-managed. Our spec correctly
-documents them as GET-only.
+**Ask:** Confirm whether these resources are intentionally read-only through the public
+API. The observed additional-cost names do not prove that the catalog is fixed, and POST
+on `/operators` was not tested. Current specs document only GET for all three.
 
 **MCP exposure update (2026-05-07):** PR #589 added `list_locations`, `list_suppliers`,
 `list_tax_rates`, `list_operators`, and `list_additional_costs` MCP tools (read-only
@@ -138,8 +170,23 @@ wrappers around the existing `katana://...` resources). This doesn't change the 
 surface — these endpoints remain GET-only on the Katana side; the new MCP tools just
 make the read surface more discoverable to LLM agents.
 
-**Last verified:** 2026-05-07 (spec-only — `live-gateway.yaml` shows only `get` for
-`/factory`, `/operators`, and `/additional_costs`).
+**Last verified:** 2026-09-20 (spec-only — local, gateway, and portal snapshots still
+show only GET for these paths). The endpoint probes above date to 2026-02-07.
+
+### 3.1 Batch fixture lifecycle has no documented DELETE endpoint
+
+**Status: DOCUMENTATION GAP — deletion/retirement support needs clarification**
+
+The published batch surface has no documented DELETE operation. For the #1053 live
+tests, one reusable batch and its test product were explicitly approved for retention;
+temporary orders are deleted through a tenant-scoped artifact ledger.
+
+**Ask:** Is there a supported way to delete or retire an unused test batch, including
+its inventory and audit-history implications? If retention is required, document that
+lifecycle constraint so integrations can plan fixture cleanup.
+
+**Last verified:** 2026-09-20 (spec review and test-fixture setup; no undocumented
+deletion endpoint was attempted).
 
 ______________________________________________________________________
 
@@ -155,47 +202,52 @@ ______________________________________________________________________
 
 ### 5.1 `/demand_forecasts` doesn't follow any standard resource pattern
 
-*Moved to the Resolved Issues table — confirmed Katana design choice (computation
-endpoint, not CRUD resource); body requires `variant_id` + `location_id` + `periods` on
-POST and DELETE; our spec mirrors it, no follow-up needed.*
+*Moved to the Resolved Issues table — modeled as a computation endpoint, rather than a
+CRUD resource; body requires `variant_id` + `location_id` + `periods` on POST and
+DELETE; our spec mirrors it, no follow-up needed.*
 
 ### 5.2 `GET /sales_returns?sales_order_id=N` silently ignores the filter
 
-**Status: CONFIRMED via live API on 2026-05-14**
+**Status: RECONFIRMED on the test tenant, 2026-09-20; client correction in
+[PR #1070](https://github.com/dougborg/katana-openapi-client/pull/1070)**
 
-The `sales_order_id` query parameter on `GET /sales_returns` is declared in the spec and
-accepted by the server with a 200 response, but the filter is not applied — the endpoint
-returns every sales return in the account regardless of the value passed.
+The server accepts several unknown filter names with HTTP 200 and returns the
+unfiltered collection. The historical 2026-05-14 production observation of an ignored
+`sales_order_id` filter was reproduced with two distinct, owned SDT order/return pairs.
+An empty result was not used as the sole evidence of filtering.
 
-**Investigation (2026-05-14):** While investigating why `DELETE /sales_orders/{id}`
-returned 412 for SO 40190868, we listed sales returns with
-`GET /sales_returns?sales_order_id=40190868`. The endpoint returned 43 records, but
-inspection of the response payload showed only 2 actually had
-`sales_order_id == 40190868` — the other 41 were unrelated. A second call without the
-filter parameter returned an identical 43-record list (same IDs, same order), proving
-the server treats `sales_order_id=N` as a no-op.
+| Query key                            | Observed behavior                                        |
+| ------------------------------------ | -------------------------------------------------------- |
+| `order_no`                           | Filters by the **return order's** number                 |
+| `return_location_id`                 | Filters by return location                               |
+| `status`, `refund_status`            | Exclude the owned returns when the status does not match |
+| `order_return_date_min`              | Separates returns with distinct return dates             |
+| `sales_order_id`                     | Ignored; both owned returns remain                       |
+| `sales_order_no`                     | Also ignored, despite appearing in the gateway snapshot  |
+| `return_order_no`, `return_date_min` | Ignored legacy/portal names                              |
 
-```
-# With filter
-GET /sales_returns?sales_order_id=40190868&limit=100 → 200, 43 records returned
-# Without filter
-GET /sales_returns?limit=100 → 200, 43 records returned (same set)
-# Client-side filter after the fact
-[sr for sr in records if sr["sales_order_id"] == 40190868] → 2 records
-```
+The gateway also declares the paired `order_return_date_max` bound; the client exposes
+that canonical name rather than `return_date_max`. The committed regression directly
+exercises the minimum-bound comparison.
 
-**Conclusion:** Either the upstream `GET /sales_returns` doesn't honor `sales_order_id`
-as a filter, or it honors a different parameter name. Until this is resolved upstream,
-callers must fetch the full list and filter client-side — which also defeats pagination
-if the account has more than `limit` sales returns. The same caution likely applies to
-any consumer of this filter, and other declared filter parameters on this endpoint
-should be re-verified.
+**Client handling:** Replace `return_order_no` with `order_no` and `return_date_min/max`
+with `order_return_date_min/max`. Remove the ineffective generated `sales_order_id`
+parameter. Consumers needing the source-order relationship must fetch all pages and
+filter each return's `sales_order_id` locally. A return order number is not a sales
+order ID or sales order number. The MCP list/get/delete follow-up is tracked in #740.
 
-**Cross-reference:** Surfaced during investigation tracked in #740 (MCP returns-gap).
-Needs an upstream report to Katana — our spec correctly documents the filter parameter;
-the gap is in upstream behavior, not our client.
+**Ask:** Document a supported source-sales-order filter, if one exists, and reconcile
+the portal and gateway query names. In particular, the gateway's `sales_order_no`
+declaration does not match the observed behavior. Rejecting unknown filters would help
+integrations detect misspellings instead of silently processing unrelated returns.
 
-**Last verified:** 2026-05-14 (live API, against production tenant).
+The investigation created twelve temporary resources in total (six returns and six
+sales orders); all were ledgered and deleted, with no pending cleanup. The regression
+in `tests/integration/test_sales_return_filters_live.py` reads all pages and checks its
+owned IDs so unrelated tenant records cannot affect the result.
+
+**Last verified:** 2026-09-20 (controlled live test-tenant comparisons; gateway and portal
+snapshots reviewed separately).
 
 ______________________________________________________________________
 
@@ -206,9 +258,9 @@ ______________________________________________________________________
 **Status: CONFIRMED via wire-level reproduction on 2026-05-05**
 
 `PATCH /purchase_orders/{id}` clears the PO's `additional_info` field to `""` whenever
-the request body omits that field, while every other omitted field is correctly
-preserved. This is asymmetric: the endpoint treats omitted `additional_info` as a
-null-write but treats every other omitted field as a no-op.
+the request body omits that field, while the other fields checked in the reproduction
+are preserved. This is asymmetric: the omitted `additional_info` changes to an empty
+string even when the caller only renames the order.
 
 **Reproduction (live API, account `factory.katanamrp.com`):**
 
@@ -252,11 +304,11 @@ null-write but treats every other omitted field as a no-op.
    }
    ```
 
-   `additional_info` is wiped to empty. Every other omitted field is preserved. The
-   PATCH body verifiably did not include `additional_info`. (We separately verified the
-   wire shape for a similar single-field rename PATCH by intercepting the httpx request
-   — the body was exactly `{"order_no":"TEST-RENAMED"}` (27 bytes), no `additional_info`
-   key in any form. The example above uses the longer
+   `additional_info` is wiped to empty. The other fields shown are preserved. The PATCH
+   body verifiably did not include `additional_info`. (We separately verified the wire
+   shape for a similar single-field rename PATCH by intercepting the httpx request — the
+   body was exactly `{"order_no":"TEST-RENAMED"}` (27 bytes), no `additional_info` key
+   in any form. The example above uses the longer
    `TEST-505-MODIFY-NONSTATUS-2026-05-05-RENAMED` value but the wire shape is the same —
    only the changed field is present in the body.)
 
@@ -275,10 +327,10 @@ null-write but treats every other omitted field as a no-op.
 
    Result: `additional_info` retained.
 
-**Expected behavior:** Per RFC 7396 (JSON Merge Patch) and standard PATCH semantics,
-omitted fields should be left unchanged. The asymmetry — every other omitted field is
-left alone, only `additional_info` is treated as a null-write — strongly suggests an
-unintended platform-side normalization rather than a deliberate API contract.
+**Expected behavior:** Preserve omitted `additional_info`, consistent with the other
+fields checked in these probes, or explicitly document replacement behavior. These
+requests use `application/json`; HTTP PATCH alone does not establish that the endpoint
+implements JSON Merge Patch. The shared cause of the observed wipe is unconfirmed.
 
 **Impact on integrators:** Any client that PATCHes a PO without echoing
 `additional_info` will silently destroy user-entered notes (UPS tracking links, customer
@@ -292,12 +344,16 @@ fact.
 `katana_mcp_server/src/katana_mcp/tools/foundation/purchase_orders.py` (introduced in PR
 #515).
 
-### 6.2 Same wipe-on-PATCH affects every entity with `additional_info`
+**Last verified:** 2026-05-05 (live wire-level reproduction). Reviewed 2026-09-20: the
+MCP echo workaround remains in place through `patch_additional_info`; this review did
+not rerun the upstream behavior.
 
-**Status: CONFIRMED platform-wide via live-API reproduction on 2026-05-05**
+### 6.2 Same wipe-on-PATCH affects five tested entity types
 
-We followed up on §6.1 by testing every other Katana entity that exposes
-`additional_info`. The same asymmetric wipe reproduces on every one we could test:
+**Status: REPRODUCED ON FIVE ENTITY TYPES on 2026-05-05; broader coverage unverified**
+
+We followed up on §6.1 by testing four other entities that expose `additional_info`. The
+same asymmetric wipe reproduced on each:
 
 | Entity                 | PATCH endpoint                     | `additional_info` after omitted PATCH |
 | ---------------------- | ---------------------------------- | ------------------------------------- |
@@ -317,23 +373,15 @@ Each was verified by:
 Test records used (all deleted post-verification): Material 17042013, Product 17042018,
 MO 16647058, StockAdjustment 2394711.
 
-Two other candidates couldn't be tested in the original round and were noted as blocked.
-Both blockers have since shipped — these are now testable, follow-up verification
-pending:
+**Fresh extension (2026-09-20):** Sales orders and stock transfers **preserve**
+nonempty `additional_info` when a PATCH changes only `order_no` or `stock_transfer_number`,
+respectively. Both the PATCH response and subsequent GET retained the notes. Temporary
+SDT records were ledgered and deleted. This completes the two missing behavior probes from #531;
+it does not establish that the five historical wipes above have been fixed. The old
+production-tenant orphan cleanup in #531 was not attempted by these test-tenant probes.
 
-- **SalesOrder** — was blocked by missing `PENDING` in `SalesOrderStatus`. Fixed in PR
-  #524 (closed #516). Ready for re-test against the wipe-on-PATCH question.
-- **StockTransfer** — was blocked by `create_stock_transfer` returning opaque 422 on the
-  execute path (#499 / #517). The 422 opacity was fixed in PR #578 (rewrote
-  `ValidationErrorDetail` to match Katana's Ajv-style wire shape). Ready for re-test.
-
-A live-API re-run that extends the §6.2 wipe table to cover SO and ST should be paired
-with the broader doc sweep tracked under #603.
-
-**Conclusion:** This is a platform-wide PATCH-merge bug, not a one-off on PurchaseOrder.
-Whatever is treating omitted `additional_info` as a null-write is doing so consistently
-across at least 5 distinct PATCH endpoints, strongly suggesting a shared serialization
-or normalization layer at Katana's side.
+**Conclusion:** The May behavior is not universal across PATCH endpoints. A shared
+serialization cause remains a hypothesis. The five historical cases were not rerun.
 
 **Workaround in our MCP wrapper:** Same pattern as §6.1, applied to each affected
 entity:
@@ -347,20 +395,59 @@ entity:
   `get_all_stock_adjustments(ids=[id])` only when the caller didn't supply
   `additional_info`)
 
-All four echo the existing value when the caller doesn't change it. Idempotent — if
-Katana fixes the asymmetry, the echo becomes a no-op write.
+These paths share `patch_additional_info` in
+[`tools/_modification.py`](../katana_mcp_server/src/katana_mcp/tools/_modification.py).
+They echo the existing nonempty value when the caller doesn't change it. This prevents
+the observed wipe but is not an atomic read-modify-write: a concurrent edit between the
+read and PATCH could still be overwritten.
 
 **Asks:**
 
 1. Confirm whether the wipe is intentional across all five entities. If yes, document it
    on each PATCH endpoint (we'd update our spec accordingly).
-1. If unintentional, fix the asymmetry at the shared layer (we suspect a single
-   normalization step given how uniformly it reproduces) so omitted `additional_info` is
-   treated as a no-op like every other omitted field.
-1. If other entity types (`PATCH /sales_orders/{id}`,
-   `PATCH /manufacturing_orders/{id}`, etc.) have the same behavior on their notes /
-   free-text fields, please flag them — we haven't audited those yet and would prefer to
-   fix all of them in one pass rather than discovering each one in production.
+1. If unintentional, fix the asymmetry so omitted `additional_info` is preserved. A
+   shared implementation may explain the similar results, but its location and cause
+   need investigation by Katana.
+1. Explain the resource-specific difference: the September sales-order and stock-transfer
+   probes preserve omitted notes, unlike the five May cases.
+
+**Last verified:** 2026-09-20 for SO/ST preservation and workaround review;
+2026-05-05 for the five historical wipes. The regression is
+`tests/integration/test_stock_lifecycle_contract_live.py`.
+
+### 6.3 Sales-order-row batch quantity omission resets the allocation to zero
+
+**Status: REPRODUCED on the live test tenant, 2026-09-20**
+
+For an existing allocation with quantity 1, this update succeeds and returns quantity 0:
+
+```http
+PATCH /v1/sales_order_rows/{test_row_id}
+Content-Type: application/json
+
+{"batch_transactions": [{"batch_id": 123}]}
+```
+
+Here `123` is an illustrative batch ID; the probe used the approved reusable fixture.
+Explicitly setting quantity to 1 and then omitting it again reproduces the reset. The
+temporary sales order was deleted after the test.
+
+Omission is not interchangeable across endpoints: production-ingredient batch
+allocations without quantity are rejected with
+`Traceability entries without a serial number must provide a positive quantity`. That
+check used a nonexistent ingredient plus a quantity-bearing lookup control.
+
+**Local status:**
+[PR #1058](https://github.com/dougborg/katana-openapi-client/pull/1058) closed #1053 by
+modeling optional quantity specifically for sales-row updates and keeping it required
+for production-ingredient batch allocations.
+
+**Ask:** Document whether the sales-row allocation array is treated as replacement data
+and whether an omitted quantity is intentionally defaulted to zero. Integrations need to
+distinguish this from preserving the existing quantity or rejecting omission.
+
+**Last verified:** 2026-09-20 (live test tenant;
+[`test_batch_quantity_live.py`](../tests/integration/test_batch_quantity_live.py)).
 
 ______________________________________________________________________
 
@@ -368,7 +455,7 @@ ______________________________________________________________________
 
 ### 7.1 Stock-transfer / stock-adjustment rows are immutable post-creation
 
-**Status: CONFIRMED via 3-source spec agreement on 2026-05-07**
+**Status: NO ROW-EDIT SURFACE in the three reviewed specs, 2026-09-20**
 
 `PATCH /stock_transfers/{id}` and `PATCH /stock_adjustments/{id}` both accept *header
 fields only* — neither schema includes a `stock_transfer_rows` / `stock_adjustment_rows`
@@ -380,8 +467,8 @@ have. Confirmed across:
 - `docs/upstream-specs/live-gateway.yaml` (Katana's API gateway)
 - `docs/upstream-specs/readme-portal.yaml` (Katana's public portal)
 
-**Practical implication:** Once a stock transfer or stock adjustment is created, its
-variant + quantity rows can't be edited. The only API-sanctioned correction paths are:
+**Practical implication:** The documented API cannot edit existing variant/quantity
+rows. Potential correction approaches need to account for the inventory already moved:
 
 1. Post compensating `create_stock_adjustment` call(s) that reverse or amend the prior
    inventory delta. The shape depends on which entity got it wrong:
@@ -397,9 +484,11 @@ variant + quantity rows can't be edited. The only API-sanctioned correction path
    The original record stays as the audit trail of what was *intended*; the compensating
    adjustment(s) record what was *fixed*. This is the path the MCP `correct_*` family
    deliberately does **not** cover for ST/SA — the reasoning is captured in #533 and the
-   (in-flight) help-resource update tracked under #602.
+   help-resource follow-up tracked under #602, which remains open.
 
-1. `DELETE` the record and re-create with corrected rows — see open question §7.2.
+1. `DELETE` the record and re-create with corrected rows — a candidate only after the
+   inventory and history effects in §7.2 are verified. The presence of a DELETE endpoint
+   alone is insufficient evidence that this is a safe correction workflow.
 
 **Why this is asymmetric with PO/SO/MO:** Purchase orders, sales orders, and
 manufacturing orders all expose row-level PATCH endpoints (`/purchase_order_rows/{id}`,
@@ -417,9 +506,12 @@ apply.
    the PATCH body (or expose row-level endpoints), please flag it — our spec + tools
    would track that change.
 
+**Last verified:** 2026-09-20 (spec-only — local spec and committed gateway/portal
+snapshots agree; no live row-edit attempt in this review).
+
 ### 7.2 DELETE behavior on already-applied stock_transfer / stock_adjustment is unverified
 
-**Status: OPEN — needs live-API verification**
+**Status: OPEN — deletion effects remain unverified after bounded live probes**
 
 Both `DELETE /stock_transfers/{id}` and `DELETE /stock_adjustments/{id}` are documented
 on every spec source, but the **response code disagrees across sources**:
@@ -428,11 +520,17 @@ on every spec source, but the **response code disagrees across sources**:
 - `docs/upstream-specs/readme-portal.yaml` (Katana's public portal) → `204`
 - `docs/upstream-specs/live-gateway.yaml` (Katana's API gateway) → `200`
 
-The two upstream sources disagree, so we don't actually know what the live API returns
-on success. Worth resolving as part of the live-API check below — most likely `204`
-(matching the public portal and what our spec already declares), with the gateway spec
-out of sync, but worth confirming. (If it's `200`, the spec needs to declare a body
-schema for the DELETE response, since `204` means no content.)
+The September cleanup ledger records successful deletion of all test-owned artifacts,
+but does not retain HTTP statuses. It cannot settle this response-code discrepancy or
+the inventory effects of deleting a reliably observed applied transaction.
+
+**Live probe limit (2026-09-20):** A non-batch-tracked, non-serial-tracked temporary
+variant had a +2 stock-adjustment movement visible in every one of eight request-driven
+snapshots, while inventory remained zero. Another temporary variant did show the +2
+balance. Because the setup state did not reliably converge, the probe stopped before
+creating a further transfer. Immediate movement/history snapshots from earlier attempts
+are not evidence of settled reversal or retention. All temporary products and parent
+transactions were ledgered and cleaned up; no arbitrary sleeps were introduced.
 
 What's also unclear is the inventory-effect side of the delete:
 
@@ -447,10 +545,10 @@ What's also unclear is the inventory-effect side of the delete:
 
 **Why it matters:** A `correct_stock_transfer` or `correct_stock_adjustment` tool
 implemented via "delete + recreate with corrected rows" depends on these behaviors.
-Without confirmation, we don't know if the workaround is safe to expose or whether it'd
-silently corrupt inventory. If reversal is automatic, delete-and-recreate becomes a
-viable correction pattern; if not, the compensating-adjustment pattern (§7.1) remains
-the only safe option.
+Without confirmation, we cannot recommend delete-and-recreate as a verified correction
+workflow. Automatic reversal would still require checking status transitions, retained
+links/history, and failure recovery before implementing a multi-step correction.
+Compensating adjustments also need before/after inventory checks.
 
 **Asks:**
 
@@ -465,23 +563,110 @@ the only safe option.
    the MCP wrapper before they delete a record assuming the inventory effect will roll
    back.
 
+**Last verified:** 2026-09-20 (successful cleanup and inconsistent setup reads;
+committed spec comparison). Inventory reversal and settled audit-history effects remain
+unverified. The team should clarify consistency and
+completion signals before delete-and-recreate guidance is offered.
+
+______________________________________________________________________
+
+## 8. Nonexistent BOM-row update returns HTTP 500
+
+**Status: REPRODUCED on the live test tenant, 2026-09-20**
+
+Updating a nonexistent BOM row with an empty custom-field object returns an internal
+server error:
+
+```http
+PATCH /v1/bom_rows/-1
+Content-Type: application/json
+
+{"custom_fields": {}}
+```
+
+```http
+HTTP/1.1 500 Internal Server Error
+```
+
+```json
+{
+  "error": {
+    "statusCode": 500,
+    "message": "Internal Server Error",
+    "code": "ERR_NON_2XX_3XX_RESPONSE"
+  }
+}
+```
+
+Sending `{"custom_fields": null}` produces the same status and error code. The target ID
+is deliberately nonexistent; these probes did not modify an existing record.
+
+**Controls:** An invalid array, `{"custom_fields": []}`, returns HTTP 422 with a
+`/custom_fields` type error. Supplying an independently invalid quantity with the
+object/null forms also produces gateway validation HTTP 422. This is consistent with the
+500 occurring after schema validation; it does not identify the failing internal
+operation.
+
+**Expected behavior / ask:** Return a documented missing-row response (404 or an
+appropriate domain validation error) instead of HTTP 500. Please confirm the canonical
+status and fix the internal failure for both object and null input.
+
+**Local test handling:** The custom-field format probe uses an independently invalid
+quantity to stay at gateway validation and avoid the failing lookup. It still requires
+the quantity type error and absence of custom-field errors; it does not count HTTP 500
+as success or add retries/waits to hide the failure.
+
+**Last verified:** 2026-09-20 (live test-tenant reproduction and gateway controls;
+[`test_custom_field_formats_live.py`](../tests/integration/test_custom_field_formats_live.py)).
+
 ______________________________________________________________________
 
 ## Resolved Issues (FYI)
 
-Issues discovered and fixed during P1-P4 alignment, documented here for reference:
+Historical local fixes and answered contract questions. A local fix does not imply that
+an upstream behavior changed; related open questions are called out explicitly.
 
-| Issue                                                                              | Resolution                                                                                                                                                               |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PurchaseOrderAccountingMetadata used camelCase field names                         | Fixed to snake_case to match actual API responses                                                                                                                        |
-| StockAdjustment field renames (`adjustment_date` -> `stock_adjustment_date`, etc.) | Updated spec to match actual field names                                                                                                                                 |
-| SalesOrderFulfillment schema overhaul                                              | ~8 fields removed, ~10 added to match actual API                                                                                                                         |
-| SalesReturnRow field corrections                                                   | Updated to match actual response structure                                                                                                                               |
-| 7 schemas incorrectly used UpdatableEntity                                         | Upgraded to DeletableEntity where DELETE endpoints exist                                                                                                                 |
-| PriceList phantom fields (`currency`, `end_date`, etc.)                            | Removed fields not present in actual API responses                                                                                                                       |
-| StockTransfer/StockAdjustment had status enums                                     | Removed - these resources use free-form status strings                                                                                                                   |
-| §1.3 — MO ↔ SO linking via PATCH                                                   | API design: linking is one-way at MO creation via `POST /manufacturing_order_make_to_order`. No post-hoc link endpoint exists by design.                                 |
-| §1.4 — PO CREATE `status` only accepted `NOT_RECEIVED` (2026-02-07)                | Katana now accepts both `DRAFT` and `NOT_RECEIVED` (verified spec-only against `live-gateway.yaml` and our local `CreatePurchaseOrderInitialStatus` enum on 2026-05-07). |
-| §4.1 — Variant `lead_time` / `minimum_order_quantity` null semantics               | Clarified — `null` means "not set" (distinct from `0`). API correctly distinguishes.                                                                                     |
-| §2.2 — `ProductOperationRow` PK is `product_operation_row_id` (not `id`)           | Confirmed real Katana inconsistency vs every other resource. Our local spec mirrors it; no spec change needed.                                                           |
-| §5.1 — `/demand_forecasts` is a computation endpoint, not a CRUD resource          | POST and DELETE bodies both require `variant_id` + `location_id` + `periods` (not just an identifier). Mental model: it's a calculation API. Our spec mirrors it.        |
+| Issue                                                                              | Resolution                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PurchaseOrderAccountingMetadata used camelCase field names                         | Fixed to snake_case to match actual API responses                                                                                                                                                                                                                                                         |
+| StockAdjustment field renames (`adjustment_date` -> `stock_adjustment_date`, etc.) | Updated spec to match actual field names                                                                                                                                                                                                                                                                  |
+| SalesOrderFulfillment schema overhaul                                              | ~8 fields removed, ~10 added to match actual API                                                                                                                                                                                                                                                          |
+| SalesReturnRow field corrections                                                   | Updated to match actual response structure                                                                                                                                                                                                                                                                |
+| 7 schemas incorrectly used UpdatableEntity                                         | Upgraded to DeletableEntity where DELETE endpoints exist                                                                                                                                                                                                                                                  |
+| PriceList phantom fields (`currency`, `end_date`, etc.)                            | Removed fields not present in actual API responses                                                                                                                                                                                                                                                        |
+| StockTransfer/StockAdjustment had status enums                                     | Current local spec uses a free-form status string on StockTransfer and no status field on StockAdjustment (reviewed 2026-09-20).                                                                                                                                                                          |
+| §1.3 — MO ↔ SO linking via PATCH                                                   | Linking is documented at MO creation via `POST /manufacturing_order_make_to_order`. No post-hoc linking endpoint is documented.                                                                                                                                                                           |
+| §1.4 — PO CREATE `status` only accepted `NOT_RECEIVED` (2026-02-07)                | Katana now accepts both `DRAFT` and `NOT_RECEIVED` (verified spec-only against `live-gateway.yaml` and our local `CreatePurchaseOrderInitialStatus` enum on 2026-05-07).                                                                                                                                  |
+| §4.1 — Variant `lead_time` / `minimum_order_quantity` null semantics               | Clarified — `null` means "not set" (distinct from `0`). API correctly distinguishes.                                                                                                                                                                                                                      |
+| §2.2 — `ProductOperationRow` PK is `product_operation_row_id` (not `id`)           | Our local spec mirrors this resource-specific identifier; still present on review, 2026-09-20.                                                                                                                                                                                                            |
+| §5.1 — `/demand_forecasts` is a computation endpoint, not a CRUD resource          | POST and DELETE bodies both require `variant_id` + `location_id` + `periods` (not just an identifier). Mental model: it's a calculation API. Our spec mirrors it.                                                                                                                                         |
+| §2.1 — `/bin_locations` bare-array parser (#575)                                   | Fixed in [PR #903](https://github.com/dougborg/katana-openapi-client/pull/903), with live verification on 2026-06-03. The populated-response naming question remains open.                                                                                                                                |
+| Manufacturing request contracts (#830)                                             | [PR #1060](https://github.com/dougborg/katana-openapi-client/pull/1060): operation-row PATCH accepts a name-only update but rejects parent-MO changes; MO-header PATCH rejects `serial_numbers`; serial-number POST with only `resource_id` accepts a 204 no-op. Verified on the test tenant, 2026-09-20. |
+| §1.5 — Missing custom-field request inputs (#1030)                                 | [PR #1062](https://github.com/dougborg/katana-openapi-client/pull/1062) models 17 object/null inputs and three map/legacy-array unions. Account capability and persistence semantics remain upstream questions.                                                                                           |
+| §6.3 — Endpoint-specific batch quantity models (#1053)                             | [PR #1058](https://github.com/dougborg/katana-openapi-client/pull/1058) reflects the observed sales-row/production-ingredient difference. The omission default still needs upstream documentation.                                                                                                        |
+| §1.2 — Material config create/update requirements                                  | [PR #1068](https://github.com/dougborg/katana-openapi-client/pull/1068) separates name/values create inputs from ID-or-name updates. Live response uses `product_id`; verified 2026-09-20.                                                                                                                |
+| §6.2 — Missing SO/ST notes-preservation probes (#531)                              | Both preserve omitted notes in controlled PATCH/GET checks, 2026-09-20. Historical wipes on other entities remain open questions.                                                                                                                                                                         |
+
+### Material configuration verification (#1068)
+
+**Status: RESOLVED in the local client — [PR #1068](https://github.com/dougborg/katana-openapi-client/pull/1068)**
+
+The local `CreateMaterialRequest.configs` previously inherited response-only `id` and
+`material_id` requirements through `MaterialConfig`. The create input now requires only
+`name` and `values`, matching the gateway DTO and live behavior. Material responses
+continue to use `ItemConfig`.
+
+**Test-tenant verification (2026-09-20):**
+
+- CREATE with `configs: [{name, values}]` succeeds without either identifier.
+- The returned config has `id`, `name`, `values`, and **`product_id`**, including when
+  its parent is a material. The old note's `product_id` spelling was accurate.
+- A values-only config PATCH returns 422: `Config name or id has to be set`.
+- PATCH with `{id, values}` succeeds without repeating the name. Updates identify each
+  config by ID or name; the gateway's optional fields have this additional constraint.
+
+Three temporary SDT materials were recorded in the tenant-aware ledger and deleted.
+The live regression is in `tests/integration/test_material_config_contract_live.py`.
+
+**Last verified:** 2026-09-20 (controlled live writes and cleanup, plus all three
+regenerated clients).
