@@ -3,25 +3,26 @@
 Questions for the Katana API team, with reproduction evidence and the current status of
 our client workarounds. The log began with the 2026-02-07 P1-P4 spec investigation.
 
-**Last reviewed:** 2026-09-21 against the local spec, the committed 2026-09-18 upstream
-spec snapshots, current client/MCP code, and the live test-tenant findings from
-2026-09-20 and the material-price / serial-mint probes from 2026-09-21. Entries
-distinguish fresh test-tenant reproductions from historical observations that were not
-rerun. Spec agreement does not establish live behavior or confirm that an API design is
-intentional.
+**Last reviewed:** 2026-09-21 against freshly downloaded gateway and portal OpenAPI,
+current official reference/help/MCP documentation, local client/MCP code, and live
+test-tenant probes. The
+[material and serial contract review](investigations/2026-09-21-material-serial-contracts.md)
+corrects the earlier serial-mint prerequisite assumption and records the supported MTO
+fulfillment path. Historical entries below retain their own verification dates; this
+review does not claim every old observation was rerun.
 
 ### Questions to prioritize with Katana
 
-| Topic                                                                                                           | Question                                                                                 | Evidence                                                       |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| [BOM-row HTTP 500](#8-nonexistent-bom-row-update-returns-http-500)                                              | Can missing-row updates return a domain error or 404 instead of 500?                     | Test-tenant reproduction, 2026-09-20                           |
-| [Notes cleared on PATCH](#6-patch-asymmetric-field-wipe-behavior)                                               | Is clearing omitted `additional_info` intentional?                                       | Five historical wipes; SO/ST preserve notes on 2026-09-20      |
-| [Omitted batch quantity](#63-sales-order-row-batch-quantity-omission-resets-the-allocation-to-zero)             | Should an allocation with no quantity reset to zero, preserve the value, or be rejected? | Test-tenant reproduction, 2026-09-20                           |
-| [Stock deletion effects](#72-delete-behavior-on-already-applied-stock_transfer--stock_adjustment-is-unverified) | Does deletion reverse inventory, and what happens to movement history?                   | Live inventory reads inconsistent; deletion effects unverified |
-| [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                          | How can integrations discover which resources support definition-keyed maps?             | Gateway checks and account-feature rejection, 2026-09-20       |
-| [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                      | Which filter is canonical, and can the portal and gateway docs agree?                    | Controlled test-tenant comparison, 2026-09-20                  |
-| [Material sales price](#16-material-creation-rejects-nested-sales-price)                                        | Can initial material selling prices be set atomically during creation?                   | Test-tenant create/PATCH comparison, 2026-09-21                |
-| [Serial mint 404](#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing)                              | Why does serial mint reject an MO recognized by both read endpoints?                     | Two test-tenant fixtures, 2026-09-21                           |
+| Topic                                                                                                           | Question                                                                                    | Evidence                                                                  |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [BOM-row HTTP 500](#8-nonexistent-bom-row-update-returns-http-500)                                              | Can missing-row updates return a domain error or 404 instead of 500?                        | Test-tenant reproduction, 2026-09-20                                      |
+| [Notes cleared on PATCH](#6-patch-asymmetric-field-wipe-behavior)                                               | Is clearing omitted `additional_info` intentional?                                          | Five historical wipes; SO/ST preserve notes on 2026-09-20                 |
+| [Omitted batch quantity](#63-sales-order-row-batch-quantity-omission-resets-the-allocation-to-zero)             | Should an allocation with no quantity reset to zero, preserve the value, or be rejected?    | Test-tenant reproduction, 2026-09-20                                      |
+| [Stock deletion effects](#72-delete-behavior-on-already-applied-stock_transfer--stock_adjustment-is-unverified) | Does deletion reverse inventory, and what happens to movement history?                      | Live inventory reads inconsistent; deletion effects unverified            |
+| [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                          | How can integrations discover which resources support definition-keyed maps?                | Gateway checks and account-feature rejection, 2026-09-20                  |
+| [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                      | Which filter is canonical, and can the portal and gateway docs agree?                       | Controlled test-tenant comparison, 2026-09-20                             |
+| [Material sales price](#16-material-creation-rejects-nested-sales-price)                                        | Can initial material selling prices be set atomically during creation?                      | Test-tenant create/PATCH comparison, 2026-09-21                           |
+| [Serial mint 404](#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing)                              | How should manual serial assignment/listing work with auto-generated document traceability? | Valid MO returns 404; auto-generation and fulfillment succeed, 2026-09-21 |
 
 Local-only schema work is identified separately below. The remaining historical live
 checks stay tracked in
@@ -33,23 +34,27 @@ ______________________________________________________________________
 
 ### 1.1 Material `serial_tracked` and `operations_in_sequence` not settable via API
 
-**Status: HISTORICALLY REJECTED; still excluded by current request schemas**
+**Status: CREATE REJECTION VERIFIED; PATCH observation historical**
 
 The Material GET response includes `serial_tracked` and `operations_in_sequence`, but
 neither field appears in the Create or Update request schemas. By contrast, the Product
 resource includes both fields in its Create and Update schemas.
 
 **Investigation:** Attempted `PATCH /materials/{id}` with each field. Both returned 422
-`additionalProperties` - the API actively rejects them on update. These are truly
-read-only on materials, despite being writable on products.
+`additionalProperties` - the API actively rejects them on update. These fields were
+rejected on materials, despite being writable on products.
 
-**Ask:** Confirm whether the asymmetry between materials and products is intentional,
-and document how integrations should configure these material properties. The rejection
-alone does not establish inheritance or the product rationale.
+The current
+[item defaults guide](https://support.katanamrp.com/en/articles/14461565-how-to-create-default-settings-for-items)
+and
+[serial tracking guide](https://support.katanamrp.com/en/articles/7439695-enabling-serial-number-tracking)
+explain the product distinction: materials support batch tracking; serial tracking and
+manufacturing are product capabilities. Do not promise material serial configuration as
+an API follow-up operation.
 
-**Last verified:** 2026-09-20 (spec-only — both material create/update schemas still
-exclude these fields in the local spec and committed gateway snapshot). Last live
-reproduction: 2026-02-07; not rerun in this review.
+**Last verified:** 2026-09-21: fresh gateway schemas exclude both fields; separate
+material CREATE requests with either field returned 422. The PATCH observations remain
+historical (2026-02-07), not freshly rerun.
 
 ### 1.2 Material configuration CREATE and UPDATE contracts
 
@@ -109,24 +114,40 @@ account feature requirements and how an integration can discover them before wri
 **Status: VERIFIED; use a separate variant update**
 
 On 2026-09-21, test factory `104008` rejected `POST /materials` with
-`variants[0].sales_price` (422, `additionalProperties`, unexpected `sales_price`).
+`variants[0].sales_price` (422, `additionalProperties`, unexpected `sales_price`). Both
+rounds of price probes explicitly sent `is_sellable: true`, including the failing
+creation requests. Enabling selling therefore does not resolve this rejection; the
+[live regression test](../tests/integration/test_material_sales_price_live.py) preserves
+that condition.
+
 Creating the same sellable material without that field succeeded. A subsequent
 `PATCH /variants/{id}` with `{"sales_price": 12.34}` succeeded and GET confirmed the
-value. `POST /products` accepted the nested price. The gateway snapshot also excludes
-`sales_price` from `CreateMaterialDto.variants`.
+value. `POST /products` accepted the nested price. The freshly fetched gateway also
+excludes `sales_price` from `CreateMaterialDto.variants`.
+
+The expanded review separately verified rejection of header `sales_price` and nested
+`product_id` / `material_id`. A combined initial request successfully persisted the
+supported material headers and variant properties, including configurations, purchase
+price, barcodes, supplier codes, lead time, and minimum order quantity. Thus only the
+selling-price step needs this workaround; do not generalize it to all material fields.
+See the
+[field matrix and remaining schema limits](investigations/2026-09-21-material-serial-contracts.md#1083-initial-request-versus-follow-up-update).
 
 **Ask:** Is this asymmetry intentional? Can material creation accept its initial selling
 price atomically, as product creation does? Until then, integrations need to report
 partial success if the separate price update fails, preserving the new IDs so callers do
 not repeat creation. Client/MCP correction is tracked in
-[#1083](https://github.com/dougborg/katana-openapi-client/issues/1083).
+[#1083](https://github.com/dougborg/katana-openapi-client/issues/1083) and landed in
+[PR #1089](https://github.com/dougborg/katana-openapi-client/pull/1089). Remaining
+material input/readback corrections are tracked in
+[#1090](https://github.com/dougborg/katana-openapi-client/issues/1090).
 
 The SDT material `18022413` and product `18022414` were deleted; the tenant-scoped
 cleanup ledger has no pending records.
 
 ### 1.7 Serial mint reports an existing make-to-order MO as missing
 
-**Status: LIVE BLOCKER; fulfillment re-verification could not run**
+**Status: ASSIGNMENT/LIST MISMATCH; current MTO fulfillment works**
 
 On 2026-09-21, two independent SDT fixtures in test factory `104008` created
 serial-tracked products, sales orders, and linked make-to-order manufacturing orders.
@@ -145,15 +166,51 @@ returned 404, while its detail and resource-scoped serial list returned 200. Thu
 new mint failure is not limited to make-to-order linking. Its product and MO were also
 deleted; no serials were minted in any of these probes.
 
-**Ask:** Why does the serial-mint endpoint reject an MO that the resource and serial
-list endpoints recognize? Is there a new prerequisite or an endpoint migration?
+**Correction after the current contract review:** Manual assignment is not a necessary
+prerequisite on the tested configuration. Production with serial inputs omitted
+generated a serial automatically and assigned it to the linked sales row. Both
+omitted-allocation fulfillment (`46064748`) and explicit unified-traceability
+fulfillment (`46064801`) returned 200, honored `picked_date`, and retained manufacturing
+provenance. The June public-API gap did not reproduce. The earlier probes stopped too
+early.
 
-This blocks the fresh
-[make-to-order fulfillment probe](escalations/katana-serial-fulfillment-gap.md) tracked
-in [#784](https://github.com/dougborg/katana-openapi-client/issues/784). We did not
-reach production or fulfillment, so the historical delivery gap remains unverified. No
-serials were deleted as a workaround. All eight temporary parent resources were deleted
-successfully through tenant-scoped ledgers.
+After automatic generation, the MO and production responses contained the serial, while
+resource-scoped `GET /serial_numbers` still returned an empty list. Both current OpenAPI
+sources continue to publish `/serial_numbers`; no separate `/serials` route was found.
+
+**Asks:** What is the supported manual assignment/listing path after the traceability
+rollout? Why does assignment return 404 for a valid MO? Should the legacy list expose
+serials visible in document traceability? Also clarify deletion of residual serial
+identities: parent deletion leaves empty, out-of-stock identities, and disabling
+tracking on a test product did not remove its identity from the serial-stock read
+endpoint.
+
+The serial adapter investigation remains tracked in
+[#983](https://github.com/dougborg/katana-openapi-client/issues/983).
+
+[#784](https://github.com/dougborg/katana-openapi-client/issues/784) now needs MCP
+guard, help, and regression-test work. `fulfill_order` already accepts explicit
+traceability but still blocks omission even when the row has a complete reservation. Do
+not present this as an unresolved general Katana delivery limitation. Full
+request/response evidence, limitations, and cleanup results are in the
+[current review](investigations/2026-09-21-material-serial-contracts.md).
+
+### 1.8 Failed material creation can leave parent records
+
+**Status: VERIFIED; failed response does not establish rollback**
+
+The expanded #1083 probe sent nested `lead_time: 1000`, which the gateway schema allows
+but the domain rejected with 422 (integer 0–999 required). A fractional value (`1.5`)
+returned 500. A subsequent exact-SDT-name comparison found one parent material from the
+422 case and four from the fractional case. All five (`18022582`–`18022586`) were
+registered in the tenant ledger and deleted. We have not established which layer
+produced the repeated parents.
+
+**Asks:** Can material and initial-variant creation be atomic? Can the published lead
+time schema match domain validation, and can invalid fractional values return 422 rather
+than 500? What recovery identifier should callers use when a failed request has already
+created a parent? See the
+[full probe evidence](investigations/2026-09-21-material-serial-contracts.md#1083-initial-request-versus-follow-up-update).
 
 ______________________________________________________________________
 
