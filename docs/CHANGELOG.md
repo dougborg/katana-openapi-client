@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## [0.84.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.83.0...client-v0.84.0) (2026-09-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client:** align sales-return filters with verified wire behavior ([#1070](https://github.com/dougborg/katana-openapi-client/issues/1070))
+
+### Features
+
+* **mcp:** add sales return tools ([#1072](https://github.com/dougborg/katana-openapi-client/issues/1072)) ([40bb5a2](https://github.com/dougborg/katana-openapi-client/commit/40bb5a22af5f8de759f67deac6046aeb2c375ba3))
+* **mcp:** discover and manage custom-field definitions ([#1066](https://github.com/dougborg/katana-openapi-client/issues/1066)) ([3ffaa6f](https://github.com/dougborg/katana-openapi-client/commit/3ffaa6f9813b706029218b2102284106178edee4))
+* **mcp:** support sales-order custom fields ([#1073](https://github.com/dougborg/katana-openapi-client/issues/1073)) ([48334ac](https://github.com/dougborg/katana-openapi-client/commit/48334aca34c65c99da1654782c738092982548e8))
+
+
+### Bug Fixes
+
+* **ci:** leave manually refreshed dependency PRs for review ([#1081](https://github.com/dougborg/katana-openapi-client/issues/1081)) ([6c0c4dd](https://github.com/dougborg/katana-openapi-client/commit/6c0c4ddb228bd05ddf501036c8e2a68b56d6f64a))
+* **ci:** sequence release creation before preparing the next release PR ([#1065](https://github.com/dougborg/katana-openapi-client/issues/1065)) ([8bb49d2](https://github.com/dougborg/katana-openapi-client/commit/8bb49d2e43df5c55d813952b63fc8ec0db3e38bf)), closes [#1002](https://github.com/dougborg/katana-openapi-client/issues/1002)
+* **client:** align material config create contract ([#1068](https://github.com/dougborg/katana-openapi-client/issues/1068)) ([973e85f](https://github.com/dougborg/katana-openapi-client/commit/973e85f29858420b1578395ddc13381c200f553f))
+* **client:** align sales-return filters with verified wire behavior ([#1070](https://github.com/dougborg/katana-openapi-client/issues/1070)) ([836ef4d](https://github.com/dougborg/katana-openapi-client/commit/836ef4d6a2cc21206d1ddae23e0163fff11d00b4))
+* **mcp:** preserve nullable custom-field reads ([#1071](https://github.com/dougborg/katana-openapi-client/issues/1071)) ([93de279](https://github.com/dougborg/katana-openapi-client/commit/93de2797944f8563a075341a7066541e384c67a5))
+* **mcp:** support FastMCP 4 and MCP SDK 2 ([#1079](https://github.com/dougborg/katana-openapi-client/issues/1079)) ([900eb3b](https://github.com/dougborg/katana-openapi-client/commit/900eb3b3d0d23029f2e3fc9d54a2ea4a125735e8))
+
 ## [0.83.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.82.0...client-v0.83.0) (2026-09-20)
 
 ### ⚠ BREAKING CHANGES
