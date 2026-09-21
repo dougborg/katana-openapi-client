@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [0.85.1](https://github.com/dougborg/katana-openapi-client/compare/client-v0.85.0...client-v0.85.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **mcp:** carry MTO serial reservations through fulfillment ([#1093](https://github.com/dougborg/katana-openapi-client/issues/1093)) ([1545e62](https://github.com/dougborg/katana-openapi-client/commit/1545e627289417ed1cfb63b608ad8235183d9c70))
+
 ## [0.85.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.84.1...client-v0.85.0) (2026-09-21)
 
 ### ⚠ BREAKING CHANGES
