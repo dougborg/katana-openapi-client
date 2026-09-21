@@ -16,7 +16,7 @@ import time
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Self, cast
 from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
 
 import httpx
@@ -1766,6 +1766,11 @@ class KatanaClient(AuthenticatedClient):
         self._services: Services | None = None
         self._api_namespace: ApiNamespace | None = None
 
+        # Store these in the generated client's dedicated fields, not httpx_args:
+        # its lazy constructors already pass headers/cookies explicitly.
+        headers = dict(httpx_kwargs.pop("headers", {}))
+        cookies = dict(httpx_kwargs.pop("cookies", {}))
+
         # Extract client-level parameters that shouldn't go to the transport
         # Event hooks for observability - start with our defaults
         event_hooks: dict[str, list[Callable[[httpx.Response], Awaitable[None]]]] = {
@@ -1824,6 +1829,8 @@ class KatanaClient(AuthenticatedClient):
         super().__init__(
             base_url=base_url,
             token=api_key,
+            headers=headers,
+            cookies=cookies,
             timeout=httpx.Timeout(timeout),
             httpx_args={
                 "transport": transport,
@@ -1831,6 +1838,40 @@ class KatanaClient(AuthenticatedClient):
                 **httpx_kwargs,  # Include any remaining client-level kwargs
             },
         )
+
+    def with_headers(self, headers: dict[str, str]) -> Self:
+        """Update headers in place and return this client for chaining.
+
+        Unlike the generated client's copying helpers, KatanaClient retains
+        one owner for its transports, HTTP clients, hooks, and domain helpers.
+        Changes affect future requests on both initialized HTTP clients.
+        """
+        merged = httpx.Headers(self._headers)
+        merged.update(headers)
+        self._headers = dict(merged)
+        if self._client is not None:
+            self._client.headers.update(headers)
+        if self._async_client is not None:
+            self._async_client.headers.update(headers)
+        return self
+
+    def with_cookies(self, cookies: dict[str, str]) -> Self:
+        """Update cookies in place on this client and its initialized HTTP clients."""
+        self._cookies = {**self._cookies, **cookies}
+        if self._client is not None:
+            self._client.cookies.update(cookies)
+        if self._async_client is not None:
+            self._async_client.cookies.update(cookies)
+        return self
+
+    def with_timeout(self, timeout: httpx.Timeout) -> Self:
+        """Update the request timeout in place without replacing any transports."""
+        self._timeout = httpx.Timeout(timeout)
+        if self._client is not None:
+            self._client.timeout = timeout
+        if self._async_client is not None:
+            self._async_client.timeout = timeout
+        return self
 
     def get_httpx_client(self) -> httpx.Client:
         """Get a synchronous client with its own HTTP transport.
