@@ -1,6 +1,6 @@
 [project]
 name = "katana-mcp-server"
-version = "0.119.0"
+version = "0.119.1"
 description = "MCP server for Katana Manufacturing ERP"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
@@ -36,7 +36,7 @@ classifiers = [
 ]
 dependencies = [
     "fastmcp>=4.0.3",
-    "katana-openapi-client>=0.85.0",
+    "katana-openapi-client>=0.85.1",
     "prefab-ui>=0.19",
     "pydantic>=2.12.0",
     "python-dotenv>=1.0.0",
