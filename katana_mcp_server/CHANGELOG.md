@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.118.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.117.0...mcp-v0.118.0) (2026-09-21)
+
+
+### Features
+
+* **mcp:** add sales return tools ([#1072](https://github.com/dougborg/katana-openapi-client/issues/1072)) ([40bb5a2](https://github.com/dougborg/katana-openapi-client/commit/40bb5a22af5f8de759f67deac6046aeb2c375ba3))
+* **mcp:** discover and manage custom-field definitions ([#1066](https://github.com/dougborg/katana-openapi-client/issues/1066)) ([3ffaa6f](https://github.com/dougborg/katana-openapi-client/commit/3ffaa6f9813b706029218b2102284106178edee4))
+* **mcp:** support sales-order custom fields ([#1073](https://github.com/dougborg/katana-openapi-client/issues/1073)) ([48334ac](https://github.com/dougborg/katana-openapi-client/commit/48334aca34c65c99da1654782c738092982548e8))
+
+
+### Bug Fixes
+
+* **mcp:** preserve nullable custom-field reads ([#1071](https://github.com/dougborg/katana-openapi-client/issues/1071)) ([93de279](https://github.com/dougborg/katana-openapi-client/commit/93de2797944f8563a075341a7066541e384c67a5))
+* **mcp:** support FastMCP 4 and MCP SDK 2 ([#1079](https://github.com/dougborg/katana-openapi-client/issues/1079)) ([900eb3b](https://github.com/dougborg/katana-openapi-client/commit/900eb3b3d0d23029f2e3fc9d54a2ea4a125735e8))
+
 ## [0.117.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.116.0...mcp-v0.117.0) (2026-09-20)
 
 
