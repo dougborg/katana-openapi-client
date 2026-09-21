@@ -17,19 +17,25 @@ LABEL org.opencontainers.image.vendor="Doug Borg"
 LABEL org.opencontainers.image.source="https://github.com/dougborg/katana-openapi-client"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Set working directory
-WORKDIR /app
-
 # Install uv for fast dependency installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy dependency files and source code
-COPY pyproject.toml /app/
-COPY src/ /app/src/
-COPY README.md /app/
+# Copy the client source from the same release commit. Its wheel includes the
+# OpenAPI document through Hatch's force-include configuration.
+WORKDIR /client
+COPY pyproject.toml README.md ./
+COPY katana_public_api_client/ ./katana_public_api_client/
+COPY docs/katana-openapi.yaml ./docs/katana-openapi.yaml
 
-# Install package (--no-sources skips workspace reference, resolves from PyPI)
-RUN uv pip install --system --no-cache --no-sources .
+# Copy the MCP package.
+WORKDIR /app
+COPY katana_mcp_server/pyproject.toml ./pyproject.toml
+COPY katana_mcp_server/README.md ./README.md
+COPY katana_mcp_server/src/ ./src/
+
+# Install both local packages together. --no-sources ignores the development
+# workspace mapping while the direct /client requirement prevents a PyPI race.
+RUN uv pip install --system --no-cache --no-sources /client /app
 
 # Create non-root user for security
 RUN useradd -m -u 1000 mcp && \
