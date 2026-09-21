@@ -316,6 +316,20 @@ what's needed, avoiding over-fetching.
 
 ## ⚙️ Configuration
 
+### Updating an existing client
+
+`KatanaClient.with_headers(...)`, `.with_cookies(...)`, and `.with_timeout(...)` update
+and return the **same client** for chaining, like its `set_*` methods. They apply to
+future requests on both initialized HTTP clients and clients created later. Headers and
+cookies merge with existing values; the timeout is replaced. Configure these before
+issuing concurrent requests.
+
+These methods do not copy or reconstruct `KatanaClient`. Its transports, retry and
+pagination settings, event hooks, domain helpers, and any manually supplied HTTP clients
+retain their existing ownership and lifetime. Close the client through its usual sync or
+async context manager. The lower-level generated `AuthenticatedClient` retains its
+copying behavior.
+
 ### Authentication Methods
 
 The client supports multiple authentication methods (in priority order):
