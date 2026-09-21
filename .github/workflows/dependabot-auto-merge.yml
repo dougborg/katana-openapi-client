@@ -29,11 +29,14 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    # Gate on the PR author from the event payload, not github.actor — actor is
-    # whoever triggered the event (a human editing/labeling a Dependabot PR would
-    # be the actor), whereas user.login is the stable PR author. This is the form
-    # GitHub's own Dependabot auto-merge docs use.
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    # Auto-merge only bot-authored PRs updated by Dependabot itself. A manual
+    # rebase removes the bot's verified commit signature; leave those heads
+    # under manual review instead of failing fetch-metadata. Keep its commit
+    # verification enabled for genuine Dependabot updates. Use the immutable
+    # account ID for dependabot[bot] and the webhook sender, not github.actor.
+    if: >-
+      github.event.pull_request.user.id == 49699333 &&
+      github.event.sender.id == 49699333
     steps:
       - name: Fetch Dependabot metadata
         id: meta
