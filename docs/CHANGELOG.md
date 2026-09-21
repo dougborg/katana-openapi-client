@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## [0.85.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.84.1...client-v0.85.0) (2026-09-21)
+
+### ⚠ BREAKING CHANGES
+
+- CreateMaterialRequest.variants now uses CreateMaterialVariantRequest rather than
+  CreateVariantRequest. Nested sales_price and parent IDs are unsupported by POST
+  /materials. Product and standalone variant creation retain their existing request
+  model.
+
+### Bug Fixes
+
+- **client:** preserve ownership in fluent configuration helpers
+  ([#1087](https://github.com/dougborg/katana-openapi-client/issues/1087))
+  ([be5b385](https://github.com/dougborg/katana-openapi-client/commit/be5b3859def307278b28fd22856e6c658a420a48))
+- correct material variant creation and price updates
+  ([#1089](https://github.com/dougborg/katana-openapi-client/issues/1089))
+  ([f419e1c](https://github.com/dougborg/katana-openapi-client/commit/f419e1ca7c5b4e7dd8221e0a841cf01179770e0a))
+
 ## [0.84.1](https://github.com/dougborg/katana-openapi-client/compare/client-v0.84.0...client-v0.84.1) (2026-09-21)
 
 ### Bug Fixes

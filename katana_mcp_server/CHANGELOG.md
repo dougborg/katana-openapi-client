@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.119.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.118.1...mcp-v0.119.0) (2026-09-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* CreateMaterialRequest.variants now uses CreateMaterialVariantRequest rather than CreateVariantRequest. Nested sales_price and parent IDs are unsupported by POST /materials. Product and standalone variant creation retain their existing request model.
+
+### Bug Fixes
+
+* correct material variant creation and price updates ([#1089](https://github.com/dougborg/katana-openapi-client/issues/1089)) ([f419e1c](https://github.com/dougborg/katana-openapi-client/commit/f419e1ca7c5b4e7dd8221e0a841cf01179770e0a))
+
 ## [0.118.1](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.118.0...mcp-v0.118.1) (2026-09-21)
 
 
