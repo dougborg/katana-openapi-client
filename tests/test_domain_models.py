@@ -88,17 +88,18 @@ class TestKatanaVariantFactoryMethods:
         """Test converting config_attributes from nested objects to dicts."""
         from katana_public_api_client.domain.variant import KatanaVariant
         from katana_public_api_client.models_pydantic._generated.inventory import (
-            ConfigAttribute2,
             Variant as GeneratedVariant,
         )
 
-        config1 = ConfigAttribute2(config_name="Size", config_value="Large")
-        config2 = ConfigAttribute2(config_name="Color", config_value="Blue")
-
-        generated = GeneratedVariant(
-            id=1,
-            sku="CFG-001",
-            config_attributes=[config1, config2],
+        generated = GeneratedVariant.model_validate(
+            {
+                "id": 1,
+                "sku": "CFG-001",
+                "config_attributes": [
+                    {"config_name": "Size", "config_value": "Large"},
+                    {"config_name": "Color", "config_value": "Blue"},
+                ],
+            }
         )
 
         domain = KatanaVariant.from_generated(generated)

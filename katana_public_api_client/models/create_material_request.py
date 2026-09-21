@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_variant_request import CreateVariantRequest
+    from ..models.create_material_variant_request import CreateMaterialVariantRequest
     from ..models.material_config import MaterialConfig
 
 
@@ -24,13 +24,12 @@ class CreateMaterialRequest:
             1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable':
             False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name': 'Grade', 'values':
             ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': [{'sku':
-            'STEEL-304-1.5MM', 'sales_price': 65.0, 'purchase_price': 45.0, 'lead_time': 5, 'minimum_order_quantity': 1,
-            'config_attributes': [{'config_name': 'Grade', 'config_value': '304'}, {'config_name': 'Thickness',
-            'config_value': '1.5mm'}]}]}
+            'STEEL-304-1.5MM', 'purchase_price': 45.0, 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes':
+            [{'config_name': 'Grade', 'config_value': '304'}, {'config_name': 'Thickness', 'config_value': '1.5mm'}]}]}
     """
 
     name: str
-    variants: list[CreateVariantRequest]
+    variants: list[CreateMaterialVariantRequest]
     uom: str | Unset = UNSET
     category_name: str | Unset = UNSET
     default_supplier_id: int | Unset = UNSET
@@ -112,8 +111,8 @@ class CreateMaterialRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_variant_request import (
-            CreateVariantRequest,
+        from ..models.create_material_variant_request import (
+            CreateMaterialVariantRequest,
         )
         from ..models.material_config import MaterialConfig
 
@@ -123,7 +122,7 @@ class CreateMaterialRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = CreateVariantRequest.from_dict(
+            variants_item = CreateMaterialVariantRequest.from_dict(
                 cast(Mapping[str, Any], variants_item_data)
             )
 

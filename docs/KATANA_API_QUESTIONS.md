@@ -3,11 +3,12 @@
 Questions for the Katana API team, with reproduction evidence and the current status of
 our client workarounds. The log began with the 2026-02-07 P1-P4 spec investigation.
 
-**Last reviewed:** 2026-09-20 against the local spec, the committed 2026-09-18 upstream
+**Last reviewed:** 2026-09-21 against the local spec, the committed 2026-09-18 upstream
 spec snapshots, current client/MCP code, and the live test-tenant findings from
-2026-09-20. Entries distinguish fresh test-tenant reproductions from historical
-observations that were not rerun. Spec agreement does not establish live behavior or
-confirm that an API design is intentional.
+2026-09-20 and the material-price / serial-mint probes from 2026-09-21. Entries
+distinguish fresh test-tenant reproductions from historical observations that were not
+rerun. Spec agreement does not establish live behavior or confirm that an API design is
+intentional.
 
 ### Questions to prioritize with Katana
 
@@ -19,6 +20,8 @@ confirm that an API design is intentional.
 | [Stock deletion effects](#72-delete-behavior-on-already-applied-stock_transfer--stock_adjustment-is-unverified) | Does deletion reverse inventory, and what happens to movement history?                   | Live inventory reads inconsistent; deletion effects unverified |
 | [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                          | How can integrations discover which resources support definition-keyed maps?             | Gateway checks and account-feature rejection, 2026-09-20       |
 | [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                      | Which filter is canonical, and can the portal and gateway docs agree?                    | Controlled test-tenant comparison, 2026-09-20                  |
+| [Material sales price](#16-material-creation-rejects-nested-sales-price)                                        | Can initial material selling prices be set atomically during creation?                   | Test-tenant create/PATCH comparison, 2026-09-21                |
+| [Serial mint 404](#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing)                              | Why does serial mint reject an MO recognized by both read endpoints?                     | Two test-tenant fixtures, 2026-09-21                           |
 
 Local-only schema work is identified separately below. The remaining historical live
 checks stay tracked in
@@ -84,7 +87,8 @@ The 2026-09-20 probes distinguish two request formats:
 **Local status:** Request models and conversion handling were corrected in
 [PR #1062](https://github.com/dougborg/katana-openapi-client/pull/1062), closing #1030.
 MCP custom-field authoring remains tracked separately in #806. Definition discovery and
-management landed in [PR #1066](https://github.com/dougborg/katana-openapi-client/pull/1066).
+management landed in
+[PR #1066](https://github.com/dougborg/katana-openapi-client/pull/1066).
 
 **Search/read checks:** Both sales-order search endpoints accept
 `filter: {"custom_fields.<uuid>": null}` and reject the camelCase `customFields` key
@@ -99,6 +103,57 @@ account feature requirements and how an integration can discover them before wri
 
 **Last verified:** 2026-09-20 (live test tenant; see
 [`test_custom_field_formats_live.py`](../tests/integration/test_custom_field_formats_live.py)).
+
+### 1.6 Material creation rejects nested sales price
+
+**Status: VERIFIED; use a separate variant update**
+
+On 2026-09-21, test factory `104008` rejected `POST /materials` with
+`variants[0].sales_price` (422, `additionalProperties`, unexpected `sales_price`).
+Creating the same sellable material without that field succeeded. A subsequent
+`PATCH /variants/{id}` with `{"sales_price": 12.34}` succeeded and GET confirmed the
+value. `POST /products` accepted the nested price. The gateway snapshot also excludes
+`sales_price` from `CreateMaterialDto.variants`.
+
+**Ask:** Is this asymmetry intentional? Can material creation accept its initial selling
+price atomically, as product creation does? Until then, integrations need to report
+partial success if the separate price update fails, preserving the new IDs so callers do
+not repeat creation. Client/MCP correction is tracked in
+[#1083](https://github.com/dougborg/katana-openapi-client/issues/1083).
+
+The SDT material `18022413` and product `18022414` were deleted; the tenant-scoped
+cleanup ledger has no pending records.
+
+### 1.7 Serial mint reports an existing make-to-order MO as missing
+
+**Status: LIVE BLOCKER; fulfillment re-verification could not run**
+
+On 2026-09-21, two independent SDT fixtures in test factory `104008` created
+serial-tracked products, sales orders, and linked make-to-order manufacturing orders.
+`POST /serial_numbers` with `resource_type: ManufacturingOrder` returned 404
+`manufacturing order <id> not found` for MOs `19209084` and `19209103`.
+
+For the second fixture, `GET /manufacturing_orders/19209103` returned 200 with the
+correct variant and SO-row link, and `GET /serial_numbers` for that MO returned 200 with
+an empty list. Retrying the serial POST after those readbacks still returned 404. The
+serial string was `SDT-ec58bea6-MTO` (within the documented length limit). All requests
+were awaited; no sleeps or timing assumptions were added. This does not rule out longer
+eventual consistency, but the normal resource read reports it ready.
+
+A standalone-MO control reproduced the same failure: serial mint for MO `19209707`
+returned 404, while its detail and resource-scoped serial list returned 200. Thus the
+new mint failure is not limited to make-to-order linking. Its product and MO were also
+deleted; no serials were minted in any of these probes.
+
+**Ask:** Why does the serial-mint endpoint reject an MO that the resource and serial
+list endpoints recognize? Is there a new prerequisite or an endpoint migration?
+
+This blocks the fresh
+[make-to-order fulfillment probe](escalations/katana-serial-fulfillment-gap.md) tracked
+in [#784](https://github.com/dougborg/katana-openapi-client/issues/784). We did not
+reach production or fulfillment, so the historical delivery gap remains unverified. No
+serials were deleted as a workaround. All eight temporary parent resources were deleted
+successfully through tenant-scoped ledgers.
 
 ______________________________________________________________________
 
@@ -211,8 +266,8 @@ DELETE; our spec mirrors it, no follow-up needed.*
 **Status: RECONFIRMED on the test tenant, 2026-09-20; client correction in
 [PR #1070](https://github.com/dougborg/katana-openapi-client/pull/1070)**
 
-The server accepts several unknown filter names with HTTP 200 and returns the
-unfiltered collection. The historical 2026-05-14 production observation of an ignored
+The server accepts several unknown filter names with HTTP 200 and returns the unfiltered
+collection. The historical 2026-05-14 production observation of an ignored
 `sales_order_id` filter was reproduced with two distinct, owned SDT order/return pairs.
 An empty result was not used as the sole evidence of filtering.
 
@@ -241,13 +296,13 @@ the portal and gateway query names. In particular, the gateway's `sales_order_no
 declaration does not match the observed behavior. Rejecting unknown filters would help
 integrations detect misspellings instead of silently processing unrelated returns.
 
-The investigation created twelve temporary resources in total (six returns and six
-sales orders); all were ledgered and deleted, with no pending cleanup. The regression
-in `tests/integration/test_sales_return_filters_live.py` reads all pages and checks its
+The investigation created twelve temporary resources in total (six returns and six sales
+orders); all were ledgered and deleted, with no pending cleanup. The regression in
+`tests/integration/test_sales_return_filters_live.py` reads all pages and checks its
 owned IDs so unrelated tenant records cannot affect the result.
 
-**Last verified:** 2026-09-20 (controlled live test-tenant comparisons; gateway and portal
-snapshots reviewed separately).
+**Last verified:** 2026-09-20 (controlled live test-tenant comparisons; gateway and
+portal snapshots reviewed separately).
 
 ______________________________________________________________________
 
@@ -373,12 +428,13 @@ Each was verified by:
 Test records used (all deleted post-verification): Material 17042013, Product 17042018,
 MO 16647058, StockAdjustment 2394711.
 
-**Fresh extension (2026-09-20):** Sales orders and stock transfers **preserve**
-nonempty `additional_info` when a PATCH changes only `order_no` or `stock_transfer_number`,
+**Fresh extension (2026-09-20):** Sales orders and stock transfers **preserve** nonempty
+`additional_info` when a PATCH changes only `order_no` or `stock_transfer_number`,
 respectively. Both the PATCH response and subsequent GET retained the notes. Temporary
-SDT records were ledgered and deleted. This completes the two missing behavior probes from #531;
-it does not establish that the five historical wipes above have been fixed. The old
-production-tenant orphan cleanup in #531 was not attempted by these test-tenant probes.
+SDT records were ledgered and deleted. This completes the two missing behavior probes
+from #531; it does not establish that the five historical wipes above have been fixed.
+The old production-tenant orphan cleanup in #531 was not attempted by these test-tenant
+probes.
 
 **Conclusion:** The May behavior is not universal across PATCH endpoints. A shared
 serialization cause remains a hypothesis. The five historical cases were not rerun.
@@ -408,11 +464,11 @@ read and PATCH could still be overwritten.
 1. If unintentional, fix the asymmetry so omitted `additional_info` is preserved. A
    shared implementation may explain the similar results, but its location and cause
    need investigation by Katana.
-1. Explain the resource-specific difference: the September sales-order and stock-transfer
-   probes preserve omitted notes, unlike the five May cases.
+1. Explain the resource-specific difference: the September sales-order and
+   stock-transfer probes preserve omitted notes, unlike the five May cases.
 
-**Last verified:** 2026-09-20 for SO/ST preservation and workaround review;
-2026-05-05 for the five historical wipes. The regression is
+**Last verified:** 2026-09-20 for SO/ST preservation and workaround review; 2026-05-05
+for the five historical wipes. The regression is
 `tests/integration/test_stock_lifecycle_contract_live.py`.
 
 ### 6.3 Sales-order-row batch quantity omission resets the allocation to zero
@@ -565,8 +621,8 @@ Compensating adjustments also need before/after inventory checks.
 
 **Last verified:** 2026-09-20 (successful cleanup and inconsistent setup reads;
 committed spec comparison). Inventory reversal and settled audit-history effects remain
-unverified. The team should clarify consistency and
-completion signals before delete-and-recreate guidance is offered.
+unverified. The team should clarify consistency and completion signals before
+delete-and-recreate guidance is offered.
 
 ______________________________________________________________________
 
@@ -649,7 +705,8 @@ an upstream behavior changed; related open questions are called out explicitly.
 
 ### Material configuration verification (#1068)
 
-**Status: RESOLVED in the local client — [PR #1068](https://github.com/dougborg/katana-openapi-client/pull/1068)**
+**Status: RESOLVED in the local client —
+[PR #1068](https://github.com/dougborg/katana-openapi-client/pull/1068)**
 
 The local `CreateMaterialRequest.configs` previously inherited response-only `id` and
 `material_id` requirements through `MaterialConfig`. The create input now requires only
@@ -665,8 +722,8 @@ continue to use `ItemConfig`.
 - PATCH with `{id, values}` succeeds without repeating the name. Updates identify each
   config by ID or name; the gateway's optional fields have this additional constraint.
 
-Three temporary SDT materials were recorded in the tenant-aware ledger and deleted.
-The live regression is in `tests/integration/test_material_config_contract_live.py`.
+Three temporary SDT materials were recorded in the tenant-aware ledger and deleted. The
+live regression is in `tests/integration/test_material_config_contract_live.py`.
 
 **Last verified:** 2026-09-20 (controlled live writes and cleanup, plus all three
 regenerated clients).

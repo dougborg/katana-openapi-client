@@ -882,7 +882,21 @@ class CustomFields(RootModel[list[CustomField2]]):
     ]
 
 
-class ConfigAttribute2(ConfigAttribute):
+class CustomFields1Item(CustomField2):
+    pass
+
+
+class CustomFields1(RootModel[list[CustomFields1Item]]):
+    root: Annotated[
+        list[CustomFields1Item],
+        Field(
+            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            max_length=3,
+        ),
+    ]
+
+
+class ConfigAttribute3(ConfigAttribute):
     pass
 
 
@@ -890,7 +904,7 @@ class CustomField3(CustomField):
     pass
 
 
-class ConfigAttribute3(KatanaPydanticBase):
+class ConfigAttribute4(KatanaPydanticBase):
     config_name: Annotated[
         str | None, Field(description="Name of the configuration attribute")
     ] = None
@@ -900,7 +914,7 @@ class ConfigAttribute3(KatanaPydanticBase):
     ] = None
 
 
-class CustomFields1Item(KatanaPydanticBase):
+class CustomFields2Item(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
@@ -910,9 +924,9 @@ class CustomFields1Item(KatanaPydanticBase):
     ]
 
 
-class CustomFields1(RootModel[list[CustomFields1Item]]):
+class CustomFields2(RootModel[list[CustomFields2Item]]):
     root: Annotated[
-        list[CustomFields1Item],
+        list[CustomFields2Item],
         Field(
             description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
             max_length=3,
@@ -1723,7 +1737,7 @@ class ProductOperationRowListResponse(KatanaPydanticBase):
     ] = None
 
 
-class CustomFields2(RootModel[list[CustomFieldValue]]):
+class CustomFields3(RootModel[list[CustomFieldValue]]):
     root: Annotated[
         list[CustomFieldValue],
         Field(

@@ -5430,7 +5430,7 @@ components:
           minItems: 1
           description: Material variants with specific configurations and properties
           items:
-            $ref: "#/components/schemas/CreateVariantRequest"
+            $ref: "#/components/schemas/CreateMaterialVariantRequest"
       example:
         name: Stainless Steel Sheet 304
         uom: m²
@@ -5453,7 +5453,6 @@ components:
               - 3.0mm
         variants:
           - sku: STEEL-304-1.5MM
-            sales_price: 65.00
             purchase_price: 45.00
             lead_time: 5
             minimum_order_quantity: 1
@@ -7860,6 +7859,115 @@ components:
             display_name: VAT (5.0%)
             created_at: "2024-01-15T09:35:00Z"
             updated_at: "2024-01-15T09:35:00Z"
+    CreateMaterialVariantRequest:
+      description: |
+        Variant embedded in POST /materials. The material parent is implicit.
+        Unlike product creation and POST /variants, this shape rejects sales_price.
+        Set a material selling price afterward with PATCH /variants/{id}.
+      type: object
+      additionalProperties: false
+      properties:
+        sku:
+          type: string
+          description: Stock keeping unit code for unique identification of this product variant
+        purchase_price:
+          type: number
+          minimum: 0
+          description: Default purchase cost per unit for this product variant
+          maximum: 100000000000
+        supplier_item_codes:
+          type: array
+          description: Supplier-specific part numbers or SKUs for purchasing this variant
+          items:
+            type: string
+            minLength: 1
+            maxLength: 40
+        internal_barcode:
+          type: string
+          minLength: 3
+          maxLength: 40
+          description: Internal barcode for warehouse scanning and tracking
+        registered_barcode:
+          type: string
+          maxLength: 120
+          description: Official registered barcode (UPC, EAN, etc.) for retail use
+        lead_time:
+          type:
+            - integer
+            - "null"
+          maximum: 999
+          description: Days required to manufacture or procure this variant
+        minimum_order_quantity:
+          type: number
+          minimum: 0
+          maximum: 999999999
+          description: Minimum quantity that must be ordered from suppliers
+        config_attributes:
+          type: array
+          minItems: 1
+          description: Configuration attribute values that define this variant (color, size, etc.)
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - config_name
+              - config_value
+            properties:
+              config_name:
+                type: string
+                description: Name of the configuration attribute (e.g., Color, Size)
+              config_value:
+                type: string
+                description: Value for this configuration attribute (e.g., Blue, Large)
+        custom_fields:
+          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
+            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          anyOf:
+            - type: object
+              propertyNames:
+                pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+              additionalProperties:
+                type:
+                  - string
+                  - number
+                  - boolean
+                  - 'null'
+            - type: array
+              maxItems: 3
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - field_name
+                  - field_value
+                properties:
+                  field_name:
+                    type: string
+                    description: Name of the custom field
+                  field_value:
+                    type: string
+                    description: Value stored in the custom field
+                title: CustomFieldsItem
+
+      example:
+        sku: KNF-PRO-12PC-WD
+        purchase_price: 200.0
+        supplier_item_codes:
+          - SUP-KNF-12PC-002
+        internal_barcode: INT-KNF-002
+        registered_barcode: "789123456790"
+        lead_time: 10
+        minimum_order_quantity: 1
+        config_attributes:
+          - config_name: Piece Count
+            config_value: 12-piece
+          - config_name: Handle Material
+            config_value: Wood
+        custom_fields:
+          - field_name: Warranty Period
+            field_value: 5 years
+          - field_name: Care Instructions
+            field_value: Hand wash only
     CreateVariantRequest:
       description: |
         Request payload for creating a new product or material variant with specific SKU and configuration attributes.

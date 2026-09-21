@@ -14,6 +14,7 @@ from katana_mcp.tools.foundation.items import VariantConfigAttributePatch
 from katana_mcp_server.tests.conftest import mock_item as _mock_item
 
 from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain import KatanaVariant
 from katana_public_api_client.models import (
     CreateVariantRequestConfigAttributesItem as ApiCreateVariantConfigItem,
 )
@@ -454,6 +455,14 @@ async def test_create_material_full_fields():
     mock_material = _mock_item(id=201, name="Aluminum Sheet")
 
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    material_variant = KatanaVariant(
+        id=301, sku="MAT-AL-001", material_id=201, sales_price=0
+    )
+    lifespan_ctx.client.variants.list = AsyncMock(return_value=[material_variant])
+    lifespan_ctx.client.variants.update = AsyncMock(
+        return_value=material_variant.model_copy(update={"sales_price": 8.5})
+    )
 
     request = CreateMaterialRequest(
         name="Aluminum Sheet",
