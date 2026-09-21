@@ -59,10 +59,8 @@ logger = get_logger(__name__)
 class FulfillRowOverride(BaseModel):
     """Per-row override for sales-order fulfillment.
 
-    Currently carries serial-number IDs to attach to a specific row. Used
-    when a row's variant is serial-tracked: Katana's
-    ``POST /sales_order_fulfillments`` rejects the request with HTTP 422
-    unless the row carries one ``SerialNumber`` ID per unit shipped.
+    Omit allocations to carry forward a complete existing row reservation.
+    Explicit allocations replace it; an empty list does not mean omission.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -72,9 +70,8 @@ class FulfillRowOverride(BaseModel):
         default=None,
         description=(
             "Pre-existing SerialNumber IDs to attach to this fulfillment row. "
-            "Length must equal the row's ordered quantity. Required when the "
-            "row's variant is serial-tracked (unless supplied via "
-            "``traceability`` instead)."
+            "Length must equal the row's ordered quantity. Omit to use a complete "
+            "existing reservation, or supply unified traceability instead."
         ),
     )
     traceability: list[TraceabilityInput] | None = Field(
@@ -104,8 +101,8 @@ class FulfillOrderRequest(BaseModel):
     rows: list[FulfillRowOverride] | None = Field(
         default=None,
         description=(
-            "Per-row overrides (currently: serial_numbers). When omitted, the "
-            "tool ships the full ordered quantity with no serials attached. "
+            "Per-row serial_numbers or traceability overrides. When omitted, the "
+            "tool ships the full ordered quantity using existing allocations. "
             "Sales orders only — ignored for order_type='manufacturing'."
         ),
     )
@@ -115,7 +112,8 @@ class FulfillOrderRequest(BaseModel):
             "Pre-existing SerialNumber IDs to attach to the produced units of a "
             "manufacturing order on completion. Length must equal "
             "``actual_quantity``. Required when the MO's finished-good variant "
-            "is serial-tracked. Manufacturing orders only — ignored for "
+            "is serial-tracked unless traceability or explicitly confirmed "
+            "automatic generation is used. Manufacturing orders only — ignored for "
             "order_type='sales' (use ``rows`` for per-row sales-order serials)."
         ),
     )
@@ -123,9 +121,26 @@ class FulfillOrderRequest(BaseModel):
         default=None,
         description="Manufacturing output batch/serial allocations, as an alternative to serial_numbers. Sales allocations belong in rows[].traceability.",
     )
+    generate_serial_numbers: bool = Field(
+        default=False,
+        description=(
+            "Manufacturing only: explicitly request automatic serial generation "
+            "and confirm it is configured in Katana for this product/tenant. "
+            "The API exposes serial tracking but not the generation setting. "
+            "Requires a serial-tracked product and omitted serial_numbers and "
+            "traceability; never substitutes for explicitly empty allocations."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_manufacturing_allocations(self) -> Self:
+        if self.generate_serial_numbers:
+            if self.order_type != "manufacturing":
+                raise ValueError("Automatic serial generation is manufacturing-only")
+            if self.serial_numbers is not None or self.traceability is not None:
+                raise ValueError(
+                    "Automatic generation requires omitted serial allocations"
+                )
         if self.traceability is not None:
             if self.order_type != "manufacturing":
                 raise ValueError("Sales traceability belongs in rows[].traceability")
@@ -377,11 +392,8 @@ async def _fulfill_manufacturing_order(
 ) -> FulfillOrderResponse:
     """Fulfill a manufacturing order by marking it as DONE.
 
-    Serial-tracked finished-good variants need ``serial_numbers`` IDs
-    attached on completion; callers pass them via ``request.serial_numbers``.
-    Without them, Katana 422s on apply, so the tool emits a ``BLOCK:``
-    warning at preview time and refuses on direct apply (parity with the
-    sales-order serial-tracked guard added in #547).
+    Serial-tracked output requires supplied IDs or explicit confirmation
+    that automatic serial generation is configured in Katana.
     """
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order as api_get_manufacturing_order,
@@ -421,10 +433,9 @@ async def _fulfill_manufacturing_order(
         "Finished goods will be added to stock",
         "Raw materials will be consumed from inventory based on BOM",
     ]
-    if is_serial_tracked and allocation_serials:
-        inventory_updates.append(
-            f"Finished-good serials to attach: {allocation_serials}"
-        )
+    inventory_updates.extend(
+        _describe_manufacturing_serials(request, is_serial_tracked, allocation_serials)
+    )
     if request.completed_at is not None:
         inventory_updates.append(
             f"completed_date / done_date will be set to "
@@ -450,6 +461,7 @@ async def _fulfill_manufacturing_order(
             is_serial_tracked=is_serial_tracked,
             actual_quantity=actual_quantity or 1,
             serial_numbers=allocation_serials,
+            generate_serial_numbers=request.generate_serial_numbers,
         )
     )
 
@@ -612,7 +624,7 @@ async def _fulfill_manufacturing_order(
     )
     # Raises APIError on non-2xx (unwrap_as on the response below) — preserves
     # the existing fail-loud contract so callers see the upstream error.
-    unwrap_as(production_response, ManufacturingOrderProduction)
+    production = unwrap_as(production_response, ManufacturingOrderProduction)
 
     # Re-fetch the MO to surface post-mutation status / done_date. The
     # production response doesn't carry the MO header; the MO does. This is
@@ -623,6 +635,10 @@ async def _fulfill_manufacturing_order(
         id=request.order_id, client=services.client
     )
     final_mo = unwrap_as(final_mo_response, ManufacturingOrder)
+    allocation_serials, serial_warnings = _production_serial_result(
+        request, production, final_mo, completed_quantity
+    )
+    warnings.extend(serial_warnings)
     new_status = final_mo.status.value if final_mo.status else "UNKNOWN"
 
     next_actions = [
@@ -1262,6 +1278,7 @@ def _build_mo_serial_warnings(
     is_serial_tracked: bool,
     actual_quantity: float | None,
     serial_numbers: list[int] | None,
+    generate_serial_numbers: bool = False,
 ) -> list[str]:
     """Return ``BLOCK:`` warnings for a manufacturing-order serial mismatch.
 
@@ -1274,6 +1291,11 @@ def _build_mo_serial_warnings(
     """
     warnings: list[str] = []
     if not is_serial_tracked:
+        if generate_serial_numbers:
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} Automatic generation requires a verified "
+                f"serial-tracked product for manufacturing order {order_number}."
+            )
         return warnings
     qty = actual_quantity
     if qty is not None and qty != int(qty):
@@ -1284,11 +1306,14 @@ def _build_mo_serial_warnings(
             "integer units."
         )
         return warnings
+    if generate_serial_numbers:
+        return warnings
     if not serial_numbers and (qty or 0) > 0:
         warnings.append(
             f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} "
             f"({sku}) is serial-tracked. Pass serial_numbers or traceability (one "
-            "SerialNumber ID per unit produced) to mark the order DONE."
+            "SerialNumber ID per unit produced), or set generate_serial_numbers=true "
+            "only after confirming automatic generation is configured in Katana."
         )
     elif serial_numbers is not None and qty is not None and len(serial_numbers) != qty:
         warnings.append(
@@ -1297,6 +1322,109 @@ def _build_mo_serial_warnings(
             f"equal actual_quantity ({qty})."
         )
     return warnings
+
+
+def _traceability_serial_ids(items: Any) -> list[int] | None:
+    """Read a complete serial-only allocation; malformed entries fail closed.
+
+    GET responses use string quantities, while MCP inputs use floats. A
+    serial must represent exactly one unit in either shape.
+    """
+    if not isinstance(items, list):
+        return None
+    ids: list[int] = []
+    for item in items:
+        sid = _attr(item, "serial_number_id")
+        quantity = _attr(item, "quantity")
+        if type(sid) is not int or sid <= 0:
+            return None
+        if not isinstance(quantity, str | int | float) or isinstance(quantity, bool):
+            return None
+        try:
+            if float(quantity) != 1:
+                return None
+        except ValueError:
+            return None
+        ids.append(sid)
+    return ids
+
+
+def _sales_serial_ids(
+    row: Any, override: FulfillRowOverride | None
+) -> list[int] | None:
+    """Resolve allocation precedence without turning explicit [] into omission.
+
+    Unified response traceability is currently retained in the attrs model's
+    additional_properties. When absent, serial_numbers is the documented
+    current state; serial_number_transactions is an audit log, not a reservation.
+    """
+    if override is not None and override.traceability is not None:
+        return _traceability_serial_ids(override.traceability)
+    if override is not None and override.serial_numbers is not None:
+        return override.serial_numbers
+    extra = getattr(row, "additional_properties", None)
+    if isinstance(extra, dict) and "traceability" in extra:
+        return _traceability_serial_ids(extra["traceability"])
+    serials = _attr(row, "serial_numbers")
+    return serials if isinstance(serials, list) else None
+
+
+def _describe_manufacturing_serials(
+    request: FulfillOrderRequest, is_tracked: bool, serials: list[int] | None
+) -> list[str]:
+    if request.generate_serial_numbers:
+        return [
+            "Katana will generate finished-good serials using its configured numbering"
+        ]
+    if is_tracked and serials:
+        return [f"Finished-good serials to attach: {serials}"]
+    return []
+
+
+def _production_serial_result(
+    request: FulfillOrderRequest,
+    production: ManufacturingOrderProduction,
+    mo: ManufacturingOrder,
+    quantity: float,
+) -> tuple[list[int] | None, list[str]]:
+    if not request.generate_serial_numbers:
+        serials = (
+            [
+                item.serial_number_id
+                for item in request.traceability
+                if item.serial_number_id is not None
+            ]
+            if request.traceability is not None
+            else request.serial_numbers
+        )
+        return serials, []
+    serials = _generated_serial_ids(production, mo)
+    warnings = []
+    if len(serials) != quantity or len(set(serials)) != len(serials):
+        warnings.append(
+            f"Production {production.id} was created, but the returned serial "
+            "allocation is incomplete. Inspect the MO before fulfillment; "
+            "do not repeat production to retry serial generation."
+        )
+    return serials, warnings
+
+
+def _generated_serial_ids(
+    production: ManufacturingOrderProduction, mo: ManufacturingOrder
+) -> list[int]:
+    """Prefer the new production's allocations, then the verified MO readback."""
+    extra = production.additional_properties
+    if isinstance(extra, dict) and "traceability" in extra:
+        serials = _traceability_serial_ids(extra["traceability"])
+        if serials:
+            return serials
+    for resource in (production, mo):
+        serials = _attr(resource, "serial_numbers")
+        if isinstance(serials, list):
+            ids = [_attr(serial, "id") for serial in serials]
+            if ids and all(type(sid) is int and sid > 0 for sid in ids):
+                return ids
+    return []
 
 
 def _build_row_override_warnings(
@@ -1318,16 +1446,7 @@ def _build_row_override_warnings(
     serial-tracked row is blocked separately, since each serial number
     represents a whole unit.
     """
-    # Rows that attach serials via the ``traceability`` list instead of the
-    # flat ``serial_numbers`` override. Katana validates their count/identity
-    # server-side, so we skip the ``serial_numbers``-count guards for them
-    # rather than false-blocking a valid traceability payload.
-    rows_with_traceability_serials = {
-        ovr.sales_order_row_id
-        for ovr in request_rows
-        if ovr.traceability
-        and any(t.serial_number_id is not None for t in ovr.traceability)
-    }
+    overrides = {ovr.sales_order_row_id: ovr for ovr in request_rows}
     warnings: list[str] = []
     so_row_ids = {row.id for row in so_rows}
 
@@ -1359,36 +1478,41 @@ def _build_row_override_warnings(
         rid = row.id
         qty = row.quantity
         is_tracked = serial_tracked_by_row.get(rid, False)
-        serials = overrides_by_row.get(rid)
-        uses_traceability_serials = rid in rows_with_traceability_serials
+        override = overrides.get(rid)
+        serials = _sales_serial_ids(row, override)
+        has_serial_override = rid in overrides_by_row
+        has_traceability = override is not None and override.traceability is not None
         if is_tracked and qty is not None and qty != int(qty):
             warnings.append(
                 f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
                 f"serial-tracked but quantity ({qty}) is not a whole number; "
                 "serial-tracked variants must ship in integer units."
             )
-        elif uses_traceability_serials:
-            # Serials supplied via ``traceability`` instead of the flat
-            # ``serial_numbers`` list — Katana validates their count/identity
-            # server-side, so skip the ``serial_numbers`` presence/count guards.
-            pass
         elif is_tracked and not serials and (qty or 0) > 0:
             warnings.append(
                 f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
-                "serial-tracked. Pass serial_numbers via the rows= override "
-                "(one SerialNumber ID per unit). Caveat: if this row is "
-                "fulfilled from a linked manufacturing order that already "
-                "minted the serial, Katana's public API cannot transfer it "
-                "onto this row (it returns 'serial numbers have already been "
-                "assigned'); fulfill that row from the Katana UI (\"Deliver "
-                'all") instead.'
+                "serial-tracked but has no complete serial allocation. Omit "
+                "row allocations only when the sales row already reserves one "
+                "serial per unit, or pass rows[].traceability with one existing "
+                "serial_number_id and quantity=1 per unit. Explicit empty or "
+                "invalid allocations do not inherit the reservation."
             )
-        elif serials is not None and qty is not None and len(serials) != qty:
-            warnings.append(
-                f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}): "
-                f"serial_numbers count ({len(serials)}) must equal quantity "
-                f"({qty})."
-            )
+        elif (is_tracked or has_serial_override) and not (
+            has_traceability and not is_tracked
+        ):
+            if serials is None:
+                continue
+            if any(type(sid) is not int or sid <= 0 for sid in serials) or len(
+                set(serials)
+            ) != len(serials):
+                warnings.append(
+                    f"{BLOCK_WARNING_PREFIX} Row {rid}: each serial must be a unique positive ID."
+                )
+            if qty is not None and len(serials) != qty:
+                warnings.append(
+                    f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}): "
+                    f"serial_numbers count ({len(serials)}) must equal quantity ({qty})."
+                )
     return warnings
 
 
@@ -1597,10 +1721,9 @@ async def _fulfill_sales_order(
     should use the Katana UI directly; the tool's MCP surface intentionally
     keeps the simple case simple.
 
-    Serial-tracked variants need ``serial_numbers`` IDs attached per row;
-    callers pass them via ``request.rows`` (``FulfillRowOverride``). Without
-    them, Katana 422s on apply, so the tool emits a ``BLOCK:`` warning at
-    preview time and refuses on direct apply.
+    Serial-tracked rows use explicit allocations or a complete reservation
+    from the freshly fetched sales row. Omission preserves that reservation;
+    explicit empty allocations never fall back to it.
     """
     from katana_public_api_client.api.sales_order import (
         get_sales_order as api_get_sales_order,
@@ -1614,6 +1737,9 @@ async def _fulfill_sales_order(
     order_number = unwrap_unset(so.order_no, f"SO-{request.order_id}")
     current_status = so.status.value if so.status else "UNKNOWN"
     so_rows = unwrap_unset(so.sales_order_rows, []) or []
+    row_overrides = {
+        override.sales_order_row_id: override for override in (request.rows or [])
+    }
 
     overrides_by_row: dict[int, list[int]] = {
         ovr.sales_order_row_id: ovr.serial_numbers or []
@@ -1713,7 +1839,10 @@ async def _fulfill_sales_order(
         currency = raw_currency if isinstance(raw_currency, str) else None
     fulfilled_rows = _build_fulfilled_rows_sales(
         so_rows,
-        overrides_by_row=overrides_by_row,
+        overrides_by_row={
+            row.id: _sales_serial_ids(row, row_overrides.get(row.id)) or []
+            for row in so_rows
+        },
         sku_by_row=sku_by_row,
         display_name_by_row=display_name_by_row,
         currency=currency,
@@ -1954,14 +2083,15 @@ async def fulfill_order(
     Manufacturing: marks order DONE, adds finished goods, consumes raw materials.
     Sales: creates a fulfillment record, reduces available inventory.
 
-    Known gap — serial-tracked make-to-order sales rows: a sales-order row whose
-    serial was produced by a *linked* make-to-order MO cannot be fulfilled via the
-    public API. Passing the serial is rejected ("already assigned"); omitting it is
-    rejected ("serial quantity must match"). This is a Katana-side gap (escalated
-    2026-06-02, tracked in dougborg/katana-openapi-client#784); until Katana exposes a
-    serial-transfer verb these orders must be delivered in the Katana web UI.
-    Serial-tracked sales rows NOT linked to an MO, and all manufacturing-order
-    completions, fulfill normally.
+    Serial-tracked make-to-order sales rows can carry forward a complete existing
+    reservation when allocations are omitted, or use rows[].traceability with
+    one existing serial_number_id and quantity=1 per unit. Do not unassign/delete
+    serials to enable delivery. Explicit empty allocations are not omission.
+
+    Manufacturing requires supplied serial IDs or generate_serial_numbers=true
+    after confirming automatic generation is configured for this product/tenant.
+    Production and delivery dates are controlled by completed_at; complete the
+    linked MO before delivering the sales order.
     """
     response = await _fulfill_order_impl(request, context)
     return _fulfill_response_to_tool_result(response, request=request)
