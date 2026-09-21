@@ -18,17 +18,20 @@ docker pull ghcr.io/dougborg/katana-mcp-server:0.1.0
 
 ## Building the Docker Image
 
+Run these commands from the repository root so the image can include the client source
+from the same commit.
+
 ### Local Build
 
 ```bash
-cd katana_mcp_server
-docker build -t katana-mcp-server:latest .
+docker build -f katana_mcp_server/Dockerfile -t katana-mcp-server:latest .
 ```
 
 ### Multi-platform Build (for registry)
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
+  -f katana_mcp_server/Dockerfile \
   -t your-registry/katana-mcp-server:latest \
   --push .
 ```

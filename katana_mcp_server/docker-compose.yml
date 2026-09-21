@@ -12,8 +12,8 @@ services:
   katana-mcp:
     image: katana-mcp-server
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: katana_mcp_server/Dockerfile
     container_name: katana-mcp-server
     restart: unless-stopped
     ports:

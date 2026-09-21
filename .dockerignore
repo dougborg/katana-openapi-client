@@ -1,0 +1,25 @@
+# The MCP image builds from the repository root so it can install the client
+# source from the same release commit. Only files required to build the two
+# packages and the client's embedded OpenAPI document enter that context.
+*
+!pyproject.toml
+!README.md
+!katana_public_api_client/
+!katana_public_api_client/**
+!docs/
+docs/**
+!docs/katana-openapi.yaml
+!katana_mcp_server/
+katana_mcp_server/**
+!katana_mcp_server/pyproject.toml
+!katana_mcp_server/README.md
+!katana_mcp_server/src/
+!katana_mcp_server/src/**
+
+# Do not admit local credentials, environments, or interpreter artifacts from
+# the otherwise required source trees.
+**/.env
+**/.env.*
+**/.venv/
+**/__pycache__/
+**/*.py[cod]

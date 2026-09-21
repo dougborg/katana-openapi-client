@@ -80,7 +80,9 @@ never on a `main` push - and:
 1. publishes the release (`gh release edit --draft=false`)
 
 For `mcp-v*` tags, a follow-on job also builds and pushes the multi-arch Docker image to
-`ghcr.io/dougborg/katana-mcp-server`.
+`ghcr.io/dougborg/katana-mcp-server`. That image installs the client source from the
+same tagged commit, so the Docker build does not depend on the separate client PyPI
+publish finishing first.
 
 Releases are always finalized (published) only **after** their assets are attached.
 Draft releases accept asset uploads; once a release is published it becomes
