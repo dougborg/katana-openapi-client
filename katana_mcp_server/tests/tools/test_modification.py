@@ -9,6 +9,7 @@ helper through the actual tool flow.
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, cast
@@ -37,6 +38,7 @@ from katana_mcp.tools._modification_dispatch import (
 from katana_mcp.typed_cache import TypedCacheEngine
 
 from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.models.item_config import ItemConfig
 
 
 class _SampleEnum(StrEnum):
@@ -166,6 +168,41 @@ def test_compute_field_diff_preserves_leading_zeros_in_integer_strings():
     assert diff[0].is_unchanged is False
     assert diff[0].old == "00123"
     assert diff[0].new == "123"
+
+
+@pytest.mark.parametrize("model_kind", ["attrs", "pydantic"])
+def test_config_diff_serializes_nested_models_without_changing_labels(model_kind):
+    from katana_mcp.tools.foundation.items import ItemConfigPatch, ItemHeaderPatch
+
+    prior_config = {"id": 1, "name": "Size", "values": ["01.00", "00123"]}
+    model = ItemConfig if model_kind == "attrs" else ItemConfigPatch
+    existing = _AttrsStub(configs=[model(id=1, name="Size", values=["01.00", "00123"])])
+    request = ItemHeaderPatch(
+        configs=[ItemConfigPatch(id=1, name="Size", values=["1.0", "00123"])]
+    )
+
+    diff = compute_field_diff(existing=existing, request=request)
+    serialized = json.loads(diff[0].model_dump_json())
+
+    assert serialized["old"] == [prior_config]
+    assert serialized["new"] == [{"id": 1, "name": "Size", "values": ["1.0", "00123"]}]
+    assert serialized["is_unchanged"] is False
+    assert isinstance(serialized["old"][0]["id"], int)
+
+
+@pytest.mark.asyncio
+async def test_config_diff_verifies_matching_attrs_response():
+    from katana_mcp.tools.foundation.items import ItemConfigPatch, ItemHeaderPatch
+
+    config = {"id": 1, "name": "Size", "values": ["01.00"]}
+    existing = _AttrsStub(configs=[ItemConfig.from_dict(src_dict=config)])
+    request = ItemHeaderPatch(configs=[ItemConfigPatch.model_validate(config)])
+
+    diff = compute_field_diff(existing=existing, request=request)
+    verify = make_response_verifier(diff=diff)
+
+    assert diff[0].is_unchanged is True
+    assert await verify(existing) == (True, None)
 
 
 @pytest.mark.asyncio

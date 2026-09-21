@@ -49,6 +49,29 @@ async def main():
 asyncio.run(main())
 ```
 
+## Synchronous endpoints
+
+Generated endpoints also expose `sync` and `sync_detailed`. Use a regular context
+manager to close their separate synchronous HTTP client:
+
+```python
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.api.product import get_all_products
+
+with KatanaClient(api_key="your-api-key") as client:
+    response = get_all_products.sync_detailed(client=client, limit=50, page=1)
+```
+
+Synchronous calls perform a single request. Automatic retries, adaptive rate limiting,
+auto-pagination, and the `event_hooks` passed to `KatanaClient` apply only to
+asynchronous calls. Synchronous callers must handle subsequent pages and retry policy
+themselves. Authentication, timeout, TLS, and connection settings still apply. To
+customize synchronous transport or hooks, construct an `httpx.Client` and pass it to
+`client.set_httpx_client(...)`; that supplied client owns its authentication and other
+settings. Default sync and async transports have independent lifetimes. An explicitly
+supplied `transport` is reused for sync calls if it supports them; an async-only
+override raises a clear error instead of falling back to real network requests.
+
 ## 📥 Response Handling
 
 Use the helper utilities in `katana_public_api_client.utils` for consistent response

@@ -2,7 +2,7 @@
 KatanaClient - The pythonic Katana API client with automatic resilience.
 
 This client uses httpx's native transport layer to provide automatic retries,
-rate limiting, error handling, and pagination for all API calls without any
+rate limiting, error handling, and pagination for asynchronous API calls without any
 decorators or wrapper methods needed.
 """
 
@@ -1793,6 +1793,7 @@ class KatanaClient(AuthenticatedClient):
             "async_transport", None
         )
 
+        self._custom_transport = custom_transport
         if custom_transport:
             # User provided a custom transport, use it as-is
             transport = custom_transport
@@ -1831,8 +1832,65 @@ class KatanaClient(AuthenticatedClient):
             },
         )
 
-    # Remove the client property since we inherit from AuthenticatedClient
-    # Users can now pass the KatanaClient instance directly to API methods
+    def get_httpx_client(self) -> httpx.Client:
+        """Get a synchronous client with its own HTTP transport.
+
+        Generated ``sync``/``sync_detailed`` endpoints make one request per
+        call, without the async retry, rate-limit, pagination, or event-hook
+        stack. Use ``set_httpx_client`` to supply custom synchronous behavior.
+        Default transports have independent lifetimes. An explicit custom
+        transport is reused only if it supports synchronous requests.
+        """
+        if self._client is None:
+            if self._custom_transport is not None and not isinstance(
+                self._custom_transport, httpx.BaseTransport
+            ):
+                raise TypeError(
+                    "The configured custom transport is async-only. Use async endpoints "
+                    "or set_httpx_client() with a synchronous client."
+                )
+            kwargs = dict(self._httpx_args)
+            kwargs.pop("transport", None)
+            kwargs.pop("event_hooks", None)
+            transport_kwargs: dict[str, Any] = {"verify": self._verify_ssl}
+            for name in (
+                "verify",
+                "cert",
+                "trust_env",
+                "http1",
+                "http2",
+                "limits",
+                "proxy",
+                "uds",
+                "local_address",
+                "retries",
+                "socket_options",
+            ):
+                if name in kwargs:
+                    transport_kwargs[name] = kwargs.pop(name)
+            headers = httpx.Headers(kwargs.pop("headers", {}))
+            headers.update(self._headers)
+            headers[self.auth_header_name] = (
+                f"{self.prefix} {self.token}" if self.prefix else self.token
+            )
+            options: dict[str, Any] = {
+                "base_url": self._base_url,
+                "cookies": self._cookies,
+                "timeout": self._timeout,
+                "follow_redirects": self._follow_redirects,
+                "trust_env": transport_kwargs.get("trust_env", True),
+                **kwargs,
+            }
+            self._client = httpx.Client(
+                headers=headers,
+                transport=(
+                    self._custom_transport
+                    if self._custom_transport is not None
+                    else httpx.HTTPTransport(**transport_kwargs)
+                ),
+                **options,
+            )
+        return self._client
 
     # Domain properties for ergonomic access
     @property

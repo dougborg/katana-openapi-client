@@ -29,6 +29,7 @@ from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Annotated, Any, ClassVar
 
+from attrs import has as has_attrs
 from fastmcp.tools import ToolResult
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
@@ -355,7 +356,7 @@ class ModificationResponse(BaseModel):
     DEFAULT_EXCLUDED: ClassVar[tuple[str, ...]] = ("id", "preview")
 
 
-def _normalize(value: Any) -> Any:
+def _normalize(value: Any, *, coerce_numbers: bool = True) -> Any:
     """Normalize a value for diff comparison.
 
     UNSET sentinels collapse to ``None``; datetimes flatten to ISO strings;
@@ -365,8 +366,10 @@ def _normalize(value: Any) -> Any:
     representation of monetary fields (e.g. ``"1100.0000000000"`` vs ``1100``).
     Integer-only strings stay as strings — order numbers, ZIP codes, and
     zero-padded SKUs like ``"00123"`` carry semantically meaningful
-    formatting that Decimal coercion would silently drop. Lists and dicts
-    are returned as-is — the caller is responsible for upstream comparability.
+    formatting that Decimal coercion would silently drop. Nested attrs and
+    Pydantic models become plain mappings, recursively through lists/dicts.
+    Nested numbers and strings retain their wire types: config IDs must stay
+    integers, and labels such as "01.00" must not compare equal to "1.0".
     """
     if value is UNSET:
         return None
@@ -374,6 +377,16 @@ def _normalize(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, Enum):
         return value.value
+    if isinstance(value, BaseModel):
+        value = value.model_dump()
+    elif has_attrs(type(value)) and hasattr(value, "to_dict"):
+        value = value.to_dict()
+    if isinstance(value, dict):
+        return {k: _normalize(v, coerce_numbers=False) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_normalize(v, coerce_numbers=False) for v in value]
+    if not coerce_numbers:
+        return value
     # bool is a subclass of int — short-circuit so True/False don't
     # accidentally become Decimal('1') / Decimal('0').
     if isinstance(value, bool):

@@ -27,3 +27,8 @@ except ImportError:  # pragma: no cover - libyaml not built into this PyYAML
 def safe_load_yaml(text: str) -> Any:
     """``yaml.safe_load`` equivalent, using libyaml's C loader when available."""
     return yaml.load(text, Loader=_FastSafeLoader)
+
+
+def safe_compose_yaml(text: str) -> yaml.Node | None:
+    """Parse YAML nodes with the same safe loader, preserving source marks."""
+    return yaml.compose(text, Loader=_FastSafeLoader)

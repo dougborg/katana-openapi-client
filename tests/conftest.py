@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
-import yaml
+from scripts._yaml import safe_load_yaml
 
 from katana_public_api_client import KatanaClient
 
@@ -27,7 +27,7 @@ def openapi_spec() -> dict[str, Any]:
     per ``poe test`` run).
     """
     with open(_SPEC_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return safe_load_yaml(f.read())
 
 
 @pytest.fixture

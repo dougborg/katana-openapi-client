@@ -2731,3 +2731,71 @@ async def test_resolve_prior_supplier_name_warning_appended_on_miss():
     assert response.prior_state is not None
     assert "default_supplier_name" not in response.prior_state
     assert any("999" in w for w in response.warnings)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("item_type", [ItemType.PRODUCT, ItemType.MATERIAL])
+@pytest.mark.parametrize("preview", [True, False])
+async def test_modify_item_config_response_is_json_serializable(item_type, preview):
+    from katana_mcp.tools._modification import to_tool_result
+    from katana_mcp.tools.foundation.items import (
+        ItemConfigPatch,
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    from katana_public_api_client.models.material import Material
+    from katana_public_api_client.models.product import Product
+
+    model = Product if item_type == ItemType.PRODUCT else Material
+    before = model.from_dict(
+        {
+            "id": 42,
+            "name": "Config test",
+            "type": item_type.value,
+            "configs": [{"id": 1, "name": "Size", "values": ["01.00"]}],
+        }
+    )
+    after = model.from_dict(
+        {
+            "id": 42,
+            "name": "Config test",
+            "type": item_type.value,
+            "configs": [{"id": 1, "name": "Size", "values": ["2.00"]}],
+        }
+    )
+    request = ModifyItemRequest(
+        id=42,
+        type=item_type,
+        preview=preview,
+        update_header=ItemHeaderPatch(
+            configs=[ItemConfigPatch(id=1, name="Size", values=["2.00"])]
+        ),
+    )
+    context, _ = create_mock_context()
+    endpoint = f"katana_public_api_client.api.{item_type.value}.update_{item_type.value}.asyncio_detailed"
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_item_for_diff",
+            return_value=before,
+        ),
+        patch(endpoint, new_callable=AsyncMock) as update,
+        patch(_MODIFY_ITEM_UNWRAP_AS, return_value=after),
+    ):
+        response = await _modify_item_impl(request=request, context=context)
+        payload = json.loads(response.model_dump_json())
+        result = to_tool_result(
+            response=response, confirm_request=request, confirm_tool="modify_item"
+        )
+
+    change = payload["actions"][0]["changes"][0]
+    assert change["old"] == [{"id": 1, "name": "Size", "values": ["01.00"]}]
+    assert change["new"] == [{"id": 1, "name": "Size", "values": ["2.00"]}]
+    assert result.structured_content is not None
+    if preview:
+        update.assert_not_awaited()
+    else:
+        update.assert_awaited_once()
+        assert response.actions[0].succeeded is True
+        assert response.actions[0].verified is True
