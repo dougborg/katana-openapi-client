@@ -15,6 +15,7 @@ from typing import Any, ClassVar
 
 import pytest
 import yaml
+from scripts._yaml import safe_compose_yaml, safe_load_yaml
 
 
 class TestOpenAPISpecification:
@@ -175,7 +176,7 @@ class TestOpenAPISpecification:
 
         # This will raise an exception if YAML is invalid
         with open(spec_path, encoding="utf-8") as f:
-            yaml.safe_load(f)
+            safe_load_yaml(f.read())
 
     def test_parameter_definition_consistency(self, spec: dict[str, Any]):
         """Test that parameters are only defined at operation level for consistency."""
@@ -421,7 +422,9 @@ class TestSpecSourceHygiene:
                     walk(key)
                     walk(value)
 
-        walk(yaml.compose(text, Loader=yaml.SafeLoader))
+        root = safe_compose_yaml(text)
+        if root is not None:
+            walk(root)
         return out
 
     def test_no_unquoted_hash_truncating_a_value(self) -> None:

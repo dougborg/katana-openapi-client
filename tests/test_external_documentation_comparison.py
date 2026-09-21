@@ -15,19 +15,12 @@ Internal spec quality (schema validity, structure, etc.) is covered by:
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
-
-# Ensure the project root is on sys.path so ``scripts`` is importable.
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from scripts.audit_spec_drift import (  # noqa: E402
+from scripts._yaml import safe_load_yaml
+from scripts.audit_spec_drift import (
     DEFAULT_OVERRIDES,
     AuditReport,
     apply_overrides,
@@ -35,6 +28,7 @@ from scripts.audit_spec_drift import (  # noqa: E402
     load_overrides,
 )
 
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 LIVE_SPEC_PATH = PROJECT_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
 
 
@@ -51,7 +45,7 @@ def live_spec() -> dict[str, Any]:
             f"{LIVE_SPEC_PATH.relative_to(PROJECT_ROOT)} not present — "
             "run `uv run poe refresh-upstream-spec` first"
         )
-    return yaml.safe_load(LIVE_SPEC_PATH.read_text(encoding="utf-8"))
+    return safe_load_yaml(LIVE_SPEC_PATH.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")

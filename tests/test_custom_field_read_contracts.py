@@ -4,8 +4,7 @@ from collections import Counter
 
 import httpx
 import pytest
-import yaml
-from scripts.probe_custom_field_reads import SPEC_PATH, field_contract, probe, summarize
+from scripts.probe_custom_field_reads import field_contract, probe, summarize
 
 from katana_public_api_client import models
 from katana_public_api_client.models_pydantic import _generated as pydantic_models
@@ -19,8 +18,8 @@ PAYLOADS = (
 
 
 @pytest.fixture(scope="module")
-def schemas():
-    return yaml.safe_load(SPEC_PATH.read_text())["components"]["schemas"]
+def schemas(openapi_spec):
+    return openapi_spec["components"]["schemas"]
 
 
 @pytest.mark.parametrize("name", ["Variant", "VariantResponse", "ServiceVariant"])

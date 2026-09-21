@@ -53,10 +53,14 @@ def _port_free(port: int) -> bool:
     return True
 
 
-def _wait_http_ok(url: str, timeout: float = 30.0) -> bool:
+def _wait_http_ok(
+    url: str, timeout: float = 30.0, *, process: subprocess.Popen[bytes] | None = None
+) -> bool:
     """Poll an URL until it responds (any non-connection-error response)."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
+        if process is not None and process.poll() is not None:
+            return False
         try:
             httpx.get(url, timeout=1.0)
             return True
@@ -66,7 +70,7 @@ def _wait_http_ok(url: str, timeout: float = 30.0) -> bool:
 
 
 @pytest.fixture(scope="session")
-def apps_dev_server() -> Iterator[str]:
+def apps_dev_server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     """Start the fastmcp ``apps_dev`` preview server (and the underlying user
     MCP server) in a subprocess, yielding the dev URL.
 
@@ -80,51 +84,54 @@ def apps_dev_server() -> Iterator[str]:
             f"server already running. Stop it before running browser tests."
         )
 
-    proc = subprocess.Popen(
-        [
-            sys.executable,
-            "-m",
-            "fastmcp.cli",
-            "dev",
-            "apps",
-            f"{_SERVER_FILE}:mcp",
-            "--mcp-port",
-            str(_MCP_PORT),
-            "--dev-port",
-            str(_DEV_PORT),
-            "--no-reload",
-        ],
-        # ``fastmcp dev apps`` unconditionally calls ``webbrowser.open(dev_url)``
-        # on startup with no flag to disable it. Setting ``BROWSER=true`` makes
-        # Python's webbrowser module dispatch to the ``true`` command (resolved
-        # via PATH) — exits 0, opens nothing. Skipped on Windows: there's no
-        # ``true`` there, and webbrowser would fall through to the default
-        # browser. The suite is documented as macOS/Linux-only, matching the
-        # ``start_new_session`` guard below.
-        env={
-            **os.environ,
-            "FASTMCP_LOG_LEVEL": "WARNING",
-            # Exercise the renderer shipped with the locked Prefab version.
-            # Fetching its CDN bundle per page makes card tests depend on CDN
-            # download speed, even though the identical bundle is installed.
-            "PREFAB_RENDERER_URL": "",
-            "PREFAB_BUNDLED_RENDERER": "1",
-            # The bundled renderer exceeds MCP 2's 1 MiB SSE event limit.
-            # Use the server's JSON response transport for local resources.
-            "FASTMCP_JSON_RESPONSE": "1",
-            **({"BROWSER": "true"} if sys.platform != "win32" else {}),
-        },
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=sys.platform != "win32",
-    )
+    startup_log = tmp_path_factory.mktemp("apps-dev") / "startup.log"
+    with startup_log.open("w", encoding="utf-8") as output:
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "fastmcp.cli",
+                "dev",
+                "apps",
+                f"{_SERVER_FILE}:mcp",
+                "--mcp-port",
+                str(_MCP_PORT),
+                "--dev-port",
+                str(_DEV_PORT),
+                "--no-reload",
+            ],
+            # ``fastmcp dev apps`` unconditionally calls ``webbrowser.open(dev_url)``
+            # on startup with no flag to disable it. Setting ``BROWSER=true`` makes
+            # Python's webbrowser module dispatch to the ``true`` command (resolved
+            # via PATH) — exits 0, opens nothing. Skipped on Windows: there's no
+            # ``true`` there, and webbrowser would fall through to the default
+            # browser. The suite is documented as macOS/Linux-only, matching the
+            # ``start_new_session`` guard below.
+            env={
+                **os.environ,
+                "FASTMCP_LOG_LEVEL": "WARNING",
+                # Exercise the renderer shipped with the locked Prefab version.
+                # Fetching its CDN bundle per page makes card tests depend on CDN
+                # download speed, even though the identical bundle is installed.
+                "PREFAB_RENDERER_URL": "",
+                "PREFAB_BUNDLED_RENDERER": "1",
+                # The bundled renderer exceeds MCP 2's 1 MiB SSE event limit.
+                # Use the server's JSON response transport for local resources.
+                "FASTMCP_JSON_RESPONSE": "1",
+                **({"BROWSER": "true"} if sys.platform != "win32" else {}),
+            },
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            start_new_session=sys.platform != "win32",
+        )
 
     dev_url = f"http://127.0.0.1:{_DEV_PORT}"
     try:
-        if not _wait_http_ok(dev_url, timeout=30.0):
+        if not _wait_http_ok(dev_url, timeout=30.0, process=proc):
             pytest.fail(
                 f"apps_dev server did not start on {dev_url} within 30s. "
-                f"Check that ``uv run fastmcp dev apps`` works manually."
+                f"Process exit: {proc.poll()}. Startup log:\n"
+                f"{startup_log.read_text(encoding='utf-8')[-12000:]}"
             )
         yield dev_url
     finally:
