@@ -9236,6 +9236,29 @@ class TestConfirmButtonEmitsCallTool:
         assert args["serial_numbers"] == [12345, 12346]
         assert args["acknowledge_inventory_ordering"] is True
 
+    def test_fulfill_preview_confirm_preserves_generation_consent(self):
+        from katana_mcp.tools.foundation.orders import FulfillOrderRequest
+
+        request = FulfillOrderRequest(
+            order_id=9999, order_type="manufacturing", generate_serial_numbers=True
+        )
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 9999,
+                "order_type": "manufacturing",
+                "order_number": "MO-1",
+                "status": "NOT_STARTED",
+                "warnings": [],
+            },
+            request=request,
+        )
+        on_click = _confirm_button_on_click(app.to_json(), "Confirm Fulfillment")
+        args = self._assert_apply_actions(on_click, "fulfill_order")["arguments"]
+        assert args["generate_serial_numbers"] is True
+        assert args.get("serial_numbers") is None
+        assert args.get("traceability") is None
+        assert args["preview"] is False
+
     def test_fulfill_preview_confirm_carries_sales_row_overrides(self):
         """The ``rows`` field (sales-side per-row overrides) round-trips
         through the apply payload the same way as the MO-side

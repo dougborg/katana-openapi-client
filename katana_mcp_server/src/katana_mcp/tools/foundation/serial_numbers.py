@@ -485,18 +485,11 @@ async def add_serial_numbers(
       Strings that don't exist anywhere land in ``failed`` with
       ``reason=MISSING`` — the call still succeeds.
 
-    **Exception — a ``SalesOrderRow`` fulfilled from a linked manufacturing
-    order:** when the target SO row's production is driven by a linked MO
-    (the common serial-tracked close-out case — a finished good came off an
-    MO with the serial already minted on it), Katana rejects the transfer
-    outright with ``422 "SalesOrderRow <id> is linked, serial info must be
-    updated on MO"``. Serials on such a row are controlled by the MO, and
-    ``fulfill_order(order_type="sales", rows=[{"sales_order_row_id": <id>,
-    "serial_numbers": [<sn_id>]}])`` likewise 422s ("serial numbers have
-    already been assigned"). There is no
-    public-API path to complete that MO→SO transfer today; perform it from
-    the Katana UI ("Deliver all"), which moves the serial atomically. (The
-    transfer path above works normally for SO rows *not* linked to an MO.)
+    For a linked make-to-order sales row, inspect the MO/production and sales
+    row allocations. ``fulfill_order`` can deliver using the complete existing
+    reservation (omit allocations) or explicit ``rows[].traceability``. Do not
+    delete or unassign serials as a delivery workaround. Manual assignment can
+    still reject linked rows; that adapter is separate from fulfillment.
 
     Partial failure is possible: any string the API rejects (DUPLICATE on
     the mint path, MISSING on the transfer path) lands in ``failed`` while

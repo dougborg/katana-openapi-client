@@ -209,3 +209,33 @@ Evidence logs and fresh source downloads are under `/tmp/katana-current-research
 records are complete. The raw probes bypassed MCP orchestration deliberately to isolate
 API behavior. They establish the supported one-unit auto-generated MTO flow, not all
 partial fulfillments, preexisting manually assigned serials, or account configurations.
+
+## MCP regression follow-up (2026-09-21)
+
+The #784 implementation was exercised through `_fulfill_order_impl` against the test
+factory for both omitted and explicit sales allocations. Both ledgered tests passed:
+automatic production returned the generated serial, the sales preview showed the same
+serial, and delivery preserved the original manufacturing transaction ID/date while
+stamping exactly one sales consumption at the requested picked date. Fixture teardown
+deleted all tracked parents. Empty serial identities can remain as described above; this
+test does not delete or unassign serials to enable delivery.
+
+Manufacturing generation is an explicit `generate_serial_numbers=true` option. It
+requires confirmed serial tracking and the caller's confirmation that automatic
+generation is configured for the product/tenant; the public API exposes no separate
+readable generation setting. Both allocation fields must be omitted, including no
+explicit empty list. Unsupported API responses are surfaced without a second creation
+attempt. Incomplete generated-serial readback reports the created production ID and
+warns against repeating production.
+
+Sales allocation omission now uses a complete reservation from the freshly fetched sales
+row. Explicit unified traceability takes precedence; invalid, empty, duplicate, or
+incomplete serial allocations remain blocked. Transaction audit history is not used as
+current allocation state. Full-quantity fulfillment remains the supported MCP operation;
+this does not establish partial-fulfillment behavior or resolve #983's
+manual-assignment/listing discrepancies.
+
+Coverage lives in `katana_mcp_server/tests/tools/test_mto_fulfillment.py` and
+`tests/integration/test_mto_serial_fulfillment_live.py`. The latter runs with the
+existing local/nightly live suite and requires automatic generation configured in the
+test tenant.

@@ -94,7 +94,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 
 ### Serial Numbers
 - **add_serial_numbers** - Attach serial numbers to a resource. Mint new ones (ManufacturingOrder, PurchaseOrderRow) or transfer existing strings between resources (SalesOrderRow, StockTransferRow, StockAdjustmentRow). Partial-failure capable. (preview/apply)
-- **list_serial_numbers** - List serial numbers, optionally scoped by `resource_type` and/or `resource_id`. Diagnostic / lookup tool — use to verify which strings are attached to an MO before fulfillment.
+- **list_serial_numbers** - List serial numbers, optionally scoped by `resource_type` and/or `resource_id`. Diagnostic / lookup tool. It can omit serials present in MO/production and sales-row allocations; inspect those documents before fulfillment.
 - **delete_serial_numbers** - Detach serial numbers from a resource. Idempotent (Katana returns 204 even for invalid ids). (preview/apply, destructive)
 
 ### Customers
@@ -1907,25 +1907,21 @@ Complete a manufacturing or sales order.
 - `order_type` (required): "manufacturing" or "sales"
 - `preview` (optional, default true): true=preview, false=fulfill
 - `rows` (optional, sales orders only): Per-row overrides
-  `[{sales_order_row_id, serial_numbers?}]`. `serial_numbers` is a list of
-  pre-existing `SerialNumber` IDs to attach to that row; the count must
-  equal the row's ordered quantity. **Required** when the row's variant is
-  serial-tracked — without it, the tool emits a `BLOCK:` warning at preview
-  and refuses on direct apply (Katana would 422 the request).
-  **Caveat (serial minted on a linked MO):** the public-API write paths
-  cannot *transfer* a serial that is currently attached to the row's linked
-  manufacturing order — `POST /sales_order_fulfillments` returns "serial
-  numbers have already been assigned" and `add_serial_numbers(SalesOrderRow)`
-  returns "is linked, serial info must be updated on MO". That common
-  close-out case (finished good came off an MO with the serial already
-  minted) has no MCP-native path today; fulfill it from the Katana UI
-  ("Deliver all"), which performs the MO→SO transfer atomically.
-- `serial_numbers` (optional, manufacturing orders only): List of pre-existing
-  `SerialNumber` IDs to attach to the produced units when marking the MO
-  DONE. Length must equal `actual_quantity`. **Required** when the MO's
-  finished-good variant is serial-tracked — without it, the tool emits a
-  `BLOCK:` warning at preview and refuses on direct apply (Katana would 422
-  the request).
+  `[{sales_order_row_id, traceability? | serial_numbers?}]`. Omit allocations
+  to carry forward the sales row's existing reservation. For serial-tracked
+  rows it must contain exactly one distinct serial per ordered unit.
+  Otherwise supply `traceability: [{serial_number_id: ID, quantity: 1}]`
+  for each unit. Unified `traceability` takes precedence over legacy
+  `serial_numbers`; an explicit empty list does not inherit existing allocations.
+- `serial_numbers` / `traceability` (optional, manufacturing only): Existing
+  serial IDs or output allocations, one serial per produced unit.
+- `generate_serial_numbers` (optional, default false, manufacturing only):
+  Explicitly request automatic generation after confirming it is configured in
+  Katana for the product/tenant. The tool verifies serial tracking; the public
+  API does not expose the generation setting. Omit both allocation inputs when
+  using this option. Preview shows the generation intent; apply returns the
+  generated IDs from production/MO readback. Upstream errors are surfaced.
+
 - `completed_at` (optional, ISO-8601): Backdated completion timestamp. MO →
   production POST `completed_date` (Katana propagates to `MO.done_date`);
   SO → fulfillment `picked_date`. Omit to let Katana stamp server-time.
@@ -1946,6 +1942,14 @@ Complete a manufacturing or sales order.
   consequence of a transient negative balance on the persistent
   `inventory_movements` ledger). Use only after explicit ledger
   verification.
+
+**Serial-tracked make-to-order close-out:** Complete the linked MO first, then
+read the sales row's allocation. Deliver with omitted allocations or explicit
+`rows[].traceability`. Set the delivery `completed_at` after production's
+`completed_at` to preserve inventory ordering. Neither a private UI API nor
+serial deletion/reassignment is needed for this verified flow. The legacy
+`list_serial_numbers` endpoint can return an empty list despite document
+allocations; use MO/production and sales-row readbacks to inspect this flow.
 
 **Returns:** Standard fulfillment envelope (`order_id`, `order_type`,
 `order_number`, `status`, `is_preview`, `inventory_updates`, `warnings`,
