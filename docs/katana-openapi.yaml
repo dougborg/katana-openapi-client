@@ -7871,7 +7871,9 @@ components:
           type: string
           description: Stock keeping unit code for unique identification of this product variant
         purchase_price:
-          type: number
+          type:
+            - number
+            - "null"
           minimum: 0
           description: Default purchase cost per unit for this product variant
           maximum: 100000000000
@@ -7889,7 +7891,7 @@ components:
           description: Internal barcode for warehouse scanning and tracking
         registered_barcode:
           type: string
-          maxLength: 120
+          maxLength: 40
           description: Official registered barcode (UPC, EAN, etc.) for retail use
         lead_time:
           type:
@@ -7898,7 +7900,9 @@ components:
           maximum: 999
           description: Days required to manufacture or procure this variant
         minimum_order_quantity:
-          type: number
+          type:
+            - number
+            - "null"
           minimum: 0
           maximum: 999999999
           description: Minimum quantity that must be ordered from suppliers

@@ -4660,7 +4660,7 @@ export type CreateMaterialVariantRequest = {
   /**
    * Default purchase cost per unit for this product variant
    */
-  purchase_price?: number;
+  purchase_price?: number | null;
   /**
    * Supplier-specific part numbers or SKUs for purchasing this variant
    */
@@ -4680,7 +4680,7 @@ export type CreateMaterialVariantRequest = {
   /**
    * Minimum quantity that must be ordered from suppliers
    */
-  minimum_order_quantity?: number;
+  minimum_order_quantity?: number | null;
   /**
    * Configuration attribute values that define this variant (color, size, etc.)
    */

@@ -690,6 +690,7 @@ async def _create_item_impl(
         success = await apply_material_sales_price(
             services=services,
             material_id=result.id,
+            material_name=result_name,
             sales_price=request.sales_price,
             view=view,
         )
@@ -962,7 +963,12 @@ async def build_item_create_view(
 
 
 async def apply_material_sales_price(
-    *, services: Any, material_id: int, sales_price: float, view: dict[str, Any]
+    *,
+    services: Any,
+    material_id: int,
+    material_name: str,
+    sales_price: float,
+    view: dict[str, Any],
 ) -> bool:
     """Set a newly created material's price, retaining IDs on partial failure.
 
@@ -978,15 +984,22 @@ async def apply_material_sales_price(
             )
         variant = variants[0]
         variant_id = variant.id
-        summary = _variant_to_summary(variant.model_dump())
+        summary = _variant_to_summary(variant.model_dump(), parent_name=material_name)
         if summary is not None:
             view["variants"] = [summary]
         updated = await services.client.variants.update(
             variant_id=variant_id,
             variant_data=APIUpdateVariantRequest(sales_price=sales_price),
         )
-        summary = _variant_to_summary(updated.model_dump())
+        summary = _variant_to_summary(updated.model_dump(), parent_name=material_name)
         if summary is not None:
+            # Katana's price-only PATCH response currently returns an empty
+            # config_attributes list even though the configuration is still
+            # present on the variant. Keep the display name built from the
+            # pre-PATCH lookup instead of replacing it with the bare SKU.
+            current = view["variants"][0] if view["variants"] else None
+            if current is not None and not updated.config_attributes:
+                summary.display_name = current.display_name
             view["variants"] = [summary]
         if updated.sales_price != sales_price:
             raise ValueError(

@@ -70,6 +70,27 @@ async def test_material_price_uses_followup_patch(entry, price):
 
 
 @pytest.mark.asyncio
+async def test_material_price_patch_preserves_configured_variant_display_name():
+    context, services, variant = prepare()
+    configured = variant.model_copy(
+        update={
+            "product_or_material_name": "Steel",
+            "config_attributes": [{"config_name": "Grade", "config_value": "Premium"}],
+        }
+    )
+    services.client.variants.list.return_value = [configured]
+    services.client.variants.update.return_value = configured.model_copy(
+        update={"sales_price": 12.34, "config_attributes": []}
+    )
+
+    result = await create("dedicated", context, 12.34)
+
+    assert result.success
+    assert result.variants[0].sales_price == 12.34
+    assert result.variants[0].display_name == "Steel / Premium"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("entry", ["dedicated", "generic"])
 @pytest.mark.parametrize("failure", ["lookup", "patch", "mismatch"])
 async def test_material_partial_failure_retains_creation_and_recovery_ids(

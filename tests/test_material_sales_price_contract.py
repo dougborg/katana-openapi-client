@@ -10,6 +10,7 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.models_pydantic import (
     CreateMaterialRequest as PydanticMaterialRequest,
+    CreateMaterialVariantRequest as PydanticMaterialVariantRequest,
 )
 
 
@@ -31,3 +32,33 @@ def test_pydantic_material_variant_rejects_unsupported_embedded_fields(field):
         PydanticMaterialRequest.model_validate(
             {"name": "Steel", "variants": [{"sku": "STEEL", field: 1}]}
         )
+
+
+def test_material_variant_accepts_verified_null_purchase_fields():
+    request = CreateMaterialVariantRequest(
+        sku="STEEL", purchase_price=None, minimum_order_quantity=None
+    )
+    assert request.to_dict() == {
+        "sku": "STEEL",
+        "purchase_price": None,
+        "minimum_order_quantity": None,
+    }
+
+    pydantic_request = PydanticMaterialVariantRequest.model_validate(
+        {"sku": "STEEL", "purchase_price": None, "minimum_order_quantity": None}
+    )
+    assert pydantic_request.purchase_price is None
+    assert pydantic_request.minimum_order_quantity is None
+
+
+def test_material_variant_barcode_and_lead_time_boundaries():
+    PydanticMaterialVariantRequest.model_validate(
+        {"registered_barcode": "B" * 40, "lead_time": 999}
+    )
+
+    with pytest.raises(ValidationError):
+        PydanticMaterialVariantRequest.model_validate({"registered_barcode": "B" * 41})
+    with pytest.raises(ValidationError):
+        PydanticMaterialVariantRequest.model_validate({"lead_time": 1000})
+    with pytest.raises(ValidationError):
+        PydanticMaterialVariantRequest.model_validate({"lead_time": 1.5})

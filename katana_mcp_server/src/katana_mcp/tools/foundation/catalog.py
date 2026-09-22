@@ -457,6 +457,7 @@ async def _create_material_impl(
             success = await apply_material_sales_price(
                 services=services,
                 material_id=material.id,
+                material_name=material_name,
                 sales_price=request.sales_price,
                 view=view,
             )

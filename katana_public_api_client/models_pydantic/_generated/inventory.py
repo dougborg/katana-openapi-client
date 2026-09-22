@@ -529,7 +529,7 @@ class CreateMaterialVariantRequest(KatanaPydanticBase):
         str | None,
         Field(
             description="Official registered barcode (UPC, EAN, etc.) for retail use",
-            max_length=120,
+            max_length=40,
         ),
     ] = None
     lead_time: Annotated[
