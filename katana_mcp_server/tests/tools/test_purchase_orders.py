@@ -3,6 +3,8 @@
 import json
 import os
 from datetime import UTC, datetime
+from http import HTTPStatus
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -32,6 +34,7 @@ from katana_mcp.tools.foundation.purchase_orders import (
     _modify_purchase_order_impl,
     _po_response_to_tool_result,
     _receive_purchase_order_impl,
+    _resolve_po_row_variants,
     _verify_order_document_impl,
     get_purchase_order,
     list_purchase_orders,
@@ -42,7 +45,7 @@ from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_ca
 from katana_public_api_client.api.purchase_order import (
     get_purchase_order as api_get_purchase_order,
 )
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.client_types import UNSET, Response
 from katana_public_api_client.models import (
     PurchaseOrderEntityType,
     PurchaseOrderReceiveRow,
@@ -4001,7 +4004,8 @@ async def test_modify_po_requires_at_least_one_subpayload():
 @pytest.mark.asyncio
 async def test_modify_po_preview_emits_planned_actions(patch_fetch_po):
     """Preview returns one ActionResult per planned API call, all succeeded=None."""
-    context, _ = create_mock_context()
+    context, services = create_mock_context()
+    stub_variant_cache(services, [create_mock_variant(100, "WIDGET-100")])
     existing = create_mock_po(order_id=42, order_no="PO-OLD", rows=[])
     existing.expected_arrival_date = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -4083,9 +4087,93 @@ async def test_modify_po_with_row_crud_resolves_variants(patch_fetch_po):
 
 
 @pytest.mark.asyncio
+async def test_resolve_po_row_variants_cache_hit_makes_no_api_call():
+    """The steady-state card path remains one cache read and zero API calls."""
+    _, services = create_mock_context()
+    services.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={
+            100: {"id": 100, "sku": "CACHE-100", "display_name": "Cached item"}
+        }
+    )
+
+    with patch(
+        "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+        new_callable=AsyncMock,
+    ) as api_get:
+        result = await _resolve_po_row_variants(services, {100})
+
+    api_get.assert_not_awaited()
+    assert result == {100: {"sku": "CACHE-100", "display_name": "Cached item"}}
+
+
+@pytest.mark.asyncio
+async def test_resolve_po_row_variants_fetches_cache_miss_from_api():
+    """A freshly-created variant gets its real SKU and canonical display name."""
+    _, services = create_mock_context()
+    services.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+    variant = SimpleNamespace(
+        id=100,
+        sku="FRESH-100",
+        product_or_material=SimpleNamespace(name="Fresh widget"),
+        config_attributes=[SimpleNamespace(config_value="Blue")],
+    )
+    response = Response(
+        status_code=HTTPStatus.OK,
+        content=b"{}",
+        headers={},
+        parsed=variant,
+    )
+
+    with patch(
+        "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+        new=AsyncMock(return_value=response),
+    ) as api_get:
+        result = await _resolve_po_row_variants(services, {100})
+
+    api_get.assert_awaited_once()
+    assert api_get.await_args_list[0].kwargs["id"] == 100
+    assert result == {100: {"sku": "FRESH-100", "display_name": "Fresh widget / Blue"}}
+
+
+@pytest.mark.asyncio
+async def test_resolve_po_row_variants_bounds_and_prioritizes_api_fallback():
+    """Large miss sets are capped, with changed-row IDs taking the slots first."""
+    _, services = create_mock_context()
+    services.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    async def api_response(*, id, **_kwargs):
+        return Response(
+            status_code=HTTPStatus.OK,
+            content=b"{}",
+            headers={},
+            parsed=SimpleNamespace(
+                id=id,
+                sku=f"SKU-{id}",
+                product_or_material=SimpleNamespace(name=f"Item {id}"),
+                config_attributes=[],
+            ),
+        )
+
+    with patch(
+        "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+        new=AsyncMock(side_effect=api_response),
+    ) as api_get:
+        result = await _resolve_po_row_variants(
+            services, set(range(1, 26)), fallback_priority={25}
+        )
+
+    fetched_ids = {call.kwargs["id"] for call in api_get.await_args_list}
+    assert len(fetched_ids) == 20
+    assert 25 in fetched_ids
+    assert result[25] == {"sku": "SKU-25", "display_name": "Item 25"}
+    assert result[20] == {"sku": None, "display_name": None}
+
+
+@pytest.mark.asyncio
 async def test_modify_po_confirm_executes_plan_in_canonical_order(patch_fetch_po):
     """Header → row adds → row updates → row deletes → cost adds/updates/deletes."""
-    context, _ = create_mock_context()
+    context, services = create_mock_context()
+    stub_variant_cache(services, [create_mock_variant(100, "WIDGET-100")])
 
     existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
     updated_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
@@ -4137,7 +4225,8 @@ async def test_modify_po_confirm_executes_plan_in_canonical_order(patch_fetch_po
 async def test_modify_po_fail_fast_halts_on_first_error(patch_fetch_po):
     """When the row-create fails, the header-update result is preserved
     but no further actions run."""
-    context, _ = create_mock_context()
+    context, services = create_mock_context()
+    stub_variant_cache(services, [create_mock_variant(100, "WIDGET-100")])
     existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
     updated_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
 
