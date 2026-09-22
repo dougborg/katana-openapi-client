@@ -1,0 +1,16 @@
+{
+  "name": "katana-browser-test-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild bridge-entry.js --bundle --format=esm --platform=browser --minify --legal-comments=eof --outfile=bridge.bundle.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.0.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

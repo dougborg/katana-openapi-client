@@ -24,7 +24,7 @@ import time
 from collections.abc import Iterator
 from contextlib import nullcontext
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 import pytest
@@ -39,6 +39,7 @@ from playwright.sync_api import (
 )
 
 _SERVER_FILE = Path(__file__).parent / "render_test_server.py"
+_LOCAL_APPS_DEV = Path(__file__).parent / "local_apps_dev.py"
 _DEV_PORT = 18876
 _MCP_PORT = 18877
 
@@ -74,9 +75,9 @@ def apps_dev_server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     """Start the fastmcp ``apps_dev`` preview server (and the underlying user
     MCP server) in a subprocess, yielding the dev URL.
 
-    Session-scoped so all browser tests share one server. The first call
-    pays the spin-up cost (~10s including app-bridge.js fetch from npm);
-    subsequent tests are immediate.
+    Session-scoped so all browser tests share one server. The first call pays
+    the server spin-up cost; subsequent tests are immediate. The launcher
+    serves its pinned AppBridge and MCP SDK bundle from the local test assets.
     """
     if not _port_free(_DEV_PORT) or not _port_free(_MCP_PORT):
         pytest.skip(
@@ -89,16 +90,12 @@ def apps_dev_server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
         proc = subprocess.Popen(
             [
                 sys.executable,
-                "-m",
-                "fastmcp.cli",
-                "dev",
-                "apps",
+                str(_LOCAL_APPS_DEV),
                 f"{_SERVER_FILE}:mcp",
                 "--mcp-port",
                 str(_MCP_PORT),
                 "--dev-port",
                 str(_DEV_PORT),
-                "--no-reload",
             ],
             # ``fastmcp dev apps`` unconditionally calls ``webbrowser.open(dev_url)``
             # on startup with no flag to disable it. Setting ``BROWSER=true`` makes
@@ -176,10 +173,31 @@ def playwright_browser() -> Iterator[Browser]:
 
 @pytest.fixture
 def page(playwright_browser: Browser) -> Iterator[Page]:
-    """Per-test Playwright page."""
+    """Per-test Playwright page with external network access disabled."""
     page = playwright_browser.new_page()
-    yield page
-    page.close()
+    external_requests: list[str] = []
+
+    def route_request(route) -> None:
+        parsed = urlsplit(route.request.url)
+        if parsed.scheme in {"http", "https"} and parsed.hostname not in {
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        }:
+            external_requests.append(route.request.url)
+            route.abort("blockedbyclient")
+            return
+        route.continue_()
+
+    page.route("**/*", route_request)
+    try:
+        yield page
+    finally:
+        page.close()
+    assert not external_requests, (
+        "Browser render test attempted external network requests: "
+        f"{external_requests!r}"
+    )
 
 
 @pytest.fixture
