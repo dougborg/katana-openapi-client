@@ -13,20 +13,20 @@ review does not claim every old observation was rerun.
 
 ### Questions to prioritize with Katana
 
-| Topic                                                                                                           | Question                                                                                    | Evidence                                                                  |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [BOM-row HTTP 500](#8-nonexistent-bom-row-update-returns-http-500)                                              | Can missing-row updates return a domain error or 404 instead of 500?                        | Test-tenant reproduction, 2026-09-20                                      |
-| [Notes cleared on PATCH](#6-patch-asymmetric-field-wipe-behavior)                                               | Is clearing omitted `additional_info` intentional?                                          | Five historical wipes; SO/ST preserve notes on 2026-09-20                 |
-| [Omitted batch quantity](#63-sales-order-row-batch-quantity-omission-resets-the-allocation-to-zero)             | Should an allocation with no quantity reset to zero, preserve the value, or be rejected?    | Test-tenant reproduction, 2026-09-20                                      |
-| [Stock deletion effects](#72-delete-behavior-on-already-applied-stock_transfer--stock_adjustment-is-unverified) | Does deletion reverse inventory, and what happens to movement history?                      | Live inventory reads inconsistent; deletion effects unverified            |
-| [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                          | How can integrations discover which resources support definition-keyed maps?                | Gateway checks and account-feature rejection, 2026-09-20                  |
-| [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                      | Which filter is canonical, and can the portal and gateway docs agree?                       | Controlled test-tenant comparison, 2026-09-20                             |
-| [Material sales price](#16-material-creation-rejects-nested-sales-price)                                        | Can initial material selling prices be set atomically during creation?                      | Test-tenant create/PATCH comparison, 2026-09-21                           |
-| [Serial attachment 404](#17-serial-attachment-reports-an-existing-manufacturing-order-as-missing)               | How should manual serial assignment/listing work with auto-generated document traceability? | Valid MO returns 404; auto-generation and fulfillment succeed, 2026-09-21 |
+| Topic                                                                                                          | Question                                                                                    | Evidence                                                                  |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [BOM-row HTTP 500](#8-nonexistent-bom-row-update-returns-http-500)                                             | Can missing-row updates return a domain error or 404 instead of 500?                        | Test-tenant reproduction, 2026-09-20                                      |
+| [Notes cleared on PATCH](#6-patch-asymmetric-field-wipe-behavior)                                              | Is clearing omitted `additional_info` intentional?                                          | Five historical wipes; SO/ST preserve notes on 2026-09-20                 |
+| [Omitted batch quantity](#63-sales-order-row-batch-quantity-omission-resets-the-allocation-to-zero)            | Should an allocation with no quantity reset to zero, preserve the value, or be rejected?    | Test-tenant reproduction, 2026-09-20                                      |
+| [Stock deletion effects](#72-delete-behavior-on-already-applied-stock_transfer-stock_adjustment-is-unverified) | Does deletion reverse inventory, and what happens to movement history?                      | Live inventory reads inconsistent; deletion effects unverified            |
+| [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                         | How can integrations discover which resources support definition-keyed maps?                | Gateway checks and account-feature rejection, 2026-09-20                  |
+| [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                     | Which filter is canonical, and can the portal and gateway docs agree?                       | Controlled test-tenant comparison, 2026-09-20                             |
+| [Material sales price](#16-material-creation-rejects-nested-sales-price)                                       | Can initial material selling prices be set atomically during creation?                      | Test-tenant create/PATCH comparison, 2026-09-21                           |
+| [Serial attachment 404](#17-serial-attachment-reports-an-existing-manufacturing-order-as-missing)              | How should manual serial assignment/listing work with auto-generated document traceability? | Valid MO returns 404; auto-generation and fulfillment succeed, 2026-09-21 |
 
-Local-only schema work is identified separately below. The remaining historical live
-checks stay tracked in
-[#603](https://github.com/dougborg/katana-openapi-client/issues/603).
+Local-only schema work is identified separately below. Every remaining open entry gives
+its latest verification date and distinguishes current spec review, current live probes,
+and historical observations that were not rerun.
 
 ______________________________________________________________________
 
@@ -136,14 +136,16 @@ See the
 **Ask:** Is this asymmetry intentional? Can material creation accept its initial selling
 price atomically, as product creation does? Until then, integrations need to report
 partial success if the separate price update fails, preserving the new IDs so callers do
-not repeat creation. Client/MCP correction is tracked in
-[#1083](https://github.com/dougborg/katana-openapi-client/issues/1083) and landed in
-[PR #1089](https://github.com/dougborg/katana-openapi-client/pull/1089). Remaining
-material input/readback corrections are tracked in
-[#1090](https://github.com/dougborg/katana-openapi-client/issues/1090).
+not repeat creation. The client/MCP workaround landed in
+[PR #1089](https://github.com/dougborg/katana-openapi-client/pull/1089), closing #1083.
+The remaining material input/readback corrections landed in
+[PR #1095](https://github.com/dougborg/katana-openapi-client/pull/1095), closing #1090.
 
 The SDT material `18022413` and product `18022414` were deleted; the tenant-scoped
 cleanup ledger has no pending records.
+
+**Last verified:** 2026-09-21 (controlled live test-tenant creation, variant update,
+readback, and cleanup; freshly downloaded gateway schema).
 
 ### 1.7 Serial attachment reports an existing manufacturing order as missing
 
@@ -187,15 +189,20 @@ endpoint.
 
 Local OpenAPI and MCP guidance now treats this endpoint as attachment-only and surfaces
 hard 422 failures for unknown strings. The published 200 success envelope remains until
-a valid, current attachment can establish its exact response shape. Tracked in
-[#983](https://github.com/dougborg/katana-openapi-client/issues/983).
+a valid, current attachment can establish its exact response shape. That correction
+landed in [PR #1097](https://github.com/dougborg/katana-openapi-client/pull/1097),
+closing #983.
 
-[#784](https://github.com/dougborg/katana-openapi-client/issues/784) now needs MCP
-guard, help, and regression-test work. `fulfill_order` already accepts explicit
-traceability but still blocks omission even when the row has a complete reservation. Do
-not present this as an unresolved general Katana delivery limitation. Full
-request/response evidence, limitations, and cleanup results are in the
-[current review](investigations/2026-09-21-material-serial-contracts.md).
+The MCP fulfillment guard, help, and ledgered regression coverage landed in
+[PR #1093](https://github.com/dougborg/katana-openapi-client/pull/1093), closing #784.
+`fulfill_order` now adopts a complete existing reservation when allocations are omitted
+and preserves explicit traceability. Do not present this as an unresolved general Katana
+delivery limitation. Full request/response evidence, limitations, and cleanup results
+are in the [current review](investigations/2026-09-21-material-serial-contracts.md).
+
+**Last verified:** 2026-09-21 (controlled live MTO and standalone-MO probes, generated
+production serials, omitted and explicit fulfillment allocations, provenance readback,
+and tenant-aware parent cleanup).
 
 ### 1.8 Failed material creation can leave parent records
 
@@ -213,6 +220,9 @@ time schema match domain validation, and can invalid fractional values return 42
 than 500? What recovery identifier should callers use when a failed request has already
 created a parent? See the
 [full probe evidence](investigations/2026-09-21-material-serial-contracts.md#1083-initial-request-versus-follow-up-update).
+
+**Last verified:** 2026-09-21 (controlled live test-tenant failures, exact-name recovery
+queries, tenant-aware ledger registration, and cleanup).
 
 ______________________________________________________________________
 
@@ -492,8 +502,10 @@ MO 16647058, StockAdjustment 2394711.
 respectively. Both the PATCH response and subsequent GET retained the notes. Temporary
 SDT records were ledgered and deleted. This completes the two missing behavior probes
 from #531; it does not establish that the five historical wipes above have been fixed.
-The old production-tenant orphan cleanup in #531 was not attempted by these test-tenant
-probes.
+The separate production-tenant orphan from the original investigation was verified on
+2026-09-21 as already deleted: exact order `44644110` matched the recorded customer,
+location, quantity, and price, had a 2026-06-11 `deleted_at`, and was absent from active
+order queries. That completed and closed #531 without another destructive request.
 
 **Conclusion:** The May behavior is not universal across PATCH endpoints. A shared
 serialization cause remains a hypothesis. The five historical cases were not rerun.
@@ -760,7 +772,7 @@ an upstream behavior changed; related open questions are called out explicitly.
 | §1.5 — Missing custom-field request inputs (#1030)                                 | [PR #1062](https://github.com/dougborg/katana-openapi-client/pull/1062) models 17 object/null inputs and three map/legacy-array unions. Account capability and persistence semantics remain upstream questions.                                                                                           |
 | §6.3 — Endpoint-specific batch quantity models (#1053)                             | [PR #1058](https://github.com/dougborg/katana-openapi-client/pull/1058) reflects the observed sales-row/production-ingredient difference. The omission default still needs upstream documentation.                                                                                                        |
 | §1.2 — Material config create/update requirements                                  | [PR #1068](https://github.com/dougborg/katana-openapi-client/pull/1068) separates name/values create inputs from ID-or-name updates. Live response uses `product_id`; verified 2026-09-20.                                                                                                                |
-| §6.2 — Missing SO/ST notes-preservation probes (#531)                              | Both preserve omitted notes in controlled PATCH/GET checks, 2026-09-20. Historical wipes on other entities remain open questions.                                                                                                                                                                         |
+| §6.2 — Missing SO/ST notes-preservation probes (#531)                              | Both preserve omitted notes in controlled PATCH/GET checks, 2026-09-20. The exact historical production test order was verified already deleted on 2026-09-21, closing #531. Historical wipes on other entities remain open questions.                                                                    |
 
 ### Material configuration verification (#1068)
 

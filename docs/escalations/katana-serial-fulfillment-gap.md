@@ -31,7 +31,7 @@ produced via make-to-order\
 > [current contract review](../investigations/2026-09-21-material-serial-contracts.md)
 > for sources, exact payloads, evidence limits, and cleanup details. The assignment/list
 > adapter mismatch remains a separate
-> [Katana question](../KATANA_API_QUESTIONS.md#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing).
+> [Katana question](../KATANA_API_QUESTIONS.md#17-serial-attachment-reports-an-existing-manufacturing-order-as-missing).
 
 ## Summary (historical investigation)
 
