@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import tempfile
-import time
 from pathlib import Path
 
 import pytest
@@ -408,20 +407,25 @@ class TestDataTableRowClickBinding:
       but the detail slot never populates → fail (wait_for times out)
     """
 
-    def _wait_and_read_record(self, timeout_s: float = 15.0) -> dict:
-        """Poll the cross-process record file until the stub writes to it,
-        then parse + return its contents."""
-        deadline = time.monotonic() + timeout_s
-        while time.monotonic() < deadline:
-            if _GET_VARIANT_DETAILS_RECORD_PATH.exists():
-                return json.loads(_GET_VARIANT_DETAILS_RECORD_PATH.read_text())
-            time.sleep(0.25)
-        raise AssertionError(
-            f"Stub never wrote to {_GET_VARIANT_DETAILS_RECORD_PATH} within "
-            f"{timeout_s}s — the row-click never reached the server. Either "
-            "the host dropped the CallTool, or the click target didn't fire "
-            "onRowClick."
+    def _click_and_read_record(self, page, click_target) -> dict:
+        """Click a row and await its exact MCP tool-call response."""
+
+        def is_variant_details_call(response) -> bool:
+            request = response.request
+            return (
+                request.method == "POST"
+                and "/mcp" in response.url
+                and '"get_variant_details"' in (request.post_data or "")
+            )
+
+        with page.expect_response(is_variant_details_call, timeout=15_000) as response:
+            click_target.click()
+        response.value.finished()
+        assert _GET_VARIANT_DETAILS_RECORD_PATH.exists(), (
+            "get_variant_details completed without recording its arguments at "
+            f"{_GET_VARIANT_DETAILS_RECORD_PATH}"
         )
+        return json.loads(_GET_VARIANT_DETAILS_RECORD_PATH.read_text())
 
     @pytest.fixture(autouse=True)
     def _clear_record(self):
@@ -431,7 +435,7 @@ class TestDataTableRowClickBinding:
         yield
         _GET_VARIANT_DETAILS_RECORD_PATH.unlink(missing_ok=True)
 
-    def test_search_results_row_click_passes_clicked_sku(self, render_scenario):
+    def test_search_results_row_click_passes_clicked_sku(self, render_scenario, page):
         """``build_search_results_ui`` DataTable: clicking row N fires
         ``get_variant_details(sku="SKU-NNNN")`` with the row's own SKU.
 
@@ -445,9 +449,10 @@ class TestDataTableRowClickBinding:
         """
         frame = render_scenario("search_results")
         # Click the SKU cell within the row whose SKU is "SKU-0003".
-        frame.locator("td.pf-table-cell").filter(has_text="SKU-0003").first.click()
-
-        record = self._wait_and_read_record()
+        record = self._click_and_read_record(
+            page,
+            frame.locator("td.pf-table-cell").filter(has_text="SKU-0003").first,
+        )
         # Substitution must have resolved the {{ sku }} binding against
         # the clicked row's data — not None, not the literal Mustache
         # string, not some other row's SKU.
@@ -462,7 +467,7 @@ class TestDataTableRowClickBinding:
         assert record["received_variant_id"] is None
 
     def test_item_detail_variant_row_click_passes_clicked_variant_id(
-        self, render_scenario
+        self, render_scenario, page
     ):
         """``build_item_detail_ui`` variants DataTable: clicking variant
         row N fires ``get_variant_details(variant_id=N)`` with the row's
@@ -473,9 +478,10 @@ class TestDataTableRowClickBinding:
         SKU is "VAR-B" — click that cell to drive the row-click.
         """
         frame = render_scenario("item_detail")
-        frame.locator("td.pf-table-cell").filter(has_text="VAR-B").first.click()
-
-        record = self._wait_and_read_record()
+        record = self._click_and_read_record(
+            page,
+            frame.locator("td.pf-table-cell").filter(has_text="VAR-B").first,
+        )
         assert record["received_variant_id"] == 700002, (
             f"Expected received_variant_id=700002 (the clicked row's id). "
             f"Got: {record!r}. The item_detail variants DataTable binds "
