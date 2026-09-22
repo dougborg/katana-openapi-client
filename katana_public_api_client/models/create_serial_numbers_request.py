@@ -13,8 +13,10 @@ T = TypeVar("T", bound="CreateSerialNumbersRequest")
 
 @_attrs_define
 class CreateSerialNumbersRequest:
-    """Create or transfer serial numbers. Only resource_id is required by the gateway. Omitting resource_type is accepted
-    as a no-op (204 No Content); supply resource_type and serial_numbers to mint or transfer labels (#830).
+    """Attach existing serial-number strings to a resource. Only resource_id is required by the gateway. Omitting
+    resource_type is accepted as a no-op (204 No Content); supply resource_type and serial_numbers to attempt an
+    attachment (#830, #983). Unknown strings abort with 422; this endpoint did not mint new strings in current live
+    probes.
     """
 
     resource_id: int

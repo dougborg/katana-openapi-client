@@ -1509,8 +1509,8 @@ async def test_fulfill_manufacturing_order_preview_accepts_serial_numbers():
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
     """Apply with serial_numbers → production POST body carries them as
-    list[int] (#790). Serial-tracked MO close-out: caller must mint via
-    ``POST /serial_numbers`` first; Katana silently drops unminted IDs.
+    list[int] (#790). Katana silently drops unknown IDs; current live probes
+    show serial identities are created during production instead.
     """
     context, lifespan_ctx = create_mock_context()
     _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")

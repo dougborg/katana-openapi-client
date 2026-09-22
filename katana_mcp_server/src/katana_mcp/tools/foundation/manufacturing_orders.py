@@ -2756,10 +2756,10 @@ class MOProductionAdd(BaseModel):
         default=None,
         description=(
             "Pre-existing SerialNumber IDs (integers) to attach to the units "
-            "produced in this production record. Required when the MO's "
-            "finished-good variant is serial-tracked. Katana silently drops "
-            "IDs that do not exist — callers must mint via "
-            "``POST /serial_numbers`` first."
+            "produced in this production record. Katana silently drops IDs "
+            "that do not exist. On the verified test configuration, omitting "
+            "serial inputs for a serial-tracked product generated identities "
+            "during production; ``POST /serial_numbers`` did not mint them."
         ),
     )
 
