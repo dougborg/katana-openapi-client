@@ -3288,6 +3288,105 @@ def _mock_mo_with_status(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "status",
+    [ManufacturingOrderStatus.DONE, ManufacturingOrderStatus.PARTIALLY_COMPLETED],
+)
+async def test_modify_mo_closed_preview_blocks_without_planned_actions(status):
+    """#846: a locked MO must not produce a confirmable PLANNED preview."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(mo_id=42, status=status)
+    fetch_row = AsyncMock()
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row",
+            fetch_row,
+        ),
+    ):
+        from katana_mcp.tools.foundation.manufacturing_orders import MORecipeRowUpdate
+
+        response = await _modify_manufacturing_order_impl(
+            ModifyManufacturingOrderRequest(
+                id=42,
+                update_recipe_rows=[
+                    MORecipeRowUpdate(id=555, planned_quantity_per_unit=3.0)
+                ],
+                preview=True,
+            ),
+            context,
+        )
+
+    assert response.is_preview is True
+    assert response.actions == []
+    assert len(response.warnings) == 1
+    assert response.warnings[0].startswith("BLOCK:")
+    assert status.value in response.warnings[0]
+    assert "correct_manufacturing_order" in response.warnings[0]
+    fetch_row.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_closed_apply_refuses_without_calling_api():
+    """#846: direct callers cannot bypass the preview's locked-MO guard."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(mo_id=42, status=ManufacturingOrderStatus.DONE)
+    update_api = AsyncMock()
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", update_api),
+    ):
+        response = await _modify_manufacturing_order_impl(
+            ModifyManufacturingOrderRequest(
+                id=42,
+                update_header=MOHeaderPatch(order_no="MO-RENAMED"),
+                preview=False,
+            ),
+            context,
+        )
+
+    assert response.is_preview is False
+    assert response.actions == []
+    assert response.message.startswith("Refused:")
+    assert response.warnings[0].startswith("BLOCK:")
+    update_api.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_closed_to_blocked_does_not_count_as_reopen():
+    """Only the documented editable statuses may unlock a closed MO."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(mo_id=42, status=ManufacturingOrderStatus.DONE)
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        response = await _modify_manufacturing_order_impl(
+            ModifyManufacturingOrderRequest(
+                id=42,
+                update_header=MOHeaderPatch(status="BLOCKED"),
+                preview=True,
+            ),
+            context,
+        )
+
+    assert response.actions == []
+    assert response.warnings[0].startswith("BLOCK:")
+
+
+@pytest.mark.asyncio
 async def test_modify_mo_locking_transition_lands_header_last():
     """#773: ``update_header={status: DONE}`` + ``update_recipe_rows`` in one
     call must apply recipe edits BEFORE the header. Otherwise Katana locks
