@@ -775,24 +775,17 @@ export type SerialNumberResourceType =
   | 'SalesOrderFulfillmentRow';
 
 /**
- * Allowed resource types when creating (minting or transferring)
- * serial numbers via ``POST /serial_numbers``.
+ * Allowed resource types when attaching serial numbers via
+ * ``POST /serial_numbers``. Every tested path requires a serial-number
+ * string that already exists. New strings were rejected for all tested
+ * resource types and manufacturing-order states; production and goods
+ * receipt create serial identities elsewhere in the API.
  *
- * **Write semantics differ by resource type:**
- *
- * - **Mint** — ``ManufacturingOrder`` and ``PurchaseOrderRow``.
- * - **Transfer** (move an existing serial number onto this resource) —
- * ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``, and
- * ``Production``.
- *
- * **A serial-number string the tenant doesn't already know is rejected
- * with ``422`` — verified live 2026-07-14 (#980)** for ``SalesOrderRow``
- * (``serial numbers not found``) and ``Production``
- * (``UnknownSerialNumber``). The older graceful-``200`` behaviour (the
- * string in a ``failed`` array with ``reason: MISSING``) was NOT
- * observed; the ``successful`` / ``failed`` partial-outcome shape and the
- * exact mint-vs-transfer boundary need broader re-verification —
- * tracked in #983.
+ * Unknown strings hard-fail the request with ``422``. A valid resource
+ * can also reject attachment because of its state or remaining quantity.
+ * Manual attachment to otherwise readable manufacturing orders returned
+ * ``404`` in the September 2026 test-tenant probes, so this endpoint must
+ * not be treated as a prerequisite for production or fulfillment.
  *
  */
 export type CreateSerialNumberResourceType =
@@ -804,17 +797,11 @@ export type CreateSerialNumberResourceType =
   | 'SalesOrderRow';
 
 /**
- * Per-string failure reason when ``POST /serial_numbers`` partial-fails.
- *
- * - ``DUPLICATE`` — string is already attached to the target resource
- * (mint path) and the API refuses to re-attach it.
- * - ``MISSING`` — string doesn't exist anywhere in the tenant, so a
- * transfer to ``SalesOrderRow`` / ``StockTransferRow`` /
- * ``StockAdjustmentRow`` can't move it.
- *
- * Other reasons may exist but have not been observed via the
- * live-API probe. Consumers should treat unknown values as
- * forward-compatible failures rather than 422s.
+ * Legacy per-string failure reason in the published 200 response schema.
+ * Current invalid-input probes never produced these values: unknown,
+ * duplicate, and mixed valid/invalid inputs hard-failed the entire
+ * request with ``422``. The enum remains modeled until a successful
+ * attachment establishes the current 200 response shape.
  *
  */
 export type CreateSerialNumberFailureReason = 'DUPLICATE' | 'MISSING';
@@ -2346,7 +2333,12 @@ export type CreateManufacturingOrderProductionRequest = {
    */
   operations?: Array<ManufacturingOrderOperationRow>;
   /**
-   * Pre-existing SerialNumber IDs (integers) to assign to the units produced in this production run. Required when the manufacturing order's finished-good variant is serial-tracked. Katana silently drops IDs that do not exist — callers must mint via `POST /serial_numbers` first.
+   * Pre-existing SerialNumber IDs (integers) to assign to the units
+   * produced in this production run. Katana silently drops IDs that
+   * do not exist. On the verified test configuration, omitting serial
+   * inputs for a serial-tracked product generated identities during
+   * production; `POST /serial_numbers` did not mint new strings.
+   *
    */
   serial_numbers?: Array<number>;
   /**
@@ -2938,25 +2930,23 @@ export type CreateSerialNumberFailedItem = {
 };
 
 /**
- * Response from ``POST /serial_numbers``. The endpoint can partial-
- * fail: any string the API rejects (DUPLICATE on the mint path,
- * MISSING on the transfer path) lands in ``failed`` while the rest
- * succeed. The call still returns 200 in the partial-failure case.
+ * Published 200 response from ``POST /serial_numbers``. A current valid
+ * attachment success was not available for destructive verification, so
+ * this envelope is retained. Invalid strings do not produce this response:
+ * the verified API rejects the entire request with ``422`` instead of
+ * returning per-string entries in ``failed``.
  *
  */
 export type CreateSerialNumbersResponse = {
   /**
-   * Serial-number records that were created (mint) or transferred
-   * (move) successfully. May be empty if every requested string
-   * failed.
+   * Serial-number records that were attached successfully.
    *
    */
   successful: Array<SerialNumber>;
   /**
-   * Per-string failures. Each entry carries the input
-   * ``serial_number`` string and a ``reason`` code so the caller
-   * can react without inspecting status code or response body
-   * shape.
+   * Legacy per-string failures from the published schema. No current
+   * live invalid-input probe reached this field; those requests return
+   * ``422`` for the whole operation.
    *
    */
   failed: Array<CreateSerialNumberFailedItem>;
@@ -10265,7 +10255,7 @@ export type UpdateSalesReturnRowRequest = {
 };
 
 /**
- * Create or transfer serial numbers. Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content); supply resource_type and serial_numbers to mint or transfer labels (#830).
+ * Attach existing serial-number strings to a resource. Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content); supply resource_type and serial_numbers to attempt an attachment (#830, #983). Unknown strings abort with 422; this endpoint did not mint new strings in current live probes.
  */
 export type CreateSerialNumbersRequest = {
   /**
@@ -10277,7 +10267,7 @@ export type CreateSerialNumbersRequest = {
    */
   resource_id: number;
   /**
-   * List of serial numbers to create
+   * List of existing serial-number strings to attach
    */
   serial_numbers?: Array<string>;
 };
@@ -21895,9 +21885,9 @@ export type CreateSerialNumbersError = CreateSerialNumbersErrors[keyof CreateSer
 
 export type CreateSerialNumbersResponses = {
   /**
-   * Serial numbers created / transferred — partial failure is
-   * possible. Inspect ``successful`` and ``failed`` arrays in the
-   * response body to determine which strings landed.
+   * Serial numbers attached. The published ``successful`` / ``failed``
+   * envelope is retained pending a current valid-success capture.
+   * Verified invalid inputs return 422 rather than this response.
    *
    */
   200: CreateSerialNumbersResponse;

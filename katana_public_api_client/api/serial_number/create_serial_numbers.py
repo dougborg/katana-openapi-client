@@ -99,29 +99,28 @@ def sync_detailed(
 ) -> Response[
     Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
 ]:
-    """Create serial numbers
+    """Attach serial numbers
 
-     Mints new or transfers existing serial numbers to a resource.
-
-    **Write semantics differ by ``resource_type``** (see
-    ``CreateSerialNumberResourceType``):
-
-    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
-    - **Transfer** (move an existing serial number onto the target) —
-      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
-      ``Production``. The serial-number string must already exist.
+     Attaches pre-existing serial-number strings to a resource. This endpoint
+    did not mint a new string for any tested resource type or manufacturing-
+    order state. Serial identities are created by inventory-producing
+    workflows such as production and goods receipt.
 
     **Error cases** (verified live 2026-07-14, #980): a non-existent
     ``resource_id`` returns ``404 NotFoundError`` with a type-specific
     message (e.g. ``manufacturing order <id> not found`` /
     ``production <id> not found``). A ``resource_type`` outside the
     ``CreateSerialNumberResourceType`` enum returns ``422`` with an
-    Ajv-style validation detail. A serial-number string the tenant
-    doesn't already know is rejected with ``422`` — observed for
-    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
-    (``UnknownSerialNumber``). The ``successful`` / ``failed``
-    partial-outcome response shape below was NOT reproduced for these
-    cases and needs re-verification — tracked in #983.
+    Ajv-style validation detail. Unknown, duplicate, and mixed
+    valid/invalid strings hard-fail the whole request with ``422``; the
+    legacy ``failed`` array was never observed. A completed manufacturing
+    order can instead reject because it has no remaining quantity and
+    direct callers to update completed production traceability.
+
+    Manual attachment to valid standalone and make-to-order manufacturing
+    orders returned ``404`` in September 2026, before and after production.
+    Production and fulfillment can use their unified ``traceability``
+    contracts without a successful call to this endpoint.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -129,9 +128,11 @@ def sync_detailed(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
-            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
-            supply resource_type and serial_numbers to mint or transfer labels (#830).
+        body (CreateSerialNumbersRequest): Attach existing serial-number strings to a resource.
+            Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op
+            (204 No Content); supply resource_type and serial_numbers to attempt an attachment (#830,
+            #983). Unknown strings abort with 422; this endpoint did not mint new strings in current
+            live probes.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,29 +159,28 @@ def sync(
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
 ) -> Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
-    """Create serial numbers
+    """Attach serial numbers
 
-     Mints new or transfers existing serial numbers to a resource.
-
-    **Write semantics differ by ``resource_type``** (see
-    ``CreateSerialNumberResourceType``):
-
-    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
-    - **Transfer** (move an existing serial number onto the target) —
-      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
-      ``Production``. The serial-number string must already exist.
+     Attaches pre-existing serial-number strings to a resource. This endpoint
+    did not mint a new string for any tested resource type or manufacturing-
+    order state. Serial identities are created by inventory-producing
+    workflows such as production and goods receipt.
 
     **Error cases** (verified live 2026-07-14, #980): a non-existent
     ``resource_id`` returns ``404 NotFoundError`` with a type-specific
     message (e.g. ``manufacturing order <id> not found`` /
     ``production <id> not found``). A ``resource_type`` outside the
     ``CreateSerialNumberResourceType`` enum returns ``422`` with an
-    Ajv-style validation detail. A serial-number string the tenant
-    doesn't already know is rejected with ``422`` — observed for
-    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
-    (``UnknownSerialNumber``). The ``successful`` / ``failed``
-    partial-outcome response shape below was NOT reproduced for these
-    cases and needs re-verification — tracked in #983.
+    Ajv-style validation detail. Unknown, duplicate, and mixed
+    valid/invalid strings hard-fail the whole request with ``422``; the
+    legacy ``failed`` array was never observed. A completed manufacturing
+    order can instead reject because it has no remaining quantity and
+    direct callers to update completed production traceability.
+
+    Manual attachment to valid standalone and make-to-order manufacturing
+    orders returned ``404`` in September 2026, before and after production.
+    Production and fulfillment can use their unified ``traceability``
+    contracts without a successful call to this endpoint.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -188,9 +188,11 @@ def sync(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
-            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
-            supply resource_type and serial_numbers to mint or transfer labels (#830).
+        body (CreateSerialNumbersRequest): Attach existing serial-number strings to a resource.
+            Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op
+            (204 No Content); supply resource_type and serial_numbers to attempt an attachment (#830,
+            #983). Unknown strings abort with 422; this endpoint did not mint new strings in current
+            live probes.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -214,29 +216,28 @@ async def asyncio_detailed(
 ) -> Response[
     Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
 ]:
-    """Create serial numbers
+    """Attach serial numbers
 
-     Mints new or transfers existing serial numbers to a resource.
-
-    **Write semantics differ by ``resource_type``** (see
-    ``CreateSerialNumberResourceType``):
-
-    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
-    - **Transfer** (move an existing serial number onto the target) —
-      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
-      ``Production``. The serial-number string must already exist.
+     Attaches pre-existing serial-number strings to a resource. This endpoint
+    did not mint a new string for any tested resource type or manufacturing-
+    order state. Serial identities are created by inventory-producing
+    workflows such as production and goods receipt.
 
     **Error cases** (verified live 2026-07-14, #980): a non-existent
     ``resource_id`` returns ``404 NotFoundError`` with a type-specific
     message (e.g. ``manufacturing order <id> not found`` /
     ``production <id> not found``). A ``resource_type`` outside the
     ``CreateSerialNumberResourceType`` enum returns ``422`` with an
-    Ajv-style validation detail. A serial-number string the tenant
-    doesn't already know is rejected with ``422`` — observed for
-    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
-    (``UnknownSerialNumber``). The ``successful`` / ``failed``
-    partial-outcome response shape below was NOT reproduced for these
-    cases and needs re-verification — tracked in #983.
+    Ajv-style validation detail. Unknown, duplicate, and mixed
+    valid/invalid strings hard-fail the whole request with ``422``; the
+    legacy ``failed`` array was never observed. A completed manufacturing
+    order can instead reject because it has no remaining quantity and
+    direct callers to update completed production traceability.
+
+    Manual attachment to valid standalone and make-to-order manufacturing
+    orders returned ``404`` in September 2026, before and after production.
+    Production and fulfillment can use their unified ``traceability``
+    contracts without a successful call to this endpoint.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -244,9 +245,11 @@ async def asyncio_detailed(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
-            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
-            supply resource_type and serial_numbers to mint or transfer labels (#830).
+        body (CreateSerialNumbersRequest): Attach existing serial-number strings to a resource.
+            Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op
+            (204 No Content); supply resource_type and serial_numbers to attempt an attachment (#830,
+            #983). Unknown strings abort with 422; this endpoint did not mint new strings in current
+            live probes.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -271,29 +274,28 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
 ) -> Any | CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
-    """Create serial numbers
+    """Attach serial numbers
 
-     Mints new or transfers existing serial numbers to a resource.
-
-    **Write semantics differ by ``resource_type``** (see
-    ``CreateSerialNumberResourceType``):
-
-    - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
-    - **Transfer** (move an existing serial number onto the target) —
-      ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
-      ``Production``. The serial-number string must already exist.
+     Attaches pre-existing serial-number strings to a resource. This endpoint
+    did not mint a new string for any tested resource type or manufacturing-
+    order state. Serial identities are created by inventory-producing
+    workflows such as production and goods receipt.
 
     **Error cases** (verified live 2026-07-14, #980): a non-existent
     ``resource_id`` returns ``404 NotFoundError`` with a type-specific
     message (e.g. ``manufacturing order <id> not found`` /
     ``production <id> not found``). A ``resource_type`` outside the
     ``CreateSerialNumberResourceType`` enum returns ``422`` with an
-    Ajv-style validation detail. A serial-number string the tenant
-    doesn't already know is rejected with ``422`` — observed for
-    ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
-    (``UnknownSerialNumber``). The ``successful`` / ``failed``
-    partial-outcome response shape below was NOT reproduced for these
-    cases and needs re-verification — tracked in #983.
+    Ajv-style validation detail. Unknown, duplicate, and mixed
+    valid/invalid strings hard-fail the whole request with ``422``; the
+    legacy ``failed`` array was never observed. A completed manufacturing
+    order can instead reject because it has no remaining quantity and
+    direct callers to update completed production traceability.
+
+    Manual attachment to valid standalone and make-to-order manufacturing
+    orders returned ``404`` in September 2026, before and after production.
+    Production and fulfillment can use their unified ``traceability``
+    contracts without a successful call to this endpoint.
 
     **Transfer response quirks:** on a successful transfer the moved
     record's ``transaction_id`` may be the literal string
@@ -301,9 +303,11 @@ async def asyncio(
     ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
-        body (CreateSerialNumbersRequest): Create or transfer serial numbers. Only resource_id is
-            required by the gateway. Omitting resource_type is accepted as a no-op (204 No Content);
-            supply resource_type and serial_numbers to mint or transfer labels (#830).
+        body (CreateSerialNumbersRequest): Attach existing serial-number strings to a resource.
+            Only resource_id is required by the gateway. Omitting resource_type is accepted as a no-op
+            (204 No Content); supply resource_type and serial_numbers to attempt an attachment (#830,
+            #983). Unknown strings abort with 422; this endpoint did not mint new strings in current
+            live probes.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

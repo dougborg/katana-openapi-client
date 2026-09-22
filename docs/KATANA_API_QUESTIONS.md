@@ -7,7 +7,7 @@ our client workarounds. The log began with the 2026-02-07 P1-P4 spec investigati
 current official reference/help/MCP documentation, local client/MCP code, and live
 test-tenant probes. The
 [material and serial contract review](investigations/2026-09-21-material-serial-contracts.md)
-corrects the earlier serial-mint prerequisite assumption and records the supported MTO
+corrects the earlier manual-serial prerequisite assumption and records the supported MTO
 fulfillment path. Historical entries below retain their own verification dates; this
 review does not claim every old observation was rerun.
 
@@ -22,7 +22,7 @@ review does not claim every old observation was rerun.
 | [Custom-field availability](#15-custom-field-request-formats-and-account-availability)                          | How can integrations discover which resources support definition-keyed maps?                | Gateway checks and account-feature rejection, 2026-09-20                  |
 | [Sales-return filtering](#52-get-sales_returnssales_order_idn-silently-ignores-the-filter)                      | Which filter is canonical, and can the portal and gateway docs agree?                       | Controlled test-tenant comparison, 2026-09-20                             |
 | [Material sales price](#16-material-creation-rejects-nested-sales-price)                                        | Can initial material selling prices be set atomically during creation?                      | Test-tenant create/PATCH comparison, 2026-09-21                           |
-| [Serial mint 404](#17-serial-mint-reports-an-existing-make-to-order-mo-as-missing)                              | How should manual serial assignment/listing work with auto-generated document traceability? | Valid MO returns 404; auto-generation and fulfillment succeed, 2026-09-21 |
+| [Serial attachment 404](#17-serial-attachment-reports-an-existing-manufacturing-order-as-missing)               | How should manual serial assignment/listing work with auto-generated document traceability? | Valid MO returns 404; auto-generation and fulfillment succeed, 2026-09-21 |
 
 Local-only schema work is identified separately below. The remaining historical live
 checks stay tracked in
@@ -145,7 +145,7 @@ material input/readback corrections are tracked in
 The SDT material `18022413` and product `18022414` were deleted; the tenant-scoped
 cleanup ledger has no pending records.
 
-### 1.7 Serial mint reports an existing make-to-order MO as missing
+### 1.7 Serial attachment reports an existing manufacturing order as missing
 
 **Status: ASSIGNMENT/LIST MISMATCH; current MTO fulfillment works**
 
@@ -161,10 +161,10 @@ serial string was `SDT-ec58bea6-MTO` (within the documented length limit). All r
 were awaited; no sleeps or timing assumptions were added. This does not rule out longer
 eventual consistency, but the normal resource read reports it ready.
 
-A standalone-MO control reproduced the same failure: serial mint for MO `19209707`
+A standalone-MO control reproduced the same failure: serial attachment for MO `19209707`
 returned 404, while its detail and resource-scoped serial list returned 200. Thus the
-new mint failure is not limited to make-to-order linking. Its product and MO were also
-deleted; no serials were minted in any of these probes.
+attachment failure is not limited to make-to-order linking. Its product and MO were also
+deleted; no serials were attached or created in any of these probes.
 
 **Correction after the current contract review:** Manual assignment is not a necessary
 prerequisite on the tested configuration. Production with serial inputs omitted
@@ -185,7 +185,9 @@ identities: parent deletion leaves empty, out-of-stock identities, and disabling
 tracking on a test product did not remove its identity from the serial-stock read
 endpoint.
 
-The serial adapter investigation remains tracked in
+Local OpenAPI and MCP guidance now treats this endpoint as attachment-only and surfaces
+hard 422 failures for unknown strings. The published 200 success envelope remains until
+a valid, current attachment can establish its exact response shape. Tracked in
 [#983](https://github.com/dougborg/katana-openapi-client/issues/983).
 
 [#784](https://github.com/dougborg/katana-openapi-client/issues/784) now needs MCP

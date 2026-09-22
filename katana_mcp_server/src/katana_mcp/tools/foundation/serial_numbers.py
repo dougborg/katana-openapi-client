@@ -2,18 +2,15 @@
 
 Three leaf-workflow primitives wrapping ``POST/GET/DELETE /serial_numbers``:
 
-- ``add_serial_numbers`` — mint new serial numbers (ManufacturingOrder,
-  PurchaseOrderRow) or transfer existing serial numbers between resources
-  (SalesOrderRow, StockTransferRow, StockAdjustmentRow). Preview/apply
-  pattern.
+- ``add_serial_numbers`` — attach pre-existing serial-number strings to a
+  resource. Preview/apply pattern.
 - ``list_serial_numbers`` — read serial numbers, optionally filtered by
   ``resource_type`` and/or ``resource_id``. Read-only.
 - ``delete_serial_numbers`` — detach serial numbers. Idempotent (the
   endpoint returns 204 even for invalid ids). Preview/apply.
 
-Per-resource-type semantics matter: see ``add_serial_numbers`` docstring
-and ``CreateSerialNumberResourceType`` description in the OpenAPI spec
-for the mint-vs-transfer distinction.
+Serial identities are created by inventory-producing workflows such as
+production and goods receipt, not by this attachment endpoint.
 """
 
 from __future__ import annotations
@@ -54,9 +51,9 @@ logger = get_logger(__name__)
 # ============================================================================
 
 
-# Mint or transfer — the set of ``resource_type`` values the API accepts on
+# The set of ``resource_type`` values the API accepts on
 # ``POST /serial_numbers``. Mirrors ``CreateSerialNumberResourceType``.
-# ``Production`` IS a valid write target (transfer semantics — verified live
+# ``Production`` IS a valid write target (verified live
 # 2026-07-14, #980: the wire routes it to a production lookup and 422s
 # ``UnknownSerialNumber`` for a string that doesn't already exist).
 WriteResourceType = Literal[
@@ -86,29 +83,6 @@ ReadResourceType = Literal[
     "StockAdjustmentRow",
     "StockTransferRow",
 ]
-
-
-# Mint resource types create new SerialNumber records; transfer types move
-# existing serial-number strings between resources. Surfaced in tool
-# docstrings + warnings so callers don't confuse them. Anchored to
-# ``WriteResourceType`` to keep the two in sync.
-_MINT_RESOURCE_TYPES: frozenset[WriteResourceType] = frozenset(
-    {"ManufacturingOrder", "PurchaseOrderRow"}
-)
-_TRANSFER_RESOURCE_TYPES: frozenset[WriteResourceType] = frozenset(
-    {"SalesOrderRow", "StockTransferRow", "StockAdjustmentRow", "Production"}
-)
-
-
-def _semantic_label(resource_type: WriteResourceType) -> Literal["mint", "transfer"]:
-    """Return ``"mint"`` or ``"transfer"`` for a write resource type."""
-    if resource_type in _MINT_RESOURCE_TYPES:
-        return "mint"
-    assert resource_type in _TRANSFER_RESOURCE_TYPES, (
-        f"{resource_type} is neither a mint nor a transfer type — the two sets "
-        "must together cover every WriteResourceType"
-    )
-    return "transfer"
 
 
 # Map each write resource type to its parent typed-cache entity name so
@@ -252,21 +226,19 @@ async def _invalidate_parent_cache(
 
 
 class AddSerialNumbersRequest(BaseModel):
-    """Request to mint or transfer serial numbers to a resource."""
+    """Request to attach pre-existing serial numbers to a resource."""
 
     model_config = ConfigDict(extra="forbid")
 
     resource_type: WriteResourceType = Field(
         ...,
         description=(
-            "Target resource type:\n\n"
-            "- **mint**: ManufacturingOrder, PurchaseOrderRow.\n"
-            "- **transfer** (move existing strings): SalesOrderRow, "
-            "StockTransferRow, StockAdjustmentRow, Production.\n\n"
-            "A serial-number string the tenant doesn't already know is "
-            "rejected with 422 (observed live 2026-07-14 for SalesOrderRow "
-            "and Production). The older 200 + ``failed`` (``reason: MISSING``) "
-            "shape was not reproduced — re-verification tracked in #983."
+            "Target resource type. Every path attaches a serial-number string "
+            "that already exists in the tenant. New strings were rejected for "
+            "ManufacturingOrder, PurchaseOrderRow, SalesOrderRow, Production, "
+            "and the other tested targets; production or goods receipt creates "
+            "serial identities. A valid target may still reject attachment due "
+            "to its state or remaining quantity."
         ),
     )
     resource_id: int = Field(
@@ -282,10 +254,10 @@ class AddSerialNumbersRequest(BaseModel):
         ...,
         min_length=1,
         description=(
-            "One or more serial-number strings to create or attach. A string "
-            "the tenant doesn't already know is rejected with 422 (see #983 — "
-            "the older per-string ``created`` / ``failed`` split was not "
-            "reproduced on the live wire)."
+            "One or more existing serial-number strings to attach. If any "
+            "string is unknown or otherwise invalid, the current API rejects "
+            "the request with 422; it does not return that string in a graceful "
+            "per-item failure response."
         ),
     )
     preview: bool = Field(
@@ -298,17 +270,15 @@ class AddSerialNumbersRequest(BaseModel):
 
 
 class FailedSerialNumber(BaseModel):
-    """Per-string failure block on an add_serial_numbers response."""
+    """Legacy per-string failure block retained for response compatibility."""
 
     serial_number: str
     reason: str = Field(
         ...,
         description=(
-            "Failure code. Observed values: ``DUPLICATE`` (string already "
-            "attached to this resource — mint path), ``MISSING`` (string "
-            "doesn't exist anywhere in the tenant — transfer path). Other "
-            "codes may exist; treat unknown values as forward-compatible "
-            "failures."
+            "Failure code from the published 200 response schema. The current "
+            "live invalid-input paths hard-fail with 422 before producing this "
+            "block; retain unknown values for forward compatibility."
         ),
     )
 
@@ -317,13 +287,14 @@ class AddSerialNumbersResponse(BaseModel):
     """Response from add_serial_numbers — preview or apply.
 
     On preview, ``created`` and ``failed`` are both empty and ``is_preview``
-    is True. On apply, the response splits the wire result into ``created``
-    (from ``successful[]``) and ``failed[]``.
+    is True. On apply, ``created`` maps the published ``successful[]`` field.
+    ``failed`` is retained for compatibility if the server ever returns the
+    published legacy field, but current invalid inputs raise a 422 instead.
     """
 
     resource_type: str
     resource_id: int
-    semantic: Literal["mint", "transfer"]
+    semantic: Literal["attach"]
     is_preview: bool
     created: list[SerialNumberRecord] = Field(default_factory=list)
     failed: list[FailedSerialNumber] = Field(default_factory=list)
@@ -335,8 +306,8 @@ class AddSerialNumbersResponse(BaseModel):
 async def _add_serial_numbers_impl(
     request: AddSerialNumbersRequest, context: Context
 ) -> AddSerialNumbersResponse:
-    """Mint or transfer serial numbers to ``resource_id``."""
-    semantic = _semantic_label(request.resource_type)
+    """Attach pre-existing serial numbers to ``resource_id``."""
+    semantic: Literal["attach"] = "attach"
     count = len(request.serial_numbers)
     label = "Previewing" if request.preview else "Applying"
     logger.info(
@@ -344,13 +315,11 @@ async def _add_serial_numbers_impl(
         f"{count} string(s) -> {request.resource_type} {request.resource_id}"
     )
 
-    warnings: list[str] = []
-    if semantic == "transfer":
-        warnings.append(
-            "Transfer semantic: each serial-number string MUST already "
-            "exist (typically attached to a ManufacturingOrder). Missing "
-            "strings will land in ``failed`` with reason=MISSING."
-        )
+    warnings = [
+        "Each serial-number string MUST already exist. Unknown or invalid "
+        "strings abort the request with 422; create serial identities through "
+        "production or goods receipt before attaching them here."
+    ]
 
     if request.preview:
         preview_message = (
@@ -401,46 +370,35 @@ async def _add_serial_numbers_impl(
             context, request.resource_type, request.resource_id
         )
 
-    # Pick the past-tense verb to match what Katana actually did: minted
-    # for the create path (new SerialNumber records), transferred for the
-    # move path (existing serials re-linked). User-facing messaging only —
-    # the response field stays ``created`` for backwards-compatibility.
-    verb_past = "Minted" if semantic == "mint" else "Transferred"
-    verb_past_lower = verb_past.lower()
-
     next_actions: list[str] = []
     if created:
         ids = ", ".join(str(r.id) for r in created)
+        next_actions.append(f"{len(created)} serial number(s) attached (ids: {ids})")
         next_actions.append(
-            f"{len(created)} serial number(s) {verb_past_lower} (ids: {ids})"
+            "Verify the target document's traceability. The legacy "
+            "list_serial_numbers endpoint can omit document allocations."
         )
-        if request.resource_type == "ManufacturingOrder":
-            next_actions.append(
-                "Use ``fulfill_order(order_type='sales', "
-                "serial_numbers=[ids])`` to consume these on a sales-order "
-                "fulfillment row."
-            )
     if failed:
         next_actions.append(
             f"{len(failed)} serial number(s) failed — see ``failed[]`` for "
-            f"per-string reasons (DUPLICATE / MISSING)."
+            "details from the legacy 200 response."
         )
 
     if created and not failed:
         message = (
-            f"{verb_past} {len(created)} serial number(s) on "
+            f"Attached {len(created)} serial number(s) to "
             f"{request.resource_type} {request.resource_id}"
         )
     elif created and failed:
         message = (
-            f"Partial success: {len(created)} {verb_past_lower}, "
+            f"Legacy partial response: {len(created)} attached, "
             f"{len(failed)} failed on {request.resource_type} "
             f"{request.resource_id}"
         )
     elif failed:
         message = (
-            f"No serial numbers {verb_past_lower} — {len(failed)} string(s) "
-            f"failed ({semantic} path) on {request.resource_type} "
+            f"No serial numbers attached — {len(failed)} string(s) "
+            f"failed in a legacy 200 response on {request.resource_type} "
             f"{request.resource_id}"
         )
     else:
@@ -471,19 +429,13 @@ async def _add_serial_numbers_impl(
 async def add_serial_numbers(
     request: Annotated[AddSerialNumbersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Add serial numbers to a resource — mint new ones or transfer existing.
+    """Attach pre-existing serial-number strings to a resource.
 
-    **Mint vs. transfer semantics (this is the load-bearing distinction):**
-
-    - ``resource_type="ManufacturingOrder"`` or ``"PurchaseOrderRow"`` → **mint**.
-      The supplied strings don't need to pre-exist. The API creates new
-      SerialNumber records and attaches them to the target.
-    - ``resource_type="SalesOrderRow"``, ``"StockTransferRow"``, or
-      ``"StockAdjustmentRow"`` → **transfer**. The supplied strings MUST
-      already exist (typically previously minted on a ManufacturingOrder).
-      The API moves the linkage from the current parent to the target.
-      Strings that don't exist anywhere land in ``failed`` with
-      ``reason=MISSING`` — the call still succeeds.
+    ``POST /serial_numbers`` did not mint a new string on any tested resource
+    or MO state. Unknown strings hard-fail the request with 422. Create serial
+    identities through production or goods receipt, then use this tool only
+    when manual attachment is required. Target state and remaining quantity
+    rules can still reject an existing string.
 
     For a linked make-to-order sales row, inspect the MO/production and sales
     row allocations. ``fulfill_order`` can deliver using the complete existing
@@ -491,9 +443,9 @@ async def add_serial_numbers(
     delete or unassign serials as a delivery workaround. Manual assignment can
     still reject linked rows; that adapter is separate from fulfillment.
 
-    Partial failure is possible: any string the API rejects (DUPLICATE on
-    the mint path, MISSING on the transfer path) lands in ``failed`` while
-    the rest succeed.
+    The published 200 response still has ``successful`` / ``failed`` arrays,
+    so the adapter parses both for compatibility. Live invalid-input probes
+    never produced ``failed``; they raised 422 for the whole request.
 
     Two-step flow: preview=true (default) returns the planned operation
     without calling Katana; preview=false applies.

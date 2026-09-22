@@ -254,14 +254,12 @@ class CreateSerialNumberFailedItem(KatanaPydanticBase):
 class CreateSerialNumbersResponse(KatanaPydanticBase):
     successful: Annotated[
         list[SerialNumber],
-        Field(
-            description="Serial-number records that were created (mint) or transferred\n(move) successfully. May be empty if every requested string\nfailed.\n"
-        ),
+        Field(description="Serial-number records that were attached successfully.\n"),
     ]
     failed: Annotated[
         list[CreateSerialNumberFailedItem],
         Field(
-            description="Per-string failures. Each entry carries the input\n``serial_number`` string and a ``reason`` code so the caller\ncan react without inspecting status code or response body\nshape.\n"
+            description="Legacy per-string failures from the published schema. No current\nlive invalid-input probe reached this field; those requests return\n``422`` for the whole operation.\n"
         ),
     ]
 
@@ -841,7 +839,8 @@ class CreateSerialNumbersRequest(KatanaPydanticBase):
     ] = None
     resource_id: Annotated[int, Field(description="Resource ID")]
     serial_numbers: Annotated[
-        list[str] | None, Field(description="List of serial numbers to create")
+        list[str] | None,
+        Field(description="List of existing serial-number strings to attach"),
     ] = None
 
 

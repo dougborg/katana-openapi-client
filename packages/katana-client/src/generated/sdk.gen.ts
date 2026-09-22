@@ -4761,29 +4761,28 @@ export const getAllSerialNumbers = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Create serial numbers
+ * Attach serial numbers
  *
- * Mints new or transfers existing serial numbers to a resource.
- *
- * **Write semantics differ by ``resource_type``** (see
- * ``CreateSerialNumberResourceType``):
- *
- * - **Mint** — ``ManufacturingOrder``, ``PurchaseOrderRow``.
- * - **Transfer** (move an existing serial number onto the target) —
- * ``SalesOrderRow``, ``StockTransferRow``, ``StockAdjustmentRow``,
- * ``Production``. The serial-number string must already exist.
+ * Attaches pre-existing serial-number strings to a resource. This endpoint
+ * did not mint a new string for any tested resource type or manufacturing-
+ * order state. Serial identities are created by inventory-producing
+ * workflows such as production and goods receipt.
  *
  * **Error cases** (verified live 2026-07-14, #980): a non-existent
  * ``resource_id`` returns ``404 NotFoundError`` with a type-specific
  * message (e.g. ``manufacturing order <id> not found`` /
  * ``production <id> not found``). A ``resource_type`` outside the
  * ``CreateSerialNumberResourceType`` enum returns ``422`` with an
- * Ajv-style validation detail. A serial-number string the tenant
- * doesn't already know is rejected with ``422`` — observed for
- * ``SalesOrderRow`` (``serial numbers not found``) and ``Production``
- * (``UnknownSerialNumber``). The ``successful`` / ``failed``
- * partial-outcome response shape below was NOT reproduced for these
- * cases and needs re-verification — tracked in #983.
+ * Ajv-style validation detail. Unknown, duplicate, and mixed
+ * valid/invalid strings hard-fail the whole request with ``422``; the
+ * legacy ``failed`` array was never observed. A completed manufacturing
+ * order can instead reject because it has no remaining quantity and
+ * direct callers to update completed production traceability.
+ *
+ * Manual attachment to valid standalone and make-to-order manufacturing
+ * orders returned ``404`` in September 2026, before and after production.
+ * Production and fulfillment can use their unified ``traceability``
+ * contracts without a successful call to this endpoint.
  *
  * **Transfer response quirks:** on a successful transfer the moved
  * record's ``transaction_id`` may be the literal string

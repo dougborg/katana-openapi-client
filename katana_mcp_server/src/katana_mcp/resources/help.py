@@ -93,7 +93,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **create_storage_bin** - Create a storage bin in a location (preview/apply)
 
 ### Serial Numbers
-- **add_serial_numbers** - Attach serial numbers to a resource. Mint new ones (ManufacturingOrder, PurchaseOrderRow) or transfer existing strings between resources (SalesOrderRow, StockTransferRow, StockAdjustmentRow). Partial-failure capable. (preview/apply)
+- **add_serial_numbers** - Attach existing serial-number strings to a resource. Unknown or invalid strings abort with 422; serial identities are created by production or goods receipt. The published 200 envelope is retained for successful-response compatibility. (preview/apply)
 - **list_serial_numbers** - List serial numbers, optionally scoped by `resource_type` and/or `resource_id`. Diagnostic / lookup tool. It can omit serials present in MO/production and sales-row allocations; inspect those documents before fulfillment.
 - **delete_serial_numbers** - Detach serial numbers from a resource. Idempotent (Katana returns 204 even for invalid ids). (preview/apply, destructive)
 

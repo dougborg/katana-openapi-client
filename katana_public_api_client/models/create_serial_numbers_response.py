@@ -18,10 +18,11 @@ T = TypeVar("T", bound="CreateSerialNumbersResponse")
 
 @_attrs_define
 class CreateSerialNumbersResponse:
-    """Response from ``POST /serial_numbers``. The endpoint can partial-
-    fail: any string the API rejects (DUPLICATE on the mint path,
-    MISSING on the transfer path) lands in ``failed`` while the rest
-    succeed. The call still returns 200 in the partial-failure case.
+    """Published 200 response from ``POST /serial_numbers``. A current valid
+    attachment success was not available for destructive verification, so
+    this envelope is retained. Invalid strings do not produce this response:
+    the verified API rejects the entire request with ``422`` instead of
+    returning per-string entries in ``failed``.
 
         Example:
             {'successful': [{'id': 886853, 'transaction_id': '0f054aa0-1234-5678-9abc-def012345678', 'serial_number':

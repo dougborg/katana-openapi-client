@@ -1,7 +1,7 @@
 """Tests for serial-number MCP tools.
 
 Covers the three-tool surface:
-- add_serial_numbers (preview + apply, mint vs. transfer semantics, partial failure)
+- add_serial_numbers (preview + apply, attachment semantics, legacy 200 envelope)
 - list_serial_numbers (filters, paging)
 - delete_serial_numbers (preview + apply, idempotency caveat)
 """
@@ -35,6 +35,7 @@ from katana_public_api_client.models import (
     SerialNumberListResponse,
     SerialNumberResourceType,
 )
+from katana_public_api_client.utils import ValidationError as APIValidationError
 
 _SN_CREATE = "katana_public_api_client.api.serial_number.create_serial_numbers"
 _SN_DELETE = "katana_public_api_client.api.serial_number.delete_serial_numbers"
@@ -91,8 +92,8 @@ def _make_serial_number(
 
 
 @pytest.mark.asyncio
-async def test_add_serial_numbers_preview_mint_does_not_call_api():
-    """preview=True for a mint type returns the plan without calling Katana."""
+async def test_add_serial_numbers_preview_does_not_call_api():
+    """preview=True returns the attachment plan without calling Katana."""
     context, _ = create_mock_context()
     request = AddSerialNumbersRequest(
         resource_type="ManufacturingOrder",
@@ -105,15 +106,15 @@ async def test_add_serial_numbers_preview_mint_does_not_call_api():
 
     mock_api.assert_not_called()
     assert response.is_preview is True
-    assert response.semantic == "mint"
+    assert response.semantic == "attach"
     assert response.created == []
     assert response.failed == []
     assert "Preview" in response.message
 
 
 @pytest.mark.asyncio
-async def test_add_serial_numbers_preview_transfer_surfaces_warning():
-    """preview=True for a transfer type includes the MISSING-failure warning."""
+async def test_add_serial_numbers_preview_surfaces_existing_identity_warning():
+    """Preview explains that unknown strings abort the whole request."""
     context, _ = create_mock_context()
     request = AddSerialNumbersRequest(
         resource_type="SalesOrderRow",
@@ -122,8 +123,8 @@ async def test_add_serial_numbers_preview_transfer_surfaces_warning():
         preview=True,
     )
     response = await _add_serial_numbers_impl(request, context)
-    assert response.semantic == "transfer"
-    assert any("Transfer semantic" in w for w in response.warnings)
+    assert response.semantic == "attach"
+    assert any("abort the request with 422" in w for w in response.warnings)
 
 
 # ============================================================================
@@ -132,8 +133,8 @@ async def test_add_serial_numbers_preview_transfer_surfaces_warning():
 
 
 @pytest.mark.asyncio
-async def test_add_serial_numbers_mint_mo_success():
-    """Apply against ManufacturingOrder returns the created serial numbers."""
+async def test_add_serial_numbers_attachment_success_envelope():
+    """The published successful[] envelope remains supported when returned."""
     context, _ = create_mock_context()
     sn1 = _make_serial_number(id=1001, serial_number="MO-SN-1", resource_id=42)
     sn2 = _make_serial_number(id=1002, serial_number="MO-SN-2", resource_id=42)
@@ -161,20 +162,18 @@ async def test_add_serial_numbers_mint_mo_success():
         response = await _add_serial_numbers_impl(request, context)
 
     assert response.is_preview is False
-    assert response.semantic == "mint"
+    assert response.semantic == "attach"
     assert [r.id for r in response.created] == [1001, 1002]
     assert [r.serial_number for r in response.created] == ["MO-SN-1", "MO-SN-2"]
     assert response.failed == []
-    # Coaching hint for the MO mint case
-    assert any("fulfill_order" in n for n in response.next_actions)
-    # User-facing verb matches the semantic: mint → "Minted"
-    assert response.message.startswith("Minted ")
-    assert any("minted" in n for n in response.next_actions)
+    assert any("traceability" in n for n in response.next_actions)
+    assert response.message.startswith("Attached ")
+    assert any("attached" in n for n in response.next_actions)
 
 
 @pytest.mark.asyncio
-async def test_add_serial_numbers_transfer_to_sor_normalizes_undefined_quirk():
-    """Transfer response quirks (transaction_id='undefined', resource_id=None) surface as-is."""
+async def test_add_serial_numbers_to_sor_normalizes_undefined_quirk():
+    """Attachment response quirks surface without pretending they are complete."""
     context, _ = create_mock_context()
     # Mimic the Katana wire quirk on transfer: transaction_id="undefined", resource_id=None
     transferred = _make_serial_number(
@@ -207,7 +206,7 @@ async def test_add_serial_numbers_transfer_to_sor_normalizes_undefined_quirk():
         mock_api.return_value = _wrap_response(wire)
         response = await _add_serial_numbers_impl(request, context)
 
-    assert response.semantic == "transfer"
+    assert response.semantic == "attach"
     assert len(response.created) == 1
     record = response.created[0]
     assert record.id == 886856
@@ -215,19 +214,18 @@ async def test_add_serial_numbers_transfer_to_sor_normalizes_undefined_quirk():
     # The wire quirks are preserved (tool doesn't pretend they don't exist).
     assert record.transaction_id == "undefined"
     assert record.resource_id is None
-    # User-facing verb matches the semantic: transfer → "Transferred"
-    assert response.message.startswith("Transferred ")
-    assert any("transferred" in n for n in response.next_actions)
+    assert response.message.startswith("Attached ")
+    assert any("attached" in n for n in response.next_actions)
 
 
 # ============================================================================
-# add_serial_numbers — partial failure / all-failed
+# add_serial_numbers — legacy 200 failure envelope
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_add_serial_numbers_partial_failure_duplicate():
-    """DUPLICATE response: tool surfaces both successful and failed lists."""
+async def test_add_serial_numbers_parses_legacy_partial_envelope():
+    """If returned, the published 200 envelope remains losslessly parsed."""
     context, _ = create_mock_context()
     sn_ok = _make_serial_number(id=2001, serial_number="OK-1")
     failed = CreateSerialNumberFailedItem(
@@ -261,12 +259,12 @@ async def test_add_serial_numbers_partial_failure_duplicate():
     assert len(response.failed) == 1
     assert response.failed[0].reason == "DUPLICATE"
     assert response.failed[0].serial_number == "DUP-1"
-    assert "Partial success" in response.message
+    assert "Legacy partial response" in response.message
 
 
 @pytest.mark.asyncio
-async def test_add_serial_numbers_all_missing_transfer():
-    """Transfer attempt where every string is MISSING — no exception, surface failures."""
+async def test_add_serial_numbers_parses_legacy_all_failed_envelope():
+    """Retain parsing if the published legacy failed[] envelope reappears."""
     context, _ = create_mock_context()
     failed = [
         CreateSerialNumberFailedItem(
@@ -299,9 +297,34 @@ async def test_add_serial_numbers_all_missing_transfer():
 
     assert response.created == []
     assert response.failed[0].reason == "MISSING"
-    # Transfer-path message uses "transferred", not "created".
-    assert "No serial numbers transferred" in response.message
-    assert "transfer path" in response.message
+    assert "No serial numbers attached" in response.message
+    assert "legacy 200 response" in response.message
+
+
+@pytest.mark.asyncio
+async def test_add_serial_numbers_propagates_hard_422_without_partial_result():
+    """Current invalid strings fail the operation instead of returning failed[]."""
+    context, _ = create_mock_context()
+    request = AddSerialNumbersRequest(
+        resource_type="Production",
+        resource_id=42,
+        serial_numbers=["UNKNOWN"],
+        preview=False,
+    )
+    error = APIValidationError("UnknownSerialNumber", 422)
+
+    with (
+        patch(f"{_SN_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(
+            "katana_mcp.tools.foundation.serial_numbers.unwrap_as",
+            side_effect=error,
+        ),
+    ):
+        mock_api.return_value = _wrap_response(parsed=None, status=422)
+        with pytest.raises(APIValidationError, match="UnknownSerialNumber"):
+            await _add_serial_numbers_impl(request, context)
+
+    mock_api.assert_awaited_once()
 
 
 # ============================================================================
@@ -309,12 +332,10 @@ async def test_add_serial_numbers_all_missing_transfer():
 # ============================================================================
 
 
-def test_add_serial_numbers_accepts_production_as_transfer_type():
-    """``Production`` is a valid write ``resource_type`` (transfer semantics) —
+def test_add_serial_numbers_accepts_production_as_attachment_type():
+    """``Production`` is a valid write ``resource_type`` —
     verified live 2026-07-14 (#980): the wire routes it to a production lookup
     and 422s ``UnknownSerialNumber`` for a string that doesn't pre-exist."""
-    from katana_mcp.tools.foundation.serial_numbers import _semantic_label
-
     request = AddSerialNumbersRequest(
         resource_type="Production",
         resource_id=1,
@@ -322,7 +343,6 @@ def test_add_serial_numbers_accepts_production_as_transfer_type():
         preview=False,
     )
     assert request.resource_type == "Production"
-    assert _semantic_label("Production") == "transfer"
 
 
 @pytest.mark.asyncio
@@ -357,25 +377,24 @@ async def test_add_serial_numbers_rejects_empty_list():
 
 
 # ============================================================================
-# add_serial_numbers — cross-resource parametrize (mint vs. transfer semantic)
+# add_serial_numbers — cross-resource attachment semantic
 # ============================================================================
 
 
 @pytest.mark.parametrize(
-    ("resource_type", "expected_semantic"),
+    "resource_type",
     [
-        ("ManufacturingOrder", "mint"),
-        ("PurchaseOrderRow", "mint"),
-        ("SalesOrderRow", "transfer"),
-        ("StockTransferRow", "transfer"),
-        ("StockAdjustmentRow", "transfer"),
+        "ManufacturingOrder",
+        "PurchaseOrderRow",
+        "SalesOrderRow",
+        "StockTransferRow",
+        "StockAdjustmentRow",
+        "Production",
     ],
 )
 @pytest.mark.asyncio
-async def test_add_serial_numbers_semantic_classification(
-    resource_type: str, expected_semantic: str
-) -> None:
-    """Each write resource_type maps to the correct mint/transfer bucket."""
+async def test_add_serial_numbers_uses_attachment_semantic(resource_type: str) -> None:
+    """Every accepted write resource type uses the verified attach semantic."""
     context, _ = create_mock_context()
     # Parametrize passes ``str``; pydantic validates the Literal at runtime.
     # Cast to Any so the static checker doesn't reject the wider input type.
@@ -386,7 +405,7 @@ async def test_add_serial_numbers_semantic_classification(
         preview=True,
     )
     response = await _add_serial_numbers_impl(request, context)
-    assert response.semantic == expected_semantic
+    assert response.semantic == "attach"
 
 
 # ============================================================================
@@ -589,7 +608,7 @@ async def test_delete_serial_numbers_idempotent():
 async def test_add_serial_numbers_invalidates_parent_mo_cache(
     context_with_typed_cache,
 ):
-    """After a successful mint on an MO, the parent MO is evicted from cache."""
+    """After a successful attachment on an MO, its cache row is evicted."""
     from sqlmodel import select
 
     from katana_public_api_client.models_pydantic._generated import (
@@ -675,7 +694,7 @@ async def test_delete_serial_numbers_invalidates_parent_mo_cache(
 async def test_add_serial_numbers_evicts_sor_row_not_parent_so(
     context_with_typed_cache,
 ):
-    """SOR mint evicts the SOR row from cache, leaving the parent SO intact.
+    """SOR attachment evicts the SOR row while leaving the parent SO intact.
 
     The parent SalesOrder's ``updated_at`` doesn't advance on a row-level
     serial mutation, so deleting the parent would orphan it from the
@@ -737,7 +756,7 @@ async def test_add_serial_numbers_evicts_sor_row_not_parent_so(
 async def test_add_serial_numbers_purchase_order_row_skips_cache_eviction(
     context_with_typed_cache,
 ):
-    """PO row mint is a cache no-op — PO models don't surface serial_numbers."""
+    """PO-row attachment is a cache no-op; PO models omit serial numbers."""
     from sqlmodel import select
 
     from katana_public_api_client.models_pydantic._generated import (

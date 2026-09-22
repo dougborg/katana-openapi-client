@@ -1311,7 +1311,7 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
     serial_numbers: Annotated[
         list[int] | None,
         Field(
-            description="Pre-existing SerialNumber IDs (integers) to assign to the units produced in this production run. Required when the manufacturing order's finished-good variant is serial-tracked. Katana silently drops IDs that do not exist — callers must mint via `POST /serial_numbers` first."
+            description="Pre-existing SerialNumber IDs (integers) to assign to the units\nproduced in this production run. Katana silently drops IDs that\ndo not exist. On the verified test configuration, omitting serial\ninputs for a serial-tracked product generated identities during\nproduction; `POST /serial_numbers` did not mint new strings.\n"
         ),
     ] = None
     traceability: Annotated[
