@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.119.3](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.119.2...mcp-v0.119.3) (2026-09-22)
+
+
+### Bug Fixes
+
+* **mcp:** block closed MO modify previews ([#1100](https://github.com/dougborg/katana-openapi-client/issues/1100)) ([bd9d681](https://github.com/dougborg/katana-openapi-client/commit/bd9d6812ab74ada5b4490bd630564b54e5a5ad96))
+* resolve PO variant cache misses ([#1099](https://github.com/dougborg/katana-openapi-client/issues/1099)) ([f27a87d](https://github.com/dougborg/katana-openapi-client/commit/f27a87d7a54d8b1526e9f95ece21cb4e02fe7fec))
+
 ## [0.119.2](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.119.1...mcp-v0.119.2) (2026-09-22)
 
 
