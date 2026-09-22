@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.119.2](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.119.1...mcp-v0.119.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* align material variant creation contract ([#1095](https://github.com/dougborg/katana-openapi-client/issues/1095)) ([382a9e9](https://github.com/dougborg/katana-openapi-client/commit/382a9e9232775040a2c58419007a420620dcfce3))
+* align serial attachment semantics ([#1097](https://github.com/dougborg/katana-openapi-client/issues/1097)) ([6d658b5](https://github.com/dougborg/katana-openapi-client/commit/6d658b5700c7ef2799f1fee5a70a5ecbd901161f))
+
 ## [0.119.1](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.119.0...mcp-v0.119.1) (2026-09-21)
 
 
