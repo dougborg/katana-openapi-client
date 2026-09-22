@@ -111,6 +111,13 @@ from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = get_logger(__name__)
 
+# ``GET /variants/{id}`` is the only point lookup available for catalog misses.
+# Keep card enrichment best-effort and bounded: changed rows win over stale
+# existing rows, at most this many misses are fetched, and only a small number
+# run concurrently so a large PO cannot create a rate-limit spike.
+_PO_VARIANT_FALLBACK_LIMIT = 20
+_PO_VARIANT_FALLBACK_CONCURRENCY = 4
+
 # ============================================================================
 # Tool 1: create_purchase_order
 # ============================================================================
@@ -3123,8 +3130,8 @@ def _collect_po_row_variant_ids(
 
     Union of the existing rows' variants (the snapshot the card renders) and
     the variants referenced by ``add_rows`` / ``update_rows`` (so added /
-    variant-swapped rows show a SKU + name, not a bare id). One set → one
-    batched cache lookup in :func:`_resolve_po_row_variants`.
+    variant-swapped rows show a SKU + name, not a bare id). One set feeds the
+    batched cache lookup and its bounded miss fallback.
     """
     ids: set[int] = set()
     if existing_po is not None:
@@ -3141,12 +3148,21 @@ def _collect_po_row_variant_ids(
 
 
 async def _resolve_po_row_variants(
-    services: Any, variant_ids: set[int]
+    services: Any,
+    variant_ids: set[int],
+    *,
+    fallback_priority: set[int] | None = None,
 ) -> dict[int, dict[str, str | None]]:
-    """Batch-resolve ``{variant_id: {"sku", "display_name"}}`` via the typed
-    cache for the PO modify card's row table. Misses degrade to ``None`` fields
-    so the row still renders (``variant <id>`` fallback). Serializable dict so
-    it round-trips through ``response.extras`` + ``model_dump``.
+    """Resolve PO-row variant identities from cache, then a bounded API fallback.
+
+    The common path is one batch cache read and zero API requests. Cache misses
+    use ``GET /variants/{id}?extend=product_or_material`` so recently-created
+    variants still render their real SKU and canonical display name. Changed-row
+    IDs are fetched first; remaining misses are sorted for deterministic
+    behavior. API errors remain best-effort unresolved rows.
+
+    The result is a serializable dict so it round-trips through
+    ``response.extras`` + ``model_dump``.
     """
     if not variant_ids:
         return {}
@@ -3160,9 +3176,11 @@ async def _resolve_po_row_variants(
         CachedVariant, variant_ids, include_archived=True, include_deleted=True
     )
     resolved: dict[int, dict[str, str | None]] = {}
+    missing: set[int] = set()
     for vid in variant_ids:
         v = variants.get(vid)
         if v is None:
+            missing.add(vid)
             resolved[vid] = {"sku": None, "display_name": None}
         elif isinstance(v, dict):
             resolved[vid] = {
@@ -3174,6 +3192,64 @@ async def _resolve_po_row_variants(
                 "sku": getattr(v, "sku", None),
                 "display_name": getattr(v, "display_name", None),
             }
+
+    if not missing:
+        return resolved
+
+    priority = missing & (fallback_priority or set())
+    fallback_ids = [
+        *sorted(priority),
+        *sorted(missing - priority),
+    ][:_PO_VARIANT_FALLBACK_LIMIT]
+
+    from katana_public_api_client.api.variant import get_variant
+    from katana_public_api_client.domain.variant import build_variant_display_name
+    from katana_public_api_client.models import ErrorResponse, GetVariantExtendItem
+
+    semaphore = asyncio.Semaphore(_PO_VARIANT_FALLBACK_CONCURRENCY)
+
+    async def _fetch(variant_id: int) -> tuple[int, Any | None]:
+        try:
+            async with semaphore:
+                response = await get_variant.asyncio_detailed(
+                    id=variant_id,
+                    client=services.client,
+                    extend=[GetVariantExtendItem.PRODUCT_OR_MATERIAL],
+                )
+            value = unwrap(response, raise_on_error=False)
+            if value is None or isinstance(value, ErrorResponse):
+                return variant_id, None
+            return variant_id, value
+        except Exception as exc:
+            logger.info(
+                f"Could not resolve PO-row variant {variant_id} for card "
+                f"rendering: {type(exc).__name__}: {exc}"
+            )
+            return variant_id, None
+
+    fetched = await asyncio.gather(*(_fetch(vid) for vid in fallback_ids))
+    for vid, variant in fetched:
+        if variant is None:
+            continue
+        sku = unwrap_unset(getattr(variant, "sku", UNSET), None)
+        parent = unwrap_unset(getattr(variant, "product_or_material", UNSET), None)
+        parent_name = (
+            unwrap_unset(getattr(parent, "name", UNSET), None)
+            if parent is not None
+            else None
+        )
+        config_attributes = unwrap_unset(
+            getattr(variant, "config_attributes", UNSET), None
+        )
+        resolved[vid] = {
+            "sku": sku,
+            "display_name": build_variant_display_name(
+                parent_name, config_attributes, sku
+            ),
+        }
+        # Deliberately leave cache writes to the normal catalog sync. A point
+        # response does not carry every denormalized CachedVariant field, and
+        # inserting a partial row could overwrite fresher catalog metadata.
     return resolved
 
 
@@ -3309,9 +3385,9 @@ async def _modify_purchase_order_impl(
     # Resolve variant SKU / display_name for every row variant the card's row
     # diff table touches (existing rows + add/update variants) so it renders
     # user-facing identities, not bare ids (anti-pattern #2 / #7). One batched
-    # cache lookup; threaded onto the response so ``build_po_modify_ui`` reads
-    # it without a second hit at render time. Mirrors the BOM card's
-    # ``resolved_ingredients``.
+    # cache lookup plus a bounded API fallback for misses; threaded onto the
+    # response so ``build_po_modify_ui`` reads it without a second hit at render
+    # time. Mirrors the BOM card's ``resolved_ingredients``.
     #
     # Skip the lookup for header-only / additional-cost-only plans: the card
     # short-circuits and never renders the row table (no row CRUD), so
@@ -3322,7 +3398,16 @@ async def _modify_purchase_order_impl(
     )
     resolved_variants = (
         await _resolve_po_row_variants(
-            services, _collect_po_row_variant_ids(existing_po, request)
+            services,
+            _collect_po_row_variant_ids(existing_po, request),
+            fallback_priority={
+                *(int(row.variant_id) for row in request.add_rows or []),
+                *(
+                    int(row.variant_id)
+                    for row in request.update_rows or []
+                    if row.variant_id is not None
+                ),
+            },
         )
         if has_row_crud
         else {}
