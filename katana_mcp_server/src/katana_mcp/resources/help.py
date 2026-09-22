@@ -1484,6 +1484,12 @@ Unified modification surface for an MO — header, recipe rows
 multiple `modify_manufacturing_order` calls — there is no batch shape
 in the unified surface.
 
+DONE and PARTIALLY_COMPLETED MOs are locked. A preview against a locked MO
+returns a blocking warning and no planned actions unless the same request
+explicitly reopens it with `update_header.status: IN_PROGRESS` (or
+`NOT_STARTED`). For ingredient corrections that must preserve the original
+close-state and production timestamps, use `correct_manufacturing_order`.
+
 ---
 
 ### delete_manufacturing_order

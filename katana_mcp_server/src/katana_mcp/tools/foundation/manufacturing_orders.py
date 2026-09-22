@@ -50,6 +50,7 @@ from katana_mcp.tools._modification_dispatch import (
     run_delete_plan,
     run_modify_plan,
     safe_fetch_for_diff,
+    serialize_for_prior_state,
     unset_dict,
 )
 from katana_mcp.tools.foundation._traceability import (
@@ -3080,6 +3081,48 @@ def _classify_status_transition(
     return _HeaderPhase.FIRST
 
 
+def _closed_mo_modify_warning(
+    existing_mo: ManufacturingOrder | None,
+    request: ModifyManufacturingOrderRequest,
+) -> str | None:
+    """Return a blocking warning when a modify plan cannot unlock its MO.
+
+    Katana rejects every header/child mutation while an MO remains in a
+    closed status.  A request that explicitly transitions the header to an
+    open status is intentional reopen-and-edit behavior and remains valid;
+    the header ActionSpec runs first (see ``_classify_status_transition``).
+    """
+    from katana_mcp.tools._reopen import MO_CLOSED_STATUSES
+
+    if existing_mo is None:
+        return None
+
+    current_status_enum = unwrap_unset(existing_mo.status, None)
+    current_status = (
+        current_status_enum.value if current_status_enum is not None else None
+    )
+    if current_status not in MO_CLOSED_STATUSES:
+        return None
+
+    target_status = (
+        request.update_header.status if request.update_header is not None else None
+    )
+    if target_status in {
+        ManufacturingOrderStatus.NOT_STARTED.value,
+        ManufacturingOrderStatus.IN_PROGRESS.value,
+    }:
+        return None
+
+    return (
+        f"{BLOCK_WARNING_PREFIX} Manufacturing order {request.id} is "
+        f"{current_status} and locked. Katana rejects modifications while the "
+        "order remains closed. Explicitly reopen it with "
+        "update_header.status=IN_PROGRESS (or NOT_STARTED) in this request; "
+        "for close-state-preserving ingredient corrections, use "
+        "correct_manufacturing_order."
+    )
+
+
 # ----------------------------------------------------------------------------
 # Implementation
 # ----------------------------------------------------------------------------
@@ -3109,6 +3152,24 @@ async def _modify_manufacturing_order_impl(
         )
 
     existing_mo = await _fetch_manufacturing_order_attrs(services, request.id)
+
+    closed_warning = _closed_mo_modify_warning(existing_mo, request)
+    if closed_warning is not None:
+        mode = "Preview blocked" if request.preview else "Refused"
+        return ModificationResponse(
+            entity_type="manufacturing_order",
+            entity_id=request.id,
+            is_preview=request.preview,
+            actions=[],
+            prior_state=serialize_for_prior_state(existing_mo),
+            warnings=[closed_warning],
+            next_actions=[
+                "Reopen the order explicitly before modifying it, or use "
+                "correct_manufacturing_order for ingredient corrections"
+            ],
+            katana_url=katana_web_url("manufacturing_order", request.id),
+            message=f"{mode}: manufacturing order {request.id} is locked",
+        )
 
     plan: list[ActionSpec] = []
 
@@ -3527,7 +3588,10 @@ async def modify_manufacturing_order(
     Two-step flow: ``preview=true`` (default) returns a per-action preview;
     ``preview=false`` executes the plan in canonical order. Fail-fast on
     error; the response carries a ``prior_state`` snapshot for manual
-    revert.
+    revert. DONE and PARTIALLY_COMPLETED orders are locked: preview returns a
+    blocking warning unless ``update_header.status`` explicitly reopens the
+    order to IN_PROGRESS or NOT_STARTED. Use ``correct_manufacturing_order``
+    for close-state-preserving ingredient corrections.
     """
     response = await _modify_manufacturing_order_impl(request, context)
     return to_tool_result(
