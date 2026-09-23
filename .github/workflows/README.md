@@ -48,26 +48,25 @@ mkdocs.yml, etc.) to avoid unnecessary builds.
 **Purpose:** The only workflow that watches `main` for release purposes. Opens or
 updates **one aggregated release PR** covering both packages
 (`separate-pull-requests: false` in `release-please-config.json`); once that PR is
-merged, creates a `client-v*`/`mcp-v*` tag + draft GitHub Release per changed package
-at the merge commit. Never pushes to `main` itself.
+merged, creates a `client-v*`/`mcp-v*` tag + draft GitHub Release per changed package at
+the merge commit. Never pushes to `main` itself.
 
 **Permissions:** `contents: write`, `pull-requests: write`
 
-**Note:** See [docs/RELEASE.md](../../docs/RELEASE.md) for the full flow.
-Configuration: [`release-please-config.json`](../../release-please-config.json) and
-[`.release-please-manifest.json`](../../.release-please-manifest.json) at the repo
-root.
+**Note:** See [docs/RELEASE.md](../../docs/RELEASE.md) for the full flow. Configuration:
+[`release-please-config.json`](../../release-please-config.json) and
+[`.release-please-manifest.json`](../../.release-please-manifest.json) at the repo root.
 
 ### [release-pr-prepare.yml](release-pr-prepare.yml)
 
 **Trigger:** `pull_request` (opened/synchronize/reopened) against `main`, filtered to
 release-please's own branch (`release-please--*`) in this repository
 
-**Purpose:** Glue that keeps the release PR internally consistent - resyncs `uv.lock`
-to the versions release-please just bumped, and keeps
-`katana_mcp_server/pyproject.toml`'s `katana-openapi-client>=X` floor equal to the
-client version the PR proposes. It also formats the generated client changelog to
-satisfy CI. These changes land as a commit on the release PR branch, never on `main`.
+**Purpose:** Glue that keeps the release PR internally consistent - resyncs `uv.lock` to
+the versions release-please just bumped, and keeps `katana_mcp_server/pyproject.toml`'s
+`katana-openapi-client>=X` floor equal to the client version the PR proposes. It also
+formats the generated client changelog to satisfy CI. These changes land as a commit on
+the release PR branch, never on `main`.
 
 **Permissions:** `contents: write`
 
@@ -134,6 +133,21 @@ unpinned actions
 **Note:** Deliberate, reviewed exceptions live in [`.github/zizmor.yml`](../zizmor.yml)
 with a rationale per entry — not blanket suppressions.
 
+### [commitlint.yml](commitlint.yml)
+
+**Trigger:** Pull requests
+
+**Purpose:** Lint every commit in the pull request as a Conventional Commit. `main`
+takes rebase merges only, so each commit lands as written and release-please reads each
+one.
+
+**Steps:**
+
+- Run `@commitlint/cli` (pinned) over the pull request's `base..head` commits, with the
+  rules in [`.commitlintrc.json`](../../.commitlintrc.json)
+
+**Permissions:** `contents: read`
+
 ### [dependabot-auto-merge.yml](dependabot-auto-merge.yml)
 
 **Trigger:** `pull_request_target` on Dependabot PRs
@@ -144,8 +158,9 @@ once required CI checks pass
 **Steps:**
 
 - Read update metadata via `dependabot/fetch-metadata`
-- For **semver** patch/minor updates, run `gh pr merge --auto --squash` (PEP440 Python
-  bumps and anything not semver patch/minor are left for human review)
+- For **semver** patch/minor updates, run `gh pr merge --auto --rebase` (PEP440 Python
+  bumps and anything not semver patch/minor are left for human review); `main` takes
+  rebase merges only, so each Dependabot commit lands as written
 - Major version bumps are skipped and left for human review
 
 **Permissions:** `contents: write`, `pull-requests: write`
@@ -216,7 +231,8 @@ graph TD
   credentials for the `dougborg-release-please` App, used to open/update the release PR
   and to push the `uv.lock`/MCP-pin sync commit to it
 - PyPI publishing uses Trusted Publishers (OIDC) - no manual tokens needed. Already
-  active for both packages; see [docs/RELEASE.md](../../docs/RELEASE.md#pypi-trusted-publishers)
+  active for both packages; see
+  [docs/RELEASE.md](../../docs/RELEASE.md#pypi-trusted-publishers)
 
 ### Environments
 

@@ -13,6 +13,11 @@
 # constraints. This is expected behavior - the lock file contains the actual pinned
 # versions while pyproject.toml defines acceptable ranges.
 # See: https://github.com/dependabot/dependabot-core/issues/12788
+#
+# Commit messages: every entry uses prefix `chore` with `include: scope`, which
+# yields `chore(deps): bump ...` or `chore(deps-dev): bump ...`. Rebase merges
+# land these commits on main as written, so they must pass the Conventional
+# commits check (.github/workflows/commitlint.yml).
 
 version: 2
 updates:
@@ -39,7 +44,7 @@ updates:
           - "minor"
           - "patch"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: "scope"
 
   # TypeScript client (npm — packages/katana-client/package-lock.json)
@@ -76,7 +81,7 @@ updates:
       # (check: `npm view @hey-api/openapi-ts dist-tags`).
       - dependency-name: "@hey-api/openapi-ts"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: "scope"
 
   # GitHub Actions
@@ -99,7 +104,7 @@ updates:
         patterns:
           - "*"
     commit-message:
-      prefix: "chore(actions)"
+      prefix: "chore"
       include: "scope"
 
   # Docker dependencies
@@ -118,5 +123,5 @@ updates:
       - "docker"
       - "mcp-server"
     commit-message:
-      prefix: "chore(docker)"
+      prefix: "chore"
       include: "scope"
