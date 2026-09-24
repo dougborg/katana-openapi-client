@@ -5,7 +5,9 @@
 # Supported ecosystems:
 # - uv: Python dependencies via pyproject.toml and uv.lock (GA since March 2025)
 # - npm: TypeScript client deps via packages/katana-client/package-lock.json
-#        (the lockfile CI gates with `npm ci` in the typescript-client job)
+#        (the lockfile CI gates with `npm ci` in the typescript-client job),
+#        plus security updates only for the root pnpm workspace lockfile
+#        (pnpm-lock.yaml), which also resolves packages/katana-client
 # - github-actions: Workflow action versions
 # - docker: Base images in Dockerfiles
 #
@@ -47,10 +49,33 @@ updates:
       prefix: "chore"
       include: "scope"
 
+  # Root pnpm workspace (pnpm-lock.yaml, `packageManager: pnpm@9.14.4`).
+  # The workspace includes packages/katana-client, so this lockfile carries a
+  # second resolution of the client's dependencies and GitHub raises security
+  # alerts against it. `open-pull-requests-limit: 0` disables version updates
+  # (the client's own entry below owns those, against the lockfile CI gates)
+  # while security updates for this directory still run with this entry's
+  # labels, commit message and ignore rules.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "typescript"
+    ignore:
+      # Same pin as the packages/katana-client entry below.
+      - dependency-name: "@hey-api/openapi-ts"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
   # TypeScript client (npm — packages/katana-client/package-lock.json)
   # This is the lockfile CI installs from (`npm ci` in the typescript-client job).
-  # The root pnpm workspace lockfile is not gated by CI, so it's intentionally
-  # not tracked here to avoid churning a lockfile nothing verifies.
   - package-ecosystem: "npm"
     directory: "/packages/katana-client"
     schedule:
