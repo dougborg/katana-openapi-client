@@ -64,6 +64,10 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 0
+    # Same cooldown as the other entries. Security updates ignore it, but it
+    # keeps this entry consistent if version updates are ever enabled here.
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "typescript"
