@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [0.86.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.85.3...client-v0.86.0) (2026-10-01)
+
+
+### Features
+
+* **client:** sync upstream sales-order and custom-field contracts ([6e75661](https://github.com/dougborg/katana-openapi-client/commit/6e75661db62973015ef3967d3a07147ced716296))
+
 ## [0.85.3](https://github.com/dougborg/katana-openapi-client/compare/client-v0.85.2...client-v0.85.3) (2026-09-22)
 
 ### Bug Fixes

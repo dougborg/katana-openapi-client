@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.120.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.119.3...mcp-v0.120.0) (2026-10-01)
+
+
+### Features
+
+* **client:** sync upstream sales-order and custom-field contracts ([6e75661](https://github.com/dougborg/katana-openapi-client/commit/6e75661db62973015ef3967d3a07147ced716296))
+
 ## [0.119.3](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.119.2...mcp-v0.119.3) (2026-09-22)
 
 
