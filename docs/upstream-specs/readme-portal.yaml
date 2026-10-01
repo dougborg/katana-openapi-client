@@ -31072,7 +31072,7 @@ paths:
                   nullable: true
                   type: string
                 delivery_date:
-                  description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+                  description: Updatable in all sales order statuses except DELIVERED.
                   type: string
                 location_id:
                   description: Updatable only when sales order status is NOT_SHIPPED or PENDING.

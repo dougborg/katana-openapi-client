@@ -68,6 +68,7 @@ class SalesReturnRefundStatus(StrEnum):
 class SalesOrderStatus(StrEnum):
     not_shipped = "NOT_SHIPPED"
     pending = "PENDING"
+    ready_for_fulfillment = "READY_FOR_FULFILLMENT"
     partially_packed = "PARTIALLY_PACKED"
     partially_delivered = "PARTIALLY_DELIVERED"
     packed = "PACKED"
@@ -108,6 +109,7 @@ class SalesOrderInvoicingStatus(StrEnum):
 class UpdateSalesOrderStatus(StrEnum):
     not_shipped = "NOT_SHIPPED"
     pending = "PENDING"
+    ready_for_fulfillment = "READY_FOR_FULFILLMENT"
     packed = "PACKED"
     delivered = "DELIVERED"
 
@@ -1221,9 +1223,7 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
     ] = None
     delivery_date: Annotated[
         AwareDatetime | None,
-        Field(
-            description="Updatable only when sales order status is NOT_SHIPPED or PENDING."
-        ),
+        Field(description="Updatable in all sales order statuses except DELIVERED."),
     ] = None
     picked_date: Annotated[
         AwareDatetime | None,
@@ -1527,7 +1527,10 @@ class SalesOrderSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    filter: SalesOrderSearchFilter | None = None
+    filter: Annotated[
+        SalesOrderSearchFilter | None,
+        Field(description="Filter conditions used to select matching sales orders."),
+    ] = None
     order: Annotated[
         str | list[str] | None,
         Field(
@@ -1555,7 +1558,12 @@ class SalesOrderRowSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    filter: SalesOrderRowSearchFilter | None = None
+    filter: Annotated[
+        SalesOrderRowSearchFilter | None,
+        Field(
+            description="Filter conditions used to select matching sales order rows."
+        ),
+    ] = None
     order: Annotated[
         str | list[str] | None,
         Field(

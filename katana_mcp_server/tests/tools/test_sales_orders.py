@@ -39,6 +39,7 @@ from katana_public_api_client.models import (
     CreateSalesOrderStatus,
     SalesOrder,
     SalesOrderStatus,
+    UpdateSalesOrderStatus,
 )
 from katana_public_api_client.utils import APIError
 from tests.factories import (
@@ -51,6 +52,26 @@ from tests.factories import (
 # ============================================================================
 # Unit Tests (with mocks)
 # ============================================================================
+
+
+@pytest.mark.parametrize("status", [value.value for value in UpdateSalesOrderStatus])
+def test_header_patch_accepts_all_api_update_statuses(status: str) -> None:
+    request = SOHeaderPatch.model_validate({"status": status})
+    assert request.model_dump(exclude_unset=True) == {"status": status}
+
+
+def test_create_sales_order_rejects_ready_for_fulfillment() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        CreateSalesOrderRequest.model_validate(
+            {
+                "customer_id": 1,
+                "order_number": "SO-TEST",
+                "items": [{"variant_id": 2, "quantity": 1, "price_per_unit": 3}],
+                "status": "READY_FOR_FULFILLMENT",
+            }
+        )
 
 
 @pytest.mark.asyncio

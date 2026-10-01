@@ -1042,6 +1042,7 @@ class Object(KatanaPydanticBase):
 class Event(StrEnum):
     sales_order_created = "sales_order.created"
     sales_order_approved = "sales_order.approved"
+    sales_order_ready_for_fulfillment = "sales_order.ready_for_fulfillment"
     sales_order_packed = "sales_order.packed"
     sales_order_delivered = "sales_order.delivered"
     sales_order_invoiced = "sales_order.invoiced"
@@ -1837,7 +1838,10 @@ class VariantSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    filter: VariantSearchFilter | None = None
+    filter: Annotated[
+        VariantSearchFilter | None,
+        Field(description="Filter conditions used to select matching variants."),
+    ] = None
     order: Annotated[
         str | list[str] | None,
         Field(

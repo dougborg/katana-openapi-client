@@ -287,10 +287,13 @@ class SOShippingFeeUpdate(BaseModel):
 # Valid SO statuses. NOTE: the wire ``POST /sales_orders`` only accepts
 # ``NOT_SHIPPED`` / ``PENDING`` (``CreateSalesOrderStatus``); ``PACKED`` /
 # ``DELIVERED`` are reached by shipping the order via ``fulfill_order``. The
-# wider literal here is shared with ``SOHeaderPatch`` (the PATCH endpoint does
-# accept all four); ``create_sales_order`` validates the create-time subset in
-# its impl so it can return an actionable refusal pointing at ``fulfill_order``.
+# wider literal lets ``create_sales_order`` return an actionable refusal pointing
+# at ``fulfill_order`` for post-create states. Header patches have a separate
+# literal because their accepted states differ from create-time statuses.
 SalesOrderStatusLiteral = Literal["NOT_SHIPPED", "PENDING", "PACKED", "DELIVERED"]
+UpdateSalesOrderStatusLiteral = Literal[
+    "NOT_SHIPPED", "PENDING", "READY_FOR_FULFILLMENT", "PACKED", "DELIVERED"
+]
 
 # Statuses that are only reachable post-create (via fulfillment), never at
 # ``POST /sales_orders`` time.
@@ -2168,9 +2171,9 @@ class SOHeaderPatch(CustomFieldValuesRequest):
         default=None,
         description=("New location ID. Look up via `list_locations`."),
     )
-    status: SalesOrderStatusLiteral | None = Field(
+    status: UpdateSalesOrderStatusLiteral | None = Field(
         default=None,
-        description="New status — NOT_SHIPPED / PENDING / PACKED / DELIVERED",
+        description="New status — NOT_SHIPPED / PENDING / READY_FOR_FULFILLMENT / PACKED / DELIVERED",
     )
     currency: str | None = Field(default=None, description="New currency code")
     conversion_rate: float | None = Field(

@@ -31,6 +31,8 @@ OBJECT_REQUESTS = [
     "UpdateManufacturingOrderRecipeRowRequest",
     "CreateManufacturingOrderRequest",
     "UpdateManufacturingOrderRequest",
+    "CreateOutsourcedPurchaseOrderRecipeRowRequest",
+    "UpdateOutsourcedPurchaseOrderRecipeRowRequest",
     "UpdateProductOperationRowRequest",
     "CreatePurchaseOrderRowRequest",
     "UpdatePurchaseOrderRowRequest",
@@ -50,6 +52,12 @@ UUID = "00000000-0000-0000-0000-000000000001"
 def _payload(name: str, value: object) -> dict:
     schema = SCHEMAS[name]
     example = schema.get("example", {})
+    if name == "CreateOutsourcedPurchaseOrderRecipeRowRequest":
+        example = {
+            "purchase_order_row_id": 1,
+            "ingredient_variant_id": 2,
+            "planned_quantity_per_unit": 3,
+        }
     body = {key: deepcopy(example[key]) for key in schema.get("required", [])}
     body["custom_fields"] = value
     return body
@@ -101,15 +109,21 @@ def test_union_map_keys_and_values_are_validated(name: str, value: object) -> No
         getattr(_generated, name).model_validate(_payload(name, value))
 
 
-def test_omitted_custom_fields_stay_omitted_through_attrs_conversion() -> None:
-    request = models.UpdateCustomerRequest()
-    converted = _generated.UpdateCustomerRequest.from_attrs(request)
+@pytest.mark.parametrize(
+    "name", ["UpdateCustomerRequest", "UpdateOutsourcedPurchaseOrderRecipeRowRequest"]
+)
+def test_omitted_custom_fields_stay_omitted_through_attrs_conversion(name: str) -> None:
+    request = getattr(models, name)()
+    converted = getattr(_generated, name).from_attrs(request)
     assert converted.to_attrs().to_dict() == {}
 
 
-def test_explicit_null_survives_attrs_conversion() -> None:
-    request = models.UpdateCustomerRequest(custom_fields=None)
-    converted = _generated.UpdateCustomerRequest.from_attrs(request)
+@pytest.mark.parametrize(
+    "name", ["UpdateCustomerRequest", "UpdateOutsourcedPurchaseOrderRecipeRowRequest"]
+)
+def test_explicit_null_survives_attrs_conversion(name: str) -> None:
+    request = getattr(models, name)(custom_fields=None)
+    converted = getattr(_generated, name).from_attrs(request)
     assert converted.to_attrs().to_dict() == {"custom_fields": None}
 
 

@@ -1252,7 +1252,12 @@ class ManufacturingOrderSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    filter: ManufacturingOrderSearchFilter | None = None
+    filter: Annotated[
+        ManufacturingOrderSearchFilter | None,
+        Field(
+            description="Filter conditions used to select matching manufacturing orders."
+        ),
+    ] = None
     order: Annotated[
         str | list[str] | None,
         Field(

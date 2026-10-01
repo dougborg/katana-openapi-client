@@ -110,6 +110,9 @@ from .create_material_variant_request_custom_fields_type_0 import (
 from .create_outsourced_purchase_order_recipe_row_request import (
     CreateOutsourcedPurchaseOrderRecipeRowRequest,
 )
+from .create_outsourced_purchase_order_recipe_row_request_custom_fields_type_0 import (
+    CreateOutsourcedPurchaseOrderRecipeRowRequestCustomFieldsType0,
+)
 from .create_price_list_customer_request import CreatePriceListCustomerRequest
 from .create_price_list_customer_request_price_list_customers_item import (
     CreatePriceListCustomerRequestPriceListCustomersItem,
@@ -624,6 +627,9 @@ from .update_material_request_configs_item import UpdateMaterialRequestConfigsIt
 from .update_outsourced_purchase_order_recipe_row_request import (
     UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 )
+from .update_outsourced_purchase_order_recipe_row_request_custom_fields_type_0 import (
+    UpdateOutsourcedPurchaseOrderRecipeRowRequestCustomFieldsType0,
+)
 from .update_price_list_customer_request import UpdatePriceListCustomerRequest
 from .update_price_list_request import UpdatePriceListRequest
 from .update_price_list_row_request import UpdatePriceListRowRequest
@@ -794,6 +800,7 @@ __all__ = (
     "CreateMaterialVariantRequestCustomFieldsItem",
     "CreateMaterialVariantRequestCustomFieldsType0",
     "CreateOutsourcedPurchaseOrderRecipeRowRequest",
+    "CreateOutsourcedPurchaseOrderRecipeRowRequestCustomFieldsType0",
     "CreatePriceListCustomerRequest",
     "CreatePriceListCustomerRequestPriceListCustomersItem",
     "CreatePriceListRequest",
@@ -1168,6 +1175,7 @@ __all__ = (
     "UpdateMaterialRequest",
     "UpdateMaterialRequestConfigsItem",
     "UpdateOutsourcedPurchaseOrderRecipeRowRequest",
+    "UpdateOutsourcedPurchaseOrderRecipeRowRequestCustomFieldsType0",
     "UpdatePriceListCustomerRequest",
     "UpdatePriceListRequest",
     "UpdatePriceListRowRequest",

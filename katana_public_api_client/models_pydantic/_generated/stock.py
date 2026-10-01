@@ -248,7 +248,10 @@ class CreateSerialNumberFailedItem(KatanaPydanticBase):
     serial_number: Annotated[
         str, Field(description="The input serial-number string that failed.")
     ]
-    reason: CreateSerialNumberFailureReason
+    reason: Annotated[
+        CreateSerialNumberFailureReason,
+        Field(description="Reason this serial number could not be created."),
+    ]
 
 
 class CreateSerialNumbersResponse(KatanaPydanticBase):
