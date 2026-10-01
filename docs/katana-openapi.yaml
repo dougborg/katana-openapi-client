@@ -2015,6 +2015,7 @@ components:
       enum:
         - NOT_SHIPPED
         - PENDING
+        - READY_FOR_FULFILLMENT
         - PARTIALLY_PACKED
         - PARTIALLY_DELIVERED
         - PACKED
@@ -2076,6 +2077,7 @@ components:
       enum:
         - NOT_SHIPPED
         - PENDING
+        - READY_FOR_FULFILLMENT
         - PACKED
         - DELIVERED
       description: Allowed status values when updating a sales order
@@ -5124,6 +5126,7 @@ components:
           description: The input serial-number string that failed.
         reason:
           $ref: "#/components/schemas/CreateSerialNumberFailureReason"
+          description: Reason this serial number could not be created.
 
     CreateSerialNumbersResponse:
       description: |
@@ -8486,6 +8489,7 @@ components:
         - sales_order.approved
         - sales_order.updated
         - sales_order.deleted
+        - sales_order.ready_for_fulfillment
         - sales_order.packed
         - sales_order.delivered
         - sales_order.invoiced
@@ -8771,6 +8775,7 @@ components:
           enum:
             - sales_order.created
             - sales_order.approved
+            - sales_order.ready_for_fulfillment
             - sales_order.packed
             - sales_order.delivered
             - sales_order.invoiced
@@ -10760,6 +10765,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/CustomerSearchFilter"
+          description: Filter conditions used to select matching customers.
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -10802,6 +10808,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/VariantSearchFilter"
+          description: Filter conditions used to select matching variants.
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -10857,6 +10864,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/ManufacturingOrderSearchFilter"
+          description: Filter conditions used to select matching manufacturing orders.
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -10899,6 +10907,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/PurchaseOrderSearchFilter"
+          description: Filter conditions used to select matching purchase orders.
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -10949,6 +10958,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/SalesOrderSearchFilter"
+          description: Filter conditions used to select matching sales orders.
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -11098,6 +11108,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/SalesOrderRowSearchFilter"
+          description: Filter conditions used to select matching sales order rows.
         order:
           description: |
             Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -14865,6 +14876,15 @@ components:
           description: Batch allocation transactions for this ingredient
           items:
             $ref: "#/components/schemas/BatchTransactionRequest"
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            supported definitions depend on the account.
     UpdateOutsourcedPurchaseOrderRecipeRowRequest:
       description: Request payload for updating an outsourced purchase order recipe row
       type: object
@@ -14885,6 +14905,15 @@ components:
           description: Batch allocation transactions for this ingredient
           items:
             $ref: "#/components/schemas/BatchTransactionRequest"
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: >-
+            Custom field values keyed by definition ID. Accepts an object or
+            null, not the legacy field_name/field_value array. Availability and
+            supported definitions depend on the account.
     CreateProductOperationRowItem:
       description: A single product operation row item in a bulk create request
       type: object
@@ -15196,7 +15225,7 @@ components:
         delivery_date:
           type: string
           format: date-time
-          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+          description: Updatable in all sales order statuses except DELIVERED.
         picked_date:
           type: string
           format: date-time

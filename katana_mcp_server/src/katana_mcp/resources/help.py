@@ -1706,7 +1706,7 @@ fulfillments, and shipping fees in one call.
 
 **Sub-payloads (all optional, any subset combinable):**
 - `update_header` — patch header fields (incl. status:
-  NOT_SHIPPED / PENDING / PACKED / DELIVERED).
+  NOT_SHIPPED / PENDING / READY_FOR_FULFILLMENT / PACKED / DELIVERED).
 - `add_rows` / `update_rows` / `delete_row_ids` — line item CRUD.
 - `add_addresses` / `update_addresses` / `delete_address_ids` — billing
   / shipping addresses. Note: Katana doesn't expose a per-address GET,

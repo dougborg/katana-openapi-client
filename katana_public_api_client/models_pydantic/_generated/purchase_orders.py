@@ -753,6 +753,12 @@ class CreateOutsourcedPurchaseOrderRecipeRowRequest(KatanaPydanticBase):
         list[BatchTransactionRequest] | None,
         Field(description="Batch allocation transactions for this ingredient"),
     ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and supported definitions depend on the account."
+        ),
+    ] = None
 
 
 class UpdateOutsourcedPurchaseOrderRecipeRowRequest(KatanaPydanticBase):
@@ -779,6 +785,12 @@ class UpdateOutsourcedPurchaseOrderRecipeRowRequest(KatanaPydanticBase):
     batch_transactions: Annotated[
         list[BatchTransactionRequest] | None,
         Field(description="Batch allocation transactions for this ingredient"),
+    ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and supported definitions depend on the account."
+        ),
     ] = None
 
 
@@ -964,7 +976,10 @@ class PurchaseOrderSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    filter: PurchaseOrderSearchFilter | None = None
+    filter: Annotated[
+        PurchaseOrderSearchFilter | None,
+        Field(description="Filter conditions used to select matching purchase orders."),
+    ] = None
     order: Annotated[
         str | list[str] | None,
         Field(

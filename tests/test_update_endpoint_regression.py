@@ -1,5 +1,6 @@
 """Regression tests for #527 — empty 200 schemas on the two PATCH update endpoints caused ``unwrap_as`` to raise on success."""
 
+import json
 from collections.abc import Callable
 
 import httpx
@@ -16,6 +17,10 @@ from katana_public_api_client.models.update_customer_address_request import (
 from katana_public_api_client.models.update_sales_order_request import (
     UpdateSalesOrderRequest,
 )
+from katana_public_api_client.models.update_sales_order_status import (
+    UpdateSalesOrderStatus,
+)
+from katana_public_api_client.models_pydantic import _generated
 from katana_public_api_client.utils import unwrap_as
 
 
@@ -31,33 +36,39 @@ def _client_with_mock_transport(
 
 
 @pytest.mark.asyncio
-async def test_update_sales_order_parses_200_body() -> None:
+@pytest.mark.parametrize("status", ["NOT_SHIPPED", "READY_FOR_FULFILLMENT"])
+async def test_update_sales_order_parses_200_body(status: str) -> None:
     """Successful PATCH /sales_orders/{id} returns a parsed SalesOrder (regression for #527)."""
     sales_order_payload = {
         "id": 42,
         "customer_id": 7,
         "order_no": "SO-000042",
         "location_id": 1,
-        "status": "NOT_SHIPPED",
+        "status": status,
         "order_created_date": "2026-05-06T10:00:00Z",
     }
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "PATCH"
         assert request.url.path == "/sales_orders/42"
+        assert json.loads(request.content) == {"status": status}
         return httpx.Response(200, json=sales_order_payload)
 
     async with _client_with_mock_transport(handler) as client:
         response = await update_sales_order.asyncio_detailed(
             id=42,
             client=client,
-            body=UpdateSalesOrderRequest(),
+            body=UpdateSalesOrderRequest(status=UpdateSalesOrderStatus(status)),
         )
 
     order = unwrap_as(response, SalesOrder)
     assert isinstance(order, SalesOrder)
     assert order.id == 42
     assert order.order_no == "SO-000042"
+    assert order.status == status
+    pydantic_order = _generated.SalesOrder.from_attrs(order)
+    assert pydantic_order.status == status
+    assert pydantic_order.to_attrs().to_dict()["status"] == status
 
 
 @pytest.mark.asyncio

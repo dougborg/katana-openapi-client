@@ -841,7 +841,10 @@ class CustomerSearchRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    filter: CustomerSearchFilter | None = None
+    filter: Annotated[
+        CustomerSearchFilter | None,
+        Field(description="Filter conditions used to select matching customers."),
+    ] = None
     order: Annotated[
         str | list[str] | None,
         Field(

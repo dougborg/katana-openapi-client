@@ -1402,6 +1402,10 @@ components:
           items:
             $ref: '#/components/schemas/CreateBatchTransactionDto'
           type: array
+        custom_fields:
+          additionalProperties: true
+          nullable: true
+          type: object
         ingredient_variant_id:
           maximum: 2147483647
           minimum: 1
@@ -2320,6 +2324,7 @@ components:
             - sales_order.approved
             - sales_order.deleted
             - sales_order.availability_updated
+            - sales_order.ready_for_fulfillment
             - purchase_order.created
             - purchase_order.updated
             - purchase_order.deleted
@@ -4111,6 +4116,10 @@ components:
           items:
             $ref: '#/components/schemas/CreateBatchTransactionDto'
           type: array
+        custom_fields:
+          additionalProperties: true
+          nullable: true
+          type: object
         ingredient_variant_id:
           maximum: 2147483647
           minimum: 1
@@ -4249,6 +4258,7 @@ components:
           enum:
           - PENDING
           - NOT_SHIPPED
+          - READY_FOR_FULFILLMENT
           - PACKED
           - DELIVERED
           nullable: false
@@ -4596,6 +4606,7 @@ components:
             - sales_order.approved
             - sales_order.deleted
             - sales_order.availability_updated
+            - sales_order.ready_for_fulfillment
             - purchase_order.created
             - purchase_order.updated
             - purchase_order.deleted
@@ -4795,6 +4806,7 @@ components:
             - sales_order.approved
             - sales_order.deleted
             - sales_order.availability_updated
+            - sales_order.ready_for_fulfillment
             - purchase_order.created
             - purchase_order.updated
             - purchase_order.deleted
@@ -4890,6 +4902,7 @@ components:
           - sales_order.approved
           - sales_order.deleted
           - sales_order.availability_updated
+          - sales_order.ready_for_fulfillment
           - purchase_order.created
           - purchase_order.updated
           - purchase_order.deleted

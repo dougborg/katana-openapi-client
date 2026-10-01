@@ -88,6 +88,7 @@ class WebhookEvent(StrEnum):
     SALES_ORDER_DELIVERED = "sales_order.delivered"
     SALES_ORDER_INVOICED = "sales_order.invoiced"
     SALES_ORDER_PACKED = "sales_order.packed"
+    SALES_ORDER_READY_FOR_FULFILLMENT = "sales_order.ready_for_fulfillment"
     SALES_ORDER_UPDATED = "sales_order.updated"
     VARIANT_CREATED = "variant.created"
     VARIANT_DELETED = "variant.deleted"

@@ -682,6 +682,7 @@ export type DocumentSendStatus = 'NOT_SENT' | 'SENDING' | 'FAILED' | 'SENT';
 export type SalesOrderStatus =
   | 'NOT_SHIPPED'
   | 'PENDING'
+  | 'READY_FOR_FULFILLMENT'
   | 'PARTIALLY_PACKED'
   | 'PARTIALLY_DELIVERED'
   | 'PACKED'
@@ -726,7 +727,12 @@ export type SalesOrderInvoicingStatus = 'notInvoiced' | 'partiallyInvoiced' | 'i
 /**
  * Allowed status values when updating a sales order
  */
-export type UpdateSalesOrderStatus = 'NOT_SHIPPED' | 'PENDING' | 'PACKED' | 'DELIVERED';
+export type UpdateSalesOrderStatus =
+  | 'NOT_SHIPPED'
+  | 'PENDING'
+  | 'READY_FOR_FULFILLMENT'
+  | 'PACKED'
+  | 'DELIVERED';
 
 /**
  * Status of a stock transfer. Note the camelCase ``inTransit``.
@@ -2926,6 +2932,9 @@ export type CreateSerialNumberFailedItem = {
    * The input serial-number string that failed.
    */
   serial_number: string;
+  /**
+   * Reason this serial number could not be created.
+   */
   reason: CreateSerialNumberFailureReason;
 };
 
@@ -5030,6 +5039,7 @@ export type WebhookEvent =
   | 'sales_order.approved'
   | 'sales_order.updated'
   | 'sales_order.deleted'
+  | 'sales_order.ready_for_fulfillment'
   | 'sales_order.packed'
   | 'sales_order.delivered'
   | 'sales_order.invoiced'
@@ -5244,6 +5254,7 @@ export type WebhookLogsExportRequest = {
   event?:
     | 'sales_order.created'
     | 'sales_order.approved'
+    | 'sales_order.ready_for_fulfillment'
     | 'sales_order.packed'
     | 'sales_order.delivered'
     | 'sales_order.invoiced'
@@ -6791,6 +6802,9 @@ export type PurchaseOrderSearchFilter = {
  *
  */
 export type CustomerSearchRequest = {
+  /**
+   * Filter conditions used to select matching customers.
+   */
   filter?: CustomerSearchFilter;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -6819,6 +6833,9 @@ export type CustomerSearchRequest = {
  *
  */
 export type VariantSearchRequest = {
+  /**
+   * Filter conditions used to select matching variants.
+   */
   filter?: VariantSearchFilter;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -6855,6 +6872,9 @@ export type VariantSearchRequest = {
  *
  */
 export type ManufacturingOrderSearchRequest = {
+  /**
+   * Filter conditions used to select matching manufacturing orders.
+   */
   filter?: ManufacturingOrderSearchFilter;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -6883,6 +6903,9 @@ export type ManufacturingOrderSearchRequest = {
  *
  */
 export type PurchaseOrderSearchRequest = {
+  /**
+   * Filter conditions used to select matching purchase orders.
+   */
   filter?: PurchaseOrderSearchFilter;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -6919,6 +6942,9 @@ export type SearchPredicate = SearchScalarValue | SearchComparator;
  *
  */
 export type SalesOrderSearchRequest = {
+  /**
+   * Filter conditions used to select matching sales orders.
+   */
   filter?: SalesOrderSearchFilter;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -7074,6 +7100,9 @@ export type SalesOrderSearchFilter = {
  *
  */
 export type SalesOrderRowSearchRequest = {
+  /**
+   * Filter conditions used to select matching sales order rows.
+   */
   filter?: SalesOrderRowSearchFilter;
   /**
    * Sort directive(s). Each entry is ``<field> ASC|DESC``
@@ -9827,6 +9856,12 @@ export type CreateOutsourcedPurchaseOrderRecipeRowRequest = {
    * Batch allocation transactions for this ingredient
    */
   batch_transactions?: Array<BatchTransactionRequest>;
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and supported definitions depend on the account.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -9849,6 +9884,12 @@ export type UpdateOutsourcedPurchaseOrderRecipeRowRequest = {
    * Batch allocation transactions for this ingredient
    */
   batch_transactions?: Array<BatchTransactionRequest>;
+  /**
+   * Custom field values keyed by definition ID. Accepts an object or null, not the legacy field_name/field_value array. Availability and supported definitions depend on the account.
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -10155,7 +10196,7 @@ export type UpdateSalesOrderRequest = {
    */
   order_created_date?: string;
   /**
-   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   * Updatable in all sales order statuses except DELIVERED.
    */
   delivery_date?: string;
   /**
