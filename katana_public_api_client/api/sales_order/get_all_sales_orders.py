@@ -13,6 +13,7 @@ from ...models.get_all_sales_orders_product_availability import (
 )
 from ...models.ingredient_availability import IngredientAvailability
 from ...models.sales_order_list_response import SalesOrderListResponse
+from ...models.sales_order_production_status import SalesOrderProductionStatus
 
 
 def _get_kwargs(
@@ -29,7 +30,7 @@ def _get_kwargs(
     customer_id: int | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
-    production_status: str | Unset = UNSET,
+    production_status: SalesOrderProductionStatus | Unset = UNSET,
     invoicing_status: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     source: str | Unset = UNSET,
@@ -82,7 +83,11 @@ def _get_kwargs(
 
     params["status"] = status
 
-    params["production_status"] = production_status
+    json_production_status: str | Unset = UNSET
+    if not isinstance(production_status, Unset):
+        json_production_status = production_status.value
+
+    params["production_status"] = json_production_status
 
     params["invoicing_status"] = invoicing_status
 
@@ -174,7 +179,7 @@ def sync_detailed(
     customer_id: int | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
-    production_status: str | Unset = UNSET,
+    production_status: SalesOrderProductionStatus | Unset = UNSET,
     invoicing_status: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     source: str | Unset = UNSET,
@@ -201,7 +206,7 @@ def sync_detailed(
         customer_id (int | Unset):
         location_id (int | Unset):
         status (str | Unset):
-        production_status (str | Unset):
+        production_status (SalesOrderProductionStatus | Unset): Production status of a sales order
         invoicing_status (str | Unset):
         currency (str | Unset):
         source (str | Unset):
@@ -267,7 +272,7 @@ def sync(
     customer_id: int | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
-    production_status: str | Unset = UNSET,
+    production_status: SalesOrderProductionStatus | Unset = UNSET,
     invoicing_status: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     source: str | Unset = UNSET,
@@ -294,7 +299,7 @@ def sync(
         customer_id (int | Unset):
         location_id (int | Unset):
         status (str | Unset):
-        production_status (str | Unset):
+        production_status (SalesOrderProductionStatus | Unset): Production status of a sales order
         invoicing_status (str | Unset):
         currency (str | Unset):
         source (str | Unset):
@@ -355,7 +360,7 @@ async def asyncio_detailed(
     customer_id: int | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
-    production_status: str | Unset = UNSET,
+    production_status: SalesOrderProductionStatus | Unset = UNSET,
     invoicing_status: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     source: str | Unset = UNSET,
@@ -382,7 +387,7 @@ async def asyncio_detailed(
         customer_id (int | Unset):
         location_id (int | Unset):
         status (str | Unset):
-        production_status (str | Unset):
+        production_status (SalesOrderProductionStatus | Unset): Production status of a sales order
         invoicing_status (str | Unset):
         currency (str | Unset):
         source (str | Unset):
@@ -446,7 +451,7 @@ async def asyncio(
     customer_id: int | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
-    production_status: str | Unset = UNSET,
+    production_status: SalesOrderProductionStatus | Unset = UNSET,
     invoicing_status: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     source: str | Unset = UNSET,
@@ -473,7 +478,7 @@ async def asyncio(
         customer_id (int | Unset):
         location_id (int | Unset):
         status (str | Unset):
-        production_status (str | Unset):
+        production_status (SalesOrderProductionStatus | Unset): Production status of a sales order
         invoicing_status (str | Unset):
         currency (str | Unset):
         source (str | Unset):
