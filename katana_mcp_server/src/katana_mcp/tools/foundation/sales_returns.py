@@ -39,6 +39,7 @@ from katana_public_api_client.models import (
     SalesReturn,
     SalesReturnRefundStatus,
     SalesReturnRow,
+    SalesReturnStatus,
 )
 from katana_public_api_client.utils import unwrap_as, unwrap_data
 
@@ -212,7 +213,11 @@ async def _list_sales_returns_impl(
             client=services.client,
             limit=250,
             page=page,
-            status=request.status if request.status is not None else UNSET,
+            status=(
+                SalesReturnStatus(request.status)
+                if request.status is not None
+                else UNSET
+            ),
             include_deleted=(
                 request.include_deleted
                 if request.include_deleted is not None

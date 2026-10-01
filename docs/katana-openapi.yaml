@@ -939,6 +939,24 @@ components:
       description: Filter by status
       schema:
         type: string
+    sales_return_status:
+      name: status
+      in: query
+      description: Filter by status
+      schema:
+        $ref: "#/components/schemas/SalesReturnStatus"
+    sales_order_fulfillment_status:
+      name: status
+      in: query
+      description: Filter by status
+      schema:
+        $ref: "#/components/schemas/SalesOrderFulfillmentStatus"
+    stocktake_status:
+      name: status
+      in: query
+      description: Filter by status
+      schema:
+        $ref: "#/components/schemas/StocktakeStatus"
     ingredient_variant_id:
       name: ingredient_variant_id
       in: query
@@ -21077,7 +21095,7 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"
-        - $ref: "#/components/parameters/status"
+        - $ref: "#/components/parameters/sales_return_status"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/created_at_min"
         - $ref: "#/components/parameters/created_at_max"
@@ -21935,7 +21953,7 @@ paths:
           in: query
           description: Filter by production status
           schema:
-            type: string
+            $ref: "#/components/schemas/SalesOrderProductionStatus"
         - name: invoicing_status
           in: query
           description: Filter by invoicing status
@@ -23297,7 +23315,7 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/sales_order_id"
-        - $ref: "#/components/parameters/status"
+        - $ref: "#/components/parameters/sales_order_fulfillment_status"
         - name: tracking_carrier
           in: query
           description: Filters sales order fulfillments by tracking carrier
@@ -24383,7 +24401,7 @@ paths:
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/location_id"
-        - $ref: "#/components/parameters/status"
+        - $ref: "#/components/parameters/stocktake_status"
         - name: stocktake_number
           in: query
           description: Filters stocktakes by stocktake number

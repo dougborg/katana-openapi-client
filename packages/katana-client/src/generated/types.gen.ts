@@ -11125,6 +11125,21 @@ export type CustomerId = number;
 export type Status = string;
 
 /**
+ * Filter by status
+ */
+export type SalesReturnStatus2 = SalesReturnStatus;
+
+/**
+ * Filter by status
+ */
+export type SalesOrderFulfillmentStatus2 = SalesOrderFulfillmentStatus;
+
+/**
+ * Filter by status
+ */
+export type StocktakeStatus2 = StocktakeStatus;
+
+/**
  * Filter by ingredient variant ID
  */
 export type IngredientVariantId = number;
@@ -16751,7 +16766,7 @@ export type GetAllSalesReturnsData = {
     /**
      * Filter by status
      */
-    status?: string;
+    status?: SalesReturnStatus;
     /**
      * Soft-deleted data is excluded from result set by default. Set to true to include it.
      */
@@ -18018,7 +18033,7 @@ export type GetAllSalesOrdersData = {
     /**
      * Filter by production status
      */
-    production_status?: string;
+    production_status?: SalesOrderProductionStatus;
     /**
      * Filter by invoicing status
      */
@@ -19891,7 +19906,7 @@ export type GetAllSalesOrderFulfillmentsData = {
     /**
      * Filter by status
      */
-    status?: string;
+    status?: SalesOrderFulfillmentStatus;
     /**
      * Filters sales order fulfillments by tracking carrier
      */
@@ -21383,7 +21398,7 @@ export type GetAllStocktakesData = {
     /**
      * Filter by status
      */
-    status?: string;
+    status?: StocktakeStatus;
     /**
      * Filters stocktakes by stocktake number
      */

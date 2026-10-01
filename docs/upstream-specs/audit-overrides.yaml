@@ -243,17 +243,6 @@ overrides:
       AddressEntityType enum (billing/shipping, the values the create
       DTOs already use); the live gateway declares a bare string.
 
-  - endpoint: "GET /sales_order_fulfillments"
-    kind: param_type_diff
-    field: "status"
-    live: "enum:[DELIVERED,PACKED]"
-    local: "string"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Local types the status filter as a bare string; the gateway
-      declares a specific enum. Tighten local to the enum.
-    fix_tracked_in: "#938"
-
   - endpoint: "GET /sales_order_shipping_fee"
     kind: param_only_local
     field: "ids"
@@ -261,17 +250,6 @@ overrides:
     reason: >-
       Local-only convenience filter (ids) with no upstream
       equivalent — an intentional client-side addition.
-
-  - endpoint: "GET /sales_orders"
-    kind: param_type_diff
-    field: "production_status"
-    live: "enum:[BLOCKED,DONE,IN_PROGRESS,NONE,NOT_APPLICABLE,NOT_STARTED]"
-    local: "string"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Local types the production_status filter as a bare string; the gateway
-      declares a specific enum. Tighten local to the enum.
-    fix_tracked_in: "#938"
 
   - endpoint: "GET /sales_return_rows"
     kind: param_only_local
@@ -299,17 +277,6 @@ overrides:
       confirmed order_no, return_location_id, and order_return_date_min;
       omit this silently ignored gateway parameter.
 
-  - endpoint: "GET /sales_returns"
-    kind: param_type_diff
-    field: "status"
-    live: "enum:[NOT_RETURNED,RESTOCKED_ALL,RETURNED_ALL]"
-    local: "string"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Local types the status filter as a bare string; the gateway
-      declares a specific enum. Tighten local to the enum.
-    fix_tracked_in: "#938"
-
   - endpoint: "GET /stocktake_rows"
     kind: param_only_local
     field: "stock_adjustment_id"
@@ -317,17 +284,6 @@ overrides:
     reason: >-
       Local-only convenience filter (stock_adjustment_id) with no upstream
       equivalent — an intentional client-side addition.
-
-  - endpoint: "GET /stocktakes"
-    kind: param_type_diff
-    field: "status"
-    live: "enum:[COMPLETED,COUNTED,IN_PROGRESS,NOT_STARTED]"
-    local: "string"
-    category: upstream_correct_local_wrong
-    reason: >-
-      Local types the status filter as a bare string; the gateway
-      declares a specific enum. Tighten local to the enum.
-    fix_tracked_in: "#938"
 
   - endpoint: "GET /bin_locations"
     kind: response_wrapper

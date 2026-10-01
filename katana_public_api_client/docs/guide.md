@@ -49,6 +49,32 @@ async def main():
 asyncio.run(main())
 ```
 
+## Typed status filters
+
+Use enum members for these list filters in both synchronous and asynchronous calls:
+
+| Endpoint                           | Filter              | Enum from `katana_public_api_client.models` |
+| ---------------------------------- | ------------------- | ------------------------------------------- |
+| `get_all_sales_order_fulfillments` | `status`            | `SalesOrderFulfillmentStatus`               |
+| `get_all_sales_orders`             | `production_status` | `SalesOrderProductionStatus`                |
+| `get_all_sales_returns`            | `status`            | `SalesReturnStatus`                         |
+| `get_all_stocktakes`               | `status`            | `StocktakeStatus`                           |
+
+These filters previously accepted raw strings. Migrate existing calls by converting the
+string to its enum, for example `status=SalesReturnStatus("NOT_RETURNED")`. Unknown
+values raise `ValueError` during conversion. Leave the argument out to omit the filter;
+passing `None` is not supported. TypeScript callers continue to pass string values, now
+restricted to the corresponding generated union type.
+
+```python
+from katana_public_api_client.api.sales_return import get_all_sales_returns
+from katana_public_api_client.models import SalesReturnStatus
+
+response = await get_all_sales_returns.asyncio_detailed(
+    client=client, status=SalesReturnStatus.NOT_RETURNED
+)
+```
+
 ## Synchronous endpoints
 
 Generated endpoints also expose `sync` and `sync_detailed`. Use a regular context

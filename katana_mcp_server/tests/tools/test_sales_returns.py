@@ -65,7 +65,10 @@ def test_delete_card_exposes_imported_return_error():
 
 
 @pytest.mark.asyncio
-async def test_list_filters_sales_order_locally_after_complete_fetch():
+@pytest.mark.parametrize(
+    "status", [None, "NOT_RETURNED", "RESTOCKED_ALL", "RETURNED_ALL"]
+)
+async def test_list_filters_sales_order_locally_after_complete_fetch(status):
     context, _ = create_mock_context()
     seen_requests: list[httpx.Request] = []
 
@@ -106,7 +109,7 @@ async def test_list_filters_sales_order_locally_after_complete_fetch():
                 sales_order_id=11,
                 order_no="RO-1",
                 return_location_id=3,
-                status="NOT_RETURNED",
+                status=status,
                 limit=1,
             ),
             context=context,
@@ -121,7 +124,11 @@ async def test_list_filters_sales_order_locally_after_complete_fetch():
     assert first_params["limit"] == "250"
     assert first_params["order_no"] == "RO-1"
     assert first_params["return_location_id"] == "3"
-    assert first_params["status"] == "NOT_RETURNED"
+    for request in seen_requests:
+        if status is None:
+            assert "status" not in request.url.params
+        else:
+            assert request.url.params["status"] == status
     assert "sales_order_id" not in first_params
 
 

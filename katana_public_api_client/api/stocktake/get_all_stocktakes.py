@@ -9,6 +9,7 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
 from ...models.stocktake_list_response import StocktakeListResponse
+from ...models.stocktake_status import StocktakeStatus
 
 
 def _get_kwargs(
@@ -17,7 +18,7 @@ def _get_kwargs(
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: StocktakeStatus | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
     stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -41,7 +42,11 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    params["status"] = status
+    json_status: str | Unset = UNSET
+    if not isinstance(status, Unset):
+        json_status = status.value
+
+    params["status"] = json_status
 
     params["stocktake_number"] = stocktake_number
 
@@ -127,7 +132,7 @@ def sync_detailed(
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: StocktakeStatus | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
     stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -145,7 +150,7 @@ def sync_detailed(
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
         location_id (int | Unset):
-        status (str | Unset):
+        status (StocktakeStatus | Unset): Current status of a stocktake process
         stocktake_number (str | Unset):
         stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -192,7 +197,7 @@ def sync(
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: StocktakeStatus | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
     stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -210,7 +215,7 @@ def sync(
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
         location_id (int | Unset):
-        status (str | Unset):
+        status (StocktakeStatus | Unset): Current status of a stocktake process
         stocktake_number (str | Unset):
         stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -252,7 +257,7 @@ async def asyncio_detailed(
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: StocktakeStatus | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
     stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -270,7 +275,7 @@ async def asyncio_detailed(
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
         location_id (int | Unset):
-        status (str | Unset):
+        status (StocktakeStatus | Unset): Current status of a stocktake process
         stocktake_number (str | Unset):
         stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
@@ -315,7 +320,7 @@ async def asyncio(
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: StocktakeStatus | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
     stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
@@ -333,7 +338,7 @@ async def asyncio(
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
         location_id (int | Unset):
-        status (str | Unset):
+        status (StocktakeStatus | Unset): Current status of a stocktake process
         stocktake_number (str | Unset):
         stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):

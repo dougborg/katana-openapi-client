@@ -10,6 +10,7 @@ from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
 from ...models.sales_return_list_response import SalesReturnListResponse
 from ...models.sales_return_refund_status import SalesReturnRefundStatus
+from ...models.sales_return_status import SalesReturnStatus
 
 
 def _get_kwargs(
@@ -17,7 +18,7 @@ def _get_kwargs(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesReturnStatus | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
@@ -44,7 +45,11 @@ def _get_kwargs(
 
     params["ids"] = json_ids
 
-    params["status"] = status
+    json_status: str | Unset = UNSET
+    if not isinstance(status, Unset):
+        json_status = status.value
+
+    params["status"] = json_status
 
     params["include_deleted"] = include_deleted
 
@@ -155,7 +160,7 @@ def sync_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesReturnStatus | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
@@ -179,7 +184,7 @@ def sync_detailed(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        status (str | Unset):
+        status (SalesReturnStatus | Unset): Processing status of a sales return
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
@@ -234,7 +239,7 @@ def sync(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesReturnStatus | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
@@ -258,7 +263,7 @@ def sync(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        status (str | Unset):
+        status (SalesReturnStatus | Unset): Processing status of a sales return
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
@@ -308,7 +313,7 @@ async def asyncio_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesReturnStatus | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
@@ -332,7 +337,7 @@ async def asyncio_detailed(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        status (str | Unset):
+        status (SalesReturnStatus | Unset): Processing status of a sales return
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
@@ -385,7 +390,7 @@ async def asyncio(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesReturnStatus | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
@@ -409,7 +414,7 @@ async def asyncio(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         ids (list[int] | Unset):
-        status (str | Unset):
+        status (SalesReturnStatus | Unset): Processing status of a sales return
         include_deleted (bool | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):

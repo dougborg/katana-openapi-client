@@ -14,6 +14,7 @@ from ...models.sales_order_fulfillment_invoice_status_filter import (
 from ...models.sales_order_fulfillment_list_response import (
     SalesOrderFulfillmentListResponse,
 )
+from ...models.sales_order_fulfillment_status import SalesOrderFulfillmentStatus
 
 
 def _get_kwargs(
@@ -22,7 +23,7 @@ def _get_kwargs(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesOrderFulfillmentStatus | Unset = UNSET,
     tracking_carrier: str | Unset = UNSET,
     tracking_method: str | Unset = UNSET,
     tracking_number: str | Unset = UNSET,
@@ -49,7 +50,11 @@ def _get_kwargs(
 
     params["sales_order_id"] = sales_order_id
 
-    params["status"] = status
+    json_status: str | Unset = UNSET
+    if not isinstance(status, Unset):
+        json_status = status.value
+
+    params["status"] = json_status
 
     params["tracking_carrier"] = tracking_carrier
 
@@ -141,7 +146,7 @@ def sync_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesOrderFulfillmentStatus | Unset = UNSET,
     tracking_carrier: str | Unset = UNSET,
     tracking_method: str | Unset = UNSET,
     tracking_number: str | Unset = UNSET,
@@ -165,7 +170,7 @@ def sync_detailed(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
-        status (str | Unset):
+        status (SalesOrderFulfillmentStatus | Unset): Status of a sales order fulfillment
         tracking_carrier (str | Unset):
         tracking_method (str | Unset):
         tracking_number (str | Unset):
@@ -218,7 +223,7 @@ def sync(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesOrderFulfillmentStatus | Unset = UNSET,
     tracking_carrier: str | Unset = UNSET,
     tracking_method: str | Unset = UNSET,
     tracking_number: str | Unset = UNSET,
@@ -242,7 +247,7 @@ def sync(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
-        status (str | Unset):
+        status (SalesOrderFulfillmentStatus | Unset): Status of a sales order fulfillment
         tracking_carrier (str | Unset):
         tracking_method (str | Unset):
         tracking_number (str | Unset):
@@ -290,7 +295,7 @@ async def asyncio_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesOrderFulfillmentStatus | Unset = UNSET,
     tracking_carrier: str | Unset = UNSET,
     tracking_method: str | Unset = UNSET,
     tracking_number: str | Unset = UNSET,
@@ -314,7 +319,7 @@ async def asyncio_detailed(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
-        status (str | Unset):
+        status (SalesOrderFulfillmentStatus | Unset): Status of a sales order fulfillment
         tracking_carrier (str | Unset):
         tracking_method (str | Unset):
         tracking_number (str | Unset):
@@ -365,7 +370,7 @@ async def asyncio(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     sales_order_id: int | Unset = UNSET,
-    status: str | Unset = UNSET,
+    status: SalesOrderFulfillmentStatus | Unset = UNSET,
     tracking_carrier: str | Unset = UNSET,
     tracking_method: str | Unset = UNSET,
     tracking_number: str | Unset = UNSET,
@@ -389,7 +394,7 @@ async def asyncio(
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
         sales_order_id (int | Unset):
-        status (str | Unset):
+        status (SalesOrderFulfillmentStatus | Unset): Status of a sales order fulfillment
         tracking_carrier (str | Unset):
         tracking_method (str | Unset):
         tracking_number (str | Unset):
