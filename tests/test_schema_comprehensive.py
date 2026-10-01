@@ -28,6 +28,71 @@ import yaml
 pytestmark = pytest.mark.schema_validation
 
 
+def _property_has_type(schema: Any, path: str) -> bool:
+    """Check composition shape and determine whether it constrains the type."""
+    assert isinstance(schema, dict), f"Property '{path}' must be a schema object"
+    compositions = ("allOf", "anyOf", "oneOf")
+    has_type = "type" in schema or "$ref" in schema
+    for keyword in compositions:
+        if keyword in schema:
+            branches = schema[keyword]
+            assert isinstance(branches, list) and branches, (
+                f"Property '{path}.{keyword}' must be a nonempty array of schemas"
+            )
+            branch_types = [
+                _property_has_type(branch, f"{path}.{keyword}[{index}]")
+                for index, branch in enumerate(branches)
+            ]
+            # An intersection needs only one typed branch; every union alternative
+            # needs a type unless the enclosing schema already supplies one.
+            has_type |= any(branch_types) if keyword == "allOf" else all(branch_types)
+    return has_type
+
+
+def _assert_property_type(schema: Any, path: str) -> None:
+    assert _property_has_type(schema, path), (
+        f"Property '{path}' missing type definition"
+    )
+
+
+@pytest.mark.parametrize(
+    "property_schema",
+    [
+        {"type": "string"},
+        {"$ref": "#/components/schemas/Customer"},
+        {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        {"oneOf": [{"type": "string"}, {"type": "array"}]},
+        {"allOf": [{"$ref": "#/components/schemas/Customer"}]},
+        {"allOf": [{"type": "string"}, {"maxLength": 20}]},
+        {"type": "string", "anyOf": [{"maxLength": 20}, {"enum": ["ready"]}]},
+        {"type": "string", "anyOf": [{}]},
+        {"anyOf": [{"oneOf": [{"type": "string"}, {"type": "number"}]}]},
+    ],
+)
+def test_property_type_accepts_composed_schemas(
+    property_schema: dict[str, Any],
+) -> None:
+    _assert_property_type(property_schema, "example")
+
+
+@pytest.mark.parametrize(
+    "property_schema",
+    [
+        {},
+        {"anyOf": []},
+        {"oneOf": {"type": "string"}},
+        {"anyOf": [{"type": "string"}, {}]},
+        {"oneOf": [{"type": "string"}, "invalid"]},
+        {"allOf": [{"anyOf": [{"description": "Missing type"}]}]},
+    ],
+)
+def test_property_type_rejects_malformed_branches(
+    property_schema: dict[str, Any],
+) -> None:
+    with pytest.raises(AssertionError, match="Property 'example"):
+        _assert_property_type(property_schema, "example")
+
+
 @lru_cache(maxsize=1)
 def _load_spec_for_collection() -> dict[str, Any]:
     """Module-level cached spec loader for ``pytest_generate_tests``.
@@ -157,13 +222,7 @@ class TestSchemaComprehensive:
                     f"Property '{prop_name}' in schema '{schema_name}' must be an object"
                 )
 
-                # Property should have a type (directly or via $ref)
-                has_type = (
-                    "type" in prop_spec or "$ref" in prop_spec or "allOf" in prop_spec
-                )
-                assert has_type, (
-                    f"Property '{prop_name}' in schema '{schema_name}' missing type definition"
-                )
+                _assert_property_type(prop_spec, f"{schema_name}.{prop_name}")
 
     def test_schema_base_entity_inheritance(
         self, schema_name: str, spec: dict[str, Any]
