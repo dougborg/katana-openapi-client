@@ -32,10 +32,11 @@ Use **@hey-api/openapi-ts** for code generation.
 
 ### Package Manager
 
-Retain npm for this package, including its existing `package-lock.json` and
-npm-based CI workflow. The package pins `npm@10.9.9`; a repository-wide pnpm
-workspace migration is deferred until a concrete benefit justifies changing
-the lockfile and contributor workflow.
+Use package-local npm tooling, `package-lock.json`, and the npm-based CI workflow. The
+package pins `npm@10.9.9`. The repository has no root JavaScript workspace: the client
+manifest and lockfile are the single dependency resolution used by contributors, CI, and
+Dependabot. This avoids competing package managers updating the same manifest through
+different lockfiles.
 
 ### Reasons
 
