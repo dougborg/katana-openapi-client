@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## [0.87.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.86.0...client-v0.87.0) (2026-10-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client:** get_all_sales_order_fulfillments.status now requires SalesOrderFulfillmentStatus; get_all_sales_orders.production_status requires SalesOrderProductionStatus; get_all_sales_returns.status requires SalesReturnStatus; get_all_stocktakes.status requires StocktakeStatus. This applies to sync, sync_detailed, asyncio, and asyncio_detailed. Convert raw strings with the matching enum constructor or omit the filter. TypeScript query types narrow from string to the existing status unions.
+
+### Bug Fixes
+
+* **client:** type status filters to match upstream enums ([bcbe822](https://github.com/dougborg/katana-openapi-client/commit/bcbe822ad5b959a62bbd92a470d0b9fe5d51ae36))
+
 ## [0.86.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.85.3...client-v0.86.0) (2026-10-01)
 
 ### Features
