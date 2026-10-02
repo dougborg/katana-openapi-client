@@ -78,7 +78,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
     "@hey-api/openapi-ts": "next",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "@vitest/coverage-v8": "^5.0.1",
     "tsdown": "^0.23.0",
     "typescript": "^7.0.2",
