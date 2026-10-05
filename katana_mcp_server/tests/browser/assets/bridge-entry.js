@@ -1,5 +1,5 @@
 // Bundle the real MCP Apps host bridge and MCP client into one same-origin
-// browser module. Exact versions live in package.json/package-lock.json.
+// browser module. Exact versions live in package.json/pnpm-lock.yaml.
 export {
   AppBridge,
   PostMessageTransport,

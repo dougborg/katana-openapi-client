@@ -581,7 +581,8 @@ generate-pydantic = "python scripts/generate_pydantic_models.py"
 # Regenerate the TypeScript client (packages/katana-client) from the same spec
 # via @hey-api/openapi-ts. Requires Node + pnpm + an installed node_modules (run
 # `pnpm install --frozen-lockfile` in the package once); pnpm-lock.yaml pins the
-# dependency versions and `packageManager` pins pnpm itself. NOTE: unlike the Python generators, this is NOT byte-deterministic
+# dependency versions and `packageManager` pins pnpm itself. NOTE: unlike the
+# Python generators, this is NOT byte-deterministic
 # across OSes — @hey-api/openapi-ts shells out to native, per-platform binaries
 # (@esbuild/*, @biomejs/*), so macOS and Linux emit slightly different output.
 # That's why CI gates the TS client functionally (typecheck + test in the
