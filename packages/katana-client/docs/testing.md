@@ -52,24 +52,22 @@ The TypeScript client follows the same testing principles as the Python client:
 ### Development Workflow
 
 ```bash
-# Run this from the repository root, before entering this package.
-npm install --global npm@10.9.9
 cd packages/katana-client
-npm ci
+pnpm install --frozen-lockfile
 
 # Run all tests
-npm test
+pnpm test
 
 # Watch mode for development
-npm run test:watch
+pnpm run test:watch
 
 # Run with coverage
-npm run test:coverage
+pnpm run test:coverage
 ```
 
-The package declares `npm@10.9.9` in `package.json`. npm 10.9.9 enforces that
-version through `devEngines`, while older npm releases can ignore `devEngines`;
-always run the pin command before installing or testing the package.
+The package pins its pnpm version through `packageManager` in `package.json`; pnpm
+switches itself to that version automatically, so the committed `pnpm-lock.yaml`
+resolves identically for every contributor and in CI.
 
 ### From Repository Root
 
@@ -398,7 +396,7 @@ describe('Integration Tests', () => {
 ### Running Coverage
 
 ```bash
-npm run test:coverage
+pnpm run test:coverage
 ```
 
 ### Coverage Report

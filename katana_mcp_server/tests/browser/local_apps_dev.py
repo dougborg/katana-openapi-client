@@ -45,7 +45,7 @@ def _read_bridge_bundle() -> str:
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"Pinned browser bridge asset is missing: {_BRIDGE_BUNDLE}. "
-            "Rebuild it with `npm ci && npm run build` in "
+            "Rebuild it with `pnpm install --frozen-lockfile && pnpm run build` in "
             f"{_ASSET_DIR}."
         ) from exc
     if not bundle.strip():

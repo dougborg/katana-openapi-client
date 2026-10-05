@@ -1,0 +1,7 @@
+# Single-package pnpm project (no `packages:` list). esbuild's postinstall only
+# pre-validates its native binary and ext-apps' build step is not needed for the
+# bundle, so neither is allowed to run scripts at install time (pnpm 11 errors on
+# undeclared build scripts).
+allowBuilds:
+  esbuild: false
+  "@modelcontextprotocol/ext-apps": false

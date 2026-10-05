@@ -52,3 +52,6 @@ ignore: |
   # default indentation differs from yamllint's expectations; we don't
   # enforce style on machine-generated artefacts.
   docs/upstream-specs/
+  # pnpm lockfiles are machine-generated (`pnpm install`); their integrity
+  # hashes exceed the line-length limit and are never hand-edited.
+  pnpm-lock.yaml

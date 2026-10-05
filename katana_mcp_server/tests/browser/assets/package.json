@@ -2,6 +2,7 @@
   "name": "katana-browser-test-bridge",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.28.4",
   "scripts": {
     "build": "esbuild bridge-entry.js --bundle --format=esm --platform=browser --minify --legal-comments=eof --outfile=bridge.bundle.js"
   },

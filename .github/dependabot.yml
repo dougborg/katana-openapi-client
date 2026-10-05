@@ -4,8 +4,10 @@
 #
 # Supported ecosystems:
 # - uv: Python dependencies via pyproject.toml and uv.lock (GA since March 2025)
-# - npm: TypeScript client deps via packages/katana-client/package-lock.json
-#        (the lockfile CI gates with `npm ci` in the typescript-client job)
+# - npm: TypeScript client deps via packages/katana-client/pnpm-lock.yaml. The
+#        `npm` ecosystem covers pnpm lockfiles too; Dependabot runs the pnpm
+#        version pinned by `packageManager` (CI installs with
+#        `pnpm install --frozen-lockfile` in the typescript-client job).
 # - github-actions: Workflow action versions
 # - docker: Base images in Dockerfiles
 #
@@ -47,8 +49,12 @@ updates:
       prefix: "chore"
       include: "scope"
 
-  # TypeScript client (npm — packages/katana-client/package-lock.json)
-  # This is the lockfile CI installs from (`npm ci` in the typescript-client job).
+  # TypeScript client (pnpm — packages/katana-client/pnpm-lock.yaml, under the
+  # `npm` ecosystem). This is the lockfile CI installs from
+  # (`pnpm install --frozen-lockfile` in the typescript-client job). The browser
+  # test bridge at katana_mcp_server/tests/browser/assets is deliberately NOT
+  # listed: its exact pins must track the versions FastMCP expects, so bumps
+  # there are manual and land with a rebuilt bridge.bundle.js.
   - package-ecosystem: "npm"
     directory: "/packages/katana-client"
     schedule:
@@ -71,7 +77,7 @@ updates:
     ignore:
       # @hey-api/openapi-ts is intentionally pinned to the `next` nightly: the
       # stable line (0.99.0) calls the TypeScript Compiler API (`ts.SyntaxKind`),
-      # which tsgo removed, so it crashes `npm run generate` under TypeScript 7.
+      # which tsgo removed, so it crashes `pnpm run generate` under TypeScript 7.
       # The v1 line (nightly-only today) dropped that dependency. Without this
       # ignore, Dependabot would "update" the locked nightly down to the 0.99.0
       # `latest` tag — a downgrade that re-breaks the TS 7 build. Remove this and

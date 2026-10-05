@@ -15,13 +15,14 @@ fi
 
 uv --version
 
-# Keep the independent TypeScript package on the npm version used by CI. Modern
-# npm checks the package's devEngines entry; older npm releases can ignore it.
-TS_NPM_VERSION="10.9.9"
-echo "📦 Installing npm ${TS_NPM_VERSION} for the TypeScript client..."
-npm install --global "npm@${TS_NPM_VERSION}"
-test "$(npm --version)" = "${TS_NPM_VERSION}"
-npm --prefix packages/katana-client ci
+# The TypeScript package is managed by pnpm. Install the version pinned by
+# `packageManager` in its package.json (pnpm also self-switches to that pin on
+# every run, so a newer global pnpm still installs with the pinned one).
+TS_PNPM_VERSION="$(python3 -c \
+  "import json; print(json.load(open('packages/katana-client/package.json'))['packageManager'].split('@', 1)[1])")"
+echo "📦 Installing pnpm ${TS_PNPM_VERSION} for the TypeScript client..."
+npm install --global "pnpm@${TS_PNPM_VERSION}"
+pnpm --dir packages/katana-client install --frozen-lockfile
 
 # Sync dependencies (should be fast due to prebuild cache)
 echo "📚 Syncing dependencies (using prebuild cache)..."

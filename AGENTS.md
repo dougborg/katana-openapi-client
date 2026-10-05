@@ -21,11 +21,11 @@ uv run playwright install chromium  # Required for browser tests
 ```
 
 Reinstall pre-commit hooks in each new worktree. For TypeScript changes or client
-regeneration, use the Node requirements and npm version pinned in
-`packages/katana-client/package.json`, then run:
+regeneration, use the Node requirements and the pnpm version pinned by `packageManager`
+in `packages/katana-client/package.json`, then run:
 
 ```bash
-npm --prefix packages/katana-client ci
+pnpm --dir packages/katana-client install --frozen-lockfile
 ```
 
 Local unit tests do not need live API credentials. Configure live-test credentials only
@@ -47,9 +47,9 @@ commit credentials.
 | `uv run poe test-schema`  | Schema validation tests                                                                                                         |
 
 Run tests relevant to changed behavior alongside the appropriate validation tier. For
-TypeScript changes, run `npm --prefix packages/katana-client run lint`,
-`npm --prefix packages/katana-client run typecheck`, and
-`npm --prefix packages/katana-client test`.
+TypeScript changes, run `pnpm --dir packages/katana-client run lint`,
+`pnpm --dir packages/katana-client run typecheck`, and
+`pnpm --dir packages/katana-client test`.
 
 Let regeneration and browser/docs checks finish; they can take minutes. Report
 environment or network blockers explicitly. Fix failures rather than adding error
