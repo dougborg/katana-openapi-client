@@ -35,6 +35,15 @@ TypeScript client uses the `node` strategy (bumps
 `packages/katana-client/package.json`). `pnpm-lock.yaml` does not record the root
 package's own version, so nothing else needs syncing for the TS bump.
 
+The aggregated PR is titled `chore(release): release main` (the
+`group-pull-request-title-pattern` uses `${branch}`), not `release <version>`. That is
+deliberate: release-please's Merge plugin fills `${version}` from the *root* package's
+release only, so a release PR that bumps just the MCP server or just the TypeScript
+client would get a version-less title that the release step then rejects as "Bad pull
+request title" and never tags (this bit the first TS release; see #1138). The
+per-package versions live in the PR body's `<details>` sections and in the resulting
+tags.
+
 Release creation and release-PR preparation are separate action invocations. The first
 only creates releases for merged PRs. If it created a release, the workflow creates the
 exact Git refs and skips preparing another PR during that run. Otherwise, a second
