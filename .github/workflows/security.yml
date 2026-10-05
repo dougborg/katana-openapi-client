@@ -67,3 +67,15 @@ jobs:
     steps:
       - name: Dependency Review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          # GHSA-hhx9-57xq-r5rw (@hey-api/openapi-ts < 0.97.3, buildClientParams
+          # prototype substitution) is fixed upstream, but the TS client pins the
+          # generator to a `0.0.0-next-*` nightly (needed for TypeScript 7), and
+          # that version string semver-sorts below 0.97.3 forever - so the range
+          # check can never clear it, however new the nightly is. The fixed
+          # template (null-prototype slot records) is what we actually generate
+          # and ship; packages/katana-client/tests/params-prototype.test.ts
+          # exercises the exploit against the generated code and fails if a
+          # regeneration ever brings the bug back. Drop this entry when the pin
+          # moves to a stable >= 0.97.3 release.
+          allow-ghsas: GHSA-hhx9-57xq-r5rw
