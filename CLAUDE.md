@@ -8,8 +8,8 @@ Guidance for Claude Code working with this repository.
 uv sync --all-extras                # Install dependencies
 uv run pre-commit install           # Setup hooks (installs both pre-commit AND pre-push)
 uv run playwright install chromium  # Headless browser for Prefab UI render tests
-npm install --global npm@10.9.9  # TS client tooling is pinned by packages/katana-client/package.json
-npm --prefix packages/katana-client ci  # TS client deps (needed for regenerate-all / generate-ts)
+npm install --global pnpm       # TS client uses pnpm; the exact version is pinned by `packageManager`
+pnpm --dir packages/katana-client install --frozen-lockfile  # TS deps (needed for regenerate-all / generate-ts)
 cp .env.example .env                # Add KATANA_API_KEY
 ```
 
@@ -267,8 +267,9 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   `docs/katana-openapi.yaml`, so a spec change must regenerate **all** of them — run
   **`uv run poe regenerate-all`** (which chains `regenerate-client` +
   `generate-pydantic` + `generate-ts`) instead of editing the generated paths directly.
-  `generate-ts` needs the TS package's `node_modules` (`npm ci` in
-  `packages/katana-client`, pinned by its committed `package-lock.json`).
+  `generate-ts` needs the TS package's `node_modules` (`pnpm install --frozen-lockfile`
+  in `packages/katana-client`, pinned by its committed `pnpm-lock.yaml`; pnpm itself is
+  pinned by `packageManager` in its `package.json`).
 
   - **Two different CI gates, because the generators differ in determinism.** The Python
     generators are byte-identical across OSes, so the `generated-files` job regenerates

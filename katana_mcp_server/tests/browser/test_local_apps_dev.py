@@ -43,5 +43,8 @@ def test_missing_local_bridge_fails_with_build_instructions(
     missing = tmp_path / "bridge.bundle.js"
     monkeypatch.setattr(local_apps_dev, "_BRIDGE_BUNDLE", missing)
 
-    with pytest.raises(RuntimeError, match=r"asset is missing.*npm ci.*npm run build"):
+    with pytest.raises(
+        RuntimeError,
+        match=r"asset is missing.*pnpm install --frozen-lockfile.*pnpm run build",
+    ):
         local_apps_dev._read_bridge_bundle()

@@ -32,11 +32,19 @@ Use **@hey-api/openapi-ts** for code generation.
 
 ### Package Manager
 
-Use package-local npm tooling, `package-lock.json`, and the npm-based CI workflow. The
-package pins `npm@10.9.9`. The repository has no root JavaScript workspace: the client
-manifest and lockfile are the single dependency resolution used by contributors, CI, and
-Dependabot. This avoids competing package managers updating the same manifest through
-different lockfiles.
+Use package-local **pnpm** tooling with a committed `pnpm-lock.yaml`; the exact pnpm
+version is pinned by `packageManager` in `package.json` and pnpm self-switches to it.
+The repository has no root JavaScript workspace: the client manifest and lockfile are
+the single dependency resolution used by contributors, CI, and Dependabot (which handles
+pnpm lockfiles under its `npm` ecosystem).
+
+History: the package originally used npm. An unpinned npm 10 vs 11 toolchain rewrote
+`package-lock.json` into shapes the other version rejected, so npm was first pinned to
+10.9.9 (`devEngines`). That pin then blocked publishing, because npm trusted publishing
+(OIDC) requires npm 11.5+. Moving to pnpm removes the pin conflict: one pinned,
+self-managing tool covers install, lockfile, and publish. pnpm 11 (not 12) was chosen
+because pnpm 12 writes a two-document lockfile when `packageManager` is pinned, which
+Dependabot cannot yet parse.
 
 ### Reasons
 
@@ -122,7 +130,7 @@ const { data, error } = await getAllProducts({ client });
 ### Regeneration
 
 ```bash
-npm run generate
+pnpm run generate
 ```
 
 ### Build Output
@@ -138,7 +146,7 @@ export * from './generated/types.gen.js';
 ### Version Update Process
 
 1. Update OpenAPI spec
-1. Run `npm run generate`
+1. Run `pnpm run generate`
 1. Run tests to verify compatibility
 1. Commit generated changes
 

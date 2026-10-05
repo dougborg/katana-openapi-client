@@ -1143,11 +1143,11 @@ export const getAllInventoryMovements = <ThrowOnError extends boolean = false>(
  * List inventory replenishment signals
  *
  * Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
- * across all locations.
+ *   across all locations.
  *
- * Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
- * than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
- * full listing.
+ *   Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
+ *   than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
+ *   full listing.
  */
 export const getAllInventorySignals = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllInventorySignalsData, ThrowOnError>
@@ -1253,8 +1253,8 @@ export const searchManufacturingOrders = <ThrowOnError extends boolean = false>(
  * List all manufacturing orders
  *
  * Returns a list of manufacturing orders you've previously created.
- * The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing
- * first.
+ *   The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing
+ *   first.
  */
 export const getAllManufacturingOrders = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllManufacturingOrdersData, ThrowOnError>
@@ -1277,7 +1277,7 @@ export const getAllManufacturingOrders = <ThrowOnError extends boolean = false>(
  * Create a manufacturing order
  *
  * Creates a new manufacturing order object. Manufacturing order recipe and
- * operation rows are created automatically based on the product recipe and operations.
+ *   operation rows are created automatically based on the product recipe and operations.
  */
 export const createManufacturingOrder = <ThrowOnError extends boolean = false>(
   options: Options<CreateManufacturingOrderData, ThrowOnError>
@@ -1336,7 +1336,7 @@ export const getManufacturingOrder = <ThrowOnError extends boolean = false>(
  * Update a manufacturing order
  *
  * Updates the specified manufacturing order by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *   Any parameters not provided will be left unchanged.
  */
 export const updateManufacturingOrder = <ThrowOnError extends boolean = false>(
   options: Options<UpdateManufacturingOrderData, ThrowOnError>
@@ -1435,8 +1435,8 @@ export const unlinkManufacturingOrder = <ThrowOnError extends boolean = false>(
  * List all manufacturing orders
  *
  * Returns a list of manufacturing orders you've previously created.
- * The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing
- * first.
+ *   The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing
+ *   first.
  */
 export const getAllManufacturingOrderProductions = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllManufacturingOrderProductionsData, ThrowOnError>
@@ -1529,7 +1529,7 @@ export const getManufacturingOrderProduction = <ThrowOnError extends boolean = f
  * Update a manufacturing order production
  *
  * Updates the specified manufacturing order production by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *   Any parameters not provided will be left unchanged.
  */
 export const updateManufacturingOrderProduction = <ThrowOnError extends boolean = false>(
   options: Options<UpdateManufacturingOrderProductionData, ThrowOnError>
@@ -1556,7 +1556,7 @@ export const updateManufacturingOrderProduction = <ThrowOnError extends boolean 
  * List all manufacturing order production ingredients
  *
  * Returns a list of ingredient consumption records across manufacturing order productions.
- * Each record ties a consumed ingredient variant to the production batch and recipe row it was used for.
+ *   Each record ties a consumed ingredient variant to the production batch and recipe row it was used for.
  */
 export const getAllManufacturingOrderProductionIngredients = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllManufacturingOrderProductionIngredientsData, ThrowOnError>
@@ -1579,9 +1579,9 @@ export const getAllManufacturingOrderProductionIngredients = <ThrowOnError exten
  * Update a manufacturing order production ingredient
  *
  * Updates the specified manufacturing order production ingredient by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be
- * updated when
- * the manufacturing order status is DONE.
+ *   Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be
+ *   updated when
+ *   the manufacturing order status is DONE.
  */
 export const updateManufacturingOrderProductionIngredient = <ThrowOnError extends boolean = false>(
   options: Options<UpdateManufacturingOrderProductionIngredientData, ThrowOnError>
@@ -1608,8 +1608,8 @@ export const updateManufacturingOrderProductionIngredient = <ThrowOnError extend
  * List all manufacturing order operation rows
  *
  * Returns a list of manufacturing order operation rows you've previously created.
- * The manufacturing order operation rows are returned in sorted order,
- * with the most recent manufacturing order operation rows appearing first.
+ *   The manufacturing order operation rows are returned in sorted order,
+ *    with the most recent manufacturing order operation rows appearing first.
  */
 export const getAllManufacturingOrderOperationRows = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllManufacturingOrderOperationRowsData, ThrowOnError>
@@ -1632,7 +1632,7 @@ export const getAllManufacturingOrderOperationRows = <ThrowOnError extends boole
  * Create a manufacturing order operation row
  *
  * Add an operation row to an existing manufacturing order. Operation rows cannot be added when the
- * manufacturing order status is DONE.
+ *   manufacturing order status is DONE.
  */
 export const createManufacturingOrderOperationRow = <ThrowOnError extends boolean = false>(
   options: Options<CreateManufacturingOrderOperationRowData, ThrowOnError>
@@ -1703,8 +1703,8 @@ export const getManufacturingOrderOperationRow = <ThrowOnError extends boolean =
  * Update a manufacturing order operation row
  *
  * Updates the specified manufacturing order operation row by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged. Only completed_by_operators and total_actual_time can be
- * updated when the manufacturing order status is DONE
+ *     Any parameters not provided will be left unchanged. Only completed_by_operators and total_actual_time can be
+ *     updated when the manufacturing order status is DONE
  */
 export const updateManufacturingOrderOperationRow = <ThrowOnError extends boolean = false>(
   options: Options<UpdateManufacturingOrderOperationRowData, ThrowOnError>
@@ -1731,8 +1731,8 @@ export const updateManufacturingOrderOperationRow = <ThrowOnError extends boolea
  * List all manufacturing order recipe rows
  *
  * Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
- * recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing
- * first.
+ *   recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing
+ *   first.
  */
 export const getAllManufacturingOrderRecipeRows = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllManufacturingOrderRecipeRowsData, ThrowOnError>
@@ -1755,7 +1755,7 @@ export const getAllManufacturingOrderRecipeRows = <ThrowOnError extends boolean 
  * Create a manufacturing order recipe row
  *
  * Add a recipe row to an existing manufacturing order.
- * Recipe rows cannot be added when the manufacturing order status is DONE.
+ *   Recipe rows cannot be added when the manufacturing order status is DONE.
  */
 export const createManufacturingOrderRecipeRows = <ThrowOnError extends boolean = false>(
   options: Options<CreateManufacturingOrderRecipeRowsData, ThrowOnError>
@@ -1826,8 +1826,8 @@ export const getManufacturingOrderRecipeRow = <ThrowOnError extends boolean = fa
  * Update a manufacturing order recipe row
  *
  * Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged. Recipe rows cannot be updated when
- * the manufacturing order status is DONE.
+ *   Any parameters not provided will be left unchanged. Recipe rows cannot be updated when
+ *   the manufacturing order status is DONE.
  */
 export const updateManufacturingOrderRecipeRows = <ThrowOnError extends boolean = false>(
   options: Options<UpdateManufacturingOrderRecipeRowsData, ThrowOnError>
@@ -1854,7 +1854,7 @@ export const updateManufacturingOrderRecipeRows = <ThrowOnError extends boolean 
  * List all materials
  *
  * Returns a list of materials you've previously created. The materials are returned in sorted order,
- * with the most recent materials appearing first.
+ *     with the most recent materials appearing first.
  */
 export const getAllMaterials = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllMaterialsData, ThrowOnError>
@@ -1915,7 +1915,7 @@ export const getMaterial = <ThrowOnError extends boolean = false>(
  * Update a material
  *
  * Updates the specified material by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updateMaterial = <ThrowOnError extends boolean = false>(
   options: Options<UpdateMaterialData, ThrowOnError>
@@ -1934,7 +1934,7 @@ export const updateMaterial = <ThrowOnError extends boolean = false>(
  * List all variants with negative stock
  *
  * Returns a list of variants with negative stock balance.
- * Each variant has a date of the latest stock movement that resulted in negative stock balance.
+ *   Each variant has a date of the latest stock movement that resulted in negative stock balance.
  */
 export const getAllNegativeStock = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllNegativeStockData, ThrowOnError>
@@ -1953,7 +1953,7 @@ export const getAllNegativeStock = <ThrowOnError extends boolean = false>(
  * List all products
  *
  * Returns a list of products you've previously created. The products are returned in sorted order,
- * with the most recent products appearing first.
+ *     with the most recent products appearing first.
  */
 export const getAllProducts = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllProductsData, ThrowOnError>
@@ -2014,7 +2014,7 @@ export const getProduct = <ThrowOnError extends boolean = false>(
  * Update a product
  *
  * Updates the specified product by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updateProduct = <ThrowOnError extends boolean = false>(
   options: Options<UpdateProductData, ThrowOnError>
@@ -2061,7 +2061,7 @@ export const searchPurchaseOrders = <ThrowOnError extends boolean = false>(
  * List all purchase orders
  *
  * Returns a list of purchase orders you've previously created. The purchase orders are returned in sorted
- * order, with the most recent purchase orders appearing first.
+ *     order, with the most recent purchase orders appearing first.
  */
 export const findPurchaseOrders = <ThrowOnError extends boolean = false>(
   options?: Options<FindPurchaseOrdersData, ThrowOnError>
@@ -2134,7 +2134,7 @@ export const getPurchaseOrder = <ThrowOnError extends boolean = false>(
  * Update a purchase order
  *
  * Updates the specified purchase order by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updatePurchaseOrder = <ThrowOnError extends boolean = false>(
   options: Options<UpdatePurchaseOrderData, ThrowOnError>
@@ -2241,7 +2241,7 @@ export const getPoAdditionalCostRow = <ThrowOnError extends boolean = false>(
  * Update a purchase order additional cost row
  *
  * Updates the specified purchase order additional cost row by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updateAdditionalCostRow = <ThrowOnError extends boolean = false>(
   options: Options<UpdateAdditionalCostRowData, ThrowOnError>
@@ -2264,10 +2264,10 @@ export const updateAdditionalCostRow = <ThrowOnError extends boolean = false>(
  * Receive a purchase order
  *
  * If you receive the items on the purchase order, you can mark the purchase order as received.
- * This will update the existing purchase order rows quantities to the quantities left unreceived and
- * create a new rows with the received quantities and dates. If you want to mark all rows as received and
- * the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
- * Reverting the receive must also be done through that endpoint.
+ *     This will update the existing purchase order rows quantities to the quantities left unreceived and
+ *     create a new rows with the received quantities and dates. If you want to mark all rows as received and
+ *     the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
+ *     Reverting the receive must also be done through that endpoint.
  */
 export const receivePurchaseOrder = <ThrowOnError extends boolean = false>(
   options: Options<ReceivePurchaseOrderData, ThrowOnError>
@@ -2290,7 +2290,7 @@ export const receivePurchaseOrder = <ThrowOnError extends boolean = false>(
  * List all purchase order rows
  *
  * Returns a list of purchase order rows you've previously created.
- * The purchase order rows are returned in sorted order, with the most recent rows appearing first.
+ *   The purchase order rows are returned in sorted order, with the most recent rows appearing first.
  */
 export const getAllPurchaseOrderRows = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllPurchaseOrderRowsData, ThrowOnError>
@@ -2367,7 +2367,7 @@ export const getPurchaseOrderRow = <ThrowOnError extends boolean = false>(
  * Update a purchase order row
  *
  * Updates the specified purchase order row by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updatePurchaseOrderRow = <ThrowOnError extends boolean = false>(
   options: Options<UpdatePurchaseOrderRowData, ThrowOnError>
@@ -2412,7 +2412,7 @@ export const getAllPurchaseOrderAccountingMetadata = <ThrowOnError extends boole
  * List all suppliers
  *
  * Returns a list of suppliers you've previously created. The suppliers are returned in sorted order,
- * with the most recent suppliers appearing first.
+ *     with the most recent suppliers appearing first.
  */
 export const getAllSuppliers = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllSuppliersData, ThrowOnError>
@@ -2459,7 +2459,7 @@ export const deleteSupplier = <ThrowOnError extends boolean = false>(
  * Update a supplier
  *
  * Updates the specified supplier by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updateSupplier = <ThrowOnError extends boolean = false>(
   options: Options<UpdateSupplierData, ThrowOnError>
@@ -2478,7 +2478,7 @@ export const updateSupplier = <ThrowOnError extends boolean = false>(
  * List all supplier addresses
  *
  * Returns a list of supplier addresses you've previously created.
- * The supplier addresses are returned in sorted order, with the most recent supplier addresses appearing first.
+ *    The supplier addresses are returned in sorted order, with the most recent supplier addresses appearing first.
  */
 export const getSupplierAddresses = <ThrowOnError extends boolean = false>(
   options?: Options<GetSupplierAddressesData, ThrowOnError>
@@ -2497,7 +2497,7 @@ export const getSupplierAddresses = <ThrowOnError extends boolean = false>(
  * Create a supplier address
  *
  * Add an address to an existing supplier. If the new address is the first one, it is assigned as
- * the default. (A Supplier can have only one address for now)
+ *   the default. (A Supplier can have only one address for now)
  */
 export const createSupplierAddress = <ThrowOnError extends boolean = false>(
   options: Options<CreateSupplierAddressData, ThrowOnError>
@@ -2538,7 +2538,7 @@ export const deleteSupplierAddress = <ThrowOnError extends boolean = false>(
  * Update a supplier address
  *
  * Updates the specified supplier address by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updateSupplierAddress = <ThrowOnError extends boolean = false>(
   options: Options<UpdateSupplierAddressData, ThrowOnError>
@@ -2561,7 +2561,7 @@ export const updateSupplierAddress = <ThrowOnError extends boolean = false>(
  * List all tax rates
  *
  * Returns a list of tax rate you've previously created.
- * The tax rate are returned in sorted order, with the most recent tax rate appearing first.
+ *     The tax rate are returned in sorted order, with the most recent tax rate appearing first.
  */
 export const getAllTaxRates = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllTaxRatesData, ThrowOnError>
@@ -2618,7 +2618,7 @@ export const searchVariants = <ThrowOnError extends boolean = false>(
  * List all variants
  *
  * Returns a list of variants you've previously created. The variants are returned in sorted order,
- * with the most recent variants appearing first.
+ *     with the most recent variants appearing first.
  */
 export const getAllVariants = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllVariantsData, ThrowOnError>
@@ -2633,8 +2633,8 @@ export const getAllVariants = <ThrowOnError extends boolean = false>(
  * Create a variant
  *
  * Creates a new variant object. Note that you can create variants for both products and materials.
- * In order for Katana to know which one you are creating,
- * you have to specify either product_id or material_id, not both.
+ *     In order for Katana to know which one you are creating,
+ *     you have to specify either product_id or material_id, not both.
  */
 export const createVariant = <ThrowOnError extends boolean = false>(
   options: Options<CreateVariantData, ThrowOnError>
@@ -2681,7 +2681,7 @@ export const getVariant = <ThrowOnError extends boolean = false>(
  * Update a variant
  *
  * Updates the specified variant by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *     Any parameters not provided will be left unchanged.
  */
 export const updateVariant = <ThrowOnError extends boolean = false>(
   options: Options<UpdateVariantData, ThrowOnError>
@@ -2730,7 +2730,7 @@ export const linkVariantDefaultStorageBins = <ThrowOnError extends boolean = fal
  * Unlink variant default storage bins
  *
  * Bulk operation for unlinking variants from the default storage bins available in a specific location.
- * The endpoint accepts up to 500 variant bin location objects.
+ *   The endpoint accepts up to 500 variant bin location objects.
  */
 export const unlinkVariantDefaultStorageBins = <ThrowOnError extends boolean = false>(
   options: Options<UnlinkVariantDefaultStorageBinsData, ThrowOnError>
@@ -2757,7 +2757,7 @@ export const unlinkVariantDefaultStorageBins = <ThrowOnError extends boolean = f
  * List all webhooks
  *
  * Returns a list of webhooks you've previously created. The entries are returned in a sorted order,
- * with the most recent ones appearing first.
+ *     with the most recent ones appearing first.
  */
 export const getAllWebhooks = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllWebhooksData, ThrowOnError>
@@ -2818,7 +2818,7 @@ export const getWebhook = <ThrowOnError extends boolean = false>(
  * Update a webhook
  *
  * Updates the specified webhook by setting the values of the parameters passed.
- * Any parameters not provided will be left unchanged.
+ *   Any parameters not provided will be left unchanged.
  */
 export const updateWebhook = <ThrowOnError extends boolean = false>(
   options: Options<UpdateWebhookData, ThrowOnError>
@@ -2837,8 +2837,8 @@ export const updateWebhook = <ThrowOnError extends boolean = false>(
  * Export webhook logs
  *
  * Use the endpoint to export your webhook logs and troubleshoot any issues.
- * Webhook logs are filtered by the provided parameters and exported into a CSV file.
- * The response contains an URL to the CSV file.
+ *       Webhook logs are filtered by the provided parameters and exported into a CSV file.
+ *       The response contains an URL to the CSV file.
  */
 export const exportWebhookLogs = <ThrowOnError extends boolean = false>(
   options: Options<ExportWebhookLogsData, ThrowOnError>
@@ -4740,9 +4740,9 @@ export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
  *
  * - Both filters set → results scoped to that exact ``(type, id)``.
  * - ``resource_type`` alone → ALL serial numbers of that type
- * across all resources (paginated, never 422).
+ *   across all resources (paginated, never 422).
  * - ``resource_id`` alone → narrows to that resource regardless of
- * type.
+ *   type.
  * - Neither filter → all serial numbers in the tenant (paginated).
  * - Page beyond data → 200 with an empty ``data`` array, not 404.
  *
