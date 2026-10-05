@@ -3,7 +3,7 @@ name: Release Please
 # The only workflow that watches pushes to main for release purposes. It
 # never pushes to main itself - it only opens/updates the aggregated release
 # PR (release-please-config.json / .release-please-manifest.json at the repo
-# root), or, once that PR has been merged, creates the client-v*/mcp-v* tags
+# root), or, once that PR has been merged, creates the client-v*/mcp-v*/ts-v* tags
 # and draft GitHub Releases at the merge commit. See docs/RELEASE.md.
 on:
   push:

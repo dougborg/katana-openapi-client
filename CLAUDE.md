@@ -438,8 +438,9 @@ Regenerate client: `uv run poe regenerate-client` (2+ min)
 ## Commit Standards
 
 ```bash
-feat(client): add feature    # Client MINOR release
+feat(client): add feature    # Python client MINOR release
 fix(mcp): fix bug            # MCP PATCH release
+feat(ts): add feature        # TypeScript client (npm) MINOR release
 docs: update README          # No release
 ```
 

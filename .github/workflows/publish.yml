@@ -2,7 +2,7 @@ name: Publish
 
 # The only workflow that builds and ships artifacts. Triggered exclusively
 # by the tags release-please creates when its release PR merges
-# (client-v*, mcp-v*). Nothing here ever pushes to main.
+# (client-v*, mcp-v*, ts-v*). Nothing here ever pushes to main.
 #
 # release-please creates each GitHub Release as a DRAFT (see
 # release-please-config.json "draft": true). Draft releases accept asset
@@ -18,6 +18,7 @@ on:
     tags:
       - 'client-v*'
       - 'mcp-v*'
+      - 'ts-v*'
 
 permissions: {}
 
@@ -114,6 +115,107 @@ jobs:
           # (zizmor: template-injection).
           RELEASE_TAG: ${{ github.ref_name }}
         run: gh release upload "$RELEASE_TAG" dist/* --clobber
+
+      - name: Publish the (now immutable) release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release edit "$RELEASE_TAG" --draft=false
+
+  publish-ts-npm:
+    name: Publish TypeScript client to npm
+    if: startsWith(github.ref_name, 'ts-v')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    defaults:
+      run:
+        working-directory: packages/katana-client
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
+
+      - name: Setup pnpm
+        # The pnpm version comes from `packageManager` in the package's
+        # package.json, the same pin CI and contributors use.
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: packages/katana-client/package.json
+
+      - name: Setup Node
+        # No dependency cache in the release build - a poisoned cache could
+        # contaminate the published artifact (zizmor: cache-poisoning). No
+        # registry-url either: that writes an .npmrc token placeholder, and
+        # auth here is npm Trusted Publishing (OIDC), not a token.
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and test
+        # CI already gated the PR, but an npm publish is irrevocable, so re-prove
+        # the tagged commit here (this also re-runs the GHSA-hhx9-57xq-r5rw
+        # regression test on the exact code being shipped).
+        run: |
+          pnpm run typecheck
+          pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Pack the release tarball
+        # Pack exactly once. The same tarball is published to npm and attached
+        # to the GitHub release, so the two can never drift.
+        run: pnpm pack --pack-destination ../../dist
+
+      - name: Check whether this version is already on npm
+        # npm never allows re-publishing a version, so a re-run of this workflow
+        # after a failure in a LATER step (release upload / un-draft) must skip
+        # the publish instead of dying on E403/EPUBLISHCONFLICT. A 404 here means
+        # the version (or, before the first bootstrap publish, the package) does
+        # not exist yet - that is the normal "go ahead and publish" case.
+        id: npm-check
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          if out="$(pnpm view "katana-openapi-client@${VERSION}" version 2>&1)"; then
+            echo "katana-openapi-client@${VERSION} is already on npm; skipping publish"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif grep -q "E404" <<< "$out"; then
+            # Not published yet (or, before the bootstrap, no such package).
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            # Anything else (registry outage, DNS, auth) must not be mistaken
+            # for "not published" - surface it and stop.
+            echo "$out"
+            exit 1
+          fi
+
+      - name: Publish to npm via Trusted Publishing
+        if: steps.npm-check.outputs.published != 'true'
+        # pnpm 11 publishes natively (no npm CLI delegation) and performs the
+        # OIDC exchange with registry.npmjs.org itself when running on GitHub
+        # Actions with id-token: write; no NPM_TOKEN exists. --provenance
+        # attaches the build attestation. --no-git-checks is belt-and-braces:
+        # pnpm skips git checks for a tarball argument anyway, but a tag checkout
+        # is a detached HEAD, so the flag keeps this correct if the step ever
+        # switches to publishing the directory instead.
+        run: pnpm publish ../../dist/*.tgz --access public --provenance --no-git-checks
+
+      - name: Attach build artifacts to draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pass via env rather than inline ${{ }} in the run block
+          # (zizmor: template-injection).
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release upload "$RELEASE_TAG" ../../dist/* --clobber
 
       - name: Publish the (now immutable) release
         env:
