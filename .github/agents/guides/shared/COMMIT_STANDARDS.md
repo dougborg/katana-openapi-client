@@ -1,9 +1,9 @@
 # Commit Standards
 
 This project uses **release-please** (manifest mode) with **conventional commits**.
-Commit *type* decides the version bump; which package(s) bump is decided by which
-paths a commit touches, not by scope — but scopes below are still expected for
-changelog clarity. Proper commit formatting is critical for automated releases. See
+Commit *type* decides the version bump; which package(s) bump is decided by which paths
+a commit touches, not by scope — but scopes below are still expected for changelog
+clarity. Proper commit formatting is critical for automated releases. See
 [docs/RELEASE.md](../../../../docs/RELEASE.md).
 
 ## Quick Reference
@@ -14,22 +14,25 @@ changelog clarity. Proper commit formatting is critical for automated releases. 
 | `fix(client):`                      | Client PATCH release     | Client bug fixes                   |
 | `feat(mcp):`                        | MCP MINOR release        | New MCP features                   |
 | `fix(mcp):`                         | MCP PATCH release        | MCP bug fixes                      |
+| `feat(ts):`                         | TS client MINOR release  | New TypeScript client features     |
+| `fix(ts):`                          | TS client PATCH release  | TypeScript client bug fixes        |
 | `feat:` or `fix:`                   | Client release (default) | Unscoped changes default to client |
 | `feat(client)!:` or `fix(client)!:` | Client MAJOR release     | Breaking changes                   |
 | `chore:`, `docs:`, `test:`, etc.    | No release               | Non-user-facing changes            |
 
 ## Monorepo Structure
 
-The repository contains three packages — only the two Python ones release through
-release-please with the scopes below:
+The repository contains three packages, all released through release-please:
 
 1. **`katana_public_api_client/`** → scope `(client)`, releases as
    `katana-openapi-client` on PyPI.
 1. **`katana_mcp_server/`** → scope `(mcp)`, releases as `katana-mcp-server` on PyPI.
-1. **`packages/katana-client/`** → TypeScript client, released independently via npm (no
-   semantic-release scope; managed via its own `package.json` versioning).
+1. **`packages/katana-client/`** → scope `(ts)`, releases as `katana-openapi-client` on
+   npm (tag `ts-v*`).
 
-Releases for the two Python packages are managed independently using commit scopes.
+Each package is versioned independently. Which one(s) a commit bumps is decided by the
+paths it touches: `katana_mcp_server/` → MCP, `packages/katana-client/` → TS client,
+anything else → Python client.
 
 ## Commit Scopes for Releases
 
@@ -61,6 +64,18 @@ git commit -m "fix(mcp): correct order status filtering"
 
 # Breaking change → MAJOR bump (post-1.0)
 git commit -m "feat(mcp)!: change tool parameter structure"
+```
+
+### TypeScript Client Package Releases
+
+Triggers release of `katana-openapi-client` on npm:
+
+```bash
+# New feature → MINOR bump
+git commit -m "feat(ts): add typed pagination helpers"
+
+# Bug fix → PATCH bump
+git commit -m "fix(ts): honour Retry-After on 429 responses"
 ```
 
 For the canonical current versions of each package, see the shields.io badges in the
@@ -414,8 +429,8 @@ feat(client): add pagination and fix auth bug  # Should be 2 commits
 
 ### Pre-Commit Validation
 
-The project uses release-please to parse commit messages for version-bump decisions
-in CI (not a commit-message linter — malformed types simply don't trigger a bump).
+The project uses release-please to parse commit messages for version-bump decisions in
+CI (not a commit-message linter — malformed types simply don't trigger a bump).
 
 ### Manual Validation
 

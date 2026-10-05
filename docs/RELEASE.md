@@ -1,17 +1,19 @@
 # Release Process
 
 This repository uses [release-please](https://github.com/googleapis/release-please) in
-**manifest mode** to independently version and release two packages:
+**manifest mode** to independently version and release three packages:
 
-1. **katana-openapi-client** - The main Python API client
-1. **katana-mcp-server** - The Model Context Protocol server
+1. **katana-openapi-client** (PyPI) - The main Python API client
+1. **katana-mcp-server** (PyPI) - The Model Context Protocol server
+1. **katana-openapi-client** (npm) - The TypeScript client in `packages/katana-client`
 
 Each package is released independently. release-please decides which package(s) to bump
 based on **which paths a commit touches**, not on commit scope - a commit that only
-touches `katana_mcp_server/` bumps only the MCP server; a commit touching the repo root
-(outside `katana_mcp_server/`) bumps the client; a commit touching both bumps both.
-Conventional-commit scopes (`(client)` / `(mcp)`) remain useful for changelog
-readability but are no longer load-bearing for version decisions.
+touches `katana_mcp_server/` bumps only the MCP server; one that only touches
+`packages/katana-client/` bumps only the TypeScript client; a commit touching the repo
+root (outside both) bumps the Python client; a commit touching several bumps each of
+them. Conventional-commit scopes (`(client)` / `(mcp)` / `(ts)`) remain useful for
+changelog readability but are no longer load-bearing for version decisions.
 
 ## How releases work
 
@@ -27,6 +29,11 @@ against [`release-please-config.json`](../release-please-config.json) /
   (`separate-pull-requests: false`), or
 - if that release PR was just merged, creates the tag(s) + a **draft** GitHub Release
   for each changed package at the merge commit.
+
+The Python packages use release-please's `python` strategy (bumps `pyproject.toml`); the
+TypeScript client uses the `node` strategy (bumps
+`packages/katana-client/package.json`). `pnpm-lock.yaml` does not record the root
+package's own version, so nothing else needs syncing for the TS bump.
 
 Release creation and release-PR preparation are separate action invocations. The first
 only creates releases for merged PRs. If it created a release, the workflow creates the
@@ -59,8 +66,8 @@ PR branch, the fix merges **atomically** with the version bump in a single commi
 
 Merging release-please's PR is the only thing that actually creates a release. At that
 point `release-please.yml` runs one more time, sees the merge, and creates
-`client-vX.Y.Z` / `mcp-vX.Y.Z` tags plus a **draft** GitHub Release for each package
-that changed.
+`client-vX.Y.Z` / `mcp-vX.Y.Z` / `ts-vX.Y.Z` tags plus a **draft** GitHub Release for
+each package that changed.
 
 GitHub does not create Git refs for draft releases. After release-please creates the
 drafts, the workflow explicitly creates each tag at the action's reported commit SHA
@@ -71,12 +78,15 @@ the workflow never moves release tags.
 ### 4. Tags trigger publishing
 
 [`publish.yml`](../.github/workflows/publish.yml) is the **only** workflow that builds
-and ships artifacts. It triggers exclusively on `client-v*` / `mcp-v*` tag pushes -
-never on a `main` push - and:
+and ships artifacts. It triggers exclusively on `client-v*` / `mcp-v*` / `ts-v*` tag
+pushes - never on a `main` push - and:
 
-1. builds the package (`uv build`)
-1. publishes it to PyPI via Trusted Publishing (OIDC, no tokens)
-1. attaches the built wheel/sdist to the **still-draft** release
+1. builds the package (`uv build` for the Python packages;
+   `pnpm install --frozen-lockfile && pnpm run build && pnpm pack` for the TypeScript
+   client)
+1. publishes it to its registry via Trusted Publishing (OIDC, no tokens) - PyPI for the
+   Python packages, npm for the TypeScript client (with provenance attached)
+1. attaches the built wheel/sdist (or npm tarball) to the **still-draft** release
 1. publishes the release (`gh release edit --draft=false`)
 
 For `mcp-v*` tags, a follow-on job also builds and pushes the multi-arch Docker image to
@@ -120,17 +130,23 @@ footer should decide. Keep marking breaking changes honestly with `!` /
 Which package bumps is determined by **which files the commit touches**:
 
 - Changed files under `katana_mcp_server/`? The MCP server bumps.
+- Changed files under `packages/katana-client/`? The TypeScript client bumps.
 - Changed files anywhere else in the tree (client code, root `pyproject.toml`, etc.)?
-  The client bumps.
-- Changed both? Both bump.
+  The Python client bumps.
+- Changed several? Each affected package bumps.
 
-Scopes like `(client)`/`(mcp)` are still encouraged for changelog clarity, but no longer
-decide which package releases.
+release-please gives the root (`.`) package every commit unless told otherwise, so the
+Python client's entry carries `exclude-paths` for `katana_mcp_server` and
+`packages/katana-client` - that is what makes the rule above literally true.
+
+Scopes like `(client)`/`(mcp)`/`(ts)` are still encouraged for changelog clarity, but no
+longer decide which package releases.
 
 ## Tag format
 
 - **Client tags**: `client-v0.81.0`, `client-v0.82.0`, etc.
 - **MCP tags**: `mcp-v0.115.0`, `mcp-v0.116.0`, etc.
+- **TypeScript client tags**: `ts-v0.1.0`, `ts-v0.2.0`, etc.
 
 `include-component-in-tag: true` in `release-please-config.json` preserves this exact
 format, so tag history from the previous python-semantic-release setup is continuous.
@@ -149,6 +165,51 @@ on PyPI were made without an environment name, and the OIDC claim includes that 
 adding one now would break publishing. Configuration: PyPI Project Settings ->
 Publishing -> Trusted Publishers.
 
+## npm Trusted Publisher (TypeScript client)
+
+The `publish-ts-npm` job in `publish.yml` publishes `packages/katana-client` to npm as
+`katana-openapi-client` with
+[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) - the OIDC exchange
+is done by pnpm itself (`pnpm publish --provenance`), with no `NPM_TOKEN` anywhere. Like
+the PyPI jobs, it declares **no** GitHub Environment, so the npm registration must also
+leave the environment name blank.
+
+**One-time bootstrap.** npm attaches a trusted publisher to an *existing* package, so
+the package has to exist before CI can publish to it. Do **not** bootstrap by publishing
+the first real release by hand - that would put an unattested, locally-built tarball on
+npm while the GitHub release carries CI's differently-built one. Instead, publish the
+placeholder version that `package.json` already carries on `main` (`0.0.1`, which the
+release-please manifest treats as the pre-release baseline), register the workflow, and
+let the first real `ts-vX.Y.Z` tag go through CI with provenance:
+
+```bash
+# 1. Locally, from a clean checkout of main (package.json version is still 0.0.1)
+cd packages/katana-client
+pnpm install --frozen-lockfile && pnpm run build
+npm login
+pnpm publish --access public --no-git-checks
+npm deprecate katana-openapi-client@0.0.1 "bootstrap placeholder; use >=0.1.0"
+
+# 2. On npmjs.com -> package -> Settings -> Trusted Publisher: GitHub Actions,
+#    organization/user `dougborg`, repository `katana-openapi-client`,
+#    workflow filename `publish.yml`, environment name left EMPTY.
+
+# 3. Still in package Settings -> Publishing access: require 2FA *or* a trusted
+#    publisher (disallow tokens), so CI is the only unattended path.
+```
+
+Every later version is published only by `publish-ts-npm`, so the npm tarball and the
+GitHub release asset are always the same bytes. If a `ts-v*` tag's run already failed on
+the registry step before the bootstrap was done, re-run that workflow run after step 2 -
+the tag, draft release, and tarball are all still in place.
+
+**Re-runs are safe.** npm never accepts the same version twice, so the job checks
+`pnpm view katana-openapi-client@<version>` first and skips the publish step when that
+version already exists (any probe failure other than `E404` stops the job rather than
+being mistaken for "not published"). A re-run after a failure in a *later* step (release
+asset upload, un-drafting) therefore just finishes the release instead of dying on the
+registry.
+
 ## Manual release (emergency only)
 
 If `release-please.yml` or `publish.yml` is broken and a release must ship anyway:
@@ -158,7 +219,7 @@ If `release-please.yml` or `publish.yml` is broken and a release must ship anywa
 uv build  # or: uv build --package katana-mcp-server
 
 # 2. Tag manually (must match the existing tag format)
-git tag client-v0.82.0   # or mcp-v0.116.0
+git tag client-v0.82.0   # or mcp-v0.116.0, or ts-v0.2.0 for the TypeScript client
 git push origin client-v0.82.0
 
 # 3. Publish to PyPI by hand, or re-run publish.yml's steps locally with
@@ -195,8 +256,12 @@ Only do this if the automated pipeline is broken. Prefer fixing the workflow.
 - Verify the PyPI Trusted Publisher is still registered for `publish.yml` with **no**
   environment name (see above) - a mismatch here is the most common cause of
   `Non-user identities cannot create new projects` or `invalid-publisher` errors.
-- Confirm the tag actually matches `client-v*` or `mcp-v*` - `publish.yml` does not
-  trigger on anything else.
+- Confirm the tag actually matches `client-v*`, `mcp-v*`, or `ts-v*` - `publish.yml`
+  does not trigger on anything else.
+- For npm (`publish-ts-npm`): a `404`/`E404` or `ENEEDAUTH` on `pnpm publish` almost
+  always means the trusted publisher is not registered for this repository + workflow
+  yet (or the package has never been published - see the bootstrap above). Check the
+  package's Settings -> Trusted Publisher on npmjs.com.
 
 ### Release stuck in draft
 

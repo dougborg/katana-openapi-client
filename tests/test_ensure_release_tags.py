@@ -9,25 +9,42 @@ from scripts.ensure_release_tags import ensure_release_tags
 
 SHA = "a" * 40
 OUTPUTS = {
-    "paths_released": '[".", "katana_mcp_server"]',
+    "paths_released": '[".", "katana_mcp_server", "packages/katana-client"]',
     "tag_name": "client-v0.82.0",
     "sha": SHA,
     "katana_mcp_server--tag_name": "mcp-v0.116.0",
     "katana_mcp_server--sha": SHA,
+    "packages/katana-client--tag_name": "ts-v0.1.0",
+    "packages/katana-client--sha": SHA,
 }
 
 
-def test_creates_both_draft_tags_at_exact_release_commit() -> None:
+def test_creates_all_draft_tags_at_exact_release_commit() -> None:
     missing = HTTPError("https://api.github.com", 404, "Not Found", Message(), None)
     with patch(
-        "scripts.ensure_release_tags._api", side_effect=[missing, {}, missing, {}]
+        "scripts.ensure_release_tags._api",
+        side_effect=[missing, {}, missing, {}, missing, {}],
     ) as api:
         ensure_release_tags(OUTPUTS, "owner/repo", "test-token")
     posts = [c.args for c in api.call_args_list if c.args[0] == "POST"]
     assert [p[3] for p in posts] == [
         {"ref": "refs/tags/client-v0.82.0", "sha": SHA},
         {"ref": "refs/tags/mcp-v0.116.0", "sha": SHA},
+        {"ref": "refs/tags/ts-v0.1.0", "sha": SHA},
     ]
+
+
+def test_unknown_component_tag_is_rejected() -> None:
+    with (
+        patch("scripts.ensure_release_tags._api") as api,
+        pytest.raises(ValueError, match="Unexpected release tag"),
+    ):
+        ensure_release_tags(
+            {**OUTPUTS, "packages/katana-client--tag_name": "npm-v0.1.0"},
+            "owner/repo",
+            "test-token",
+        )
+    api.assert_not_called()
 
 
 def test_existing_matching_refs_are_noop() -> None:

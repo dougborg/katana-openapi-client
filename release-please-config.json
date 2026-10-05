@@ -27,12 +27,19 @@
       "release-type": "python",
       "component": "client",
       "package-name": "katana-openapi-client",
-      "changelog-path": "docs/CHANGELOG.md"
+      "changelog-path": "docs/CHANGELOG.md",
+      "exclude-paths": ["katana_mcp_server", "packages/katana-client"]
     },
     "katana_mcp_server": {
       "release-type": "python",
       "component": "mcp",
       "package-name": "katana-mcp-server",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/katana-client": {
+      "release-type": "node",
+      "component": "ts",
+      "package-name": "katana-openapi-client",
       "changelog-path": "CHANGELOG.md"
     }
   }

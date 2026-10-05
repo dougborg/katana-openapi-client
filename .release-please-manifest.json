@@ -1,4 +1,5 @@
 {
   ".": "0.87.0",
-  "katana_mcp_server": "0.121.0"
+  "katana_mcp_server": "0.121.0",
+  "packages/katana-client": "0.0.1"
 }

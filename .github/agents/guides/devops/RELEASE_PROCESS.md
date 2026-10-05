@@ -1,15 +1,15 @@
 # Release Process Guide
 
-Guide for managing releases with [release-please](https://github.com/googleapis/release-please)
-(manifest mode) in this monorepo. Canonical reference:
-[docs/RELEASE.md](../../../../docs/RELEASE.md).
+Guide for managing releases with
+[release-please](https://github.com/googleapis/release-please) (manifest mode) in this
+monorepo. Canonical reference: [docs/RELEASE.md](../../../../docs/RELEASE.md).
 
 **Key difference from the old python-semantic-release setup this replaced:** nothing
-pushes directly to `main` anymore. Every commit merged to `main` updates one
-aggregated release PR; merging *that* PR is what creates tags, draft GitHub Releases,
-and (via a tag-triggered `publish.yml`) PyPI/GHCR publishes. Version-bump *type*
-still comes from the commit type below, but *which* package bumps is now decided by
-which paths a commit touches, not its scope.
+pushes directly to `main` anymore. Every commit merged to `main` updates one aggregated
+release PR; merging *that* PR is what creates tags, draft GitHub Releases, and (via a
+tag-triggered `publish.yml`) PyPI/GHCR publishes. Version-bump *type* still comes from
+the commit type below, but *which* package bumps is now decided by which paths a commit
+touches, not its scope.
 
 ## Quick Reference
 
@@ -19,6 +19,8 @@ which paths a commit touches, not its scope.
 - `fix(client):` → Releases katana-openapi-client (PATCH)
 - `feat(mcp):` → Releases katana-mcp-server (MINOR)
 - `fix(mcp):` → Releases katana-mcp-server (PATCH)
+- `feat(ts):` → Releases the TypeScript client on npm (MINOR)
+- `fix(ts):` → Releases the TypeScript client on npm (PATCH)
 - `feat(client)!:` → Releases katana-openapi-client (MAJOR)
 
 **Non-release commits:**
@@ -68,16 +70,16 @@ ______________________________________________________________________
 
 **Steps:**
 
-1. `release-please.yml` (the only workflow watching `main`) analyzes commits since
-   the last release, per package path
-1. Opens or updates **one aggregated release PR** with the computed version bump(s)
-   and changelog entries
-1. `release-pr-prepare.yml` keeps the release PR's `uv.lock` and MCP→client pin
-   truthful as commits land on the PR branch
-1. **Merging that release PR** is what actually releases: `release-please.yml` runs
-   once more and creates a tag + draft GitHub Release per changed package
-1. The tag push triggers `publish.yml`, which builds, publishes to PyPI, attaches
-   assets to the draft release, and un-drafts it
+1. `release-please.yml` (the only workflow watching `main`) analyzes commits since the
+   last release, per package path
+1. Opens or updates **one aggregated release PR** with the computed version bump(s) and
+   changelog entries
+1. `release-pr-prepare.yml` keeps the release PR's `uv.lock` and MCP→client pin truthful
+   as commits land on the PR branch
+1. **Merging that release PR** is what actually releases: `release-please.yml` runs once
+   more and creates a tag + draft GitHub Release per changed package
+1. The tag push triggers `publish.yml`, which builds, publishes to PyPI, attaches assets
+   to the draft release, and un-drafts it
 
 ### Manual Verification
 
@@ -267,6 +269,14 @@ mcp-v0.8.0
 mcp-v1.0.0
 ```
 
+**TypeScript client package (npm):**
+
+```
+ts-v0.1.0
+ts-v0.2.0
+ts-v1.0.0
+```
+
 ### View Tags
 
 ```bash
@@ -278,6 +288,9 @@ git tag -l "client-v*"
 
 # List MCP tags
 git tag -l "mcp-v*"
+
+# List TypeScript client tags
+git tag -l "ts-v*"
 
 # View tag details
 git show client-v0.31.0
@@ -467,8 +480,7 @@ ______________________________________________________________________
 ## Related Documentation
 
 - [COMMIT_STANDARDS.md](../shared/COMMIT_STANDARDS.md) - Conventional commits
-- [docs/RELEASE.md](../../../../docs/RELEASE.md) -
-  Complete guide
+- [docs/RELEASE.md](../../../../docs/RELEASE.md) - Complete guide
 - [Semantic Versioning](https://semver.org/) - Version specification
 
 ______________________________________________________________________

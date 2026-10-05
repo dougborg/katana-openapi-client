@@ -50,7 +50,7 @@ def ensure_release_tags(outputs: dict[str, str], repository: str, token: str) ->
         prefix = "" if path == "." else f"{path}--"
         tag = outputs[f"{prefix}tag_name"]
         sha = outputs[f"{prefix}sha"]
-        if not re.fullmatch(r"(?:client|mcp)-v\d+\.\d+\.\d+", tag):
+        if not re.fullmatch(r"(?:client|mcp|ts)-v\d+\.\d+\.\d+", tag):
             raise ValueError(f"Unexpected release tag: {tag}")
         if not re.fullmatch(r"[0-9a-f]{40}", sha):
             raise ValueError(f"Release {tag} must identify an exact commit SHA")

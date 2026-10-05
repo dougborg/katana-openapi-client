@@ -48,8 +48,8 @@ mkdocs.yml, etc.) to avoid unnecessary builds.
 **Purpose:** The only workflow that watches `main` for release purposes. Opens or
 updates **one aggregated release PR** covering both packages
 (`separate-pull-requests: false` in `release-please-config.json`); once that PR is
-merged, creates a `client-v*`/`mcp-v*` tag + draft GitHub Release per changed package at
-the merge commit. Never pushes to `main` itself.
+merged, creates a `client-v*`/`mcp-v*`/`ts-v*` tag + draft GitHub Release per changed
+package at the merge commit. Never pushes to `main` itself.
 
 **Permissions:** `contents: write`, `pull-requests: write`
 
@@ -72,8 +72,8 @@ the release PR branch, never on `main`.
 
 ### [publish.yml](publish.yml)
 
-**Trigger:** Push of a `client-v*` or `mcp-v*` tag - i.e. only after a release-please
-release PR merges. Never triggered by a `main` push.
+**Trigger:** Push of a `client-v*`, `mcp-v*`, or `ts-v*` tag - i.e. only after a
+release-please release PR merges. Never triggered by a `main` push.
 
 **Purpose:** The only workflow that builds and ships artifacts.
 
@@ -82,6 +82,9 @@ release PR merges. Never triggered by a `main` push.
 1. **publish-client-pypi** (`client-v*`): build with `uv build`, publish to PyPI via
    OIDC, attach dist artifacts to the still-draft release, publish the release
 1. **publish-mcp-pypi** (`mcp-v*`): same, for the MCP server package
+1. **publish-ts-npm** (`ts-v*`): `pnpm install --frozen-lockfile`, build, `pnpm pack`,
+   publish the tarball to npm via Trusted Publishing (OIDC, with provenance), attach the
+   same tarball to the still-draft release, publish the release
 1. **publish-mcp-docker** (`mcp-v*`, needs `publish-mcp-pypi`): build and push a
    multi-arch image to `ghcr.io/dougborg/katana-mcp-server`
 
@@ -91,12 +94,14 @@ uploads, published releases are
 [immutable](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
 and permanently reject them.
 
-**Permissions:** `id-token: write` + `contents: write` per `publish-*-pypi` job;
-`contents: read` + `packages: write` for `publish-mcp-docker`
+**Permissions:** `id-token: write` + `contents: write` per `publish-*-pypi` and
+`publish-ts-npm` job; `contents: read` + `packages: write` for `publish-mcp-docker`
 
-**Note:** Neither PyPI publish job declares a GitHub `environment:` - this matches how
+**Note:** No registry publish job declares a GitHub `environment:` - this matches how
 the existing (already-active) PyPI Trusted Publishers for `katana-openapi-client` and
-`katana-mcp-server` were registered, and must not change.
+`katana-mcp-server` were registered, and the npm trusted publisher must be registered
+the same way (see
+[docs/RELEASE.md](../../docs/RELEASE.md#npm-trusted-publisher-typescript-client)).
 
 ### [security.yml](security.yml)
 
@@ -200,9 +205,11 @@ graph TD
 
     J --> L[client-v* tag]
     J --> M[mcp-v* tag]
+    J --> V[ts-v* tag]
 
     L --> N[publish.yml: publish-client-pypi]
     M --> O[publish.yml: publish-mcp-pypi]
+    V --> W[publish.yml: publish-ts-npm]
 
     O --> P[publish.yml: publish-mcp-docker]
 
@@ -219,6 +226,7 @@ graph TD
     style N fill:#d4edda
     style O fill:#d4edda
     style P fill:#d4edda
+    style W fill:#d4edda
     style T fill:#d4edda
 ```
 
@@ -233,12 +241,16 @@ graph TD
 - PyPI publishing uses Trusted Publishers (OIDC) - no manual tokens needed. Already
   active for both packages; see
   [docs/RELEASE.md](../../docs/RELEASE.md#pypi-trusted-publishers)
+- npm publishing of the TypeScript client also uses Trusted Publishing (OIDC via pnpm) -
+  no `NPM_TOKEN`. Needs a one-time manual first publish + registration; see
+  [docs/RELEASE.md](../../docs/RELEASE.md#npm-trusted-publisher-typescript-client)
 
 ### Environments
 
 - **github-pages** - GitHub Pages deployment environment
 
-`publish.yml`'s PyPI jobs intentionally do **not** scope to a GitHub Environment - see
+`publish.yml`'s registry publish jobs (PyPI and npm) intentionally do **not** scope to a
+GitHub Environment - see
 [docs/RELEASE.md](../../docs/RELEASE.md#pypi-trusted-publishers).
 
 ### Branch Protection
