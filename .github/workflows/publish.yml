@@ -19,17 +19,27 @@ on:
       - 'client-v*'
       - 'mcp-v*'
       - 'ts-v*'
+  # Recovery path only. A tag push runs the workflow file AS OF THAT TAG, so a
+  # bug fixed in publish.yml on main cannot be picked up by re-running the
+  # failed tag run. Dispatching from main with the existing tag runs main's
+  # workflow against that tag's commit instead. Tags are never moved.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to (re)publish, e.g. ts-v0.1.0"
+        required: true
+        type: string
 
 permissions: {}
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
   publish-client-pypi:
     name: Publish client to PyPI
-    if: startsWith(github.ref_name, 'client-v')
+    if: startsWith(inputs.tag || github.ref_name, 'client-v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -38,7 +48,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
           persist-credentials: false
 
       - name: Install uv
@@ -62,18 +72,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pass via env rather than inline ${{ }} in the run block
           # (zizmor: template-injection).
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: gh release upload "$RELEASE_TAG" dist/* --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: gh release edit "$RELEASE_TAG" --draft=false
 
   publish-mcp-pypi:
     name: Publish MCP server to PyPI
-    if: startsWith(github.ref_name, 'mcp-v')
+    if: startsWith(inputs.tag || github.ref_name, 'mcp-v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -82,7 +92,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
           persist-credentials: false
 
       - name: Install uv
@@ -113,18 +123,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pass via env rather than inline ${{ }} in the run block
           # (zizmor: template-injection).
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: gh release upload "$RELEASE_TAG" dist/* --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: gh release edit "$RELEASE_TAG" --draft=false
 
   publish-ts-npm:
     name: Publish TypeScript client to npm
-    if: startsWith(github.ref_name, 'ts-v')
+    if: startsWith(inputs.tag || github.ref_name, 'ts-v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -136,7 +146,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
           persist-credentials: false
 
       - name: Setup pnpm
@@ -188,8 +198,11 @@ jobs:
           if out="$(pnpm view "katana-openapi-client@${VERSION}" version 2>&1)"; then
             echo "katana-openapi-client@${VERSION} is already on npm; skipping publish"
             echo "published=true" >> "$GITHUB_OUTPUT"
-          elif grep -q "E404" <<< "$out"; then
-            # Not published yet (or, before the bootstrap, no such package).
+          elif grep -Eq "E404|ERR_PNPM_PACKAGE_NOT_FOUND|No matching version" <<< "$out"; then
+            # Not published yet. pnpm's native view reports a missing version of
+            # an existing package as ERR_PNPM_PACKAGE_NOT_FOUND / "No matching
+            # version"; a package that does not exist at all (pre-bootstrap) is
+            # the registry's E404.
             echo "published=false" >> "$GITHUB_OUTPUT"
           else
             # Anything else (registry outage, DNS, auth) must not be mistaken
@@ -214,19 +227,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pass via env rather than inline ${{ }} in the run block
           # (zizmor: template-injection).
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: gh release upload "$RELEASE_TAG" ../../dist/* --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: gh release edit "$RELEASE_TAG" --draft=false
 
   publish-mcp-docker:
     name: Publish MCP Docker Image
     needs: publish-mcp-pypi
-    if: startsWith(github.ref_name, 'mcp-v')
+    if: startsWith(inputs.tag || github.ref_name, 'mcp-v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -235,12 +248,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
           persist-credentials: false
 
       - name: Determine MCP version for tagging
         id: version
-        run: echo "mcp_version=${GITHUB_REF_NAME#mcp-v}" >> "$GITHUB_OUTPUT"
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: echo "mcp_version=${RELEASE_TAG#mcp-v}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1

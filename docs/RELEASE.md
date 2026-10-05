@@ -219,6 +219,19 @@ being mistaken for "not published"). A re-run after a failure in a *later* step 
 asset upload, un-drafting) therefore just finishes the release instead of dying on the
 registry.
 
+## Re-running a publish with a fixed workflow
+
+A tag push runs `publish.yml` **as of that tag's commit**, so re-running a failed tag
+run re-runs the old workflow file - a bug fixed in `publish.yml` on `main` is never
+picked up that way. For that case `publish.yml` has a `workflow_dispatch` recovery path:
+dispatch it from `main` with the existing tag, and main's workflow runs against that
+tag's commit (the tag itself is never moved). The registry/asset/un-draft steps are
+idempotent, so this is safe after any partial failure:
+
+```bash
+gh workflow run publish.yml --ref main -f tag=ts-v0.1.0
+```
+
 ## Manual release (emergency only)
 
 If `release-please.yml` or `publish.yml` is broken and a release must ship anyway:

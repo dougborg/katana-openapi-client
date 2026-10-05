@@ -73,7 +73,10 @@ the release PR branch, never on `main`.
 ### [publish.yml](publish.yml)
 
 **Trigger:** Push of a `client-v*`, `mcp-v*`, or `ts-v*` tag - i.e. only after a
-release-please release PR merges. Never triggered by a `main` push.
+release-please release PR merges - or a manual `workflow_dispatch` from `main` naming an
+existing tag (recovery path: runs main's workflow file against that tag's commit; see
+[docs/RELEASE.md](../../docs/RELEASE.md#re-running-a-publish-with-a-fixed-workflow)).
+Never triggered by a `main` push.
 
 **Purpose:** The only workflow that builds and ships artifacts.
 
