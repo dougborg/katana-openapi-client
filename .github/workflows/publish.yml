@@ -67,19 +67,12 @@ jobs:
         with:
           attestations: true
 
-      - name: Attach build artifacts to draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Pass via env rather than inline ${{ }} in the run block
-          # (zizmor: template-injection).
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release upload "$RELEASE_TAG" dist/* --clobber
-
-      - name: Publish the (now immutable) release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release edit "$RELEASE_TAG" --draft=false
+      - name: Attach artifacts and publish the release
+        uses: ./.github/actions/finalize-draft-release
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          assets: dist/*
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-mcp-pypi:
     name: Publish MCP server to PyPI
@@ -118,19 +111,12 @@ jobs:
         with:
           attestations: true
 
-      - name: Attach build artifacts to draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Pass via env rather than inline ${{ }} in the run block
-          # (zizmor: template-injection).
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release upload "$RELEASE_TAG" dist/* --clobber
-
-      - name: Publish the (now immutable) release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release edit "$RELEASE_TAG" --draft=false
+      - name: Attach artifacts and publish the release
+        uses: ./.github/actions/finalize-draft-release
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          assets: dist/*
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-ts-npm:
     name: Publish TypeScript client to npm
@@ -222,19 +208,12 @@ jobs:
         # switches to publishing the directory instead.
         run: pnpm publish ../../dist/*.tgz --access public --provenance --no-git-checks
 
-      - name: Attach build artifacts to draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Pass via env rather than inline ${{ }} in the run block
-          # (zizmor: template-injection).
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release upload "$RELEASE_TAG" ../../dist/* --clobber
-
-      - name: Publish the (now immutable) release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release edit "$RELEASE_TAG" --draft=false
+      - name: Attach artifacts and publish the release
+        uses: ./.github/actions/finalize-draft-release
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          assets: dist/*
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-mcp-docker:
     name: Publish MCP Docker Image

@@ -98,6 +98,10 @@ pushes - never on a `main` push - and:
 1. attaches the built wheel/sdist (or npm tarball) to the **still-draft** release
 1. publishes the release (`gh release edit --draft=false`)
 
+The last two steps live in one local composite action,
+`.github/actions/finalize-draft-release`, shared by all three registry jobs so the
+attach-then-publish order can't drift between them.
+
 For `mcp-v*` tags, a follow-on job also builds and pushes the multi-arch Docker image to
 `ghcr.io/dougborg/katana-mcp-server`. That image installs the client source from the
 same tagged commit, so the Docker build does not depend on the separate client PyPI
