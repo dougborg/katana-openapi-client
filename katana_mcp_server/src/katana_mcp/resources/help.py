@@ -57,7 +57,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **get_purchase_order** - Look up a PO by number or ID — exhaustive detail (every PO/row field, additional cost rows, accounting metadata)
 - **modify_purchase_order** - Unified modify: header, rows, additional-cost rows in one call (typed sub-payload slots, multi-action, preview/apply)
 - **delete_purchase_order** - Delete a PO (Katana cascades child rows)
-- **correct_purchase_order** - Edit a closed (RECEIVED / PARTIALLY_RECEIVED) PO without losing its per-row `received_date` / batch-transaction metadata. Reverts to NOT_RECEIVED, edits rows keyed by row ID, then replays the original receipts via `/purchase_order_receive` to restore close-state. See "Closed-Record Corrections" below.
+- **correct_purchase_order** - Edit a closed (RECEIVED / PARTIALLY_RECEIVED) PO without losing its receipts. Reverts to NOT_RECEIVED, rebuilds one row per original row with the edits applied, then replays the receipts via `/purchase_order_receive` **one call per receipt group**, with each row's original date. See "Closed-Record Corrections" below.
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
@@ -220,10 +220,9 @@ operator has to discover and sequence several mechanical quirks each time:
 - A RECEIVED / PARTIALLY_RECEIVED PO has rows whose `quantity` /
   `variant_id` / `price_per_unit` are immutable while `received_date` is
   non-null. The reopen path is PATCH `/purchase_orders/{id}` with status
-  → NOT_RECEIVED (which clears each row's `received_date`); the restore
-  path is `POST /purchase_order_receive` with the captured per-row
-  quantity / `received_date` / batch_transactions, which auto-promotes
-  status back to RECEIVED.
+  → NOT_RECEIVED, which undoes every receipt, merges rows identical apart
+  from quantity and detaches additional cost rows; the restore path is one
+  `POST /purchase_order_receive` per original receipt group.
 
 The correction tools encode the proven sequence once. Each takes the edits
 keyed by the *current* variant on the row (not the row ID), so the operator
@@ -239,11 +238,11 @@ Use the regular `modify_<entity>` tool when:
   to disambiguate with the explicit row ID.
 
 **Note**: `correct_purchase_order` keys edits by row ID (not variant ID
-like the MO/SO siblings). The receive endpoint may split a partially-
-received row into two physical rows post-receipt — both rows can carry
-the same `variant_id`, so variant-keyed lookup would be ambiguous. Look
-up current row IDs via `get_purchase_order` before calling
-`correct_purchase_order`.
+like the MO/SO siblings), because a partially received row is split into
+two physical rows that share a `variant_id`. Look up current row IDs via
+`get_purchase_order` before calling it. Each edit applies to that row
+only: after the revert the tool rebuilds one row per original row, so an
+edit never spreads to rows Katana merged with it.
 
 **No `correct_stock_transfer` or `correct_stock_adjustment`** — their rows
 are immutable after creation, so neither supports the reopen-and-edit
@@ -1822,12 +1821,12 @@ the captured close-state in `prior_state`.
 
 ### correct_purchase_order
 Edit a closed PO (status RECEIVED or PARTIALLY_RECEIVED) without losing
-its original receipt metadata. Reverts to NOT_RECEIVED (clearing each
-row's `received_date` so per-row fields become editable again), edits
-rows keyed by row ID, then re-receives via `POST /purchase_order_receive`
-to restore the captured per-row `quantity` / `received_date` /
-`batch_transactions`. The receive endpoint promotes status back to
-RECEIVED automatically once every row is fully received.
+its receipts. Katana records each `POST /purchase_order_receive` call as a
+receipt group (`group_id`). Its whole-order revert (`PATCH status:
+NOT_RECEIVED`) undoes every receipt, merges rows identical apart from
+quantity and moves additional cost rows to the default group. The tool
+captures every row with its group, reverts, rebuilds the rows with the
+edits applied, and replays one receive call per original group.
 
 For a PO that hasn't been received yet, use `modify_purchase_order`
 directly — there's no close-state to preserve.
@@ -1837,43 +1836,44 @@ directly — there's no close-state to preserve.
 - `row_changes` (required, min_length=1): list of row edits. Each entry:
   `row_id` (existing row ID — find via `get_purchase_order`, required),
   `new_variant_id` (optional), `quantity` (optional, >0), `price_per_unit`
-  (optional, >=0). At least one of the latter three must be set.
+  (optional, >=0). At least one of the latter three must be set. On a
+  received row, `quantity` is the corrected received quantity.
 - `preview` (optional, default true): true=preview, false=execute
 
 **Sequence executed (in order):**
-1. PATCH PO status → NOT_RECEIVED (clears each row's `received_date`)
-2. PATCH each row per `row_changes` (Katana now allows
-   variant_id / quantity / price_per_unit edits since `received_date` is null)
-3. POST `/purchase_order_receive` once per captured receipt, replaying
-   `quantity` + `received_date` + `batch_transactions`. The endpoint
-   auto-promotes status back to RECEIVED.
+1. PARTIALLY_RECEIVED only: POST `/purchase_order_receive` for the open
+   rows (dated now) — Katana refuses the revert in that state (422).
+2. PATCH PO status → NOT_RECEIVED.
+3. Rebuild one row per original row with `row_changes` applied: rows that
+   survived the revert are patched, rows it merged away are re-created.
+4. POST `/purchase_order_receive` once per original receipt group, oldest
+   first; each row is received in full with its original `received_date`
+   and batches.
+5. Re-create each additional cost row on its rebuilt group and delete the
+   original.
 
 **Errors when:**
 - The PO isn't in RECEIVED / PARTIALLY_RECEIVED status (use `modify_purchase_order`).
-- A `row_id` doesn't match any current row on the PO.
+- A `row_id` doesn't match any current row on the PO, or appears twice.
 - A `row_changes` entry sets none of `new_variant_id` / `quantity` /
   `price_per_unit`.
-- A `quantity` drops below the originally-received quantity for that row
-  (the receipt replay would fail and leave the PO mid-flow).
+- A row received into batches gets a new `quantity` or `new_variant_id`
+  (only its price can be corrected).
 
 **Constraints:**
-- Only updates rows in place; doesn't add or delete rows. Row IDs must
-  stay stable so the re-receive POST can reference them by the original
-  `purchase_order_row_id`. To add or remove a line, use `modify_purchase_order`
-  (after the correction lands), or delete + recreate the PO.
-- Edits are keyed by row ID, **not** by variant ID. The receive endpoint
-  may split partially-received rows post-receipt — both halves can share
-  the same variant — so variant-keyed lookup would be ambiguous on a
-  PARTIALLY_RECEIVED PO.
-- A PARTIALLY_RECEIVED PO's unreceived remnant rows stay open after the
-  correction lands; re-issue `receive_purchase_order` for those when the
-  rest of the shipment arrives.
+- Only updates rows in place; doesn't add or delete rows. To add or remove
+  a line, use `modify_purchase_order` (after the correction lands), or
+  delete + recreate the PO.
+- Receipt groups, re-created rows and moved cost rows get new ids.
+- A PARTIALLY_RECEIVED PO's open quantity is received temporarily so the
+  revert is allowed, then left open again.
 
-**Returns:** A `ModificationResponse` with one `ActionResult` per phase
-step (revert + edits + per-row re-receives). Fail-fast halt leaves the PO
-in an intermediate (open) state — typically NOT_RECEIVED with edits
-applied but receipts not replayed — with the captured close-state in
-`prior_state` for manual recovery via `receive_purchase_order`.
+**Returns:** A `ModificationResponse` with one `ActionResult` per step and
+the status the PO ended in. On a failure the response says whether
+anything was written (or, after a timeout or server error, that the PO
+must be checked first). If it was, it lists the exact remaining steps
+(receipts to replay, cost rows to re-create); do not re-run the tool on
+that PO, since its snapshot would miss the unreplayed receipts.
 
 ---
 
