@@ -1774,9 +1774,15 @@ async def test_list_sales_orders_server_side_date_filters_passed_through(
     await seed_cache(
         typed_cache,
         [
-            make_sales_order(id=1, created_at=datetime(2025, 12, 15)),  # before window
-            make_sales_order(id=2, created_at=datetime(2026, 2, 15)),  # inside
-            make_sales_order(id=3, created_at=datetime(2026, 5, 1)),  # after window
+            make_sales_order(
+                id=1, created_at=datetime(2025, 12, 15, tzinfo=UTC)
+            ),  # before window
+            make_sales_order(
+                id=2, created_at=datetime(2026, 2, 15, tzinfo=UTC)
+            ),  # inside
+            make_sales_order(
+                id=3, created_at=datetime(2026, 5, 1, tzinfo=UTC)
+            ),  # after window
         ],
     )
 
@@ -1802,7 +1808,7 @@ async def test_list_sales_orders_ids_include_deleted_pass_through(
         typed_cache,
         [
             make_sales_order(id=1, deleted_at=None),
-            make_sales_order(id=2, deleted_at=datetime(2026, 3, 15)),
+            make_sales_order(id=2, deleted_at=datetime(2026, 3, 15, tzinfo=UTC)),
         ],
     )
 
@@ -1831,8 +1837,12 @@ async def test_list_sales_orders_delivered_filter_applied_server_side(
     await seed_cache(
         typed_cache,
         [
-            make_sales_order(id=1, delivery_date=datetime(2026, 4, 20)),  # in window
-            make_sales_order(id=2, delivery_date=datetime(2027, 1, 1)),  # outside
+            make_sales_order(
+                id=1, delivery_date=datetime(2026, 4, 20, tzinfo=UTC)
+            ),  # in window
+            make_sales_order(
+                id=2, delivery_date=datetime(2027, 1, 1, tzinfo=UTC)
+            ),  # outside
         ],
     )
 
@@ -1910,7 +1920,7 @@ async def test_list_sales_orders_include_rows_excludes_soft_deleted_rows(
     tombstoned_row = make_sales_order_row(
         id=2, sales_order_id=42, variant_id=101, quantity=1
     )
-    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    tombstoned_row.deleted_at = datetime(2026, 5, 20, tzinfo=UTC)
     await seed_cache(
         typed_cache,
         [make_sales_order(id=42, order_no="SO-42", rows=[live_row, tombstoned_row])],
@@ -1941,7 +1951,7 @@ async def test_list_sales_orders_row_count_excludes_soft_deleted_rows(
     tombstoned_row = make_sales_order_row(
         id=2, sales_order_id=42, variant_id=101, quantity=1
     )
-    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    tombstoned_row.deleted_at = datetime(2026, 5, 20, tzinfo=UTC)
     await seed_cache(
         typed_cache,
         [make_sales_order(id=42, order_no="SO-42", rows=[live_row, tombstoned_row])],

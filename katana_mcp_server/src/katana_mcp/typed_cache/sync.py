@@ -599,9 +599,8 @@ async def _sync_one_locked(
         state = await session.get(SyncState, spec.entity_key)
         last_synced = state.last_synced if state is not None else None
 
-    # ``last_synced`` is persisted as naive UTC (SQLite's default
-    # DateTime column strips tzinfo). Re-attach UTC before sending to
-    # the API so the generated client serializes an explicit offset.
+    # ``last_synced`` comes back from the cache as aware UTC, so the
+    # generated client serializes an explicit offset.
     # ``include_deleted=True`` is always sent so soft-deletes after
     # the watermark surface in the response (Katana bumps
     # ``updated_at`` when ``deleted_at`` is set), letting the upsert
@@ -612,7 +611,7 @@ async def _sync_one_locked(
     if spec.supports_include_deleted:
         kwargs.setdefault("include_deleted", True)
     if last_synced is not None and spec.supports_incremental:
-        kwargs["updated_at_min"] = last_synced.replace(tzinfo=UTC)
+        kwargs["updated_at_min"] = last_synced
     response = await spec.api_fn.asyncio_detailed(client=client, **kwargs)
     if spec.single_record:
         # Endpoints like ``GET /factory`` return a bare object rather than
@@ -683,8 +682,8 @@ async def _sync_one_locked(
         if spec.child_cls is not None:
             await _bulk_upsert(session, spec.child_cls, cached_children)
 
-        # SQLite's DateTime column doesn't preserve tzinfo, so naive
-        # UTC on the write side. ``row_count`` is the last-fetch size
+        # Cache datetimes are aware UTC (SQLModel refuses naive values).
+        # ``row_count`` is the last-fetch size
         # (not a cumulative total, which would drift since a re-sync
         # that finds zero changed rows would otherwise reset the
         # count); consumers needing a true total run ``SELECT COUNT(*)``
@@ -692,7 +691,7 @@ async def _sync_one_locked(
         await session.merge(
             SyncState(
                 entity_type=spec.entity_key,
-                last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                last_synced=datetime.now(tz=UTC),
                 row_count=len(cached_parents),
             )
         )

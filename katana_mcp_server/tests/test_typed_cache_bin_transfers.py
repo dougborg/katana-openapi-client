@@ -13,7 +13,7 @@ Pins the three spec-specific behaviors of ``_BIN_TRANSFER_SPEC``:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -102,7 +102,9 @@ async def test_bin_transfer_sync_never_sends_updated_at_min(typed_cache_engine):
     endpoint doesn't support it and would 4xx or silently ignore it."""
     async with typed_cache_engine.session() as session:
         session.add(
-            SyncState(entity_type="bin_transfer", last_synced=datetime(2026, 6, 1))
+            SyncState(
+                entity_type="bin_transfer", last_synced=datetime(2026, 6, 1, tzinfo=UTC)
+            )
         )
         await session.commit()
 

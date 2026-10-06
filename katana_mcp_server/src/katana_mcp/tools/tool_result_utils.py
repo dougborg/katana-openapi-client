@@ -257,28 +257,25 @@ def parse_iso_datetime(value: str, field_name: str) -> datetime:
         raise ValueError(msg) from e
 
 
-def naive_utc(dt: datetime | None) -> datetime | None:
-    """Normalize a datetime to naive UTC for comparison against the typed cache.
+def as_utc(dt: datetime | None) -> datetime | None:
+    """Normalize a datetime to aware UTC for comparison against the typed cache.
 
-    Cache-backed list tools compare filter datetimes against SQLModel
-    ``DateTime`` columns — SQLite's default ``DateTime`` doesn't preserve
-    tzinfo, so stored values are naive UTC. Tz-aware inputs are converted to
-    UTC and the tzinfo is stripped so SQLAlchemy comparisons don't raise
-    ``TypeError: can't compare offset-naive and offset-aware datetimes``.
-    Naive inputs are passed through unchanged (assumed UTC already).
+    SQLModel stores cache ``datetime`` columns as UTC and returns them as
+    aware UTC datetimes; binding a naive value raises. Aware inputs are
+    converted to UTC; naive inputs are taken to be UTC already.
     """
     if dt is None:
         return None
-    if dt.tzinfo is not None:
-        return dt.astimezone(UTC).replace(tzinfo=None)
-    return dt
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def parse_request_dates(
     request: BaseModel,
     field_names: Iterable[str],
 ) -> dict[str, datetime | None]:
-    """Parse ISO-8601 date filter fields from a request into naive UTC.
+    """Parse ISO-8601 date filter fields from a request into aware UTC.
 
     Cache-backed list tools call their ``_apply_<entity>_filters`` helper
     twice on the paginated path (once for the data SELECT, once for the
@@ -289,7 +286,7 @@ def parse_request_dates(
     for name in field_names:
         raw = getattr(request, name, None)
         result[name] = (
-            naive_utc(parse_iso_datetime(raw, name)) if raw is not None else None
+            as_utc(parse_iso_datetime(raw, name)) if raw is not None else None
         )
     return result
 

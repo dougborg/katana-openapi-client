@@ -229,4 +229,4 @@ async def test_delete_preview_and_apply_tombstone(context_with_typed_cache):
         assert applied.definition.deleted_at == datetime(2026, 9, 20, tzinfo=UTC)
     async with cache.session() as session:
         row = await session.get(CachedCustomFieldDefinition, FIELD_ID)
-        assert row.deleted_at == datetime(2026, 9, 20)
+        assert row.deleted_at == datetime(2026, 9, 20, tzinfo=UTC)

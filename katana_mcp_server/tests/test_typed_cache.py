@@ -12,7 +12,7 @@ behavior (``test_open_creates_db_file``) use ``tmp_path`` directly.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -460,7 +460,7 @@ class TestConcurrentProcessSharing:
                 session.add(
                     SyncState(
                         entity_type="purchase_order",
-                        last_synced=datetime(2026, 1, 1, 12, 0, 0),
+                        last_synced=datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC),
                         row_count=2,
                     )
                 )
@@ -472,7 +472,7 @@ class TestConcurrentProcessSharing:
                 session_a.add(
                     SyncState(
                         entity_type="sales_order",
-                        last_synced=datetime(2026, 1, 1, 12, 0, 0),
+                        last_synced=datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC),
                         row_count=1,
                     )
                 )
@@ -595,7 +595,7 @@ class TestSyncState:
         # must fake time). SQLite DateTime columns drop tzinfo and store naive
         # UTC, and a whole second round-trips with no sub-second truncation,
         # so we assert *exact* equality instead of a fuzzy tolerance.
-        fixed = datetime(2026, 1, 1, 12, 0, 0)
+        fixed = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
         async with typed_cache_engine.session() as session:
             session.add(
                 SyncState(entity_type="sales_order", last_synced=fixed, row_count=42)

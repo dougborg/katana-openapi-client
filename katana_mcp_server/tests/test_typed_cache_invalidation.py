@@ -374,7 +374,7 @@ class TestMergeFilteredFetch:
         )
 
         # Seed the watermark with a known timestamp.
-        original = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC).replace(tzinfo=None)
+        original = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC)
         async with typed_cache_engine.session() as session:
             session.add(
                 SyncState(
@@ -932,7 +932,7 @@ class TestReconcileChildren:
         soft-delete history. Scoping the DELETE to ``deleted_at IS NULL``
         keeps tombstones intact regardless of who lands first.
         """
-        from datetime import datetime
+        from datetime import UTC, datetime
 
         from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
         from sqlmodel import select
@@ -961,7 +961,7 @@ class TestReconcileChildren:
             tombstoned = CachedSalesOrderRow(
                 id=2, sales_order_id=100, variant_id=102, quantity=1
             )
-            tombstoned.deleted_at = datetime(2026, 5, 20)
+            tombstoned.deleted_at = datetime(2026, 5, 20, tzinfo=UTC)
             session.add(tombstoned)
             await session.commit()
 

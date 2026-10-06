@@ -12,7 +12,7 @@ Covers the seven-tool surface:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -337,9 +337,9 @@ async def test_list_bin_transfers_date_filters(context_with_typed_cache, no_sync
     await seed_cache(
         typed_cache,
         [
-            make_bin_transfer(id=1, created_at=datetime(2025, 12, 15)),
-            make_bin_transfer(id=2, created_at=datetime(2026, 2, 15)),
-            make_bin_transfer(id=3, created_at=datetime(2026, 5, 1)),
+            make_bin_transfer(id=1, created_at=datetime(2025, 12, 15, tzinfo=UTC)),
+            make_bin_transfer(id=2, created_at=datetime(2026, 2, 15, tzinfo=UTC)),
+            make_bin_transfer(id=3, created_at=datetime(2026, 5, 1, tzinfo=UTC)),
         ],
     )
 
@@ -363,7 +363,7 @@ async def test_list_bin_transfers_include_deleted_default_excludes(
         typed_cache,
         [
             make_bin_transfer(id=1),
-            make_bin_transfer(id=2, deleted_at=datetime(2026, 3, 1)),
+            make_bin_transfer(id=2, deleted_at=datetime(2026, 3, 1, tzinfo=UTC)),
         ],
     )
 
@@ -444,7 +444,7 @@ async def test_list_bin_transfers_excludes_soft_deleted_rows(
     context, _, typed_cache = context_with_typed_cache
     live_row = make_bin_transfer_row(id=1, bin_transfer_id=7, variant_id=100)
     tombstoned = make_bin_transfer_row(id=2, bin_transfer_id=7, variant_id=200)
-    tombstoned.deleted_at = datetime(2026, 5, 20)
+    tombstoned.deleted_at = datetime(2026, 5, 20, tzinfo=UTC)
     await seed_cache(
         typed_cache, [make_bin_transfer(id=7, rows=[live_row, tombstoned])]
     )
