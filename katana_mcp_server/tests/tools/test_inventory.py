@@ -1823,7 +1823,7 @@ async def test_list_stock_adjustments_excludes_deleted_by_default(
         typed_cache,
         [
             make_stock_adjustment(id=1, deleted_at=None),
-            make_stock_adjustment(id=2, deleted_at=datetime(2026, 3, 15)),
+            make_stock_adjustment(id=2, deleted_at=datetime(2026, 3, 15, tzinfo=UTC)),
         ],
     )
 
@@ -1843,9 +1843,15 @@ async def test_list_stock_adjustments_date_filters(context_with_typed_cache, no_
     await seed_cache(
         typed_cache,
         [
-            make_stock_adjustment(id=1, created_at=datetime(2025, 12, 15)),  # before
-            make_stock_adjustment(id=2, created_at=datetime(2026, 2, 15)),  # inside
-            make_stock_adjustment(id=3, created_at=datetime(2026, 5, 1)),  # after
+            make_stock_adjustment(
+                id=1, created_at=datetime(2025, 12, 15, tzinfo=UTC)
+            ),  # before
+            make_stock_adjustment(
+                id=2, created_at=datetime(2026, 2, 15, tzinfo=UTC)
+            ),  # inside
+            make_stock_adjustment(
+                id=3, created_at=datetime(2026, 5, 1, tzinfo=UTC)
+            ),  # after
         ],
     )
 
@@ -3774,10 +3780,10 @@ async def test_get_inventory_movements_forwards_date_filters():
         await _get_inventory_movements_impl(request, context)
 
     kw = mock_kwargs.call_args.kwargs
-    assert kw["created_at_min"] == datetime(2026, 1, 1, 0, 0, 0)
-    assert kw["created_at_max"] == datetime(2026, 4, 1, 0, 0, 0)
-    assert kw["updated_at_min"] == datetime(2026, 2, 1, 0, 0, 0)
-    assert kw["updated_at_max"] == datetime(2026, 3, 1, 0, 0, 0)
+    assert kw["created_at_min"] == datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+    assert kw["created_at_max"] == datetime(2026, 4, 1, 0, 0, 0, tzinfo=UTC)
+    assert kw["updated_at_min"] == datetime(2026, 2, 1, 0, 0, 0, tzinfo=UTC)
+    assert kw["updated_at_max"] == datetime(2026, 3, 1, 0, 0, 0, tzinfo=UTC)
 
 
 @pytest.mark.asyncio

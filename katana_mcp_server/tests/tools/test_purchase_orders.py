@@ -3652,7 +3652,7 @@ async def test_list_purchase_orders_excludes_deleted_by_default(
         typed_cache,
         [
             make_purchase_order(id=1, deleted_at=None),
-            make_purchase_order(id=2, deleted_at=datetime(2026, 3, 15)),
+            make_purchase_order(id=2, deleted_at=datetime(2026, 3, 15, tzinfo=UTC)),
         ],
     )
 
@@ -3679,13 +3679,13 @@ async def test_list_purchase_orders_date_filters(context_with_typed_cache, no_sy
         [
             make_purchase_order(
                 id=1,
-                created_at=datetime(2026, 2, 15),
-                expected_arrival_date=datetime(2026, 4, 15),
+                created_at=datetime(2026, 2, 15, tzinfo=UTC),
+                expected_arrival_date=datetime(2026, 4, 15, tzinfo=UTC),
             ),
             make_purchase_order(
                 id=2,
-                created_at=datetime(2026, 5, 1),
-                expected_arrival_date=datetime(2027, 1, 1),
+                created_at=datetime(2026, 5, 1, tzinfo=UTC),
+                expected_arrival_date=datetime(2027, 1, 1, tzinfo=UTC),
             ),
         ],
     )
@@ -3837,7 +3837,7 @@ async def test_list_purchase_orders_excludes_soft_deleted_rows(
     tombstoned_row = make_purchase_order_row(
         id=2, purchase_order_id=7, variant_id=200, quantity=2.0
     )
-    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    tombstoned_row.deleted_at = datetime(2026, 5, 20, tzinfo=UTC)
     await seed_cache(
         typed_cache,
         [make_purchase_order(id=7, rows=[live_row, tombstoned_row])],

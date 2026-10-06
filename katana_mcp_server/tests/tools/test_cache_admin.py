@@ -180,7 +180,7 @@ class TestPreview:
             session.add(
                 SyncState(
                     entity_type="purchase_order",
-                    last_synced=datetime(2026, 1, 1, 12, 0, 0),
+                    last_synced=datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC),
                     row_count=2,
                 )
             )
@@ -205,7 +205,7 @@ class TestPreview:
         assert result.entity_type == "purchase_order"
         assert result.parent_rows_before == 2
         assert result.parent_rows_after == 2  # unchanged
-        assert result.last_synced_before == "2026-01-01T12:00:00"
+        assert result.last_synced_before == "2026-01-01T12:00:00+00:00"
         assert result.sync_state_keys_cleared == []
 
         # Cache rows survive the preview.
@@ -307,7 +307,7 @@ class TestWatermark:
             session.add(
                 SyncState(
                     entity_type="purchase_order",
-                    last_synced=datetime(2020, 1, 1, 0, 0, 0),
+                    last_synced=datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC),
                     row_count=999,
                 )
             )
@@ -317,11 +317,10 @@ class TestWatermark:
         po_patch, row_patch = _patch_purchase_order_api(_empty_paginated_response())
 
         # Freeze the clock the sync writes its watermark from
-        # (sync.py: last_synced = datetime.now(tz=UTC).replace(tzinfo=None)).
+        # (sync.py: last_synced = datetime.now(tz=UTC)).
         # time_machine freezes datetime.now() while keeping the real datetime
         # class, so production isinstance/constructor calls are unaffected.
         frozen = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
-        frozen_naive = frozen.replace(tzinfo=None)
 
         with time_machine.travel(frozen, tick=False), po_patch, row_patch:
             await _rebuild_cache_impl(
@@ -334,7 +333,7 @@ class TestWatermark:
 
         assert state is not None
         # New watermark = the frozen sync time, not the 2020 stale one.
-        assert state.last_synced == frozen_naive
+        assert state.last_synced == frozen
 
 
 # ============================================================================
@@ -406,7 +405,7 @@ class TestPerEntityDispatch:
                 session.add(
                     SyncState(
                         entity_type=key,
-                        last_synced=datetime(2020, 1, 1),
+                        last_synced=datetime(2020, 1, 1, tzinfo=UTC),
                         row_count=1,
                     )
                 )
@@ -435,9 +434,11 @@ class TestPerEntityDispatch:
             recipe_state = await session.get(
                 SyncState, "manufacturing_order_recipe_row"
             )
-        assert mo_state is not None and mo_state.last_synced > datetime(2020, 1, 1)
+        assert mo_state is not None and mo_state.last_synced > datetime(
+            2020, 1, 1, tzinfo=UTC
+        )
         assert recipe_state is not None and recipe_state.last_synced > datetime(
-            2020, 1, 1
+            2020, 1, 1, tzinfo=UTC
         )
 
     @pytest.mark.asyncio

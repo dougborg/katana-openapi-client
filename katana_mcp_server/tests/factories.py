@@ -4,7 +4,7 @@ Cache-backed list tools (post-#342, ADR-0018) query directly against the
 typed cache instead of the live API, so tool tests pre-populate the cache
 with SQLModel rows and assert on the query results. Each factory returns
 a fully-constructed ``Cached<Entity>`` instance ready for insertion via
-``seed_cache`` — tests don't have to remember the tz-naive-datetime rule,
+``seed_cache`` — tests don't have to remember the aware-UTC datetime rule,
 default statuses, or required relationships. As new entities migrate to
 cache-back (#376/#377/#378/#379), add their builders here so all five
 migrations share one set of helpers.
@@ -13,12 +13,12 @@ migrations share one set of helpers.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock
 
 import attrs
-from katana_mcp.tools.tool_result_utils import naive_utc
+from katana_mcp.tools.tool_result_utils import as_utc
 from katana_mcp.typed_cache import TypedCacheEngine
 
 from katana_public_api_client.client_types import UNSET
@@ -85,12 +85,9 @@ def make_sales_order(
 ) -> CachedSalesOrder:
     """Build a ``CachedSalesOrder`` for direct cache insertion.
 
-    Datetime args are normalized to naive UTC (the typed cache stores
-    timestamps without tzinfo — SQLite's default ``DateTime`` column
-    doesn't preserve offsets, so filter comparisons require naive values
-    on both sides). Tz-aware inputs are converted via ``naive_utc`` so
-    the factory enforces the cache's contract; callers can pass either
-    flavor without breaking later comparisons. ``created_at`` defaults
+    Datetime args are normalized to aware UTC via ``as_utc`` (the typed
+    cache stores UTC and refuses naive values), so callers can pass either
+    flavor without breaking inserts or later comparisons. ``created_at`` defaults
     to 2026-04-01 so date-window filter tests have a stable reference.
     """
 
@@ -118,12 +115,12 @@ def make_sales_order(
         status=resolved_status,
         production_status=resolved_prod_status,
         invoicing_status=resolved_invoicing_status,
-        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
-        updated_at=naive_utc(updated_at),
-        delivery_date=naive_utc(delivery_date),
+        created_at=as_utc(created_at) or datetime(2026, 4, 1, tzinfo=UTC),
+        updated_at=as_utc(updated_at),
+        delivery_date=as_utc(delivery_date),
         total=total,
         currency=currency,
-        deleted_at=naive_utc(deleted_at),
+        deleted_at=as_utc(deleted_at),
     )
     # ``sales_order_rows`` is a SQLModel ``Relationship`` — set after
     # construction since the descriptor doesn't accept input via __init__.
@@ -177,7 +174,7 @@ def make_stock_adjustment(
 
     Same datetime-normalization contract as :func:`make_sales_order` —
     callers may pass tz-aware datetimes; the factory routes everything
-    through ``naive_utc`` so cache filter comparisons work either way.
+    through ``as_utc`` so cache filter comparisons work either way.
     ``created_at`` defaults to 2026-04-01 to match the sales-order builder
     so cross-entity date-window tests share a baseline.
     """
@@ -186,12 +183,12 @@ def make_stock_adjustment(
         id=id,
         stock_adjustment_number=stock_adjustment_number,
         location_id=location_id,
-        stock_adjustment_date=naive_utc(stock_adjustment_date),
+        stock_adjustment_date=as_utc(stock_adjustment_date),
         reason=reason,
         additional_info=additional_info,
-        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
-        updated_at=naive_utc(updated_at),
-        deleted_at=naive_utc(deleted_at),
+        created_at=as_utc(created_at) or datetime(2026, 4, 1, tzinfo=UTC),
+        updated_at=as_utc(updated_at),
+        deleted_at=as_utc(deleted_at),
     )
     cached.stock_adjustment_rows = rows if rows is not None else []
     return cached
@@ -277,12 +274,12 @@ def make_manufacturing_order(
         is_linked_to_sales_order=is_linked_to_sales_order,
         sales_order_id=sales_order_id,
         total_cost=total_cost,
-        order_created_date=naive_utc(order_created_date),
-        production_deadline_date=naive_utc(production_deadline_date),
-        done_date=naive_utc(done_date),
-        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
-        updated_at=naive_utc(updated_at),
-        deleted_at=naive_utc(deleted_at),
+        order_created_date=as_utc(order_created_date),
+        production_deadline_date=as_utc(production_deadline_date),
+        done_date=as_utc(done_date),
+        created_at=as_utc(created_at) or datetime(2026, 4, 1, tzinfo=UTC),
+        updated_at=as_utc(updated_at),
+        deleted_at=as_utc(deleted_at),
     )
 
 
@@ -332,8 +329,8 @@ def make_manufacturing_order_recipe_row(
         total_remaining_quantity=total_remaining_quantity,
         cost=str(cost) if cost is not None else None,
         ingredient_availability=resolved_availability,
-        ingredient_expected_date=naive_utc(ingredient_expected_date),
-        deleted_at=naive_utc(deleted_at),
+        ingredient_expected_date=as_utc(ingredient_expected_date),
+        deleted_at=as_utc(deleted_at),
     )
 
 
@@ -403,12 +400,12 @@ def make_purchase_order(
         location_id=location_id,
         tracking_location_id=tracking_location_id,
         currency=currency,
-        expected_arrival_date=naive_utc(expected_arrival_date),
-        order_created_date=naive_utc(order_created_date),
+        expected_arrival_date=as_utc(expected_arrival_date),
+        order_created_date=as_utc(order_created_date),
         total=total,
-        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
-        updated_at=naive_utc(updated_at),
-        deleted_at=naive_utc(deleted_at),
+        created_at=as_utc(created_at) or datetime(2026, 4, 1, tzinfo=UTC),
+        updated_at=as_utc(updated_at),
+        deleted_at=as_utc(deleted_at),
     )
     cached.purchase_order_rows = rows if rows is not None else []
     return cached
@@ -433,8 +430,8 @@ def make_purchase_order_row(
         variant_id=variant_id,
         quantity=quantity,
         price_per_unit=price_per_unit,
-        arrival_date=naive_utc(arrival_date),
-        received_date=naive_utc(received_date),
+        arrival_date=as_utc(arrival_date),
+        received_date=as_utc(received_date),
         total=total,
     )
 
@@ -473,13 +470,13 @@ def make_stock_transfer(
         source_location_id=source_location_id,
         target_location_id=target_location_id,
         status=status,
-        transfer_date=naive_utc(transfer_date),
-        order_created_date=naive_utc(order_created_date),
-        expected_arrival_date=naive_utc(expected_arrival_date),
+        transfer_date=as_utc(transfer_date),
+        order_created_date=as_utc(order_created_date),
+        expected_arrival_date=as_utc(expected_arrival_date),
         additional_info=additional_info,
-        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
-        updated_at=naive_utc(updated_at),
-        deleted_at=naive_utc(deleted_at),
+        created_at=as_utc(created_at) or datetime(2026, 4, 1, tzinfo=UTC),
+        updated_at=as_utc(updated_at),
+        deleted_at=as_utc(deleted_at),
     )
     cached.stock_transfer_rows = rows if rows is not None else []
     return cached
@@ -534,13 +531,13 @@ def make_bin_transfer(
         bin_transfer_number=bin_transfer_number,
         location_id=location_id,
         status=resolved_status,
-        created_date=naive_utc(created_date),
-        departed_at=naive_utc(departed_at),
-        arrived_at=naive_utc(arrived_at),
+        created_date=as_utc(created_date),
+        departed_at=as_utc(departed_at),
+        arrived_at=as_utc(arrived_at),
         additional_info=additional_info,
-        created_at=naive_utc(created_at) or datetime(2026, 6, 1),
-        updated_at=naive_utc(updated_at),
-        deleted_at=naive_utc(deleted_at),
+        created_at=as_utc(created_at) or datetime(2026, 6, 1, tzinfo=UTC),
+        updated_at=as_utc(updated_at),
+        deleted_at=as_utc(deleted_at),
     )
     cached.bin_transfer_rows = rows if rows is not None else []
     return cached

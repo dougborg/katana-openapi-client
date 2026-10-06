@@ -30,10 +30,10 @@ from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
     apply_date_window_filters,
+    as_utc,
     iso_or_none,
     make_json_result,
     make_tool_result,
-    naive_utc,
     parse_iso_datetime,
     parse_request_dates,
     resolve_entity_name,
@@ -1309,7 +1309,7 @@ async def _inventory_at_impl(
     from katana_public_api_client.utils import unwrap_data
 
     parsed_as_of = parse_iso_datetime(request.as_of, "as_of")
-    as_of_dt = naive_utc(parsed_as_of)
+    as_of_dt = as_utc(parsed_as_of)
     assert as_of_dt is not None  # parse_iso_datetime always returns datetime
 
     items: list[str | int] = []
@@ -1390,7 +1390,7 @@ async def _inventory_at_impl(
         # share a back-dated timestamp.
         latest: dict[tuple[int, int], Any] = {}
         for m in all_movements:
-            md = naive_utc(m.movement_date)
+            md = as_utc(m.movement_date)
             if md is None or md > as_of_dt:
                 continue
             key = (m.variant_id, m.location_id)
@@ -1398,7 +1398,7 @@ async def _inventory_at_impl(
             if existing is None:
                 latest[key] = m
                 continue
-            existing_md = naive_utc(existing.movement_date)
+            existing_md = as_utc(existing.movement_date)
             if existing_md is None or (md, m.id) > (existing_md, existing.id):
                 latest[key] = m
 

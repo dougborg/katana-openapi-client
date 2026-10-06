@@ -608,9 +608,15 @@ async def test_list_stock_transfers_date_filters(context_with_typed_cache, no_sy
     await seed_cache(
         typed_cache,
         [
-            make_stock_transfer(id=1, created_at=datetime(2025, 12, 15)),  # before
-            make_stock_transfer(id=2, created_at=datetime(2026, 2, 15)),  # inside
-            make_stock_transfer(id=3, created_at=datetime(2026, 5, 1)),  # after
+            make_stock_transfer(
+                id=1, created_at=datetime(2025, 12, 15, tzinfo=UTC)
+            ),  # before
+            make_stock_transfer(
+                id=2, created_at=datetime(2026, 2, 15, tzinfo=UTC)
+            ),  # inside
+            make_stock_transfer(
+                id=3, created_at=datetime(2026, 5, 1, tzinfo=UTC)
+            ),  # after
         ],
     )
 
@@ -654,9 +660,15 @@ async def test_list_stock_transfers_updated_date_filters(
     await seed_cache(
         typed_cache,
         [
-            make_stock_transfer(id=1, updated_at=datetime(2025, 12, 15)),  # before
-            make_stock_transfer(id=2, updated_at=datetime(2026, 2, 15)),  # inside
-            make_stock_transfer(id=3, updated_at=datetime(2026, 5, 1)),  # after
+            make_stock_transfer(
+                id=1, updated_at=datetime(2025, 12, 15, tzinfo=UTC)
+            ),  # before
+            make_stock_transfer(
+                id=2, updated_at=datetime(2026, 2, 15, tzinfo=UTC)
+            ),  # inside
+            make_stock_transfer(
+                id=3, updated_at=datetime(2026, 5, 1, tzinfo=UTC)
+            ),  # after
         ],
     )
 
@@ -681,7 +693,7 @@ async def test_list_stock_transfers_include_deleted_default_excludes(
         typed_cache,
         [
             make_stock_transfer(id=1),
-            make_stock_transfer(id=2, deleted_at=datetime(2026, 3, 1)),
+            make_stock_transfer(id=2, deleted_at=datetime(2026, 3, 1, tzinfo=UTC)),
         ],
     )
 
@@ -759,7 +771,7 @@ async def test_list_stock_transfers_excludes_soft_deleted_rows(
     tombstoned_row = make_stock_transfer_row(
         id=2, stock_transfer_id=7, variant_id=200, quantity=2.0
     )
-    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    tombstoned_row.deleted_at = datetime(2026, 5, 20, tzinfo=UTC)
     await seed_cache(
         typed_cache,
         [make_stock_transfer(id=7, rows=[live_row, tombstoned_row])],
