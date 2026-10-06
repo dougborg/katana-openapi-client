@@ -258,6 +258,13 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   Keep those (e.g. `katana_mcp_server/tests/browser/conftest.py::_wait_http_ok`), but
   never copy that pattern into a unit test.
 
+- **Mock generated endpoints with `monkeypatch.setattr` or `patch`, not by assignment.**
+  `api_module.asyncio_detailed = AsyncMock(...)` is never undone by pytest, so under
+  xdist the mock leaks into the next test on that worker (a parse regression test once
+  saw another test's mocked fulfillment id). An autouse fixture in
+  `katana_mcp_server/tests/conftest.py` (`_restore_generated_api_functions`) now
+  restores every generated endpoint function after each MCP test as a backstop.
+
 - **Editing generated files** — `api/**/*.py`, `models/**/*.py`, `client.py`,
   `models_pydantic/_generated/**`, and `models_pydantic/_auto_registry.py` are
   generated. Other modules in `models_pydantic/` (e.g. `_base.py`, `_mapped_shim.py`,

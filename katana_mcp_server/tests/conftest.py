@@ -1,7 +1,11 @@
 """Shared pytest fixtures for MCP server tests."""
 
+import importlib
 import os
+import pkgutil
 from collections.abc import Iterator
+from types import ModuleType
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -285,6 +289,49 @@ async def context_with_typed_cache(typed_cache_engine):
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache = typed_cache_engine
     yield context, lifespan_ctx, typed_cache_engine
+
+
+_GENERATED_CALLABLES = ("sync", "sync_detailed", "asyncio", "asyncio_detailed")
+
+
+def _generated_api_functions() -> list[tuple[ModuleType, str, Any]]:
+    """Every generated endpoint function, as (module, name, original)."""
+    import katana_public_api_client.api as api_package
+
+    found: list[tuple[ModuleType, str, Any]] = []
+    for info in pkgutil.walk_packages(
+        api_package.__path__, prefix=f"{api_package.__name__}."
+    ):
+        if info.ispkg:
+            continue
+        module = importlib.import_module(info.name)
+        found.extend(
+            (module, name, getattr(module, name))
+            for name in _GENERATED_CALLABLES
+            if hasattr(module, name)
+        )
+    return found
+
+
+_GENERATED_API_ORIGINALS = _generated_api_functions()
+
+
+@pytest.fixture(autouse=True)
+def _restore_generated_api_functions() -> Iterator[None]:
+    """Undo any test's direct replacement of a generated endpoint function.
+
+    Many tool tests mock an endpoint by assigning to its module attribute
+    (``api_module.asyncio_detailed = AsyncMock(...)``), which pytest never
+    restores. Under xdist the mock then leaks into whatever test runs next on
+    that worker, producing ordering-dependent failures (a parse regression
+    test once saw another test's mocked fulfillment id). Restoring every
+    generated function after each test makes those assignments test-scoped.
+    New tests should still prefer ``monkeypatch.setattr`` or ``patch``.
+    """
+    yield
+    for module, name, original in _GENERATED_API_ORIGINALS:
+        if getattr(module, name) is not original:
+            setattr(module, name, original)
 
 
 @pytest.fixture
