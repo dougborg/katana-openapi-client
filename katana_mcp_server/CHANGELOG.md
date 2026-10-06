@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.121.1](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.121.0...mcp-v0.121.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **mcp:** rebuild purchase order rows and replay receipt groups in correct_purchase_order ([dc1a0d9](https://github.com/dougborg/katana-openapi-client/commit/dc1a0d9d4e0cee918a6dd2c1a8ef1b2cc48a0698))
+
 ## [0.121.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.120.0...mcp-v0.121.0) (2026-10-02)
 
 
