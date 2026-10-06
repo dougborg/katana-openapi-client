@@ -3695,7 +3695,9 @@ export type PurchaseOrderBase = DeletableEntity & {
    */
   entity_type?: PurchaseOrderEntityType;
   /**
-   * Default grouping identifier for organizational purposes
+   * Receipt group of rows that have not been received. A receive call moves the rows it
+   * receives to a new group, unless it receives the whole order at once; reverting the order
+   * returns every row here.
    */
   default_group_id?: number;
   /**
@@ -3910,7 +3912,9 @@ export type PurchaseOrderRow = {
    */
   landed_cost?: number;
   /**
-   * Grouping identifier for organizational purposes
+   * Receipt group of this row. Unreceived rows share the order's `default_group_id`. Each
+   * POST /purchase_order_receive call assigns the rows it receives a new group, except a call
+   * that receives the whole order at once, which keeps them in `default_group_id`.
    */
   group_id?: number;
 } & DeletableEntity;
@@ -3953,7 +3957,10 @@ export type UpdatePurchaseOrderRequest = {
    */
   tracking_location_id?: number;
   /**
-   * Current status indicating progress of order fulfillment
+   * Current status indicating progress of order fulfillment. Setting NOT_RECEIVED on a RECEIVED
+   * order reverts all receipts: `received_date` is cleared, rows and additional cost rows return to
+   * `default_group_id`, and rows that are identical apart from quantity are merged into one row.
+   * Returns 422 when the order is PARTIALLY_RECEIVED.
    */
   status?: PurchaseOrderStatus;
   /**

@@ -217,7 +217,10 @@ class PurchaseOrderRow(DeletableEntity):
         ),
     ] = None
     group_id: Annotated[
-        int | None, Field(description="Grouping identifier for organizational purposes")
+        int | None,
+        Field(
+            description="Receipt group of this row. Unreceived rows share the order's `default_group_id`. Each\nPOST /purchase_order_receive call assigns the rows it receives a new group, except a call\nthat receives the whole order at once, which keeps them in `default_group_id`."
+        ),
     ] = None
 
 
@@ -263,7 +266,9 @@ class UpdatePurchaseOrderRequest(KatanaPydanticBase):
     ] = None
     status: Annotated[
         PurchaseOrderStatus | None,
-        Field(description="Current status indicating progress of order fulfillment"),
+        Field(
+            description="Current status indicating progress of order fulfillment. Setting NOT_RECEIVED on a RECEIVED\norder reverts all receipts: `received_date` is cleared, rows and additional cost rows return to\n`default_group_id`, and rows that are identical apart from quantity are merged into one row.\nReturns 422 when the order is PARTIALLY_RECEIVED."
+        ),
     ] = None
     expected_arrival_date: Annotated[
         AwareDatetime | None,
@@ -1028,7 +1033,9 @@ class PurchaseOrderBase(DeletableEntity):
     ] = None
     default_group_id: Annotated[
         int | None,
-        Field(description="Default grouping identifier for organizational purposes"),
+        Field(
+            description="Receipt group of rows that have not been received. A receive call moves the rows it\nreceives to a new group, unless it receives the whole order at once; reverting the order\nreturns every row here."
+        ),
     ] = None
     supplier_id: Annotated[
         int | None, Field(description="ID of the supplier who this order belongs to.")
@@ -1240,7 +1247,9 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
     ] = None
     group_id: Annotated[
         Mapped[int | None],
-        Field(description="Grouping identifier for organizational purposes"),
+        Field(
+            description="Receipt group of this row. Unreceived rows share the order's `default_group_id`. Each\nPOST /purchase_order_receive call assigns the rows it receives a new group, except a call\nthat receives the whole order at once, which keeps them in `default_group_id`."
+        ),
     ] = None
     purchase_order: Mapped[Optional["CachedPurchaseOrder"]] = Relationship(
         back_populates="purchase_order_rows"
@@ -1272,7 +1281,9 @@ class CachedPurchaseOrder(DeletableEntity, table=True):
     ] = None
     default_group_id: Annotated[
         Mapped[int | None],
-        Field(description="Default grouping identifier for organizational purposes"),
+        Field(
+            description="Receipt group of rows that have not been received. A receive call moves the rows it\nreceives to a new group, unless it receives the whole order at once; reverting the order\nreturns every row here."
+        ),
     ] = None
     supplier_id: Annotated[
         Mapped[int | None],

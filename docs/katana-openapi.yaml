@@ -6410,7 +6410,10 @@ components:
               $ref: "#/components/schemas/PurchaseOrderEntityType"
             default_group_id:
               type: integer
-              description: Default grouping identifier for organizational purposes
+              description: |-
+                Receipt group of rows that have not been received. A receive call moves the rows it
+                receives to a new group, unless it receives the whole order at once; reverting the order
+                returns every row here.
             supplier_id:
               type: integer
               description: ID of the supplier who this order belongs to.
@@ -6740,7 +6743,10 @@ components:
               description: Total landed cost including shipping, duties, and other charges
             group_id:
               type: integer
-              description: Grouping identifier for organizational purposes
+              description: |-
+                Receipt group of this row. Unreceived rows share the order's `default_group_id`. Each
+                POST /purchase_order_receive call assigns the rows it receives a new group, except a call
+                that receives the whole order at once, which keeps them in `default_group_id`.
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 501
@@ -6840,7 +6846,11 @@ components:
           maximum: 2147483647
           description: Updatable only when status is in NOT_RECEIVED and entity_type is outsourced
         status:
-          description: Current status indicating progress of order fulfillment
+          description: |-
+            Current status indicating progress of order fulfillment. Setting NOT_RECEIVED on a RECEIVED
+            order reverts all receipts: `received_date` is cleared, rows and additional cost rows return to
+            `default_group_id`, and rows that are identical apart from quantity are merged into one row.
+            Returns 422 when the order is PARTIALLY_RECEIVED.
           $ref: "#/components/schemas/PurchaseOrderStatus"
         expected_arrival_date:
           type: string
@@ -19517,6 +19527,12 @@ paths:
             create a new rows with the received quantities and dates. If you want to mark all rows as received and
             the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
             Reverting the receive must also be done through that endpoint.
+
+        Each call records one receipt group: all rows received in the call share one `group_id`, whatever
+        their `received_date`. A partial quantity splits the row; the received part becomes a new row and the
+        original row keeps the open remainder. Reverting the order
+        (PATCH /purchase_orders/{id} with status NOT_RECEIVED) undoes all receipt groups at once; a single
+        group cannot be reverted.
       operationId: receivePurchaseOrder
       requestBody:
         description: receive purchase order rows details
@@ -19548,7 +19564,9 @@ paths:
       summary: Create a purchase order row
       tags:
         - Purchase order row
-      description: Creates a new purchase order row object.
+      description: |-
+        Creates a new purchase order row object. Returns 422 when the order status is RECEIVED. The new
+        row joins the order's `default_group_id`.
       operationId: createPurchaseOrderRow
       requestBody:
         description: new purchase order row details

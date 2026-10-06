@@ -102,6 +102,13 @@ def sync_detailed(
         the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
         Reverting the receive must also be done through that endpoint.
 
+    Each call records one receipt group: all rows received in the call share one `group_id`, whatever
+    their `received_date`. A partial quantity splits the row; the received part becomes a new row and
+    the
+    original row keeps the open remainder. Reverting the order
+    (PATCH /purchase_orders/{id} with status NOT_RECEIVED) undoes all receipt groups at once; a single
+    group cannot be reverted.
+
     Args:
         body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
             recording the receipt of purchase order items at the facility Example:
@@ -143,6 +150,13 @@ def sync(
         the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
         Reverting the receive must also be done through that endpoint.
 
+    Each call records one receipt group: all rows received in the call share one `group_id`, whatever
+    their `received_date`. A partial quantity splits the row; the received part becomes a new row and
+    the
+    original row keeps the open remainder. Reverting the order
+    (PATCH /purchase_orders/{id} with status NOT_RECEIVED) undoes all receipt groups at once; a single
+    group cannot be reverted.
+
     Args:
         body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
             recording the receipt of purchase order items at the facility Example:
@@ -178,6 +192,13 @@ async def asyncio_detailed(
     received and
         the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
         Reverting the receive must also be done through that endpoint.
+
+    Each call records one receipt group: all rows received in the call share one `group_id`, whatever
+    their `received_date`. A partial quantity splits the row; the received part becomes a new row and
+    the
+    original row keeps the open remainder. Reverting the order
+    (PATCH /purchase_orders/{id} with status NOT_RECEIVED) undoes all receipt groups at once; a single
+    group cannot be reverted.
 
     Args:
         body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
@@ -217,6 +238,13 @@ async def asyncio(
     received and
         the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
         Reverting the receive must also be done through that endpoint.
+
+    Each call records one receipt group: all rows received in the call share one `group_id`, whatever
+    their `received_date`. A partial quantity splits the row; the received part becomes a new row and
+    the
+    original row keeps the open remainder. Reverting the order
+    (PATCH /purchase_orders/{id} with status NOT_RECEIVED) undoes all receipt groups at once; a single
+    group cannot be reverted.
 
     Args:
         body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for

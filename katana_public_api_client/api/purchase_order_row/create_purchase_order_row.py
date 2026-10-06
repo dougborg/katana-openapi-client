@@ -83,7 +83,8 @@ def sync_detailed(
 ) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Create a purchase order row
 
-     Creates a new purchase order row object.
+     Creates a new purchase order row object. Returns 422 when the order status is RECEIVED. The new
+    row joins the order's `default_group_id`.
 
     Args:
         body (CreatePurchaseOrderRowRequest): Request payload for adding a new line item to an
@@ -118,7 +119,8 @@ def sync(
 ) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Create a purchase order row
 
-     Creates a new purchase order row object.
+     Creates a new purchase order row object. Returns 422 when the order status is RECEIVED. The new
+    row joins the order's `default_group_id`.
 
     Args:
         body (CreatePurchaseOrderRowRequest): Request payload for adding a new line item to an
@@ -148,7 +150,8 @@ async def asyncio_detailed(
 ) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Create a purchase order row
 
-     Creates a new purchase order row object.
+     Creates a new purchase order row object. Returns 422 when the order status is RECEIVED. The new
+    row joins the order's `default_group_id`.
 
     Args:
         body (CreatePurchaseOrderRowRequest): Request payload for adding a new line item to an
@@ -181,7 +184,8 @@ async def asyncio(
 ) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Create a purchase order row
 
-     Creates a new purchase order row object.
+     Creates a new purchase order row object. Returns 422 when the order status is RECEIVED. The new
+    row joins the order's `default_group_id`.
 
     Args:
         body (CreatePurchaseOrderRowRequest): Request payload for adding a new line item to an
