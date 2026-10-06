@@ -2268,6 +2268,12 @@ export const updateAdditionalCostRow = <ThrowOnError extends boolean = false>(
  *     create a new rows with the received quantities and dates. If you want to mark all rows as received and
  *     the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
  *     Reverting the receive must also be done through that endpoint.
+ *
+ * Each call records one receipt group: all rows received in the call share one `group_id`, whatever
+ * their `received_date`. A partial quantity splits the row; the received part becomes a new row and the
+ * original row keeps the open remainder. Reverting the order
+ * (PATCH /purchase_orders/{id} with status NOT_RECEIVED) undoes all receipt groups at once; a single
+ * group cannot be reverted.
  */
 export const receivePurchaseOrder = <ThrowOnError extends boolean = false>(
   options: Options<ReceivePurchaseOrderData, ThrowOnError>
@@ -2308,7 +2314,8 @@ export const getAllPurchaseOrderRows = <ThrowOnError extends boolean = false>(
 /**
  * Create a purchase order row
  *
- * Creates a new purchase order row object.
+ * Creates a new purchase order row object. Returns 422 when the order status is RECEIVED. The new
+ * row joins the order's `default_group_id`.
  */
 export const createPurchaseOrderRow = <ThrowOnError extends boolean = false>(
   options: Options<CreatePurchaseOrderRowData, ThrowOnError>
