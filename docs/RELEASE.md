@@ -201,7 +201,10 @@ npm deprecate katana-openapi-client@0.0.1 "bootstrap placeholder; use >=0.1.0"
 
 # 2. On npmjs.com -> package -> Settings -> Trusted Publisher: GitHub Actions,
 #    organization/user `dougborg`, repository `katana-openapi-client`,
-#    workflow filename `publish.yml`, environment name left EMPTY.
+#    workflow filename `publish.yml` (bare filename), environment name left
+#    EMPTY, and under "Allowed actions" tick "Allow npm publish". Without that
+#    box the publisher may only *stage* releases, and publish.yml's direct
+#    `pnpm publish` is refused with "OIDC permission denied for this action".
 
 # 3. Still in package Settings -> Publishing access: require 2FA *or* a trusted
 #    publisher (disallow tokens), so CI is the only unattended path.
@@ -284,6 +287,12 @@ Only do this if the automated pipeline is broken. Prefer fixing the workflow.
   always means the trusted publisher is not registered for this repository + workflow
   yet (or the package has never been published - see the bootstrap above). Check the
   package's Settings -> Trusted Publisher on npmjs.com.
+- For npm: `E403 ... OIDC permission denied for this action` means the token was minted
+  and matched a registered publisher, but that publisher is not allowed to publish
+  directly - tick "Allow npm publish" under its Allowed actions (see the bootstrap).
+- For npm: a successful `pnpm publish` can take a few minutes to show up in `npm view` /
+  the registry document. Do not conclude the version was staged or lost until several
+  minutes have passed; the first release took ~2.5 minutes to appear.
 
 ### Release stuck in draft
 
