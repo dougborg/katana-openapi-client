@@ -14,7 +14,7 @@ metadata. Internally implements the proven sequence:
    ``done_date`` (Katana validates date fields against the *current*
    status, so combined ``status: DONE + done_date`` calls fail). For SO
    this is re-create fulfillments → status → DELIVERED. For PO this is a
-   single ``POST /purchase_order_receive`` per captured receipt — the
+   single ``POST /purchase_order_receive`` per captured receipt group — the
    receive endpoint promotes status back to RECEIVED automatically.
 
 Composes ``ActionSpec`` lists from :mod:`_modification_dispatch` and the
@@ -31,6 +31,8 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Annotated, Any, cast
 
 from fastmcp import Context, FastMCP
@@ -65,7 +67,9 @@ from katana_mcp.tools._reopen import (
     MOCloseState,
     MOProductionSnapshot,
     POCloseState,
-    PORowReceiptSnapshot,
+    POCostRowSnapshot,
+    POReceiptGroup,
+    PORowSnapshot,
     SOCloseState,
     SOFulfillmentSnapshot,
     snapshot_mo_close_state,
@@ -101,7 +105,14 @@ from katana_public_api_client.api.purchase_order import (
     receive_purchase_order as api_receive_purchase_order,
     update_purchase_order as api_update_purchase_order,
 )
+from katana_public_api_client.api.purchase_order_additional_cost_row import (
+    create_po_additional_cost_row as api_create_po_cost_row,
+    delete_po_additional_cost as api_delete_po_cost_row,
+    get_po_additional_cost_row as api_get_po_cost_row,
+    get_purchase_order_additional_cost_rows as api_get_po_cost_rows,
+)
 from katana_public_api_client.api.purchase_order_row import (
+    create_purchase_order_row as api_create_purchase_order_row,
     update_purchase_order_row as api_update_purchase_order_row,
 )
 from katana_public_api_client.api.sales_order import (
@@ -117,11 +128,15 @@ from katana_public_api_client.api.sales_order_row import (
 )
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
+    CostDistributionMethod,
     CreateManufacturingOrderProductionRequest as APICreateMOProductionRequest,
+    CreatePurchaseOrderAdditionalCostRowRequest as APICreatePOCostRowRequest,
+    CreatePurchaseOrderRowRequest as APICreatePORowRequest,
     CreateSalesOrderFulfillmentRequest as APICreateSOFulfillmentRequest,
     ManufacturingOrderProduction,
     ManufacturingOrderRecipeRow,
     ManufacturingOrderStatus,
+    PurchaseOrderAdditionalCostRow,
     PurchaseOrderReceiveRow,
     PurchaseOrderReceiveRowBatchTransactionsItem,
     PurchaseOrderRow,
@@ -139,7 +154,13 @@ from katana_public_api_client.models import (
     UpdateSalesOrderRowRequest as APIUpdateSORowRequest,
     UpdateSalesOrderStatus,
 )
-from katana_public_api_client.utils import is_success, unwrap, unwrap_as
+from katana_public_api_client.utils import (
+    APIError,
+    is_success,
+    unwrap,
+    unwrap_as,
+    unwrap_data,
+)
 
 # ============================================================================
 # Shared apply-builders
@@ -756,8 +777,8 @@ def _build_failure_response(
         warnings=[
             "Correction halted mid-flow; the record is left in an "
             "intermediate (open) state. The captured close-state is in "
-            "``prior_state`` — manually replay the remaining steps via "
-            "modify_<entity> if you want to recover.",
+            "``prior_state`` — replay the remaining steps with the "
+            f"modify_{_entity_type_for_snapshot(snapshot)} tool to recover.",
         ],
         next_actions=[
             f"{succeeded} action(s) succeeded; {failed} failed",
@@ -1292,19 +1313,15 @@ async def correct_sales_order(
 class PORowCorrection(BaseModel):
     """One PO row edit, identified by the ID of the row currently on the PO.
 
-    Unlike SO/MO corrections (which key by ``old_variant_id`` to give the
-    operator a content-addressed handle), PO corrections key by row ID
-    because the receive endpoint may split a partially-received row into
-    two physical rows post-receipt — both rows can carry the same
-    ``variant_id``, so variant-keyed lookup would be ambiguous on a
-    PARTIALLY_RECEIVED PO. The operator looks up the current row IDs via
-    ``get_purchase_order`` first.
+    PO corrections key by row ID (the MO/SO siblings key by variant)
+    because one variant can sit on several rows of a PO: a partial receipt
+    splits a row into a received part and an open remainder. Look up the
+    current row IDs with ``get_purchase_order`` first.
 
-    ``correct_purchase_order`` only updates existing rows in place; it
-    doesn't add or delete rows. This keeps row IDs stable so the
-    re-receive POST can reference them by the original
-    ``purchase_order_row_id``. To add or remove a line, use
-    ``modify_purchase_order`` (after receiving) or delete + recreate the PO.
+    An edit applies to that row only. On a received row, ``quantity`` is
+    the corrected received quantity and the row is re-received with it.
+    The tool edits rows in place; to add or remove a line use
+    ``modify_purchase_order`` after the correction lands.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -1320,9 +1337,8 @@ class PORowCorrection(BaseModel):
         default=None,
         gt=0,
         description=(
-            "New quantity. None = keep the existing quantity. Must be >= "
-            "the originally received quantity for this row, or the receipt "
-            "replay step would fail."
+            "New quantity. None = keep the existing quantity. On a received "
+            "row this is the corrected received quantity."
         ),
     )
     price_per_unit: float | None = Field(
@@ -1353,97 +1369,94 @@ class CorrectPurchaseOrderRequest(ConfirmableRequest):
     )
 
 
-def _resolve_po_row(
-    po_id: int, rows: list[PurchaseOrderRow], correction: PORowCorrection
-) -> PurchaseOrderRow:
-    matches = [r for r in rows if r.id == correction.row_id]
-    if not matches:
-        raise ValueError(
-            f"No row on PO {po_id} has id {correction.row_id}. Look up "
-            "current row IDs with get_purchase_order before retrying."
+# Quantities come back from Katana as floats; sums across merged rows are
+# compared with this tolerance rather than ``==``.
+_PO_QTY_TOLERANCE = 1e-6
+
+
+@dataclass(frozen=True)
+class _PODesiredRow:
+    """A captured row with the operator's corrections applied.
+
+    ``source`` is the row as it stood before the revert; the other fields
+    are what the rebuilt row must carry. A received source row is
+    re-received with ``quantity`` on its own ``received_date``.
+    """
+
+    source: PORowSnapshot
+    variant_id: int | None
+    quantity: float
+    price_per_unit: float | None
+
+    @property
+    def changed(self) -> bool:
+        return (
+            self.variant_id != self.source.variant_id
+            or abs(self.quantity - self.source.quantity) > _PO_QTY_TOLERANCE
+            or self.price_per_unit != self.source.price_per_unit
         )
-    return matches[0]
 
 
-def _check_quantity_covers_receipts(
-    po_id: int,
-    snapshot: POCloseState,
-    rows: list[PurchaseOrderRow],
-    corrections: list[PORowCorrection],
-) -> None:
-    """Preflight: refuse if any row drops below its already-received qty.
+@dataclass
+class _POCorrectionProgress:
+    """Apply-time state shared by the phase closures.
 
-    The re-receive phase replays the original receipt quantities; if a
-    row's new quantity is less than what was previously received, Katana
-    rejects the receive POST and the PO would be stuck in NOT_RECEIVED
-    with the close-state already cleared. Catching it here keeps the
-    failure clean — no mutations applied yet.
-
-    Honors the snapshot semantics where a row that was split during
-    receipt is captured by ID; if the operator targets the unreceived
-    remnant row (no entry in ``snapshot.receipts`` for that row_id), the
-    quantity guard is a no-op for that row.
+    The rebuild records which physical row stands for each captured row;
+    the replay records which receipt groups landed and the group id each
+    one got, which the cost-row moves need. The failure response reads it
+    to tell the operator exactly what is left to do.
     """
-    received_per_row = {r.purchase_order_row_id: r.quantity for r in snapshot.receipts}
 
-    for correction in corrections:
-        if correction.quantity is None:
-            continue
+    completion_applied: bool = False
+    reverted: bool = False
+    rows_rebuilt: bool = False
+    physical_row_ids: dict[int, int] = dataclasses.field(default_factory=dict)
+    replayed_groups: set[int] = dataclasses.field(default_factory=set)
+    new_group_ids: dict[int, int] = dataclasses.field(default_factory=dict)
+    # Cost rows whose copy exists on the rebuilt group (original id -> copy id)
+    # and those fully moved (copy created and original deleted, or no move
+    # needed).
+    copied_cost_rows: dict[int, int] = dataclasses.field(default_factory=dict)
+    moved_cost_rows: set[int] = dataclasses.field(default_factory=set)
+    # True when the failing step may have reached Katana anyway (timeout,
+    # connection error, 5xx), so local flags cannot say what was written.
+    outcome_unknown: bool = False
+
+
+def _tracked(progress: _POCorrectionProgress, apply: ApplyCallable) -> ApplyCallable:
+    """Wrap an apply so a failure records whether its outcome is known.
+
+    A 4xx rejection or one of our own refusals (``ValueError``) means the
+    failing call changed nothing. Anything else (a timeout, a dropped
+    connection, a 5xx after the transport's retries) may have landed, so the
+    failure response must tell the operator to check the PO first.
+    """
+
+    async def wrapped() -> Any:
         try:
-            _resolve_po_row(po_id, rows, correction)
+            return await apply()
         except ValueError:
-            # Resolution errors surface during plan-build; skip here so
-            # the original error message wins.
-            continue
-        already_received = received_per_row.get(correction.row_id, 0.0)
-        if correction.quantity < already_received:
-            raise ValueError(
-                f"row_changes for row {correction.row_id} on PO {po_id} "
-                f"drops quantity to {correction.quantity}, but "
-                f"{already_received} was already received on this row. "
-                "Refusing — the re-receive phase would fail and leave "
-                "the PO in an intermediate (open) state."
-            )
+            raise
+        except APIError as exc:
+            if not 400 <= exc.status_code < 500:
+                progress.outcome_unknown = True
+            raise
+        except Exception:
+            progress.outcome_unknown = True
+            raise
+
+    return wrapped
 
 
-def _build_revert_po_action(po_id: int, prior_status: str, services: Any) -> ActionSpec:
-    """PATCH PO header → status: NOT_RECEIVED.
+def _desired_po_rows(
+    po_id: int, snapshot: POCloseState, corrections: list[PORowCorrection]
+) -> list[_PODesiredRow]:
+    """Apply ``corrections`` to the captured rows; refuse unsafe edits.
 
-    Per the OpenAPI spec, this is the API-sanctioned reopen path: the
-    PATCH endpoint accepts a status transition out of RECEIVED, which
-    clears each row's ``received_date`` and re-opens the per-row fields
-    (``quantity`` / ``variant_id`` / ``price_per_unit``) for editing.
-
-    ``prior_status`` carries the actual current status (RECEIVED or
-    PARTIALLY_RECEIVED) so the preview/apply ``FieldChange.old`` reports
-    what the PO was reverted *from* — a partially received PO would
-    otherwise misreport "RECEIVED" as the prior state.
+    Every check here runs before anything is written, so a refusal leaves
+    the PO untouched.
     """
-    body = APIUpdatePurchaseOrderRequest(status=PurchaseOrderStatus(PO_REOPEN_STATUS))
-    return ActionSpec(
-        operation=POOperation.UPDATE_HEADER,
-        target_id=po_id,
-        diff=[
-            FieldChange(
-                field="status",
-                old=prior_status,
-                new=PO_REOPEN_STATUS,
-            )
-        ],
-        apply=_make_tolerant_patch_apply(
-            api_update_purchase_order, services, po_id, body
-        ),
-        verify=None,
-    )
-
-
-def _build_po_row_edit_actions(
-    po_id: int,
-    rows: list[PurchaseOrderRow],
-    corrections: list[PORowCorrection],
-    services: Any,
-) -> list[ActionSpec]:
-    specs: list[ActionSpec] = []
+    by_row: dict[int, PORowCorrection] = {}
     for correction in corrections:
         if (
             correction.new_variant_id is None
@@ -1455,126 +1468,588 @@ def _build_po_row_edit_actions(
                 "supply at least one of new_variant_id, quantity, or "
                 "price_per_unit."
             )
-        row = _resolve_po_row(po_id, rows, correction)
+        if snapshot.row(correction.row_id) is None:
+            raise ValueError(
+                f"No row on PO {po_id} has id {correction.row_id}. Look up "
+                "current row IDs with get_purchase_order before retrying."
+            )
+        if correction.row_id in by_row:
+            raise ValueError(
+                f"row_changes lists row {correction.row_id} more than once; "
+                "combine the edits into one entry."
+            )
+        by_row[correction.row_id] = correction
 
-        diff: list[FieldChange] = []
-        if correction.new_variant_id is not None:
-            diff.append(
-                FieldChange(
-                    field="variant_id",
-                    old=unwrap_unset(row.variant_id, None),
-                    new=correction.new_variant_id,
+    desired: list[_PODesiredRow] = []
+    for row in snapshot.rows:
+        correction = by_row.get(row.row_id)
+        if correction is None:
+            desired.append(
+                _PODesiredRow(
+                    source=row,
+                    variant_id=row.variant_id,
+                    quantity=row.quantity,
+                    price_per_unit=row.price_per_unit,
                 )
             )
-        if correction.quantity is not None:
-            diff.append(
-                FieldChange(
-                    field="quantity",
-                    old=unwrap_unset(row.quantity, None),
-                    new=correction.quantity,
-                )
-            )
-        if correction.price_per_unit is not None:
-            diff.append(
-                FieldChange(
-                    field="price_per_unit",
-                    old=unwrap_unset(row.price_per_unit, None),
-                    new=correction.price_per_unit,
-                )
-            )
-
-        body = APIUpdatePORowRequest(
-            variant_id=to_unset(correction.new_variant_id),
-            quantity=to_unset(correction.quantity),
-            price_per_unit=to_unset(correction.price_per_unit),
+            continue
+        target = _PODesiredRow(
+            source=row,
+            variant_id=(
+                correction.new_variant_id
+                if correction.new_variant_id is not None
+                else row.variant_id
+            ),
+            quantity=(
+                correction.quantity if correction.quantity is not None else row.quantity
+            ),
+            price_per_unit=(
+                correction.price_per_unit
+                if correction.price_per_unit is not None
+                else row.price_per_unit
+            ),
         )
-        specs.append(
-            ActionSpec(
-                operation=POOperation.UPDATE_ROW,
-                target_id=row.id,
-                diff=diff,
-                apply=_make_tolerant_patch_apply(
-                    api_update_purchase_order_row, services, row.id, body
-                ),
-                verify=None,
+        batched = any(bt.batch_id is not None for bt in row.batch_transactions)
+        if batched and (
+            target.variant_id != row.variant_id
+            or abs(target.quantity - row.quantity) > _PO_QTY_TOLERANCE
+        ):
+            raise ValueError(
+                f"Row {row.row_id} on PO {po_id} was received into batches; "
+                "changing its variant or quantity would leave the batch "
+                "split inconsistent on replay. Fix the batches in Katana "
+                "first, or correct only the price."
             )
+        if target.variant_id is None:
+            raise ValueError(
+                f"Row {row.row_id} on PO {po_id} has no variant; cannot rebuild it."
+            )
+        desired.append(target)
+    return desired
+
+
+async def _fetch_po_cost_rows(
+    services: Any, group_ids: set[int]
+) -> list[PurchaseOrderAdditionalCostRow]:
+    """Additional cost rows attached to the given receipt groups.
+
+    Read before anything is written: the revert moves these rows to the
+    order's default group, so this is the only point their original group
+    is visible.
+    """
+    found: list[PurchaseOrderAdditionalCostRow] = []
+    for group_id in sorted(group_ids):
+        response = await api_get_po_cost_rows.asyncio_detailed(
+            client=services.client, group_id=float(group_id)
         )
-    return specs
+        rows = unwrap_data(response=response, default=[])
+        found.extend(
+            r
+            for r in rows
+            if isinstance(r, PurchaseOrderAdditionalCostRow)
+            and unwrap_unset(r.group_id, None) == group_id
+            and unwrap_unset(r.deleted_at, None) is None
+        )
+    return found
 
 
-def _build_re_receive_action(
+async def _current_po_rows(services: Any, po_id: int) -> list[PurchaseOrderRow]:
+    """Re-read the PO's rows; the revert changes them, so apply steps never
+    trust ids captured before it."""
+    po = await _fetch_purchase_order_attrs(services, po_id)
+    if po is None:
+        raise ValueError(f"Could not re-read purchase order {po_id}.")
+    return [
+        r for r in (unwrap_unset(po.purchase_order_rows, []) or []) if r is not None
+    ]
+
+
+def _build_complete_open_rows_action(
     po_id: int,
-    receipt: PORowReceiptSnapshot,
+    open_rows: list[PORowSnapshot],
+    progress: _POCorrectionProgress,
     services: Any,
 ) -> ActionSpec:
-    """POST one ``PurchaseOrderReceiveRow`` to replay the captured receipt.
+    """Temporarily receive a PARTIALLY_RECEIVED PO's open rows.
 
-    Builds a single-row receive request (the receive endpoint also
-    accepts arrays, but per-row actions keep the ``ActionResult`` list
-    legible — one entry per replayed receipt). Re-receiving an already
-    re-receivable row promotes the PO toward RECEIVED automatically; once
-    every row is fully received, status flips back to RECEIVED without
-    a follow-up PATCH.
+    Katana refuses ``status: NOT_RECEIVED`` on a PARTIALLY_RECEIVED PO
+    (422), so the open quantity is received first (dated now), the PO is
+    reverted as a whole, and the rebuilt rows for that quantity are simply
+    not re-received.
     """
-    batch_transactions: list[PurchaseOrderReceiveRowBatchTransactionsItem] | Any
-    batch_transactions = []
-    for bt in receipt.batch_transactions or []:
-        if bt.batch_id is None:
-            continue
-        batch_transactions.append(
-            PurchaseOrderReceiveRowBatchTransactionsItem(
-                batch_id=bt.batch_id,
-                quantity=bt.quantity,
-            )
+    received_at = datetime.now(UTC)
+    body = [
+        PurchaseOrderReceiveRow(
+            purchase_order_row_id=r.row_id,
+            quantity=r.quantity,
+            received_date=received_at,
         )
-    if not batch_transactions:
-        batch_transactions = to_unset(None)
-
-    receive_row = PurchaseOrderReceiveRow(
-        purchase_order_row_id=receipt.purchase_order_row_id,
-        quantity=receipt.quantity,
-        received_date=receipt.received_date,
-        batch_transactions=batch_transactions,
-    )
+        for r in open_rows
+    ]
 
     async def apply() -> None:
         response = await api_receive_purchase_order.asyncio_detailed(
-            client=services.client, body=receive_row
+            client=services.client, body=body
         )
         if not is_success(response):
             unwrap(response)
+        progress.completion_applied = True
         return None
 
-    diff: list[FieldChange] = [
-        FieldChange(
-            field="quantity",
-            new=receipt.quantity,
-            is_added=True,
-        ),
-        FieldChange(
-            field="received_date",
-            new=receipt.received_date.isoformat(),
-            is_added=True,
-        ),
-    ]
-    if receipt.batch_transactions:
+    return ActionSpec(
+        operation=POOperation.RECEIVE,
+        target_id=po_id,
+        diff=[
+            FieldChange(
+                field="open_rows_received_temporarily",
+                new=[
+                    {
+                        "row_id": r.row_id,
+                        "variant_id": r.variant_id,
+                        "quantity": r.quantity,
+                    }
+                    for r in open_rows
+                ],
+                is_added=True,
+            )
+        ],
+        apply=_tracked(progress, apply),
+        verify=None,
+    )
+
+
+def _build_revert_po_action(
+    po_id: int, prior_status: str, progress: _POCorrectionProgress, services: Any
+) -> ActionSpec:
+    """PATCH PO header → status: NOT_RECEIVED.
+
+    The API-sanctioned reopen path: it undoes every receipt so the row
+    fields become editable. ``prior_status`` is what the preview reports
+    the PO is reverted *from*.
+    """
+    body = APIUpdatePurchaseOrderRequest(status=PurchaseOrderStatus(PO_REOPEN_STATUS))
+    patch = _make_tolerant_patch_apply(api_update_purchase_order, services, po_id, body)
+
+    async def apply() -> Any:
+        outcome = await patch()
+        progress.reverted = True
+        return outcome
+
+    return ActionSpec(
+        operation=POOperation.UPDATE_HEADER,
+        target_id=po_id,
+        diff=[FieldChange(field="status", old=prior_status, new=PO_REOPEN_STATUS)],
+        apply=_tracked(progress, apply),
+        verify=None,
+    )
+
+
+def _row_patch_body(
+    current: PurchaseOrderRow, desired: _PODesiredRow
+) -> APIUpdatePORowRequest | None:
+    """PATCH body turning ``current`` into ``desired``; None when equal."""
+    source = desired.source
+    changes: dict[str, Any] = {}
+    if unwrap_unset(current.variant_id, None) != desired.variant_id:
+        changes["variant_id"] = desired.variant_id
+    current_qty = float(unwrap_unset(current.quantity, 0.0) or 0.0)
+    if abs(current_qty - desired.quantity) > _PO_QTY_TOLERANCE:
+        changes["quantity"] = desired.quantity
+    if (
+        desired.price_per_unit is not None
+        and unwrap_unset(current.price_per_unit, None) != desired.price_per_unit
+    ):
+        changes["price_per_unit"] = desired.price_per_unit
+    if (
+        source.tax_rate_id is not None
+        and unwrap_unset(current.tax_rate_id, None) != source.tax_rate_id
+    ):
+        changes["tax_rate_id"] = source.tax_rate_id
+    if (
+        source.arrival_date is not None
+        and unwrap_unset(current.arrival_date, None) != source.arrival_date
+    ):
+        changes["arrival_date"] = source.arrival_date
+    if (
+        source.location_id is not None
+        and unwrap_unset(current.location_id, None) != source.location_id
+    ):
+        changes["location_id"] = source.location_id
+    if (
+        source.purchase_uom is not None
+        and unwrap_unset(current.purchase_uom, None) != source.purchase_uom
+    ):
+        changes["purchase_uom"] = source.purchase_uom
+    if (
+        source.purchase_uom_conversion_rate is not None
+        and unwrap_unset(current.purchase_uom_conversion_rate, None)
+        != source.purchase_uom_conversion_rate
+    ):
+        changes["purchase_uom_conversion_rate"] = source.purchase_uom_conversion_rate
+    if not changes:
+        return None
+    return APIUpdatePORowRequest(**changes)
+
+
+def _match_rows_after_revert(
+    po_id: int, desired: list[_PODesiredRow], current: list[PurchaseOrderRow]
+) -> dict[int, PurchaseOrderRow]:
+    """Map each captured row id to the post-revert row that will become it.
+
+    The revert merges rows that are identical apart from quantity into the
+    lowest id of the set, so a captured id that survived is reused; the
+    rest are re-created. Quantities per variant must add up to what was
+    captured, otherwise the order changed under us and nothing is edited.
+    """
+    if any(unwrap_unset(r.received_date, None) is not None for r in current):
+        raise ValueError(
+            f"PO {po_id} still has received rows after the revert; nothing was edited."
+        )
+    captured: dict[int | None, float] = {}
+    for d in desired:
+        captured[d.source.variant_id] = (
+            captured.get(d.source.variant_id, 0.0) + d.source.quantity
+        )
+    found: dict[int | None, float] = {}
+    for r in current:
+        variant = unwrap_unset(r.variant_id, None)
+        found[variant] = found.get(variant, 0.0) + float(
+            unwrap_unset(r.quantity, 0.0) or 0.0
+        )
+    mismatched = sorted(
+        (str(v), captured.get(v, 0.0), found.get(v, 0.0))
+        for v in set(captured) | set(found)
+        if abs(captured.get(v, 0.0) - found.get(v, 0.0)) > _PO_QTY_TOLERANCE
+    )
+    if mismatched:
+        detail = "; ".join(
+            f"variant {v}: captured {c}, found {f}" for v, c, f in mismatched
+        )
+        raise ValueError(
+            f"After the revert, PO {po_id}'s rows do not add up to the captured "
+            f"rows ({detail}); nothing was edited."
+        )
+
+    unclaimed = {r.id: r for r in current}
+    matched: dict[int, PurchaseOrderRow] = {}
+    for d in desired:
+        if d.source.row_id in unclaimed:
+            matched[d.source.row_id] = unclaimed.pop(d.source.row_id)
+    for d in desired:
+        if d.source.row_id in matched:
+            continue
+        stand_in = next(
+            (
+                r
+                for r in unclaimed.values()
+                if unwrap_unset(r.variant_id, None) == d.source.variant_id
+            ),
+            None,
+        )
+        if stand_in is not None:
+            matched[d.source.row_id] = unclaimed.pop(stand_in.id)
+    if unclaimed:
+        raise ValueError(
+            f"After the revert, PO {po_id} has rows {sorted(unclaimed)} that match "
+            "no captured row; nothing was edited."
+        )
+    return matched
+
+
+def _build_rebuild_rows_action(
+    po_id: int,
+    desired: list[_PODesiredRow],
+    snapshot: POCloseState,
+    progress: _POCorrectionProgress,
+    services: Any,
+) -> ActionSpec:
+    """Turn the reverted order back into one row per captured row, edited.
+
+    Each captured row gets its own physical row again: a surviving row is
+    patched to the captured (corrected) values, a row the revert merged
+    away is re-created. The replay then receives exact rows by id, so no
+    quantity is allocated by variant and an edit never spreads to a row
+    it was not aimed at.
+    """
+
+    async def apply() -> None:
+        current = await _current_po_rows(services, po_id)
+        matched = _match_rows_after_revert(po_id, desired, current)
+        for d in desired:
+            row = matched.get(d.source.row_id)
+            if row is not None:
+                body = _row_patch_body(row, d)
+                if body is not None:
+                    response = await api_update_purchase_order_row.asyncio_detailed(
+                        id=row.id, client=services.client, body=body
+                    )
+                    if not is_success(response):
+                        unwrap(response)
+                progress.physical_row_ids[d.source.row_id] = row.id
+                continue
+            if d.variant_id is None or d.price_per_unit is None:
+                raise ValueError(
+                    f"Row {d.source.row_id} has no variant or unit price to "
+                    "re-create it with."
+                )
+            create = APICreatePORowRequest(
+                purchase_order_id=po_id,
+                variant_id=d.variant_id,
+                quantity=d.quantity,
+                price_per_unit=d.price_per_unit,
+                tax_rate_id=to_unset(d.source.tax_rate_id),
+                arrival_date=to_unset(d.source.arrival_date),
+                location_id=to_unset(d.source.location_id),
+                currency=to_unset(d.source.currency),
+                purchase_uom=to_unset(d.source.purchase_uom),
+                purchase_uom_conversion_rate=to_unset(
+                    d.source.purchase_uom_conversion_rate
+                ),
+            )
+            response = await api_create_purchase_order_row.asyncio_detailed(
+                client=services.client, body=create
+            )
+            created = unwrap_as(response, PurchaseOrderRow)
+            progress.physical_row_ids[d.source.row_id] = created.id
+        progress.rows_rebuilt = True
+        return None
+
+    diff: list[FieldChange] = []
+    for d in desired:
+        if not d.changed:
+            continue
+        label = f"row {d.source.row_id}"
+        if d.variant_id != d.source.variant_id:
+            diff.append(
+                FieldChange(
+                    field=f"{label} variant_id",
+                    old=d.source.variant_id,
+                    new=d.variant_id,
+                )
+            )
+        if abs(d.quantity - d.source.quantity) > _PO_QTY_TOLERANCE:
+            diff.append(
+                FieldChange(
+                    field=f"{label} quantity", old=d.source.quantity, new=d.quantity
+                )
+            )
+        if d.price_per_unit != d.source.price_per_unit:
+            diff.append(
+                FieldChange(
+                    field=f"{label} price_per_unit",
+                    old=d.source.price_per_unit,
+                    new=d.price_per_unit,
+                )
+            )
+    recreated = [row for merged in snapshot.predicted_merges() for row in merged[1:]]
+    if recreated:
         diff.append(
             FieldChange(
-                field="batch_transactions",
+                field="rows_recreated_after_merge",
                 new=[
-                    {"batch_id": bt.batch_id, "quantity": bt.quantity}
-                    for bt in receipt.batch_transactions
+                    {
+                        "source_row_id": r.row_id,
+                        "variant_id": r.variant_id,
+                        "quantity": r.quantity,
+                    }
+                    for r in recreated
                 ],
                 is_added=True,
             )
         )
     return ActionSpec(
-        operation=POOperation.RECEIVE,
-        target_id=receipt.purchase_order_row_id,
+        operation=POOperation.UPDATE_ROW,
+        target_id=po_id,
         diff=diff,
-        apply=apply,
+        apply=_tracked(progress, apply),
         verify=None,
     )
+
+
+def _build_re_receive_group_action(
+    po_id: int,
+    index: int,
+    group: POReceiptGroup,
+    desired_by_row: dict[int, _PODesiredRow],
+    progress: _POCorrectionProgress,
+    services: Any,
+) -> ActionSpec:
+    """POST one ``/purchase_order_receive`` call replaying one receipt group.
+
+    One call records one receipt group, so replaying group by group (oldest
+    first) rebuilds the original receipts. Each rebuilt row is received in
+    full with its own ``received_date``; the group id the call produced is
+    recorded for the cost-row moves.
+    """
+    planned = [desired_by_row[r.row_id] for r in group.rows]
+
+    async def apply() -> None:
+        missing = [
+            d.source.row_id
+            for d in planned
+            if d.source.row_id not in progress.physical_row_ids
+        ]
+        if missing:
+            raise ValueError(
+                f"Rows {missing} were not rebuilt; cannot replay this receipt."
+            )
+        body = [
+            PurchaseOrderReceiveRow(
+                purchase_order_row_id=progress.physical_row_ids[d.source.row_id],
+                quantity=d.quantity,
+                received_date=d.source.received_date or group.received_date,
+                batch_transactions=[
+                    PurchaseOrderReceiveRowBatchTransactionsItem(
+                        batch_id=bt.batch_id, quantity=bt.quantity
+                    )
+                    for bt in d.source.batch_transactions
+                    if bt.batch_id is not None
+                ]
+                or to_unset(None),
+            )
+            for d in planned
+        ]
+        response = await api_receive_purchase_order.asyncio_detailed(
+            client=services.client, body=body
+        )
+        if not is_success(response):
+            unwrap(response)
+        progress.replayed_groups.add(index)
+        received_ids = {item.purchase_order_row_id for item in body}
+        current = await _current_po_rows(services, po_id)
+        new_groups = {
+            unwrap_unset(r.group_id, None) for r in current if r.id in received_ids
+        }
+        if len(new_groups) == 1:
+            (new_group,) = new_groups
+            if isinstance(new_group, int):
+                progress.new_group_ids[index] = new_group
+        return None
+
+    diff = [
+        FieldChange(
+            field="received_date", new=group.received_date.isoformat(), is_added=True
+        ),
+        FieldChange(
+            field="rows",
+            new=[
+                {
+                    "source_row_id": d.source.row_id,
+                    "variant_id": d.variant_id,
+                    "quantity": d.quantity,
+                    **(
+                        {"received_date": d.source.received_date.isoformat()}
+                        if d.source.received_date
+                        and d.source.received_date != group.received_date
+                        else {}
+                    ),
+                    **(
+                        {
+                            "batch_transactions": [
+                                {"batch_id": bt.batch_id, "quantity": bt.quantity}
+                                for bt in d.source.batch_transactions
+                                if bt.batch_id is not None
+                            ]
+                        }
+                        if any(
+                            bt.batch_id is not None
+                            for bt in d.source.batch_transactions
+                        )
+                        else {}
+                    ),
+                }
+                for d in planned
+            ],
+            is_added=True,
+        ),
+    ]
+    return ActionSpec(
+        operation=POOperation.RECEIVE,
+        target_id=group.group_id,
+        diff=diff,
+        apply=_tracked(progress, apply),
+        verify=None,
+    )
+
+
+def _build_move_cost_row_action(
+    index: int,
+    group: POReceiptGroup,
+    cost_row: POCostRowSnapshot,
+    progress: _POCorrectionProgress,
+    services: Any,
+) -> ActionSpec:
+    """Re-attach an additional cost row to its rebuilt receipt group.
+
+    The revert moves cost rows to the default group and receiving does not
+    move them back; the group id cannot be patched, so the row is
+    re-created on the rebuilt group and the original deleted (create
+    first, so a failure never loses the cost).
+    """
+
+    async def apply() -> None:
+        new_group = progress.new_group_ids.get(index)
+        if new_group is None:
+            raise ValueError(
+                f"Could not tell which group the receipt dated "
+                f"{group.received_date.isoformat()} was rebuilt as; additional "
+                f"cost row {cost_row.cost_row_id} was left on the default group."
+            )
+        current = unwrap_as(
+            await api_get_po_cost_row.asyncio_detailed(
+                id=cost_row.cost_row_id, client=services.client
+            ),
+            PurchaseOrderAdditionalCostRow,
+        )
+        if unwrap_unset(current.group_id, None) == new_group:
+            progress.moved_cost_rows.add(cost_row.cost_row_id)
+            return None
+        create = APICreatePOCostRowRequest(
+            additional_cost_id=cost_row.additional_cost_id,
+            group_id=new_group,
+            tax_rate_id=cost_row.tax_rate_id,
+            price=cost_row.price,
+            distribution_method=(
+                CostDistributionMethod(cost_row.distribution_method)
+                if cost_row.distribution_method
+                else to_unset(None)
+            ),
+            reference=to_unset(cost_row.reference),
+        )
+        copy = unwrap_as(
+            await api_create_po_cost_row.asyncio_detailed(
+                client=services.client, body=create
+            ),
+            PurchaseOrderAdditionalCostRow,
+        )
+        progress.copied_cost_rows[cost_row.cost_row_id] = copy.id
+        deleted = await api_delete_po_cost_row.asyncio_detailed(
+            id=cost_row.cost_row_id, client=services.client
+        )
+        if not is_success(deleted):
+            unwrap(deleted)
+        progress.moved_cost_rows.add(cost_row.cost_row_id)
+        return None
+
+    return ActionSpec(
+        operation=POOperation.UPDATE_ADDITIONAL_COST,
+        target_id=cost_row.cost_row_id,
+        diff=[
+            FieldChange(
+                field="group_id",
+                old=cost_row.group_id,
+                new=f"rebuilt group of the receipt dated {group.received_date.isoformat()}",
+            )
+        ],
+        apply=_tracked(progress, apply),
+        verify=None,
+    )
+
+
+def _po_expected_status(desired: list[_PODesiredRow]) -> str:
+    if any(not d.source.is_received for d in desired):
+        return PurchaseOrderStatus.PARTIALLY_RECEIVED.value
+    return PurchaseOrderStatus.RECEIVED.value
 
 
 async def _correct_purchase_order_impl(
@@ -1598,28 +2073,55 @@ async def _correct_purchase_order_impl(
             "PO — there's no close-state to preserve."
         )
 
-    rows = [
-        r
-        for r in (unwrap_unset(existing_po.purchase_order_rows, []) or [])
-        if r is not None
-    ]
-    snapshot = snapshot_po_close_state(existing_po)
-    _check_quantity_covers_receipts(request.id, snapshot, rows, request.row_changes)
+    rows_only = snapshot_po_close_state(existing_po)
+    received_groups = {
+        r.group_id for r in rows_only.received_rows if r.group_id is not None
+    }
+    cost_rows = await _fetch_po_cost_rows(services, received_groups)
+    snapshot = snapshot_po_close_state(existing_po, cost_rows)
+    desired = _desired_po_rows(request.id, snapshot, request.row_changes)
+    desired_by_row = {d.source.row_id: d for d in desired}
+    groups = snapshot.receipt_groups()
+    progress = _POCorrectionProgress()
 
-    revert_phase = [_build_revert_po_action(request.id, snapshot.status, services)]
-    edit_phase = _build_po_row_edit_actions(
-        request.id, rows, request.row_changes, services
+    # Katana refuses the whole-order revert while PARTIALLY_RECEIVED, so a
+    # partially received PO is completed first and its open quantity is
+    # simply not replayed afterwards.
+    complete_phase = (
+        [
+            _build_complete_open_rows_action(
+                request.id, snapshot.open_rows, progress, services
+            )
+        ]
+        if snapshot.status == PurchaseOrderStatus.PARTIALLY_RECEIVED.value
+        and snapshot.open_rows
+        else []
     )
-    receive_phase = [
-        _build_re_receive_action(request.id, receipt, services)
-        for receipt in snapshot.receipts
+    revert_phase = [
+        _build_revert_po_action(request.id, snapshot.status, progress, services)
     ]
-    phases = [revert_phase, edit_phase, receive_phase]
+    rebuild_phase = [
+        _build_rebuild_rows_action(request.id, desired, snapshot, progress, services)
+    ]
+    receive_phase: list[ActionSpec] = []
+    for index, group in enumerate(groups):
+        receive_phase.append(
+            _build_re_receive_group_action(
+                request.id, index, group, desired_by_row, progress, services
+            )
+        )
+        receive_phase.extend(
+            _build_move_cost_row_action(index, group, cost_row, progress, services)
+            for cost_row in snapshot.cost_rows_for_group(group.group_id)
+        )
+    phases = [complete_phase, revert_phase, rebuild_phase, receive_phase]
 
     # See #722 note on the MO / SO correction above.
     prior_state = _augment_prior_state_with_snapshot(
         serialize_for_prior_state(existing_po), snapshot
     )
+    expected_status = _po_expected_status(desired)
+    warnings = _close_state_warnings_po(snapshot, desired)
 
     if request.preview:
         full_plan = [action for phase in phases for action in phase]
@@ -1629,17 +2131,20 @@ async def _correct_purchase_order_impl(
             is_preview=True,
             actions=plan_to_preview_results(full_plan),
             prior_state=prior_state,
-            warnings=_close_state_warnings_po(snapshot),
+            warnings=warnings,
             next_actions=[
                 f"Review {len(full_plan)} planned action(s) for PO {request.id}",
                 f"Captured close-state: status={snapshot.status}, "
-                f"receipts={len(snapshot.receipts)}",
+                f"{len(snapshot.received_rows)} received row(s) in "
+                f"{len(groups)} receipt group(s), "
+                f"{len(snapshot.cost_rows)} additional cost row(s)",
+                f"Expected status afterwards: {expected_status}",
                 "Set preview=false to execute the plan",
             ],
             katana_url=katana_url,
             message=(
-                f"Preview: reopen → edit → re-receive for purchase order "
-                f"{request.id} ({len(full_plan)} action(s))"
+                f"Preview: reopen → rebuild rows → re-receive for purchase "
+                f"order {request.id} ({len(full_plan)} action(s))"
             ),
         )
     aggregated, failed, _not_run_specs = await _run_phases_until_failure(phases)
@@ -1647,47 +2152,248 @@ async def _correct_purchase_order_impl(
         # PO modify card doesn't merge NOT-RUN extras yet — drop the spec
         # tail here. The SO failure path above synthesizes them for the SO
         # modify-card morph (#858 finding B).
-        return _build_failure_response(
-            request.id, aggregated, prior_state, katana_url, snapshot
+        return _build_po_failure_response(
+            request.id,
+            aggregated,
+            prior_state,
+            katana_url,
+            _POFailureContext(
+                snapshot=snapshot, desired=desired, groups=groups, progress=progress
+            ),
         )
 
+    final_po = await _fetch_purchase_order_attrs(services, request.id)
+    final_enum = unwrap_unset(final_po.status, None) if final_po is not None else None
+    final_status = final_enum.value if final_enum is not None else "unknown"
+    if final_status != expected_status:
+        warnings.append(
+            f"PO {request.id} ended in status {final_status}, expected "
+            f"{expected_status}. Check its rows with get_purchase_order."
+        )
+    applied = sum(1 for a in aggregated if a.succeeded)
     return ModificationResponse(
         entity_type="purchase_order",
         entity_id=request.id,
         is_preview=False,
         actions=aggregated,
         prior_state=prior_state,
-        warnings=_close_state_warnings_po(snapshot),
+        warnings=warnings,
         next_actions=[
-            f"Purchase order {request.id} corrected — "
-            f"{sum(1 for a in aggregated if a.succeeded)} action(s) applied",
-            f"Close-state restored: status={snapshot.status}, "
-            f"receipts={len(snapshot.receipts)}",
+            f"Purchase order {request.id} corrected — {applied} action(s) applied",
+            f"Status now {final_status}; {len(groups)} receipt group(s) "
+            "replayed with new group ids",
         ],
         katana_url=katana_url,
         message=(
             f"Successfully corrected purchase order {request.id} "
-            f"({sum(1 for a in aggregated if a.succeeded)}/"
-            f"{len(aggregated)} actions applied)"
+            f"({applied}/{len(aggregated)} actions applied)"
         ),
     )
 
 
-def _close_state_warnings_po(snapshot: POCloseState) -> list[str]:
-    if not snapshot.receipts:
+def _close_state_warnings_po(
+    snapshot: POCloseState, desired: list[_PODesiredRow]
+) -> list[str]:
+    if not snapshot.received_rows:
         return [
             "No receipts captured on this PO — the reopen step will only "
             "flip status to NOT_RECEIVED without a re-receive phase. "
             "Verify this matches reality before applying."
         ]
+    warnings = [
+        "Receipts are replayed one receive call per original receipt group, "
+        "oldest first, so the groups come back with new group ids."
+    ]
+    recreated = [
+        row.row_id for merged in snapshot.predicted_merges() for row in merged[1:]
+    ]
+    if recreated:
+        warnings.append(
+            f"The revert merges rows that are identical apart from quantity; "
+            f"rows {recreated} are re-created afterwards with new ids."
+        )
+    if snapshot.cost_rows:
+        warnings.append(
+            f"{len(snapshot.cost_rows)} additional cost row(s) on the receipt "
+            "groups are re-attached to the rebuilt groups: where a group gets a "
+            "new id the cost row is re-created there (new id) and the original "
+            "deleted. Katana recalculates landed cost asynchronously, so row "
+            "landed costs can take a few seconds to settle."
+        )
+    if snapshot.skipped_cost_row_ids:
+        warnings.append(
+            f"Additional cost row(s) {list(snapshot.skipped_cost_row_ids)} lack "
+            "a field needed to re-create them; the revert moves them to the "
+            "PO's default group and the tool leaves them there. Re-attach them "
+            "by hand afterwards."
+        )
+    recreated_rows = [
+        row for merged in snapshot.predicted_merges() for row in merged[1:]
+    ]
+    if any(row.conversion_rate is not None for row in recreated_rows):
+        warnings.append(
+            "Re-created rows are priced in the PO's currency; Katana may apply "
+            "its current conversion rate to them rather than the original one."
+        )
+    if any(c.currency_conversion_rate is not None for c in snapshot.cost_rows):
+        warnings.append(
+            "Re-created additional cost rows may take Katana's current "
+            "currency conversion rate rather than the original one."
+        )
+    if any(d.changed and d.source.is_received for d in desired):
+        warnings.append(
+            "Edits on received rows are replayed as received: a corrected "
+            "quantity is the quantity re-received on that row's original date."
+        )
     if snapshot.status == PurchaseOrderStatus.PARTIALLY_RECEIVED.value:
-        return [
-            "PO was PARTIALLY_RECEIVED — only the previously-received "
-            "rows are replayed. The unreceived remnant row(s) stay open "
-            "after the correction lands; re-issue receive_purchase_order "
-            "for those when the rest of the shipment arrives."
-        ]
-    return []
+        warnings.append(
+            "PO is PARTIALLY_RECEIVED. Katana refuses the revert in that "
+            "state, so the open row(s) are received first (dated now), the "
+            "PO is reverted as a whole, and only the original receipts are "
+            "replayed; the open quantity ends up unreceived again."
+        )
+    return warnings
+
+
+@dataclass(frozen=True)
+class _POFailureContext:
+    snapshot: POCloseState
+    desired: list[_PODesiredRow]
+    groups: list[POReceiptGroup]
+    progress: _POCorrectionProgress
+
+
+def _describe_remaining_receipts(ctx: _POFailureContext) -> list[str]:
+    """One line per receipt group that was not replayed, oldest first."""
+    desired_by_row = {d.source.row_id: d for d in ctx.desired}
+    lines: list[str] = []
+    for index, group in enumerate(ctx.groups):
+        if index in ctx.progress.replayed_groups:
+            continue
+        parts = []
+        for row in group.rows:
+            physical = ctx.progress.physical_row_ids.get(row.row_id)
+            label = (
+                f"row {physical}" if physical else f"the row rebuilt from {row.row_id}"
+            )
+            target = desired_by_row[row.row_id]
+            dated = (row.received_date or group.received_date).isoformat()
+            parts.append(
+                f"{label} (variant {target.variant_id}) qty {target.quantity} "
+                f"dated {dated}"
+            )
+        lines.append(
+            f"receipt dated {group.received_date.isoformat()}: " + ", ".join(parts)
+        )
+    return lines
+
+
+def _build_po_failure_response(
+    po_id: int,
+    actions: list[ActionResult],
+    prior_state: dict[str, Any] | None,
+    katana_url: str | None,
+    ctx: _POFailureContext,
+) -> ModificationResponse:
+    """Failure response that states what was written and how to finish.
+
+    A re-run would snapshot the half-restored order and treat temporary
+    or missing receipts as the truth, so once anything was written the
+    operator is told not to re-run and given the exact remaining steps.
+    """
+    progress = ctx.progress
+    succeeded = sum(1 for a in actions if a.succeeded is True)
+    failed = sum(1 for a in actions if a.succeeded is False)
+    remaining = _describe_remaining_receipts(ctx)
+    warnings: list[str] = []
+    next_actions = [f"{succeeded} action(s) succeeded; {failed} failed"]
+    if progress.outcome_unknown:
+        warnings.append(
+            "The failing call timed out or hit a server error, so it may have "
+            f"reached Katana anyway. Check PO {po_id}'s status and rows with "
+            "get_purchase_order before acting on the steps below; skip any "
+            "step it shows is already done."
+        )
+    if (
+        not progress.completion_applied
+        and not progress.reverted
+        and not progress.outcome_unknown
+    ):
+        warnings.append(
+            f"Nothing was written; PO {po_id} is unchanged. Fix the cause "
+            "in the FAILED action's error and re-run correct_purchase_order."
+        )
+    else:
+        warnings.append(
+            "Do not re-run correct_purchase_order on this PO: it would "
+            "snapshot the half-restored order and lose the receipts listed "
+            "below. Finish by hand with the steps in next_actions."
+        )
+        if progress.completion_applied and not progress.reverted:
+            opened = ", ".join(
+                f"row {r.row_id} qty {r.quantity}" for r in ctx.snapshot.open_rows
+            )
+            warnings.append(
+                f"The open rows ({opened}) were received dated now as a "
+                "temporary step and the revert then failed, so the PO is "
+                "RECEIVED with that extra stock."
+            )
+            next_actions.append(
+                f"Set PO {po_id} to NOT_RECEIVED with modify_purchase_order "
+                "to undo every receipt, including the temporary one"
+            )
+        if not progress.rows_rebuilt:
+            done = [
+                f"captured row {source} is row {physical}"
+                for source, physical in progress.physical_row_ids.items()
+            ]
+            todo = [
+                d.source.row_id
+                for d in ctx.desired
+                if d.source.row_id not in progress.physical_row_ids
+            ]
+            next_actions.append(
+                "Edit the rows with modify_purchase_order so the PO has one row "
+                "per entry in prior_state._close_state_snapshot.rows, with the "
+                "requested corrections applied. "
+                + (f"Already in place: {'; '.join(done)}. " if done else "")
+                + f"Still needing a row: captured rows {todo}"
+            )
+        if remaining:
+            next_actions.append(
+                "Re-receive with receive_purchase_order, one call per receipt, "
+                "in this order: " + "; ".join(remaining)
+            )
+        for cost in ctx.snapshot.cost_rows:
+            if cost.cost_row_id in progress.moved_cost_rows:
+                continue
+            copy_id = progress.copied_cost_rows.get(cost.cost_row_id)
+            if copy_id is not None:
+                next_actions.append(
+                    f"Additional cost row {cost.cost_row_id} was copied to its "
+                    f"rebuilt group as row {copy_id} but the original was not "
+                    f"deleted; delete row {cost.cost_row_id} (do not re-create it)"
+                )
+            else:
+                next_actions.append(
+                    f"Additional cost row {cost.cost_row_id} is on the PO's "
+                    "default group; re-create it on the rebuilt group of the "
+                    "receipt it belonged to and delete the original"
+                )
+    return ModificationResponse(
+        entity_type="purchase_order",
+        entity_id=po_id,
+        is_preview=False,
+        actions=actions,
+        prior_state=prior_state,
+        warnings=warnings,
+        next_actions=next_actions,
+        katana_url=katana_url,
+        message=(
+            f"Partial: {succeeded}/{len(actions)} action(s) applied to "
+            f"purchase order {po_id} before fail-fast halt"
+        ),
+    )
 
 
 @observe_tool
@@ -1696,41 +2402,36 @@ async def correct_purchase_order(
     request: Annotated[CorrectPurchaseOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
     """Edit a closed (RECEIVED / PARTIALLY_RECEIVED) PO without losing
-    the original receipt metadata.
-
-    Reopens the PO (PATCH status: NOT_RECEIVED — Katana clears each row's
-    ``received_date`` so per-row fields become editable again), edits
-    rows keyed by row ID, then re-receives via POST
-    ``/purchase_order_receive`` to restore the captured per-row
-    ``quantity`` / ``received_date`` / ``batch_transactions``. The
-    receive endpoint promotes the PO back to RECEIVED automatically when
-    every row is fully received.
+    the original receipts.
 
     Sequence:
 
-    1. Capture close-state (status + per-row purchase_order_row_id /
-       quantity / received_date / batch_transactions for every row whose
-       ``received_date`` is non-null).
-    2. PATCH PO status: NOT_RECEIVED (clears each row's received_date,
-       making variant_id / quantity / price_per_unit editable again).
-    3. PATCH each row per ``row_changes``.
-    4. POST /purchase_order_receive once per captured receipt, replaying
-       quantity + received_date + batch_transactions.
+    1. Capture every row (received or open) with its receipt group, date,
+       batches, price, tax rate and arrival date, plus the additional cost
+       rows attached to the receipt groups.
+    2. PARTIALLY_RECEIVED only: receive the open rows (dated now), because
+       Katana refuses the revert in that state.
+    3. PATCH PO status: NOT_RECEIVED. This undoes every receipt and merges
+       rows that are identical apart from quantity.
+    4. Rebuild one row per captured row with ``row_changes`` applied:
+       surviving rows are patched, merged-away rows re-created.
+    5. POST /purchase_order_receive once per original receipt group,
+       oldest first, receiving each rebuilt row with its original date.
+       Additional cost rows are re-created on the rebuilt groups.
 
-    Each ``row_changes`` entry is keyed by the row's current ID (look up
-    via ``get_purchase_order``). PO row IDs persist across the reopen, so
-    the re-receive can reference them by their original
-    ``purchase_order_row_id``.
+    ``row_changes`` entries are keyed by the row's current ID (look up via
+    ``get_purchase_order``) and apply to that row only. On a received row,
+    ``quantity`` is the corrected received quantity. Rows that were
+    received into batches can only have their price corrected.
 
-    The tool only updates rows in place; it doesn't delete or add rows.
-    To add or remove a line, use ``modify_purchase_order`` (after the
-    correction lands), or delete + recreate the PO.
+    The tool edits rows in place; it doesn't delete or add rows. To add or
+    remove a line, use ``modify_purchase_order`` after the correction
+    lands, or delete + recreate the PO.
 
     Two-step flow: ``preview=true`` (default) returns the full action
-    plan; ``preview=false`` runs the plan in phases. Fail-fast halt
-    leaves the PO in an intermediate state (typically NOT_RECEIVED with
-    edits applied but receipts not replayed) with a breadcrumb in
-    ``prior_state``.
+    plan; ``preview=false`` runs it. On a failure the response says
+    whether anything was written; if it was, it lists the exact remaining
+    steps and the tool must not be re-run on that PO.
 
     For a PO that hasn't been received yet, use ``modify_purchase_order``
     directly — there's no close-state to preserve.

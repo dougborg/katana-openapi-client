@@ -25,18 +25,22 @@ State-machine quirks the snapshots paper over:
   ``picked_date``.
 - **PO**: a RECEIVED PO has rows whose ``quantity`` / ``variant_id`` /
   ``price_per_unit`` are immutable while ``received_date`` is non-null.
-  Reverting status to ``NOT_RECEIVED`` clears each row's ``received_date``
-  (the spec for ``/purchase_order_receive`` is explicit: "Reverting the
-  receive must also be done through that endpoint" — i.e. PATCH
-  ``/purchase_orders/{id}``). After edits, the receipt is replayed via
-  ``POST /purchase_order_receive`` with the captured per-row quantity,
-  ``received_date``, and ``batch_transactions``; the receive endpoint
-  promotes status to RECEIVED automatically when every row is fully
-  received.
+  Reverting status to ``NOT_RECEIVED`` (PATCH ``/purchase_orders/{id}``)
+  undoes every receipt at once, returns all rows to ``default_group_id``,
+  merges rows that are identical apart from quantity (same variant, price,
+  tax rate, arrival date and location; the lowest id survives) and
+  detaches additional cost rows from their groups; it is refused (422)
+  while the PO is PARTIALLY_RECEIVED. Each ``POST /purchase_order_receive``
+  call records one receipt group (``group_id``) and a partial quantity
+  splits the row, keeping the original id on the open remnant. The
+  correction therefore snapshots every row with its group, rebuilds the
+  row structure after the revert and replays one receive call per original
+  group (pinned live by ``tests/integration/test_po_receipt_groups_live.py``).
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -47,6 +51,7 @@ from katana_public_api_client.models import (
     ManufacturingOrder,
     ManufacturingOrderProduction,
     ManufacturingOrderStatus,
+    PurchaseOrderAdditionalCostRow,
     PurchaseOrderStatus,
     RegularPurchaseOrder,
     SalesOrder,
@@ -299,6 +304,11 @@ PO_REOPEN_STATUS: str = PurchaseOrderStatus.NOT_RECEIVED.value
 # only used as a target string for diff display, not for an explicit PATCH.
 PO_RESTORE_STATUS: str = PurchaseOrderStatus.RECEIVED.value
 
+# The row fields Katana compares when its revert merges rows: rows of one
+# variant collapse into a single row only when all of these match (verified
+# live: a different unit price or arrival date keeps the rows apart).
+PORowMergeKey = tuple[int | None, float | None, int | None, datetime | None, int | None]
+
 
 @dataclass(frozen=True)
 class PORowBatchSnapshot:
@@ -306,8 +316,9 @@ class PORowBatchSnapshot:
 
     Mirrors :class:`PurchaseOrderRowBatchTransactionsItem` on the wire.
     Replayed on the re-receive POST so batch-tracked materials land back
-    on the original batch records (Katana enforces the per-batch split on
-    receipt for batch-tracked variants).
+    on the original batch records. ``batch_id`` is ``None`` for the
+    placeholder transaction Katana writes when a batch-tracked row is
+    received without explicit batches; those are not replayed.
     """
 
     batch_id: int | None
@@ -315,44 +326,153 @@ class PORowBatchSnapshot:
 
 
 @dataclass(frozen=True)
-class PORowReceiptSnapshot:
-    """Restorable shape of a single row's receipt on a PO.
+class PORowSnapshot:
+    """One purchase order row as it stood before the revert.
 
-    Captured by reading the persisted entity (``PurchaseOrderRow``);
-    replayed via ``POST /purchase_order_receive`` with one
-    ``PurchaseOrderReceiveRow`` per snapshot.
-
-    Only rows with a non-null ``received_date`` are captured — unreceived
-    rows on a PARTIALLY_RECEIVED PO don't need replay (they stay open
-    after reopen → restore).
+    Received rows (``received_date`` set) are replayed into their receipt
+    group; open rows on a PARTIALLY_RECEIVED order are received temporarily
+    so the revert is allowed, then left open again. The pricing, tax,
+    arrival and location fields are what the revert's merge compares and
+    what a re-created row needs to carry.
     """
 
-    purchase_order_row_id: int
-    quantity: float
-    received_date: datetime
+    row_id: int
     variant_id: int | None
-    batch_transactions: list[PORowBatchSnapshot] = field(default_factory=list)
+    quantity: float
+    price_per_unit: float | None
+    tax_rate_id: int | None
+    purchase_uom: str | None
+    purchase_uom_conversion_rate: float | None
+    currency: str | None
+    conversion_rate: float | None
+    arrival_date: datetime | None
+    location_id: int | None
+    received_date: datetime | None
+    group_id: int | None
+    batch_transactions: tuple[PORowBatchSnapshot, ...] = ()
+
+    @property
+    def is_received(self) -> bool:
+        return self.received_date is not None
+
+    @property
+    def merge_key(self) -> PORowMergeKey:
+        """Rows sharing this key are merged into one by the revert."""
+        return (
+            self.variant_id,
+            self.price_per_unit,
+            self.tax_rate_id,
+            self.arrival_date,
+            self.location_id,
+        )
+
+
+@dataclass(frozen=True)
+class POCostRowSnapshot:
+    """An additional cost row attached to a receipt group.
+
+    The revert moves these to the order's default group and the replay
+    does not move them back, so the correction re-creates each one on the
+    rebuilt group and deletes the original.
+    """
+
+    cost_row_id: int
+    group_id: int
+    additional_cost_id: int
+    tax_rate_id: int
+    price: float
+    distribution_method: str | None
+    reference: str | None
+    currency: str | None = None
+    currency_conversion_rate: float | None = None
+
+
+@dataclass(frozen=True)
+class POReceiptGroup:
+    """One original receipt: the rows received in a single call."""
+
+    group_id: int | None
+    received_date: datetime
+    rows: tuple[PORowSnapshot, ...]
 
 
 @dataclass(frozen=True)
 class POCloseState:
     """Snapshot of a PO's close-state metadata, captured before reopen.
 
-    The PO header itself doesn't carry a ``done_date``-equivalent — receipt
-    is the close-state, and per-row ``received_date`` is the timestamp
-    that needs preserving. Status is captured for round-tripping (and so
-    a PARTIALLY_RECEIVED PO isn't silently promoted to RECEIVED).
+    Receipt is the close-state: per-row ``received_date``, quantity and
+    batch transactions, grouped by receipt group. Status is captured for
+    round-tripping (so a PARTIALLY_RECEIVED PO isn't silently promoted to
+    RECEIVED). Cost rows attached to receipt groups are captured because
+    the revert detaches them.
     """
 
     status: str
-    receipts: list[PORowReceiptSnapshot]
+    rows: tuple[PORowSnapshot, ...] = ()
+    cost_rows: tuple[POCostRowSnapshot, ...] = ()
+    # Cost rows on the receipt groups that lacked a field needed to
+    # re-create them; the revert still detaches them, so they are reported.
+    skipped_cost_row_ids: tuple[int, ...] = ()
+
+    @property
+    def received_rows(self) -> list[PORowSnapshot]:
+        return [r for r in self.rows if r.is_received]
+
+    @property
+    def open_rows(self) -> list[PORowSnapshot]:
+        return [r for r in self.rows if not r.is_received]
+
+    def row(self, row_id: int) -> PORowSnapshot | None:
+        return next((r for r in self.rows if r.row_id == row_id), None)
+
+    def receipt_groups(self) -> list[POReceiptGroup]:
+        """Received rows grouped by ``group_id``, oldest group first.
+
+        Rows without a ``group_id`` fall back to one group per distinct
+        ``received_date`` so separate receipts are never collapsed into one
+        call. A group's date is its earliest row date; rows keep their own
+        dates in the replay.
+        """
+        by_group: dict[object, list[PORowSnapshot]] = {}
+        for row in self.received_rows:
+            key: object = (
+                ("group", row.group_id)
+                if row.group_id is not None
+                else ("date", row.received_date)
+            )
+            by_group.setdefault(key, []).append(row)
+        groups = [
+            POReceiptGroup(
+                group_id=rows[0].group_id,
+                received_date=min(r.received_date for r in rows if r.received_date),
+                rows=tuple(rows),
+            )
+            for rows in by_group.values()
+        ]
+        return sorted(groups, key=lambda g: (g.received_date, g.group_id or 0))
+
+    def predicted_merges(self) -> list[list[PORowSnapshot]]:
+        """Rows the revert will merge, one list per merge key, lowest id first.
+
+        Katana keeps the lowest row id of a merged set. Singletons are
+        included so callers can treat every captured row uniformly.
+        """
+        by_key: dict[PORowMergeKey, list[PORowSnapshot]] = {}
+        for row in sorted(self.rows, key=lambda r: r.row_id):
+            by_key.setdefault(row.merge_key, []).append(row)
+        return list(by_key.values())
+
+    def cost_rows_for_group(self, group_id: int | None) -> list[POCostRowSnapshot]:
+        if group_id is None:
+            return []
+        return [c for c in self.cost_rows if c.group_id == group_id]
 
 
-def _batch_transactions_from_attrs(value: Any) -> list[PORowBatchSnapshot]:
+def _batch_transactions_from_attrs(value: Any) -> tuple[PORowBatchSnapshot, ...]:
     """Extract batch-transaction snapshots from the persisted entity."""
     items = unwrap_unset(value, None)
     if not items:
-        return []
+        return ()
     out: list[PORowBatchSnapshot] = []
     for item in items:
         qty = unwrap_unset(getattr(item, "quantity", UNSET), None)
@@ -365,51 +485,113 @@ def _batch_transactions_from_attrs(value: Any) -> list[PORowBatchSnapshot]:
                 quantity=float(qty),
             )
         )
-    return out
+    return tuple(out)
 
 
-def snapshot_po_close_state(po: RegularPurchaseOrder) -> POCloseState:
-    """Build a :class:`POCloseState` from a fetched PO.
+def _optional_int(value: Any) -> int | None:
+    value = unwrap_unset(value, None)
+    return value if isinstance(value, int) else None
 
-    Walks ``po.purchase_order_rows`` and captures every row that has a
-    non-null ``received_date``. Rows where ``received_date`` is null are
-    skipped — they're already in the "open" state and don't need replay
-    after the reopen.
 
-    Note: the receive endpoint splits a partially-received row into a
-    received row + an unreceived remnant row at receipt time. Both rows
-    persist after reopen (the reopen clears each one's ``received_date``
-    but doesn't merge them), so a PARTIALLY_RECEIVED PO with one
-    user-created row may carry two rows in the snapshot — the previously-
-    received split (with its full receipt detail) and the previously-
-    unreceived split (skipped here).
+def _optional_float(value: Any) -> float | None:
+    value = unwrap_unset(value, None)
+    return float(value) if isinstance(value, int | float) else None
+
+
+def _optional_str(value: Any) -> str | None:
+    value = unwrap_unset(value, None)
+    return value if isinstance(value, str) else None
+
+
+def snapshot_po_row(row: Any) -> PORowSnapshot | None:
+    """Capture one ``PurchaseOrderRow``; ``None`` for deleted rows and rows
+    without id or quantity."""
+    qty = unwrap_unset(getattr(row, "quantity", UNSET), None)
+    row_id = unwrap_unset(getattr(row, "id", UNSET), None)
+    if qty is None or qty <= 0 or not isinstance(row_id, int):
+        return None
+    if unwrap_unset(getattr(row, "deleted_at", UNSET), None) is not None:
+        return None
+    return PORowSnapshot(
+        row_id=row_id,
+        variant_id=_optional_int(getattr(row, "variant_id", UNSET)),
+        quantity=float(qty),
+        price_per_unit=_optional_float(getattr(row, "price_per_unit", UNSET)),
+        tax_rate_id=_optional_int(getattr(row, "tax_rate_id", UNSET)),
+        purchase_uom=_optional_str(getattr(row, "purchase_uom", UNSET)),
+        purchase_uom_conversion_rate=_optional_float(
+            getattr(row, "purchase_uom_conversion_rate", UNSET)
+        ),
+        currency=_optional_str(getattr(row, "currency", UNSET)),
+        conversion_rate=_optional_float(getattr(row, "conversion_rate", UNSET)),
+        arrival_date=unwrap_unset(getattr(row, "arrival_date", UNSET), None),
+        location_id=_optional_int(getattr(row, "location_id", UNSET)),
+        received_date=unwrap_unset(getattr(row, "received_date", UNSET), None),
+        group_id=_optional_int(getattr(row, "group_id", UNSET)),
+        batch_transactions=_batch_transactions_from_attrs(
+            getattr(row, "batch_transactions", UNSET)
+        ),
+    )
+
+
+def snapshot_po_cost_row(
+    cost_row: PurchaseOrderAdditionalCostRow,
+) -> POCostRowSnapshot | None:
+    """Capture one additional cost row; ``None`` when a required field is missing."""
+    group_id = _optional_int(cost_row.group_id)
+    additional_cost_id = _optional_int(cost_row.additional_cost_id)
+    tax_rate_id = _optional_int(cost_row.tax_rate_id)
+    price = _optional_float(cost_row.price)
+    if (
+        group_id is None
+        or additional_cost_id is None
+        or tax_rate_id is None
+        or price is None
+    ):
+        return None
+    return POCostRowSnapshot(
+        cost_row_id=cost_row.id,
+        group_id=group_id,
+        additional_cost_id=additional_cost_id,
+        tax_rate_id=tax_rate_id,
+        price=price,
+        distribution_method=_optional_str(cost_row.distribution_method),
+        reference=_optional_str(cost_row.reference),
+        currency=_optional_str(cost_row.currency),
+        currency_conversion_rate=_optional_float(cost_row.currency_conversion_rate),
+    )
+
+
+def snapshot_po_close_state(
+    po: RegularPurchaseOrder,
+    cost_rows: Sequence[PurchaseOrderAdditionalCostRow] = (),
+) -> POCloseState:
+    """Build a :class:`POCloseState` from a fetched PO and its cost rows.
+
+    Every row is captured, received or open: the received ones are replayed
+    into their groups, the open ones are needed to complete a
+    PARTIALLY_RECEIVED order before the revert (which Katana otherwise
+    refuses) and to rebuild the row structure afterwards. ``cost_rows`` are
+    the additional cost rows attached to the captured receipt groups.
     """
     status_enum = unwrap_unset(po.status, None)
     status = status_enum.value if status_enum is not None else ""
-
-    rows = unwrap_unset(po.purchase_order_rows, None) or []
-    receipts: list[PORowReceiptSnapshot] = []
-    for row in rows:
-        received_date = unwrap_unset(getattr(row, "received_date", UNSET), None)
-        if received_date is None:
-            continue
-        qty = unwrap_unset(getattr(row, "quantity", UNSET), None)
-        if qty is None or qty <= 0:
-            continue
-        row_id = unwrap_unset(getattr(row, "id", UNSET), None)
-        if not isinstance(row_id, int):
-            continue
-        variant_id = unwrap_unset(getattr(row, "variant_id", UNSET), None)
-        receipts.append(
-            PORowReceiptSnapshot(
-                purchase_order_row_id=row_id,
-                quantity=float(qty),
-                received_date=received_date,
-                variant_id=variant_id if isinstance(variant_id, int) else None,
-                batch_transactions=_batch_transactions_from_attrs(
-                    getattr(row, "batch_transactions", UNSET)
-                ),
-            )
-        )
-
-    return POCloseState(status=status, receipts=receipts)
+    rows = [
+        snapshot
+        for row in (unwrap_unset(po.purchase_order_rows, None) or [])
+        if (snapshot := snapshot_po_row(row)) is not None
+    ]
+    costs: list[POCostRowSnapshot] = []
+    skipped: list[int] = []
+    for cost_row in cost_rows:
+        snapshot = snapshot_po_cost_row(cost_row)
+        if snapshot is None:
+            skipped.append(cost_row.id)
+        else:
+            costs.append(snapshot)
+    return POCloseState(
+        status=status,
+        rows=tuple(rows),
+        cost_rows=tuple(costs),
+        skipped_cost_row_ids=tuple(skipped),
+    )
