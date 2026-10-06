@@ -1,0 +1,41 @@
+name: Finalize draft release
+description: >-
+  Attach build artifacts to a draft GitHub release, then publish it. The order
+  is load-bearing: a published release is immutable, so assets must be
+  attached while it is still a draft.
+
+inputs:
+  tag:
+    description: Release tag (e.g. mcp-v1.2.3).
+    required: true
+  assets:
+    description: >-
+      Space-separated file paths or globs, relative to the repository root
+      (composite steps don't inherit a job's working-directory default).
+    required: true
+  token:
+    description: Token with contents:write on this repository.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Attach build artifacts to draft release
+      shell: bash
+      # Inputs go through env, never inline ${{ }} in run (zizmor:
+      # template-injection). ASSETS is deliberately unquoted so the shell
+      # expands the globs.
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        RELEASE_TAG: ${{ inputs.tag }}
+        ASSETS: ${{ inputs.assets }}
+      run: |
+        # shellcheck disable=SC2086
+        gh release upload "$RELEASE_TAG" $ASSETS --clobber
+
+    - name: Publish the (now immutable) release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        RELEASE_TAG: ${{ inputs.tag }}
+      run: gh release edit "$RELEASE_TAG" --draft=false

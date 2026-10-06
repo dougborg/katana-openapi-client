@@ -1,6 +1,7 @@
 name: zizmor
 
-# Static analysis of our own GitHub Actions workflows (zizmor). Catches
+# Static analysis of our own GitHub Actions workflows and local composite
+# actions (zizmor). Catches
 # template injection, excessive token permissions, credential persistence,
 # dangerous triggers, and unpinned actions before they reach main.
 #
@@ -13,11 +14,13 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/**"
+      - ".github/actions/**"
       - ".github/zizmor.yml"
   pull_request:
     branches: [main]
     paths:
       - ".github/workflows/**"
+      - ".github/actions/**"
       - ".github/zizmor.yml"
   schedule:
     # Weekly, alongside the other security scans.
@@ -55,6 +58,7 @@ jobs:
         # GH_TOKEN enables zizmor's online audits (e.g. known-vulnerable actions).
         run: >-
           uvx zizmor@1.25.2 --persona regular --format sarif .github/workflows/
+          .github/actions/
           > zizmor.sarif
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
