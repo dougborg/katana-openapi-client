@@ -9,6 +9,7 @@ import {
   createPaginatedFetch,
   extractPaginationInfo,
   hasExplicitPageParam,
+  normalizePaginationValues,
 } from '../../src/transport/pagination.js';
 
 describe('hasExplicitPageParam', () => {
@@ -456,5 +457,175 @@ describe('createPaginatedFetch', () => {
       // Should use default limit=250 and add page=1
       expect(mockFetch).toHaveBeenCalledWith('/products?page=1&limit=250', undefined);
     });
+  });
+});
+
+describe('normalizePaginationValues', () => {
+  it('converts numeric strings to integers and boolean strings to booleans', () => {
+    expect(
+      normalizePaginationValues({
+        page: '5',
+        total_pages: '41',
+        total_records: 1000.0,
+        first_page: 'false',
+        last_page: 'TRUE',
+      })
+    ).toEqual({
+      page: 5,
+      total_pages: 41,
+      total_records: 1000,
+      first_page: false,
+      last_page: true,
+    });
+  });
+
+  it('drops unparseable values so fallbacks apply', () => {
+    expect(normalizePaginationValues({ page: 'abc', last_page: 'maybe', other: 'x' })).toEqual({
+      other: 'x',
+    });
+  });
+
+  it('normalises Katana X-Pagination string values via extractPaginationInfo', () => {
+    const headers = new Headers({
+      'X-Pagination': JSON.stringify({ total_pages: '41', page: '5', last_page: 'false' }),
+    });
+    expect(extractPaginationInfo(headers, {})).toEqual({
+      total_pages: 41,
+      page: 5,
+      last_page: false,
+    });
+  });
+
+  it('ignores a non-object X-Pagination header', () => {
+    const headers = new Headers({ 'X-Pagination': '[1,2]', 'X-Total-Pages': '3' });
+    expect(extractPaginationInfo(headers, {})).toEqual({ total_pages: 3 });
+  });
+});
+
+describe('createPaginatedFetch — Python PaginationTransport parity', () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+  });
+
+  function page(body: unknown, headers: Record<string, string> = {}, status = 200): Response {
+    return new Response(JSON.stringify(body), { status, headers });
+  }
+
+  it('returns a single-resource response untouched (no pagination envelope)', async () => {
+    mockFetch.mockResolvedValueOnce(page({ id: 1, name: 'Widget' }, { 'X-Custom': 'kept' }));
+
+    const response = await createPaginatedFetch(mockFetch)('https://api.example.com/products/1');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toEqual({ id: 1, name: 'Widget' });
+    expect(response.headers.get('X-Custom')).toBe('kept');
+  });
+
+  it('keeps extra top-level fields of an unpaginated list response', async () => {
+    mockFetch.mockResolvedValueOnce(page({ data: [{ id: 1 }], meta: { note: 'hi' } }));
+
+    const response = await createPaginatedFetch(mockFetch)('https://api.example.com/things');
+
+    expect(await response.json()).toEqual({ data: [{ id: 1 }], meta: { note: 'hi' } });
+  });
+
+  it('truncates an unpaginated list to maxItems, preserving its shape', async () => {
+    mockFetch.mockResolvedValueOnce(page({ data: [1, 2, 3, 4], extra: true }));
+    mockFetch.mockResolvedValueOnce(page([1, 2, 3, 4]));
+    const paginated = createPaginatedFetch(mockFetch, { pagination: { maxItems: 2 } });
+
+    expect(await (await paginated('https://api.example.com/a')).json()).toEqual({
+      data: [1, 2],
+      extra: true,
+    });
+    expect(await (await paginated('https://api.example.com/b')).json()).toEqual([1, 2]);
+  });
+
+  it('preserves a raw-array body shape when combining pages', async () => {
+    mockFetch
+      .mockResolvedValueOnce(page([{ id: 1 }], { 'X-Pagination': '{"page":1,"total_pages":2}' }))
+      .mockResolvedValueOnce(page([{ id: 2 }], { 'X-Pagination': '{"page":2,"total_pages":2}' }));
+
+    const response = await createPaginatedFetch(mockFetch)('https://api.example.com/bin_locations');
+
+    expect(await response.json()).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it('compares string page counts numerically ("5" vs "41")', async () => {
+    mockFetch.mockImplementation((input: string) => {
+      const pageNum = Number(new URL(input).searchParams.get('page'));
+      return Promise.resolve(
+        page(
+          { data: [{ id: pageNum }] },
+          { 'X-Pagination': JSON.stringify({ page: String(pageNum), total_pages: '41' }) }
+        )
+      );
+    });
+
+    const response = await createPaginatedFetch(mockFetch, {
+      pagination: { maxPages: 6 },
+    })('https://api.example.com/products');
+
+    // A lexicographic compare would stop at page 5 ("5" >= "41").
+    expect(mockFetch).toHaveBeenCalledTimes(6);
+    const body = await response.json();
+    expect(body.pagination.collected_pages).toBe(6);
+  });
+
+  it('returns a non-200 success status as-is (only 200 is paginated)', async () => {
+    mockFetch.mockResolvedValueOnce(page({ data: [] }, {}, 203));
+    const response = await createPaginatedFetch(mockFetch)('https://api.example.com/products');
+    expect(response.status).toBe(203);
+  });
+
+  it('returns a non-JSON page with its body still readable', async () => {
+    mockFetch.mockResolvedValueOnce(new Response('plain text', { status: 200 }));
+    const response = await createPaginatedFetch(mockFetch)('https://api.example.com/export');
+    expect(await response.text()).toBe('plain text');
+  });
+
+  it('returns an error page mid-pagination as-is', async () => {
+    mockFetch
+      .mockResolvedValueOnce(page({ data: [{ id: 1 }], pagination: { page: 1, total_pages: 3 } }))
+      .mockResolvedValueOnce(page({ message: 'boom' }, {}, 500));
+    const response = await createPaginatedFetch(mockFetch)('https://api.example.com/products');
+    expect(response.status).toBe(500);
+  });
+
+  it('paginates a GET Request (SDK style), keeping headers and other params', async () => {
+    mockFetch
+      .mockResolvedValueOnce(page({ data: [{ id: 1 }], pagination: { page: 1, total_pages: 2 } }))
+      .mockResolvedValueOnce(page({ data: [{ id: 2 }], pagination: { page: 2, total_pages: 2 } }));
+    const request = new Request('https://api.example.com/products?ids=1&ids=2', {
+      headers: { Authorization: 'Bearer k' },
+    });
+
+    const response = await createPaginatedFetch(mockFetch)(request);
+
+    const sent = mockFetch.mock.calls.map(([input]) => input as Request);
+    expect(sent[1].url).toBe('https://api.example.com/products?ids=1&ids=2&page=2&limit=250');
+    expect(sent[1].headers.get('Authorization')).toBe('Bearer k');
+    expect((await response.json()).data).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it('never paginates a POST Request (SDK style)', async () => {
+    mockFetch.mockResolvedValueOnce(page({ id: 1 }));
+    const request = new Request('https://api.example.com/products', { method: 'POST', body: '{}' });
+
+    await createPaginatedFetch(mockFetch)(request);
+
+    expect(mockFetch).toHaveBeenCalledWith(request, undefined);
+  });
+
+  it('reports collected_pages equal to maxPages when the cap is hit', async () => {
+    mockFetch.mockImplementation(() =>
+      Promise.resolve(page({ data: [{ id: 1 }], pagination: { total_pages: 99 } }))
+    );
+    const response = await createPaginatedFetch(mockFetch, { pagination: { maxPages: 3 } })(
+      'https://api.example.com/products'
+    );
+    expect((await response.json()).pagination.collected_pages).toBe(3);
   });
 });
