@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.121.3](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.121.2...mcp-v0.121.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* **mcp:** rebuild purchase order rows and replay receipt groups in correct_purchase_order ([dc1a0d9](https://github.com/dougborg/katana-openapi-client/commit/dc1a0d9d4e0cee918a6dd2c1a8ef1b2cc48a0698))
+* **mcp:** store typed-cache datetimes as aware UTC for sqlmodel 0.0.47 ([1fe8ef9](https://github.com/dougborg/katana-openapi-client/commit/1fe8ef930da52975329ea39385c93be67160e3d3))
+
 ## [0.121.2](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.121.1...mcp-v0.121.2) (2026-10-06)
 
 
