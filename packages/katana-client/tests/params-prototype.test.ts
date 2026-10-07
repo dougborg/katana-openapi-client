@@ -29,7 +29,7 @@ describe('buildClientParams prototype safety (GHSA-hhx9-57xq-r5rw)', () => {
     expect(query.q).toBe('hello');
     expect(Object.getPrototypeOf(query)).not.toBe(injected);
     expect(query.isAdmin).toBeUndefined();
-    expect(Object.hasOwn(query, '__proto__')).toBe(true);
+    expect(Object.getOwnPropertyNames(query)).toContain('__proto__');
     expect(Object.prototype).not.toHaveProperty('isAdmin');
   });
 
@@ -42,7 +42,7 @@ describe('buildClientParams prototype safety (GHSA-hhx9-57xq-r5rw)', () => {
         unknown
       >;
 
-      expect(Object.hasOwn(slot, '__proto__')).toBe(true);
+      expect(Object.getOwnPropertyNames(slot)).toContain('__proto__');
       expect(slot.x).toBeUndefined();
     }
   );

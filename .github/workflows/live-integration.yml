@@ -26,9 +26,10 @@ name: Live integration
 # the job summary + an uploaded artifact; a red suite does not block. Promote
 # to a hard gate once the suite is proven stable on the test tenant.
 #
-# Two jobs: the client live suite (`poe test-integration-live`) and the MCP
-# server smoke suite (`poe test-smoke-mcp`, Phase 4 of #837). They share the
-# gating / secret / soft-fail contract but report independently.
+# Three jobs: the client live suite (`poe test-integration-live`), the MCP
+# server smoke suite (`poe test-smoke-mcp`, Phase 4 of #837), and the
+# TypeScript client live suite (`pnpm test:live`). They share the gating /
+# secret / soft-fail contract but report independently.
 
 on:
   schedule:
@@ -187,5 +188,84 @@ jobs:
             echo
             echo '```'
             cat mcp-smoke-report.txt 2>/dev/null || echo "(no report)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  typescript-live:
+    # Live smoke tests for the TypeScript client's public SDK path
+    # (`pnpm test:live` in packages/katana-client). Same gating / secret /
+    # soft-fail contract as the Python jobs above, reported independently.
+    # The suite reads only KATANA_TEST_API_KEY / KATANA_TEST_BASE_URL and
+    # skips (green) when the key is absent.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    runs-on: ubuntu-latest
+    env:
+      KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
+      KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+    defaults:
+      run:
+        working-directory: packages/katana-client
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        # Reads the pnpm version from `packageManager` in the package's package.json.
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: packages/katana-client/package.json
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: packages/katana-client/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Warn when the test key is absent
+        if: env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo "::notice title=TS live tests skipped::KATANA_TEST_API_KEY is not \
+          set, so the TypeScript live suite will skip. Set it with \`gh secret \
+          set KATANA_TEST_API_KEY\` to exercise the test tenant."
+
+      - name: Run TypeScript live tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          # pipefail so the step reflects vitest's exit code, not tee's.
+          set -o pipefail
+          pnpm test:live | tee typescript-live-report.txt
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: typescript-live-report
+          path: packages/katana-client/typescript-live-report.txt
+          retention-days: 30
+
+      - name: Render summary
+        if: always()
+        run: |
+          {
+            echo "# TypeScript client live"
+            echo
+            if [ -z "$KATANA_TEST_API_KEY" ]; then
+              echo "> \`KATANA_TEST_API_KEY\` is not set — the suite skipped."
+              echo "> Set the repo secret to exercise the test tenant."
+              echo
+            fi
+            echo '## `pnpm test:live`'
+            echo
+            echo '```'
+            cat typescript-live-report.txt 2>/dev/null || echo "(no report)"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

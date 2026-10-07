@@ -5,10 +5,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createResilientFetch } from '../../src/transport/resilient.js';
 import { createTimeoutFetch } from '../../src/transport/timeout.js';
+import type { MockFetch } from '../helpers/mockFetch.js';
 
 /** A fetch that never answers on its own, but rejects with the signal's reason on abort. */
-function hangingFetch(): ReturnType<typeof vi.fn> {
-  return vi.fn(
+function hangingFetch(): MockFetch {
+  return vi.fn<typeof fetch>(
     (_input: RequestInfo | URL, init?: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
@@ -27,7 +28,7 @@ describe('createTimeoutFetch', () => {
 
   it('rejects with a TimeoutError once timeoutMs elapses', async () => {
     const base = hangingFetch();
-    const timed = createTimeoutFetch(base as unknown as typeof fetch, 1000);
+    const timed = createTimeoutFetch(base, 1000);
 
     const pending = timed('https://api.example.com/x');
     const assertion = expect(pending).rejects.toMatchObject({ name: 'TimeoutError' });
@@ -38,8 +39,8 @@ describe('createTimeoutFetch', () => {
   });
 
   it('passes the response through when it arrives in time and clears the timer', async () => {
-    const base = vi.fn().mockResolvedValue(new Response('ok'));
-    const timed = createTimeoutFetch(base as unknown as typeof fetch, 1000);
+    const base = vi.fn<typeof fetch>().mockResolvedValue(new Response('ok'));
+    const timed = createTimeoutFetch(base, 1000);
 
     const response = await timed('https://api.example.com/x');
 
@@ -49,7 +50,7 @@ describe('createTimeoutFetch', () => {
 
   it('forwards a caller abort with its own reason (not a TimeoutError)', async () => {
     const base = hangingFetch();
-    const timed = createTimeoutFetch(base as unknown as typeof fetch, 10_000);
+    const timed = createTimeoutFetch(base, 10_000);
     const controller = new AbortController();
 
     const pending = timed('https://api.example.com/x', { signal: controller.signal });
@@ -60,7 +61,7 @@ describe('createTimeoutFetch', () => {
 
   it('reads the caller signal from a Request (SDK call style)', async () => {
     const base = hangingFetch();
-    const timed = createTimeoutFetch(base as unknown as typeof fetch, 10_000);
+    const timed = createTimeoutFetch(base, 10_000);
     const controller = new AbortController();
 
     const pending = timed(new Request('https://api.example.com/x', { signal: controller.signal }));
@@ -75,11 +76,11 @@ describe('createTimeoutFetch', () => {
 
   it('a timed-out attempt is retried by the resilient layer', async () => {
     const base = vi
-      .fn()
+      .fn<typeof fetch>()
       .mockImplementationOnce(hangingFetch())
       .mockResolvedValueOnce(new Response('ok'));
     const chain = createResilientFetch({
-      baseFetch: createTimeoutFetch(base as unknown as typeof fetch, 1000),
+      baseFetch: createTimeoutFetch(base, 1000),
       retry: { backoffJitter: 0 },
     });
 
@@ -94,7 +95,7 @@ describe('createTimeoutFetch', () => {
   it('a caller abort is NOT retried by the resilient layer', async () => {
     const base = hangingFetch();
     const chain = createResilientFetch({
-      baseFetch: createTimeoutFetch(base as unknown as typeof fetch, 10_000),
+      baseFetch: createTimeoutFetch(base, 10_000),
     });
     const controller = new AbortController();
 

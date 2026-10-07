@@ -47,6 +47,16 @@ The TypeScript client follows the same testing principles as the Python client:
 - Authentication flow through SDK
 - Auto-pagination through SDK
 
+**`tests/responses.test.ts`** - Response Helper Tests
+
+- `unwrap` / `unwrapData` / `isSuccess` / `isError` / `getErrorMessage` over real SDK
+  results
+- Status → error-class mapping, 204 no-content, list envelopes and bare arrays
+- Type-level inference (`expectTypeOf`), checked by `pnpm run typecheck`
+
+**`tests/live/*.live.test.ts`** - Live smoke tests against the test tenant (see
+[Live Tests](#live-tests-test-tenant); not part of `pnpm test`)
+
 ## Running Tests
 
 ### Development Workflow
@@ -202,14 +212,14 @@ describe('parseError', () => {
 The client accepts a custom `fetch` function, making it easy to mock:
 
 ```typescript
-import { vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
+import { createMockFetch, type MockFetch, sentHeaders } from './helpers/mockFetch.js';
 
 describe('KatanaClient', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch(); // vi.fn<typeof fetch>()
   });
 
   it('should add Authorization header', async () => {
@@ -224,11 +234,18 @@ describe('KatanaClient', () => {
 
     await client.get('/products');
 
-    const [, options] = mockFetch.mock.calls[0];
-    expect(options.headers.get('Authorization')).toBe('Bearer test-key');
+    expect(sentHeaders(mockFetch).get('Authorization')).toBe('Bearer test-key');
   });
 });
 ```
+
+Test files are typechecked (`pnpm run typecheck` uses `tsconfig.typecheck.json`, which
+covers `src/` and `tests/`), so keep mocks typed: use `createMockFetch()` (a
+`vi.fn<typeof fetch>()`) rather than a bare `vi.fn()`, and read what a call sent through
+the helpers in `tests/helpers/mockFetch.ts` — `fetchCall`, `sentUrl`, `sentHeaders`,
+`sentRequest` — which handle both the `fetch(url, init)` and the SDK's `fetch(request)`
+call styles. Narrow error subclasses with `expectInstance(value, Class)`
+(`tests/helpers/assert.ts`) instead of an `as` cast.
 
 ### Using Fake Timers
 
@@ -334,62 +351,55 @@ describe('create', () => {
 });
 ```
 
-## Integration Tests
+## Live Tests (Test Tenant)
 
-Integration tests require a real API key and hit the actual Katana API.
-
-### Running Integration Tests
+`tests/live/*.live.test.ts` exercise the **public SDK path** (`KatanaClient` + generated
+SDK functions) against a real Katana **test tenant**: a single-resource GET, a
+multi-page auto-paginated list, and a create → read back → PATCH → DELETE round-trip.
+They are excluded from `pnpm test` and run with:
 
 ```bash
-# Set API key
-export KATANA_API_KEY=your-api-key
-
-# Run integration tests
-npm test -- --grep "integration"
+pnpm test:live
 ```
 
-### Writing Integration Tests
+**Safety model** — the TypeScript twin of the Python client's `make_test_client()` (see
+[`tests/integration/README.md`](../../../tests/integration/README.md)):
+
+- `makeTestClient()` (`tests/live/testClient.ts`) reads **only** `KATANA_TEST_API_KEY`
+  (required) and `KATANA_TEST_BASE_URL` (optional). It **never** falls back to
+  `KATANA_API_KEY`: the test tenant shares the production base URL and differs only by
+  key, so a fallback would point write tests at production.
+- Values come from the environment, then from the nearest `.env` walking up (the
+  repo-root `.env`). Only `KATANA_TEST_*` keys are read from it and `process.env` is
+  never modified.
+- With no `KATANA_TEST_API_KEY` the suite **skips** (exit 0) instead of failing.
+
+**Write tests** follow the SDT contract: tag every created entity with `sdtTag('NAME')`
+(`SDT-<date>-<run>-NAME`, the Python suite's format) and delete it in a `finally`, so
+cleanup runs even when an assertion fails.
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { KatanaClient } from '../src/client.js';
-
-describe('Integration Tests', () => {
-  const apiKey = process.env.KATANA_API_KEY;
-  const runIntegration = apiKey ? it : it.skip;
-
-  runIntegration('should fetch products from real API', async () => {
-    const client = KatanaClient.withApiKey(apiKey!, {
-      pagination: { maxItems: 5 },
-    });
-
-    const response = await client.get('/products');
-    expect(response.ok).toBe(true);
-
-    const { data } = await response.json();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeLessThanOrEqual(5);
-  });
-
-  runIntegration('should handle rate limiting', async () => {
-    const client = KatanaClient.withApiKey(apiKey!, {
-      retry: { maxRetries: 3 },
-    });
-
-    // Make multiple rapid requests to potentially trigger rate limiting
-    const responses = await Promise.all([
-      client.get('/products', { limit: 1 }),
-      client.get('/variants', { limit: 1 }),
-      client.get('/stock', { limit: 1 }),
-    ]);
-
-    // All should succeed (retries handle rate limits)
-    for (const response of responses) {
-      expect(response.ok).toBe(true);
+describe.skipIf(!hasTestCredentials())('live: suppliers', () => {
+  it('round-trips a supplier', async () => {
+    const katana = makeTestClient();
+    let id: number | undefined;
+    try {
+      const created = unwrap(
+        await createSupplier({ client: katana.sdk, body: { name: sdtTag('SUPPLIER') } })
+      );
+      id = created.id;
+      // ... read back, PATCH, DELETE ...
+    } finally {
+      if (id !== undefined) await deleteSupplier({ client: katana.sdk, path: { id } });
     }
   });
 });
 ```
+
+In CI the suite runs in the `typescript-live` job of
+[`live-integration.yml`](../../../.github/workflows/live-integration.yml) (nightly,
+manual dispatch, or PRs labelled `needs-live-test`), soft-fail like the Python live
+suite.
 
 ## Code Coverage
 
@@ -481,24 +491,33 @@ describe('Edge cases', () => {
 ### vitest.config.ts
 
 ```typescript
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // Live tests hit a real Katana tenant; they run only via `pnpm test:live`.
+    exclude: [...configDefaults.exclude, 'tests/live/**'],
     coverage: {
       provider: 'v8',
-      exclude: [
-        'src/generated/**',
-        'dist/**',
-        'node_modules/**',
-      ],
+      include: ['src/**/*.ts'],
+      exclude: ['src/generated/**', 'src/types.ts'],
+      reporter: ['text', 'json', 'html'],
     },
   },
 });
 ```
+
+`vitest.live.config.ts` runs only `tests/live/**/*.live.test.ts`, with generous timeouts
+(real network, rate limiting) and no file parallelism (one key's rate-limit budget).
+
+### Typechecking tests
+
+`pnpm run typecheck` runs `tsc -p tsconfig.typecheck.json`, which extends the build
+`tsconfig.json` (same strictness) but widens `rootDir` and includes `tests/`, so type
+drift in tests fails CI. The build itself (tsdown) is unaffected.
 
 ## Next Steps
 

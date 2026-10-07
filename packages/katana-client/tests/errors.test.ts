@@ -12,6 +12,7 @@ import {
   ServerError,
   ValidationError,
 } from '../src/errors.js';
+import { expectInstance } from './helpers/assert.js';
 
 describe('Error Classes', () => {
   describe('KatanaError', () => {
@@ -38,7 +39,7 @@ describe('Error Classes', () => {
     it('should store cause', () => {
       const cause = new Error('Original error');
       const error = new KatanaError('Wrapped error', { cause });
-      expect((error as unknown as { cause: Error }).cause).toBe(cause);
+      expect(error).toHaveProperty('cause', cause);
     });
   });
 
@@ -113,7 +114,7 @@ describe('Error Classes', () => {
     it('should store cause', () => {
       const cause = new Error('ECONNREFUSED');
       const error = new NetworkError('Network error', { cause });
-      expect((error as unknown as { cause: Error }).cause).toBe(cause);
+      expect(error).toHaveProperty('cause', cause);
     });
   });
 });
@@ -131,7 +132,7 @@ describe('parseError', () => {
     const response = new Response(null, { status: 429, headers });
     const error = parseError(response);
     expect(error).toBeInstanceOf(RateLimitError);
-    expect((error as RateLimitError).retryAfter).toBe(30);
+    expect(expectInstance(error, RateLimitError).retryAfter).toBe(30);
   });
 
   it("should parse a 422 from Katana's nested {error:{details}} envelope (live wire shape)", () => {
@@ -153,7 +154,7 @@ describe('parseError', () => {
         ],
       },
     };
-    const error = parseError(response, body) as ValidationError;
+    const error = expectInstance(parseError(response, body), ValidationError);
     expect(error).toBeInstanceOf(ValidationError);
     // Structured details preserved verbatim (the cross-runtime contract).
     expect(error.details).toHaveLength(1);
@@ -187,7 +188,7 @@ describe('parseError', () => {
         ],
       },
     };
-    const { message } = parseError(response, body) as ValidationError;
+    const { message } = expectInstance(parseError(response, body), ValidationError);
     expect(message).toContain("Field 'sku' must be at least 3 characters");
     expect(message).toContain("Field 'fieldType' must be one of: shortText, number");
     expect(message).toContain("Field 'price' must be >= 1");
@@ -203,7 +204,7 @@ describe('parseError', () => {
         details: [{ path: '/x', code: 'futureKeyword', message: 'nope', info: { detail: 1 } }],
       },
     };
-    const { message, details } = parseError(response, body) as ValidationError;
+    const { message, details } = expectInstance(parseError(response, body), ValidationError);
     expect(details).toHaveLength(1);
     expect(message).toContain("Field 'x': (futureKeyword) nope");
     expect(message).toContain('info:');
@@ -218,7 +219,7 @@ describe('parseError', () => {
         details: [{ path: '/name', code: 'maxLength', message: 'too long' }],
       },
     };
-    const { message } = parseError(response, body) as ValidationError;
+    const { message } = expectInstance(parseError(response, body), ValidationError);
     expect(message).not.toContain('undefined');
     expect(message).toContain("Field 'name': (maxLength) too long");
   });
@@ -231,13 +232,16 @@ describe('parseError', () => {
         details: [{ path: '.city', code: 'maxLength', message: 'too long', info: { limit: 10 } }],
       },
     };
-    const { message } = parseError(response, body) as ValidationError;
+    const { message } = expectInstance(parseError(response, body), ValidationError);
     expect(message).toContain("Field 'city' must not exceed 10 characters");
   });
 
   it('should not throw and yield empty details when 422 body lacks details', () => {
     const response = new Response(null, { status: 422 });
-    const error = parseError(response, { error: { message: 'bad input' } }) as ValidationError;
+    const error = expectInstance(
+      parseError(response, { error: { message: 'bad input' } }),
+      ValidationError
+    );
     expect(error).toBeInstanceOf(ValidationError);
     expect(error.details).toEqual([]);
     expect(error.message).toBe('bad input');

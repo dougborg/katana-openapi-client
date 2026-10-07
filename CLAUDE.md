@@ -560,8 +560,11 @@ SDT-tagging + cleanup contract any *write* test must follow. Phase 3 added the
 [`katana_mcp_server/tests/smoke/`](katana_mcp_server/tests/smoke/) — read-only MCP tool
 impls exercised through a real `Services` (client + typed cache), run via
 `uv run poe test-smoke-mcp` (marker `smoke`) and a parallel `mcp-smoke` job in the
-workflow. Track further progress on the
-[project board](https://github.com/users/dougborg/projects/5).
+workflow. The **TypeScript** client mirrors the contract in
+[`packages/katana-client/tests/live/`](packages/katana-client/tests/live/) —
+`makeTestClient()` reads only `KATANA_TEST_*`, the suite runs via `pnpm test:live`
+(excluded from `pnpm test`) and in a parallel `typescript-live` workflow job. Track
+further progress on the [project board](https://github.com/users/dougborg/projects/5).
 
 ## Detailed Documentation
 

@@ -9,8 +9,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
 import { createProduct, getAllProducts, getProduct } from '../src/generated/sdk.gen.js';
+import { createMockFetch, type MockFetch } from './helpers/mockFetch.js';
 
-type FetchArgs = [RequestInfo | URL, RequestInit | undefined];
+type FetchArgs = Parameters<typeof fetch>;
 
 /** Reconstruct the effective Request a mocked fetch received. */
 function requestOf(call: FetchArgs): Request {
@@ -24,14 +25,16 @@ function json(body: unknown, status = 200, headers: Record<string, string> = {})
   });
 }
 
+const WIDGET = { name: 'Widget', variants: [{ sku: 'W-1' }] };
+
 describe('SDK Integration', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
   const TEST_API_KEY = 'test-api-key-12345';
 
-  const calls = (): FetchArgs[] => mockFetch.mock.calls as FetchArgs[];
+  const calls = (): FetchArgs[] => mockFetch.mock.calls;
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch();
   });
 
   afterEach(() => {
@@ -41,7 +44,7 @@ describe('SDK Integration', () => {
   /** Client without proactive limiting / timeouts so tests stay synchronous-ish. */
   function client(options: Parameters<typeof KatanaClient.withApiKey>[1] = {}): KatanaClient {
     return KatanaClient.withApiKey(TEST_API_KEY, {
-      fetch: mockFetch as unknown as typeof fetch,
+      fetch: mockFetch,
       requestsPerMinute: null,
       timeoutMs: null,
       ...options,
@@ -95,7 +98,7 @@ describe('SDK Integration', () => {
       expect(requestOf(calls()[1]).url).toContain('page=2');
       // Auth survives the per-page Request rebuild.
       expect(requestOf(calls()[1]).headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
-      expect((result.data as { data: unknown[] }).data).toHaveLength(3);
+      expect(result.data?.data).toHaveLength(3);
     });
 
     it('should work with getConfig() helper', async () => {
@@ -120,7 +123,7 @@ describe('SDK Integration', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(requestOf(calls()[0]).url).toContain('limit=2');
-      expect((result.data as { data: unknown[] }).data).toHaveLength(2);
+      expect(result.data?.data).toHaveLength(2);
     });
   });
 
@@ -128,7 +131,7 @@ describe('SDK Integration', () => {
     it('sends SDK POSTs as POST with their JSON body and Content-Type, unpaginated', async () => {
       mockFetch.mockResolvedValueOnce(json({ id: 7, name: 'Widget' }));
 
-      const result = await createProduct({ client: client().sdk, body: { name: 'Widget' } });
+      const result = await createProduct({ client: client().sdk, body: WIDGET });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const request = requestOf(calls()[0]);
@@ -136,14 +139,14 @@ describe('SDK Integration', () => {
       expect(request.url).not.toContain('page=');
       expect(request.headers.get('Content-Type')).toBe('application/json');
       expect(request.headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
-      expect(await request.json()).toEqual({ name: 'Widget' });
+      expect(await request.json()).toEqual(WIDGET);
       expect(result.data).toEqual({ id: 7, name: 'Widget' });
     });
 
     it('does NOT retry an SDK POST on 503 (non-idempotent)', async () => {
       mockFetch.mockResolvedValue(json({ message: 'unavailable' }, 503));
 
-      const result = await createProduct({ client: client().sdk, body: { name: 'Widget' } });
+      const result = await createProduct({ client: client().sdk, body: WIDGET });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(result.response?.status).toBe(503);
@@ -155,7 +158,7 @@ describe('SDK Integration', () => {
         .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': '1' } }))
         .mockResolvedValueOnce(json({ id: 7, name: 'Widget' }));
 
-      const pending = createProduct({ client: client().sdk, body: { name: 'Widget' } });
+      const pending = createProduct({ client: client().sdk, body: WIDGET });
       await vi.advanceTimersByTimeAsync(1000);
       const result = await pending;
 
@@ -163,7 +166,7 @@ describe('SDK Integration', () => {
       for (const call of calls()) {
         const request = requestOf(call);
         expect(request.method).toBe('POST');
-        expect(await request.json()).toEqual({ name: 'Widget' });
+        expect(await request.json()).toEqual(WIDGET);
       }
       expect(result.response?.status).toBe(200);
     });

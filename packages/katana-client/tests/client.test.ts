@@ -7,14 +7,15 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
+import { createMockFetch, fetchCall, type MockFetch, sentHeaders } from './helpers/mockFetch.js';
 
 describe('KatanaClient', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
   const TEST_API_KEY = 'test-api-key-12345';
   const BASE_URL = 'https://api.katanamrp.com/v1';
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch();
   });
 
   describe('withApiKey', () => {
@@ -81,9 +82,9 @@ describe('KatanaClient', () => {
       await client.fetch('/products');
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [url, options] = mockFetch.mock.calls[0];
+      const [url] = fetchCall(mockFetch);
       expect(url).toBe(`${BASE_URL}/products`);
-      expect(options.headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
+      expect(sentHeaders(mockFetch).get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
     });
 
     it('should handle full URLs', async () => {
@@ -97,7 +98,7 @@ describe('KatanaClient', () => {
       });
       await client.fetch('https://other.api.com/endpoint');
 
-      const [url] = mockFetch.mock.calls[0];
+      const [url] = fetchCall(mockFetch);
       expect(url).toBe('https://other.api.com/endpoint');
     });
 
@@ -110,9 +111,7 @@ describe('KatanaClient', () => {
         method: 'POST',
         body: JSON.stringify({ name: 'Test Product' }),
       });
-
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.headers.get('Content-Type')).toBe('application/json');
+      expect(sentHeaders(mockFetch).get('Content-Type')).toBe('application/json');
     });
   });
 
@@ -164,9 +163,9 @@ describe('KatanaClient', () => {
       const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
       await client.get('/products');
 
-      const [url, options] = mockFetch.mock.calls[0];
+      const [url, options] = fetchCall(mockFetch);
       expect(url).toContain('/products');
-      expect(options.method).toBe('GET');
+      expect(options?.method).toBe('GET');
     });
 
     it('should make GET requests with query params', async () => {
@@ -176,7 +175,7 @@ describe('KatanaClient', () => {
       const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
       await client.get('/products', { category: 'widgets', active: true });
 
-      const [url] = mockFetch.mock.calls[0];
+      const [url] = fetchCall(mockFetch);
       expect(url).toContain('category=widgets');
       expect(url).toContain('active=true');
     });
@@ -188,9 +187,9 @@ describe('KatanaClient', () => {
       const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
       await client.post('/products', { name: 'New Product', sku: 'SKU-001' });
 
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.method).toBe('POST');
-      expect(options.body).toBe(JSON.stringify({ name: 'New Product', sku: 'SKU-001' }));
+      const [, options] = fetchCall(mockFetch);
+      expect(options?.method).toBe('POST');
+      expect(options?.body).toBe(JSON.stringify({ name: 'New Product', sku: 'SKU-001' }));
     });
 
     it('should make PUT requests', async () => {
@@ -200,8 +199,8 @@ describe('KatanaClient', () => {
       const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
       await client.put('/products/1', { name: 'Updated Product' });
 
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.method).toBe('PUT');
+      const [, options] = fetchCall(mockFetch);
+      expect(options?.method).toBe('PUT');
     });
 
     it('should make PATCH requests', async () => {
@@ -211,8 +210,8 @@ describe('KatanaClient', () => {
       const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
       await client.patch('/products/1', { name: 'Patched Product' });
 
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.method).toBe('PATCH');
+      const [, options] = fetchCall(mockFetch);
+      expect(options?.method).toBe('PATCH');
     });
 
     it('should make DELETE requests', async () => {
@@ -222,8 +221,8 @@ describe('KatanaClient', () => {
       const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
       await client.delete('/products/1');
 
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.method).toBe('DELETE');
+      const [, options] = fetchCall(mockFetch);
+      expect(options?.method).toBe('DELETE');
     });
   });
 
@@ -372,7 +371,7 @@ describe('KatanaClient', () => {
         timeoutMs: null,
       });
       await client.fetch('/products/1');
-      expect(mockFetch.mock.calls[0][1].signal).toBeUndefined();
+      expect(fetchCall(mockFetch)[1]?.signal).toBeUndefined();
     });
 
     it('aborts a request through the whole chain when the caller aborts', async () => {

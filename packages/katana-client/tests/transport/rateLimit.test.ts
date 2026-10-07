@@ -8,6 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRateLimitedFetch } from '../../src/transport/rateLimit.js';
+import { createMockFetch, type MockFetch } from '../helpers/mockFetch.js';
 
 /** Build a 200 Response, optionally carrying rate-limit headers. */
 function ok(headers?: Record<string, string>): Response {
@@ -22,10 +23,10 @@ const silentLogger = {
 };
 
 describe('createRateLimitedFetch', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch();
     vi.useFakeTimers();
   });
 
@@ -35,7 +36,7 @@ describe('createRateLimitedFetch', () => {
 
   it('allows a burst up to the bucket capacity immediately', async () => {
     mockFetch.mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
     });
 
@@ -48,7 +49,7 @@ describe('createRateLimitedFetch', () => {
   it('paces requests beyond the burst capacity as tokens refill', async () => {
     mockFetch.mockResolvedValue(ok());
     // capacity 2, refill 2 tokens / 1000ms => 1 token per 500ms.
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 2, windowMs: 1_000 },
     });
 
@@ -71,7 +72,7 @@ describe('createRateLimitedFetch', () => {
         ok({ 'X-Ratelimit-Remaining': '0', 'X-Ratelimit-Reset': String(reset) })
       )
       .mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
       logger: silentLogger,
     });
@@ -99,7 +100,7 @@ describe('createRateLimitedFetch', () => {
         ok({ 'X-Ratelimit-Remaining': '0', 'X-Ratelimit-Reset': String(later) })
       )
       .mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
       logger: silentLogger,
     });
@@ -126,7 +127,7 @@ describe('createRateLimitedFetch', () => {
       )
       .mockResolvedValue(ok());
     // capacity 10, refill 10 tokens / 1000ms => 1 token per 100ms.
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 10, windowMs: 1_000 },
       logger: silentLogger,
     });
@@ -156,7 +157,7 @@ describe('createRateLimitedFetch', () => {
         ok({ 'X-Ratelimit-Remaining': '0', 'X-Ratelimit-Reset': String(Date.now() + 2_000) })
       )
       .mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 1, windowMs: 1_000 },
       logger: silentLogger,
     });
@@ -183,12 +184,12 @@ describe('createRateLimitedFetch', () => {
 
   it('throws on non-positive rate-limit config', () => {
     expect(() =>
-      createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+      createRateLimitedFetch(mockFetch, {
         rateLimit: { requestsPerMinute: 0, windowMs: 60_000 },
       })
     ).toThrow(/must be positive/);
     expect(() =>
-      createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+      createRateLimitedFetch(mockFetch, {
         rateLimit: { requestsPerMinute: 60, windowMs: 0 },
       })
     ).toThrow(/must be positive/);
@@ -209,7 +210,7 @@ describe('createRateLimitedFetch', () => {
       .mockResolvedValueOnce(okH(5)) // after a full refill: must sync down again
       .mockResolvedValue(ok());
     // 60/min => 1 token/sec, so the in-test awaits don't refill meaningfully.
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
       logger: silentLogger,
     });
@@ -232,7 +233,7 @@ describe('createRateLimitedFetch', () => {
 
   it('is a no-op when rate-limit headers are absent', async () => {
     mockFetch.mockResolvedValue(ok()); // no rate-limit headers
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
     });
 
@@ -245,7 +246,7 @@ describe('createRateLimitedFetch', () => {
   it('treats malformed rate-limit headers as a no-op and warns', async () => {
     const warn = vi.fn();
     mockFetch.mockResolvedValue(ok({ 'X-Ratelimit-Remaining': 'abc', 'X-Ratelimit-Reset': 'xyz' }));
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
       logger: { ...silentLogger, warn },
     });
@@ -263,7 +264,7 @@ describe('createRateLimitedFetch', () => {
         ok({ 'X-Ratelimit-Remaining': '0', 'X-Ratelimit-Reset': String(stale) })
       )
       .mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 60, windowMs: 60_000 },
       logger: silentLogger,
     });
@@ -277,7 +278,7 @@ describe('createRateLimitedFetch', () => {
 
   it('stops waiting for a token when the caller aborts, without sending', async () => {
     mockFetch.mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       rateLimit: { requestsPerMinute: 1, windowMs: 60_000 },
     });
     await limited('https://api/x'); // drains the single token
@@ -299,7 +300,7 @@ describe('createRateLimitedFetch', () => {
         ok({ 'X-Ratelimit-Remaining': '0', 'X-Ratelimit-Reset': String(Date.now() + 10_000) })
       )
       .mockResolvedValue(ok());
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+    const limited = createRateLimitedFetch(mockFetch, {
       logger: silentLogger,
     });
     await limited('https://api/x'); // engages the gate
@@ -314,7 +315,7 @@ describe('createRateLimitedFetch', () => {
   });
 
   it('rejects immediately for an already-aborted signal', async () => {
-    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch);
+    const limited = createRateLimitedFetch(mockFetch);
     await expect(limited('https://api/x', { signal: AbortSignal.abort() })).rejects.toMatchObject({
       name: 'AbortError',
     });
