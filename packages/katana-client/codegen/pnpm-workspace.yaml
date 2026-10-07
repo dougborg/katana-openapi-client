@@ -1,0 +1,8 @@
+# pnpm settings for the isolated code generator (see package.json's description
+# and the client's docs/adr/0002-hey-api-code-generation.md). A single-package
+# project, not a workspace, so there is no `packages:` list.
+
+# js-yaml < 5.2.2 has a published advisory; @hey-api/openapi-ts pulls it in via
+# @hey-api/json-schema-ref-parser. Force the patched line until upstream bumps.
+overrides:
+  js-yaml: ^5.2.2

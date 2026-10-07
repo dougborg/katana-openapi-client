@@ -3266,8 +3266,8 @@ export type UpdateMaterialRequest = {
   purchase_uom_conversion_rate?: number;
   /**
    * When updating configs, all configs and values must be provided. Existing ones are matched,
-   *         new ones are created, and configs not provided in the update are deleted. Each config must
-   *         identify itself with either id or name.
+   * new ones are created, and configs not provided in the update are deleted. Each config must
+   * identify itself with either id or name.
    */
   configs?: Array<{
     /**
@@ -6389,7 +6389,7 @@ export type UpdateSalesOrderRowRequest = {
    *
    * - omit the ``custom_fields`` key — existing values unchanged;
    * - ``{"<id>": value}`` — that key is set / overwritten, all
-   *   other keys kept;
+   * other keys kept;
    * - ``null`` — all custom field values on the row are cleared.
    *
    * Keys are tenant-specific, so the schema declares
@@ -8544,9 +8544,9 @@ export type CustomFieldsCollectionListResponse = {
  * - ``boolean`` — ``true`` / ``false``
  * - ``url`` — string
  * - ``singleSelect`` — the integer choice ``id`` (not the label).
- *   Requires ``options.choices``; the server assigns each choice an
- *   integer ``id``. Resolve labels client-side from
- *   ``options.choices`` (soft-deleted choices remain in the array).
+ * Requires ``options.choices``; the server assigns each choice an
+ * integer ``id``. Resolve labels client-side from
+ * ``options.choices`` (soft-deleted choices remain in the array).
  *
  * Note: a ``multiSelect`` type has been announced on the Katana
  * roadmap but is **not yet live** — the API rejects it today, so it
@@ -10268,7 +10268,7 @@ export type UpdateSalesOrderRequest = {
    *
    * - omit the ``custom_fields`` key — existing values unchanged;
    * - ``{"<id>": value}`` — that key is set / overwritten, all
-   *   other keys kept;
+   * other keys kept;
    * - ``null`` — all custom field values on the order are cleared.
    *
    * Keys are tenant-specific, so the schema declares

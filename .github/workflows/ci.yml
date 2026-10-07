@@ -310,7 +310,9 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
-          cache-dependency-path: packages/katana-client/pnpm-lock.yaml
+          cache-dependency-path: |
+            packages/katana-client/pnpm-lock.yaml
+            packages/katana-client/codegen/pnpm-lock.yaml
 
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
@@ -346,6 +348,8 @@ jobs:
           # A spec change must leave the TS client regenerable + valid. We don't
           # byte-diff the result (cross-OS generator output isn't stable), but a
           # regenerated client that fails typecheck means the spec broke it.
+          # `generate` installs and runs the isolated generator in codegen/
+          # (TypeScript 6, frozen lockfile), then formats with the client's Biome.
           pnpm run generate
           pnpm run typecheck
         working-directory: packages/katana-client

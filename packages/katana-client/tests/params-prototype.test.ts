@@ -9,11 +9,9 @@
  * records with a null prototype, which turns `__proto__` into an ordinary own
  * key.
  *
- * The generator is pinned to a `0.0.0-next-*` nightly, which semver-sorts below
- * the advisory's patched version (0.97.3) no matter how new it is, so the
- * dependency-review gate cannot judge it by version. This test judges the
- * generated code directly; the GHSA is allow-listed in security.yml on the
- * strength of it. If a regeneration ever reintroduces the bug, this fails.
+ * The generator (codegen/, a patched stable release) is past the advisory's
+ * fixed version, but this test judges the generated code directly rather than
+ * the version number: if a regeneration ever reintroduces the bug, this fails.
  */
 
 import { describe, expect, it } from 'vitest';

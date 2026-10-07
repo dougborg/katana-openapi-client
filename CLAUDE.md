@@ -276,7 +276,10 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   `generate-pydantic` + `generate-ts`) instead of editing the generated paths directly.
   `generate-ts` needs the TS package's `node_modules` (`pnpm install --frozen-lockfile`
   in `packages/katana-client`, pinned by its committed `pnpm-lock.yaml`; pnpm itself is
-  pinned by `packageManager` in its `package.json`).
+  pinned by `packageManager` in its `package.json`). The generator itself runs in
+  `packages/katana-client/codegen/`, its own pnpm project with TypeScript 6, because
+  stable openapi-ts calls the compiler API TypeScript 7 removed; `generate` installs it
+  from its own frozen lockfile (ADR 0002 "Generator isolation").
 
   - **Two different CI gates, because the generators differ in determinism.** The Python
     generators are byte-identical across OSes, so the `generated-files` job regenerates

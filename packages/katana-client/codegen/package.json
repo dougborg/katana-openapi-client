@@ -1,0 +1,14 @@
+{
+  "name": "katana-client-codegen",
+  "private": true,
+  "description": "Isolated environment for generating packages/katana-client/src/generated with @hey-api/openapi-ts. The stable generator calls the TypeScript compiler API, which TypeScript 7 no longer exposes, so it runs here with TypeScript 6 while the client itself builds with TypeScript 7.",
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-ts"
+  },
+  "packageManager": "pnpm@11.28.4",
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "typescript": "6.0.3"
+  }
+}

@@ -34,7 +34,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "generate": "openapi-ts",
+    "generate": "pnpm --dir codegen install --frozen-lockfile && pnpm --dir codegen run generate && biome format --write src/generated",
     "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -71,7 +71,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
-    "@hey-api/openapi-ts": "next",
     "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "^5.0.3",
     "tsdown": "^0.23.0",
