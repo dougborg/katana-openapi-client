@@ -19,7 +19,9 @@ describe('KatanaClient', () => {
 
   describe('withApiKey', () => {
     it('should create client with explicit API key', () => {
+      vi.stubEnv('KATANA_BASE_URL', '');
       const client = KatanaClient.withApiKey(TEST_API_KEY);
+      vi.unstubAllEnvs();
       expect(client).toBeInstanceOf(KatanaClient);
       expect(client.getBaseUrl()).toBe(BASE_URL);
     });
@@ -314,6 +316,114 @@ describe('KatanaClient', () => {
 
       // Should stop at maxPages=2
       expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('resilience parity options', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+    });
+
+    function json(body: unknown, status = 200): Response {
+      return new Response(JSON.stringify(body), { status });
+    }
+
+    it('reads the base URL from KATANA_BASE_URL when no baseUrl option is given', () => {
+      vi.stubEnv('KATANA_BASE_URL', 'https://env.example.com/v1');
+      expect(KatanaClient.withApiKey(TEST_API_KEY).getBaseUrl()).toBe('https://env.example.com/v1');
+      expect(
+        KatanaClient.withApiKey(TEST_API_KEY, {
+          baseUrl: 'https://explicit.example.com',
+        }).getBaseUrl()
+      ).toBe('https://explicit.example.com');
+    });
+
+    it('times out a hung attempt after 30s by default and retries it', async () => {
+      vi.useFakeTimers();
+      mockFetch
+        .mockImplementationOnce(
+          (_input: RequestInfo | URL, init?: RequestInit) =>
+            new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+            })
+        )
+        .mockResolvedValueOnce(json({ id: 1 }));
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        requestsPerMinute: null,
+        retry: { backoffJitter: 0 },
+      });
+
+      const pending = client.fetch('/products/1');
+      await vi.advanceTimersByTimeAsync(29_999);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1 + 2_000); // timeout, then first backoff
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(await (await pending).json()).toEqual({ id: 1 });
+    });
+
+    it('sends no timeout signal when timeoutMs is null', async () => {
+      mockFetch.mockResolvedValueOnce(json({ id: 1 }));
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        requestsPerMinute: null,
+        timeoutMs: null,
+      });
+      await client.fetch('/products/1');
+      expect(mockFetch.mock.calls[0][1].signal).toBeUndefined();
+    });
+
+    it('aborts a request through the whole chain when the caller aborts', async () => {
+      vi.useFakeTimers();
+      mockFetch.mockResolvedValue(json({ message: 'down' }, 503));
+      const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch });
+      const controller = new AbortController();
+
+      const pending = client.fetch('/products/1', { signal: controller.signal });
+      const assertion = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+      await vi.advanceTimersByTimeAsync(100); // first attempt done, now backing off
+      controller.abort();
+
+      await assertion;
+      await vi.advanceTimersByTimeAsync(300_000);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports per-request pagination overrides on fetch() and get()', async () => {
+      mockFetch.mockImplementation(() =>
+        Promise.resolve(json({ data: [{ id: 1 }, { id: 2 }], pagination: { total_pages: 9 } }))
+      );
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        requestsPerMinute: null,
+      });
+
+      await client.fetch('/products', undefined, { autoPagination: false });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.mock.calls[0][0]).not.toContain('page=');
+
+      const limited = await client.get('/products', undefined, { maxItems: 3 });
+      expect((await limited.json()).data).toHaveLength(3);
+      expect(mockFetch).toHaveBeenCalledTimes(3); // 2 + 1 items over two pages
+    });
+
+    it('logs 4xx responses through the configured logger', async () => {
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+      mockFetch.mockResolvedValueOnce(json({ message: 'Product not found' }, 404));
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        requestsPerMinute: null,
+        logger,
+      });
+
+      const response = await client.get('/products/9');
+
+      expect(response.status).toBe(404);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Client error 404 for GET https://api.katanamrp.com/v1/products/9')
+      );
     });
   });
 });

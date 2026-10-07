@@ -81,7 +81,7 @@ node --env-file=.env your-script.js
 const client = await KatanaClient.create();
 ```
 
-### Node.js 18-20.5 (dotenv)
+### Node.js 20.0-20.5 (dotenv)
 
 For older Node.js versions, use dotenv:
 
@@ -102,15 +102,18 @@ Every API call through `KatanaClient` automatically includes retry logic:
 
 ### Smart Retries
 
-| Status Code      | GET/PUT/DELETE | POST/PATCH |
-| ---------------- | -------------- | ---------- |
-| 429 (Rate Limit) | Retry          | Retry      |
-| 502, 503, 504    | Retry          | No Retry   |
-| Other 4xx        | No Retry       | No Retry   |
-| Network Error    | Retry          | Retry      |
+| Status / failure                    | GET/HEAD/PUT/DELETE/OPTIONS/TRACE | POST/PATCH |
+| ----------------------------------- | --------------------------------- | ---------- |
+| 429 (Rate Limit)                    | Retry                             | Retry      |
+| 502, 503, 504                       | Retry                             | No Retry   |
+| Other 4xx / 5xx                     | No Retry                          | No Retry   |
+| Network error / per-attempt timeout | Retry                             | Retry      |
+| Caller abort (`signal`)             | No Retry                          | No Retry   |
 
 **Key behavior**: POST and PATCH requests are retried for rate limiting (429) because
-rate limits are transient and don't indicate idempotency issues.
+rate limits are transient and don't indicate idempotency issues. This is the same policy
+as the Python client (`RateLimitAwareRetry` on top of `httpx-retries`). Retries apply
+equally to `client.fetch()` calls and to generated SDK functions.
 
 ### Retry Configuration
 
@@ -118,23 +121,34 @@ rate limits are transient and don't indicate idempotency issues.
 const client = KatanaClient.withApiKey('your-api-key', {
   retry: {
     maxRetries: 5, // Default: 5
-    backoffFactor: 1.0, // Default: 1.0 (1s, 2s, 4s, 8s, 16s)
+    backoffFactor: 1.0, // Default: 1.0 (seconds)
+    backoffJitter: 1.0, // Default: 1.0 (full jitter; 0 = deterministic)
+    maxBackoffSeconds: 120, // Default: 120 (caps backoff AND Retry-After)
     respectRetryAfter: true, // Default: true
   },
+  timeoutMs: 30_000, // Default: 30000 per attempt; null disables
 });
 ```
 
 ### Exponential Backoff
 
-Retry delays follow exponential backoff:
+The n-th retry (n = 1, 2, …) waits up to `backoffFactor * 2^n` seconds — 2s, 4s, 8s,
+16s, 32s with the defaults — multiplied by a random factor in `[1 - backoffJitter, 1]`
+and capped at `maxBackoffSeconds`.
 
-- Attempt 0: 1 second
-- Attempt 1: 2 seconds
-- Attempt 2: 4 seconds
-- Attempt 3: 8 seconds
-- Attempt 4: 16 seconds
+A positive `Retry-After` header takes precedence, in either delta-seconds (`120`) or
+HTTP-date (`Wed, 21 Oct 2015 07:28:00 GMT`) form, also capped at `maxBackoffSeconds`.
 
-The client also respects the `Retry-After` header when present.
+### Timeouts and Cancellation
+
+Each attempt is aborted after `timeoutMs` (default 30s, time until response headers) and
+retried like a network error. Pass an `AbortSignal` to cancel a request: an abort stops
+backoff and rate-limit waits immediately, and is never retried.
+
+```typescript
+const controller = new AbortController();
+const response = await client.fetch('/products', { signal: controller.signal });
+```
 
 ### Proactive Rate Limiting
 
@@ -217,7 +231,20 @@ const client = KatanaClient.withApiKey('your-api-key', {
 
 // Or per-request with explicit page parameter
 const response = await client.get('/products', { page: 1 });
+
+// Or per-request overrides (third argument)
+const firstPage = await client.get('/products', undefined, { autoPagination: false });
+const first200 = await client.get('/products', undefined, { maxItems: 200 });
+
+// Same overrides for generated SDK calls, via the per-call `fetch` option
+const { data } = await getAllProducts({
+  client: client.sdk,
+  fetch: client.fetchWith({ maxItems: 200 }),
+});
 ```
+
+Responses without pagination metadata (e.g. `GET /products/{id}`) are returned
+untouched, and endpoints that return a bare JSON array keep that shape when combined.
 
 ### Pagination Behavior Summary
 
@@ -228,6 +255,8 @@ const response = await client.get('/products', { page: 1 });
 | `pagination.maxPages`   | Client | Max pages to fetch                                |
 | `pagination.maxItems`   | Client | Max total items to collect                        |
 | `autoPagination: false` | Client | Disable auto-pagination globally                  |
+| `{ autoPagination }`    | Call   | Per-request override (`fetch`/`get`/`fetchWith`)  |
+| `{ maxItems }`          | Call   | Per-request item cap (`fetch`/`get`/`fetchWith`)  |
 
 ## HTTP Methods
 
@@ -381,13 +410,21 @@ interface KatanaClientOptions {
   // API key for authentication
   apiKey?: string;
 
-  // Base URL (default: 'https://api.katanamrp.com/v1')
+  // Base URL (default: KATANA_BASE_URL env var, else 'https://api.katanamrp.com/v1')
   baseUrl?: string;
+
+  // Per-attempt timeout in ms (default: 30000; null disables)
+  timeoutMs?: number | null;
+
+  // Proactive rate limit (default: 60 req/min; null disables)
+  requestsPerMinute?: number | null;
 
   // Retry configuration
   retry?: {
     maxRetries?: number;        // Default: 5
     backoffFactor?: number;     // Default: 1.0
+    backoffJitter?: number;     // Default: 1.0 (full jitter)
+    maxBackoffSeconds?: number; // Default: 120
     retryStatusCodes?: number[]; // Default: [429, 502, 503, 504]
     respectRetryAfter?: boolean; // Default: true
   };
@@ -405,7 +442,7 @@ interface KatanaClientOptions {
   // Custom fetch function
   fetch?: typeof fetch;
 
-  // Logger for debugging
+  // Logger (e.g. console): retry/rate-limit/pagination events + every 4xx (except 429)
   logger?: {
     debug: (message: string, ...args: unknown[]) => void;
     info: (message: string, ...args: unknown[]) => void;

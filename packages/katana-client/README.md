@@ -8,9 +8,13 @@ features.
 
 ## Features
 
-- **Automatic Retries** - Exponential backoff with configurable retry limits
-- **Rate Limiting Awareness** - Respects 429 responses and `Retry-After` headers
+- **Automatic Retries** - Exponential backoff with jitter, `Retry-After` aware
+  (delta-seconds and HTTP-date), idempotency-safe method rules
+- **Proactive Rate Limiting** - Token bucket that adapts to `X-Ratelimit-*` headers
+- **Timeouts & Cancellation** - Per-attempt timeout plus `AbortSignal` support
 - **Auto-Pagination** - Automatically collects all pages for GET requests
+- **Same behaviour for every endpoint** - Resilience lives in the fetch layer, so
+  `client.fetch()` and every generated SDK function get it automatically
 - **Type Safety** - Full TypeScript types generated from OpenAPI spec
 - **Browser & Node.js** - Works in both environments
 - **Tree-Shakeable** - Only import what you need
@@ -90,10 +94,18 @@ const client = await KatanaClient.create({
   // Custom base URL (default: https://api.katanamrp.com/v1)
   baseUrl: 'https://api.katanamrp.com/v1',
 
+  // Per-attempt timeout in ms (default: 30000; null disables)
+  timeoutMs: 30_000,
+
+  // Proactive rate limit (default: 60 req/min; null disables)
+  requestsPerMinute: 60,
+
   // Retry configuration
   retry: {
     maxRetries: 5,           // Default: 5
-    backoffFactor: 1.0,      // Default: 1.0 (1s, 2s, 4s, 8s, 16s)
+    backoffFactor: 1.0,      // Default: 1.0 -> waits up to 2s, 4s, 8s, 16s, 32s
+    backoffJitter: 1.0,      // Default: 1.0 (full jitter; 0 = deterministic)
+    maxBackoffSeconds: 120,  // Default: 120 (caps backoff and Retry-After)
     respectRetryAfter: true, // Default: true
   },
 
@@ -106,6 +118,10 @@ const client = await KatanaClient.create({
 
   // Disable auto-pagination globally
   autoPagination: false,
+
+  // Optional logger (e.g. console): retry, rate-limit and pagination events,
+  // plus an error entry for every 4xx response except 429
+  logger: console,
 });
 ```
 
@@ -113,15 +129,30 @@ const client = await KatanaClient.create({
 
 The client implements the same retry strategy as the Python client:
 
-| Status Code      | GET/PUT/DELETE | POST/PATCH |
-| ---------------- | -------------- | ---------- |
-| 429 (Rate Limit) | Retry          | Retry      |
-| 502, 503, 504    | Retry          | No Retry   |
-| Other 4xx        | No Retry       | No Retry   |
-| Network Error    | Retry          | Retry      |
+| Status / failure                    | GET/HEAD/PUT/DELETE/OPTIONS/TRACE | POST/PATCH |
+| ----------------------------------- | --------------------------------- | ---------- |
+| 429 (Rate Limit)                    | Retry                             | Retry      |
+| 502, 503, 504                       | Retry                             | No Retry   |
+| Other 4xx / 5xx                     | No Retry                          | No Retry   |
+| Network error / per-attempt timeout | Retry                             | Retry      |
+| Caller abort (`signal`)             | No Retry                          | No Retry   |
 
 **Key behavior**: POST and PATCH requests are retried for rate limiting (429) because
 rate limits are transient and don't indicate idempotency issues.
+
+**Delays**: the n-th retry waits up to `backoffFactor * 2^n` seconds (full jitter), or
+the server's `Retry-After` (delta-seconds or HTTP-date) when present — both capped at
+`maxBackoffSeconds`. When retries are exhausted the last response is returned (or the
+last network error thrown).
+
+**Timeouts & cancellation**: each attempt is aborted after `timeoutMs` (time to response
+headers) and retried. Pass `signal` to cancel: backoff and rate-limit waits stop
+immediately and an aborted request is never retried.
+
+```typescript
+const controller = new AbortController();
+const response = await client.fetch('/products', { signal: controller.signal });
+```
 
 ## Proactive Rate Limiting
 
@@ -164,11 +195,22 @@ To disable auto-pagination:
 // Explicit page parameter disables auto-pagination
 const response = await client.get('/products', { page: 2, limit: 50 });
 
-// Or globally via configuration
+// Or per request (third argument) / globally via configuration
+const firstPage = await client.get('/products', undefined, { autoPagination: false });
+const first200 = await client.get('/products', undefined, { maxItems: 200 });
 const client = await KatanaClient.create({
   autoPagination: false,
 });
+
+// Per-call overrides for generated SDK functions
+const { data } = await getAllProducts({
+  client: client.sdk,
+  fetch: client.fetchWith({ maxItems: 200 }),
+});
 ```
+
+Responses without pagination metadata (e.g. `GET /products/{id}`) are returned
+untouched, and endpoints that return a bare JSON array keep that shape.
 
 ## Error Handling
 
@@ -288,7 +330,7 @@ The SDK functions provide:
 node --env-file=.env your-script.js
 ```
 
-**Node.js 18-20.5** (use dotenv):
+**Node.js 20.0-20.5** (use dotenv):
 
 ```bash
 npm install dotenv
@@ -301,9 +343,9 @@ import { KatanaClient } from 'katana-openapi-client';
 const client = KatanaClient.withApiKey(process.env.KATANA_API_KEY!);
 ```
 
-> **Note**: This library supports Node.js 18+ but does not bundle dotenv. If you need
-> .env file loading on Node.js < 20.6, install dotenv as a direct dependency in your
-> project.
+> **Note**: This library supports Node.js 20+ (and browsers) but does not bundle dotenv.
+> If you need .env file loading on Node.js < 20.6, install dotenv as a direct dependency
+> in your project.
 
 ## Documentation
 

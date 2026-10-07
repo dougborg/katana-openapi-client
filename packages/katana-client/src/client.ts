@@ -7,6 +7,7 @@
 
 import { createClient, createConfig } from './generated/client/index.js';
 import type { Client } from './generated/client/types.gen.js';
+import { createErrorLoggingFetch } from './transport/errorLogging.js';
 import {
   createPaginatedFetch,
   DEFAULT_PAGINATION_CONFIG,
@@ -18,6 +19,19 @@ import {
   DEFAULT_RETRY_CONFIG,
   type RetryConfig,
 } from './transport/resilient.js';
+import { isRequest, NOOP_LOGGER, type TransportLogger } from './transport/shared.js';
+import { createTimeoutFetch, DEFAULT_TIMEOUT_MS } from './transport/timeout.js';
+
+/**
+ * Per-request overrides for auto-pagination (the TypeScript equivalent of the
+ * Python client's `extensions={"auto_pagination": False}` / `{"max_items": N}`).
+ */
+export interface KatanaRequestOptions {
+  /** Set `false` to fetch only the first page for this request. */
+  autoPagination?: boolean;
+  /** Stop collecting once this many items are gathered (overrides `pagination.maxItems`). */
+  maxItems?: number;
+}
 
 /**
  * Configuration options for KatanaClient
@@ -33,9 +47,16 @@ export interface KatanaClientOptions {
 
   /**
    * Base URL for the Katana API.
-   * Default: 'https://api.katanamrp.com/v1'
+   * Default: `KATANA_BASE_URL` environment variable, else 'https://api.katanamrp.com/v1'
    */
   baseUrl?: string;
+
+  /**
+   * Per-attempt request timeout in milliseconds (time until response headers
+   * arrive). A timed-out attempt is retried like a network error.
+   * Default: 30000 (matches the Python client). Pass `null` to disable.
+   */
+  timeoutMs?: number | null;
 
   /**
    * Retry configuration for failed requests
@@ -68,14 +89,10 @@ export interface KatanaClientOptions {
   fetch?: typeof fetch;
 
   /**
-   * Optional logger for debugging
+   * Optional logger (e.g. `console`). Receives retry / rate-limit / pagination
+   * events, and an `error` entry for every 4xx response (except 429).
    */
-  logger?: {
-    debug: (message: string, ...args: unknown[]) => void;
-    info: (message: string, ...args: unknown[]) => void;
-    warn: (message: string, ...args: unknown[]) => void;
-    error: (message: string, ...args: unknown[]) => void;
-  };
+  logger?: TransportLogger;
 }
 
 /**
@@ -115,15 +132,16 @@ function resolveApiKey(explicitKey?: string): string {
 }
 
 /**
- * Create a no-op logger
+ * Resolve the base URL: explicit option, then `KATANA_BASE_URL`, then the default.
  */
-function createNoOpLogger() {
-  return {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  };
+function resolveBaseUrl(explicitUrl?: string): string {
+  if (explicitUrl) {
+    return explicitUrl;
+  }
+  if (typeof process !== 'undefined' && process.env?.KATANA_BASE_URL) {
+    return process.env.KATANA_BASE_URL;
+  }
+  return DEFAULT_BASE_URL;
 }
 
 /**
@@ -164,37 +182,47 @@ export class KatanaClient {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly authenticatedFetch: typeof fetch;
-  private readonly logger: NonNullable<KatanaClientOptions['logger']>;
+  private readonly logger: TransportLogger;
   private readonly _sdkClient: Client;
+  /** Retry-wrapped fetch shared by every pagination variant (one rate limiter). */
+  private readonly retryingFetch: typeof fetch;
+  private readonly paginationConfig: PaginationConfig;
+  private readonly autoPagination: boolean;
 
   private constructor(apiKey: string, options: Omit<KatanaClientOptions, 'apiKey'> = {}) {
     this.apiKey = apiKey;
-    this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
-    this.logger = options.logger ?? createNoOpLogger();
+    this.baseUrl = resolveBaseUrl(options.baseUrl);
+    this.logger = options.logger ?? NOOP_LOGGER;
 
     const baseFetch = options.fetch ?? globalThis.fetch;
 
-    // Fetch chain (innermost -> outermost): base -> rate-limit -> retry ->
-    // paginated -> authenticated. Rate limiting sits innermost so every actual
-    // HTTP request — each retry attempt and each paginated page — consumes a
-    // token, matching how Katana counts requests server-side (mirrors the
-    // Python client's transport stack).
+    // Fetch chain (innermost -> outermost):
+    //   base -> timeout -> rate-limit -> error-logging -> retry -> paginated -> authenticated
+    // Rate limiting sits below retry and pagination so every actual HTTP
+    // request — each retry attempt and each paginated page — consumes a token,
+    // matching how Katana counts requests server-side (mirrors the Python
+    // client's transport stack). The timeout is innermost so rate-limit and
+    // backoff waits never count against an attempt.
     const retryConfig: RetryConfig = {
       ...DEFAULT_RETRY_CONFIG,
       ...options.retry,
     };
 
-    const paginationConfig: PaginationConfig = {
+    this.paginationConfig = {
       ...DEFAULT_PAGINATION_CONFIG,
       ...options.pagination,
     };
+    this.autoPagination = options.autoPagination !== false;
 
-    // Proactive rate limiting (innermost). `requestsPerMinute: null` disables
-    // the layer entirely; otherwise default to 60/min.
+    const timeoutMs = options.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : options.timeoutMs;
+    const timedFetch = timeoutMs === null ? baseFetch : createTimeoutFetch(baseFetch, timeoutMs);
+
+    // Proactive rate limiting. `requestsPerMinute: null` disables the layer
+    // entirely; otherwise default to 60/min.
     const rateLimitedFetch =
       options.requestsPerMinute === null
-        ? baseFetch
-        : createRateLimitedFetch(baseFetch, {
+        ? timedFetch
+        : createRateLimitedFetch(timedFetch, {
             rateLimit: {
               ...DEFAULT_RATE_LIMIT_CONFIG,
               requestsPerMinute:
@@ -203,22 +231,19 @@ export class KatanaClient {
             logger: this.logger,
           });
 
-    // Then wrap with retry logic
-    const fetchWithRetry = createResilientFetch({
-      baseFetch: rateLimitedFetch,
+    // 4xx logging only when a logger was supplied (it reads a body clone).
+    const loggedFetch = options.logger
+      ? createErrorLoggingFetch(rateLimitedFetch, options.logger)
+      : rateLimitedFetch;
+
+    this.retryingFetch = createResilientFetch({
+      baseFetch: loggedFetch,
       retry: retryConfig,
       logger: this.logger,
     });
 
-    // Then wrap with pagination (uses the retry-enabled fetch)
-    const paginatedFetch = createPaginatedFetch(fetchWithRetry, {
-      pagination: paginationConfig,
-      autoPagination: options.autoPagination !== false,
-      logger: this.logger,
-    });
-
-    // Finally wrap with authentication - this is the SINGLE source of auth
-    this.authenticatedFetch = this.createAuthenticatedFetch(paginatedFetch);
+    // Pagination + authentication on top - auth is the SINGLE source of the header.
+    this.authenticatedFetch = this.buildFetch({});
 
     // Create SDK client with the same authenticated fetch
     this._sdkClient = createClient(
@@ -229,14 +254,40 @@ export class KatanaClient {
     );
   }
 
+  /** Build the outer (pagination + auth) layers over the shared retrying fetch. */
+  private buildFetch(requestOptions: KatanaRequestOptions): typeof fetch {
+    const paginatedFetch = createPaginatedFetch(this.retryingFetch, {
+      pagination: {
+        ...this.paginationConfig,
+        ...(requestOptions.maxItems === undefined ? {} : { maxItems: requestOptions.maxItems }),
+      },
+      autoPagination: requestOptions.autoPagination ?? this.autoPagination,
+      logger: this.logger,
+    });
+    return this.createAuthenticatedFetch(paginatedFetch);
+  }
+
   /**
    * Create a fetch function that automatically adds authentication headers.
    * This is the SINGLE location where auth headers are added.
+   *
+   * Handles both call styles: `fetch(url, init)` and the generated SDK's
+   * `fetch(request)`. For a `Request`, its own headers, method, body and
+   * signal are preserved and the result is passed on as a single `Request`.
    */
   private createAuthenticatedFetch(baseFetch: typeof fetch): typeof fetch {
     const apiKey = this.apiKey;
 
     return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      if (isRequest(input)) {
+        const headers = new Headers(input.headers);
+        new Headers(init?.headers).forEach((value, key) => {
+          headers.set(key, value);
+        });
+        headers.set('Authorization', `Bearer ${apiKey}`);
+        return baseFetch(new Request(input, { ...init, headers }));
+      }
+
       const headers = new Headers(init?.headers);
       headers.set('Authorization', `Bearer ${apiKey}`);
 
@@ -250,6 +301,23 @@ export class KatanaClient {
         headers,
       });
     };
+  }
+
+  /**
+   * A fetch function with per-request pagination overrides, for use with the
+   * generated SDK's per-call `fetch` option (shares this client's rate limiter).
+   *
+   * @example
+   * ```typescript
+   * // First 200 products only
+   * const { data } = await getAllProducts({
+   *   client: katana.sdk,
+   *   fetch: katana.fetchWith({ maxItems: 200 }),
+   * });
+   * ```
+   */
+  fetchWith(requestOptions: KatanaRequestOptions): typeof fetch {
+    return this.buildFetch(requestOptions);
   }
 
   /**
@@ -299,7 +367,8 @@ export class KatanaClient {
    * - Collects all pages for GET requests (auto-pagination)
    *
    * @param path - API path (e.g., '/products') or full URL
-   * @param init - Fetch options (method, body, headers, etc.)
+   * @param init - Fetch options (method, body, headers, signal, etc.)
+   * @param requestOptions - Per-request pagination overrides
    * @returns Promise resolving to the Response
    *
    * @example GET request with auto-pagination
@@ -323,12 +392,17 @@ export class KatanaClient {
    * const response = await client.fetch('/products?page=2&limit=50');
    * ```
    */
-  async fetch(path: string, init?: RequestInit): Promise<Response> {
+  async fetch(
+    path: string,
+    init?: RequestInit,
+    requestOptions?: KatanaRequestOptions
+  ): Promise<Response> {
     // Build full URL
     const url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
 
     // Use the single authenticated fetch (includes retry + pagination + auth)
-    return this.authenticatedFetch(url, init);
+    const fetchFn = requestOptions ? this.buildFetch(requestOptions) : this.authenticatedFetch;
+    return fetchFn(url, init);
   }
 
   /**
@@ -336,9 +410,14 @@ export class KatanaClient {
    *
    * @param path - API path
    * @param params - Optional query parameters
+   * @param requestOptions - Per-request pagination overrides (e.g. `{ maxItems: 200 }`)
    * @returns Promise resolving to the Response
    */
-  async get(path: string, params?: Record<string, string | number | boolean>): Promise<Response> {
+  async get(
+    path: string,
+    params?: Record<string, string | number | boolean>,
+    requestOptions?: KatanaRequestOptions
+  ): Promise<Response> {
     let url = path;
     if (params && Object.keys(params).length > 0) {
       const searchParams = new URLSearchParams();
@@ -347,7 +426,7 @@ export class KatanaClient {
       }
       url = `${path}?${searchParams.toString()}`;
     }
-    return this.fetch(url, { method: 'GET' });
+    return this.fetch(url, { method: 'GET' }, requestOptions);
   }
 
   /**

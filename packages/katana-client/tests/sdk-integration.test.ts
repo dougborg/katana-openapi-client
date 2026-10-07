@@ -1,188 +1,211 @@
 /**
  * Tests for SDK integration with KatanaClient
  *
- * These tests verify that the generated SDK functions work correctly
- * with the resilient client (retry, pagination, authentication).
+ * The generated SDK calls `fetch(request)` with a fully-built `Request` and no
+ * `init`, so every transport layer must read method / headers / body / signal
+ * from the Request itself. These tests pin that contract end to end.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
-import { getAllProducts } from '../src/generated/sdk.gen.js';
+import { createProduct, getAllProducts, getProduct } from '../src/generated/sdk.gen.js';
+
+type FetchArgs = [RequestInfo | URL, RequestInit | undefined];
+
+/** Reconstruct the effective Request a mocked fetch received. */
+function requestOf(call: FetchArgs): Request {
+  return new Request(call[0], call[1]);
+}
+
+function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
+}
 
 describe('SDK Integration', () => {
   let mockFetch: ReturnType<typeof vi.fn>;
   const TEST_API_KEY = 'test-api-key-12345';
 
+  const calls = (): FetchArgs[] => mockFetch.mock.calls as FetchArgs[];
+
   beforeEach(() => {
     mockFetch = vi.fn();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Client without proactive limiting / timeouts so tests stay synchronous-ish. */
+  function client(options: Parameters<typeof KatanaClient.withApiKey>[1] = {}): KatanaClient {
+    return KatanaClient.withApiKey(TEST_API_KEY, {
+      fetch: mockFetch as unknown as typeof fetch,
+      requestsPerMinute: null,
+      timeoutMs: null,
+      ...options,
+    });
+  }
+
   describe('SDK with KatanaClient', () => {
     it('should pass authentication through SDK calls', async () => {
-      const response = new Response(JSON.stringify({ data: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-      mockFetch.mockResolvedValueOnce(response);
+      mockFetch.mockResolvedValueOnce(json({ data: [] }));
 
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
-        autoPagination: false,
-      });
-
-      await getAllProducts({ client: katana.sdk });
+      await getAllProducts({ client: client({ autoPagination: false }).sdk });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
+      expect(requestOf(calls()[0]).headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
     });
 
     it('should apply retry logic through SDK calls', async () => {
       vi.useFakeTimers();
+      mockFetch.mockResolvedValueOnce(new Response(null, { status: 429 }));
+      mockFetch.mockResolvedValueOnce(json({ data: [] }));
 
-      const rateLimitResponse = new Response(null, { status: 429 });
-      const successResponse = new Response(JSON.stringify({ data: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      mockFetch.mockResolvedValueOnce(rateLimitResponse).mockResolvedValueOnce(successResponse);
-
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
+      const katana = client({
         autoPagination: false,
-        retry: { maxRetries: 1 },
+        retry: { maxRetries: 1, backoffJitter: 0 },
       });
-
       const resultPromise = getAllProducts({ client: katana.sdk });
 
-      // Advance timer for retry delay
-      await vi.advanceTimersByTimeAsync(1000);
+      // First retry waits backoffFactor * 2^1 = 2s (no jitter).
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
 
       const result = await resultPromise;
-
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(result.response?.status).toBe(200);
-
-      vi.useRealTimers();
     });
 
     it('should apply auto-pagination through SDK calls', async () => {
-      const page1Response = new Response(
-        JSON.stringify({
-          data: [{ id: 1 }, { id: 2 }],
-          pagination: { page: 1, total_pages: 2, per_page: 2 },
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      mockFetch
+        .mockResolvedValueOnce(
+          json({ data: [{ id: 1 }, { id: 2 }], pagination: { page: 1, total_pages: 2 } })
+        )
+        .mockResolvedValueOnce(
+          json({ data: [{ id: 3 }], pagination: { page: 2, total_pages: 2 } })
+        );
 
-      const page2Response = new Response(
-        JSON.stringify({
-          data: [{ id: 3 }],
-          pagination: { page: 2, total_pages: 2, per_page: 2 },
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      const result = await getAllProducts({ client: client().sdk });
 
-      mockFetch.mockResolvedValueOnce(page1Response).mockResolvedValueOnce(page2Response);
-
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
-        autoPagination: true, // enabled
-      });
-
-      await getAllProducts({ client: katana.sdk });
-
-      // Should have made 2 requests (one for each page)
       expect(mockFetch).toHaveBeenCalledTimes(2);
-
-      // Verify both pages were requested
-      expect(mockFetch.mock.calls[0][0]).toContain('page=1');
-      expect(mockFetch.mock.calls[1][0]).toContain('page=2');
+      expect(requestOf(calls()[0]).url).toContain('page=1');
+      expect(requestOf(calls()[1]).url).toContain('page=2');
+      // Auth survives the per-page Request rebuild.
+      expect(requestOf(calls()[1]).headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
+      expect((result.data as { data: unknown[] }).data).toHaveLength(3);
     });
 
     it('should work with getConfig() helper', async () => {
-      const response = new Response(JSON.stringify({ data: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-      mockFetch.mockResolvedValueOnce(response);
+      mockFetch.mockResolvedValueOnce(json({ data: [] }));
 
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
-        autoPagination: false,
-      });
-
-      // Using getConfig() instead of { client: katana.sdk }
-      await getAllProducts(katana.getConfig());
+      await getAllProducts(client({ autoPagination: false }).getConfig());
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [, options] = mockFetch.mock.calls[0];
-      expect(options.headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
+      expect(requestOf(calls()[0]).headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
+    });
+
+    it('applies per-call pagination overrides via fetchWith()', async () => {
+      mockFetch.mockResolvedValueOnce(
+        json({ data: [{ id: 1 }, { id: 2 }], pagination: { page: 1, total_pages: 5 } })
+      );
+
+      const katana = client();
+      const result = await getAllProducts({
+        client: katana.sdk,
+        fetch: katana.fetchWith({ maxItems: 2 }),
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(requestOf(calls()[0]).url).toContain('limit=2');
+      expect((result.data as { data: unknown[] }).data).toHaveLength(2);
+    });
+  });
+
+  describe('SDK request fidelity (Request-style fetch calls)', () => {
+    it('sends SDK POSTs as POST with their JSON body and Content-Type, unpaginated', async () => {
+      mockFetch.mockResolvedValueOnce(json({ id: 7, name: 'Widget' }));
+
+      const result = await createProduct({ client: client().sdk, body: { name: 'Widget' } });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const request = requestOf(calls()[0]);
+      expect(request.method).toBe('POST');
+      expect(request.url).not.toContain('page=');
+      expect(request.headers.get('Content-Type')).toBe('application/json');
+      expect(request.headers.get('Authorization')).toBe(`Bearer ${TEST_API_KEY}`);
+      expect(await request.json()).toEqual({ name: 'Widget' });
+      expect(result.data).toEqual({ id: 7, name: 'Widget' });
+    });
+
+    it('does NOT retry an SDK POST on 503 (non-idempotent)', async () => {
+      mockFetch.mockResolvedValue(json({ message: 'unavailable' }, 503));
+
+      const result = await createProduct({ client: client().sdk, body: { name: 'Widget' } });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(result.response?.status).toBe(503);
+    });
+
+    it('retries an SDK POST on 429 and replays the same body', async () => {
+      vi.useFakeTimers();
+      mockFetch
+        .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': '1' } }))
+        .mockResolvedValueOnce(json({ id: 7, name: 'Widget' }));
+
+      const pending = createProduct({ client: client().sdk, body: { name: 'Widget' } });
+      await vi.advanceTimersByTimeAsync(1000);
+      const result = await pending;
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      for (const call of calls()) {
+        const request = requestOf(call);
+        expect(request.method).toBe('POST');
+        expect(await request.json()).toEqual({ name: 'Widget' });
+      }
+      expect(result.response?.status).toBe(200);
+    });
+
+    it('returns a single-resource GET body intact (no pagination envelope)', async () => {
+      mockFetch.mockResolvedValueOnce(json({ id: 1, name: 'Widget' }));
+
+      const result = await getProduct({ client: client().sdk, path: { id: 1 } });
+
+      expect(result.data).toEqual({ id: 1, name: 'Widget' });
     });
   });
 
   describe('SDK error handling', () => {
     it('should return error response from SDK', async () => {
-      const errorResponse = new Response(
-        JSON.stringify({ message: 'Not Found', code: 'not_found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
-      mockFetch.mockResolvedValueOnce(errorResponse);
+      mockFetch.mockResolvedValueOnce(json({ message: 'Not Found', code: 'not_found' }, 404));
 
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
-        autoPagination: false,
-      });
-
-      const result = await getAllProducts({ client: katana.sdk });
+      const result = await getAllProducts({ client: client({ autoPagination: false }).sdk });
 
       expect(result.error).toBeDefined();
       expect(result.response?.status).toBe(404);
     });
 
-    it('should throw on error when throwOnError is true', async () => {
-      const errorResponse = new Response(JSON.stringify({ message: 'Server Error' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
-      mockFetch.mockResolvedValueOnce(errorResponse);
+    it('returns a non-retryable 500 response to the SDK unchanged', async () => {
+      mockFetch.mockResolvedValueOnce(json({ message: 'Server Error' }, 500));
 
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
-        autoPagination: false,
-      });
+      const result = await getAllProducts({ client: client({ autoPagination: false }).sdk });
 
-      // Note: throwOnError: true should cause the SDK to throw
-      // However, the generated SDK may handle this differently
-      // This test verifies the response is returned with error status
-      const result = await getAllProducts({ client: katana.sdk });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(result.response?.status).toBe(500);
     });
   });
 
   describe('SDK with custom base URL', () => {
     it('should use custom base URL from client', async () => {
-      const response = new Response(JSON.stringify({ data: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-      mockFetch.mockResolvedValueOnce(response);
+      mockFetch.mockResolvedValueOnce(json({ data: [] }));
 
       const customUrl = 'https://custom.api.example.com/v2';
-      const katana = KatanaClient.withApiKey(TEST_API_KEY, {
-        fetch: mockFetch,
-        baseUrl: customUrl,
-        autoPagination: false,
-      });
-
-      await getAllProducts({ client: katana.sdk });
+      await getAllProducts({ client: client({ baseUrl: customUrl, autoPagination: false }).sdk });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      // SDK passes a Request object to fetch, not a URL string
-      const [request] = mockFetch.mock.calls[0];
-      const requestUrl = request instanceof Request ? request.url : String(request);
-      expect(requestUrl).toContain(customUrl);
+      expect(requestOf(calls()[0]).url).toContain(customUrl);
     });
   });
 });

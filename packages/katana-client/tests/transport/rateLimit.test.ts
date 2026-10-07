@@ -274,4 +274,49 @@ describe('createRateLimitedFetch', () => {
     await next;
     expect(mockFetch).toHaveBeenCalledTimes(2); // not blocked
   });
+
+  it('stops waiting for a token when the caller aborts, without sending', async () => {
+    mockFetch.mockResolvedValue(ok());
+    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+      rateLimit: { requestsPerMinute: 1, windowMs: 60_000 },
+    });
+    await limited('https://api/x'); // drains the single token
+
+    const controller = new AbortController();
+    const queued = limited('https://api/x', { signal: controller.signal });
+    const assertion = expect(queued).rejects.toMatchObject({ name: 'AbortError' });
+    await vi.advanceTimersByTimeAsync(1_000);
+    controller.abort();
+
+    await assertion;
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops waiting on the reset gate when the caller aborts (Request signal)', async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        ok({ 'X-Ratelimit-Remaining': '0', 'X-Ratelimit-Reset': String(Date.now() + 10_000) })
+      )
+      .mockResolvedValue(ok());
+    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch, {
+      logger: silentLogger,
+    });
+    await limited('https://api/x'); // engages the gate
+
+    const controller = new AbortController();
+    const gated = limited(new Request('https://api/x', { signal: controller.signal }));
+    const assertion = expect(gated).rejects.toMatchObject({ name: 'AbortError' });
+    controller.abort();
+
+    await assertion;
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects immediately for an already-aborted signal', async () => {
+    const limited = createRateLimitedFetch(mockFetch as unknown as typeof fetch);
+    await expect(limited('https://api/x', { signal: AbortSignal.abort() })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+  });
 });

@@ -22,7 +22,19 @@
  *
  * Zero-dependency on purpose — the transport layer is otherwise dep-free, and the
  * adaptive header logic is bespoke regardless of any token-bucket library.
+ *
+ * Abort-aware: a request whose signal aborts while it is queued on the bucket or
+ * the reset gate stops waiting immediately and rejects with the abort reason.
  */
+
+import {
+  abortReason,
+  getSignal,
+  NOOP_LOGGER,
+  sleep,
+  type TransportLogger,
+  waitWithSignal,
+} from './shared.js';
 
 /** Header names Katana uses (case-insensitive lookup via `Headers.get`). */
 const HEADER_REMAINING = 'X-Ratelimit-Remaining';
@@ -58,17 +70,7 @@ export interface RateLimitedFetchOptions {
   /** Rate-limit configuration. */
   rateLimit?: Partial<RateLimitConfig>;
   /** Optional logger for state changes. */
-  logger?: {
-    debug: (message: string, ...args: unknown[]) => void;
-    info: (message: string, ...args: unknown[]) => void;
-    warn: (message: string, ...args: unknown[]) => void;
-    error: (message: string, ...args: unknown[]) => void;
-  };
-}
-
-/** Sleep for a number of milliseconds (timer-based; fakeable in tests). */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  logger?: TransportLogger;
 }
 
 /**
@@ -100,12 +102,7 @@ export function createRateLimitedFetch(
       `createRateLimitedFetch: requestsPerMinute and windowMs must be positive (got requestsPerMinute=${config.requestsPerMinute}, windowMs=${config.windowMs}). To disable rate limiting, omit this layer from the fetch chain (or, via KatanaClient, set \`requestsPerMinute: null\`).`
     );
   }
-  const logger = options.logger ?? {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  };
+  const logger = options.logger ?? NOOP_LOGGER;
 
   const capacity = config.requestsPerMinute;
   const refillPerMs = capacity / config.windowMs;
@@ -129,7 +126,7 @@ export function createRateLimitedFetch(
 
   // The token check-and-debit is synchronous (no `await`), so concurrent
   // acquisitions can't double-spend — only the wait between attempts yields.
-  async function acquireToken(weight = 1): Promise<void> {
+  async function acquireToken(weight: number, signal?: AbortSignal): Promise<void> {
     for (;;) {
       refill();
       if (tokens >= weight) {
@@ -137,7 +134,7 @@ export function createRateLimitedFetch(
         return;
       }
       const waitMs = Math.max(1, Math.ceil((weight - tokens) / refillPerMs));
-      await sleep(waitMs);
+      await sleep(waitMs, signal);
     }
   }
 
@@ -234,12 +231,18 @@ export function createRateLimitedFetch(
   }
 
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    // Block on any active reset window before spending a token.
-    if (gate !== null) {
-      await gate;
+    const signal = getSignal(input, init);
+    // Don't spend a token on a request the caller has already abandoned.
+    if (signal?.aborted) {
+      throw abortReason(signal);
     }
 
-    await acquireToken(1);
+    // Block on any active reset window before spending a token.
+    if (gate !== null) {
+      await waitWithSignal(gate, signal);
+    }
+
+    await acquireToken(1, signal);
 
     // A reset gate can engage between the acquire above and this check (a
     // concurrent observer seeing remaining=0). If we simply waited and proceeded,
@@ -250,8 +253,8 @@ export function createRateLimitedFetch(
     // the request is charged against the NEW window's budget.
     while (gate !== null) {
       tokens = Math.min(capacity, tokens + 1);
-      await gate;
-      await acquireToken(1);
+      await waitWithSignal(gate, signal);
+      await acquireToken(1, signal);
     }
 
     // `acquireToken` debited the bucket for this request, so the server's

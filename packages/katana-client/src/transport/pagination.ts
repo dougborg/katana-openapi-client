@@ -1,21 +1,25 @@
 /**
  * Auto-pagination transport layer for Katana API
  *
- * Provides transparent automatic pagination for GET requests,
- * collecting all pages automatically by default.
+ * Mirrors the Python client's `PaginationTransport` (katana_client.py):
  *
- * Auto-pagination behavior:
- * - ON by default for GET requests with NO page parameter in URL
- * - Uses 250 items per page (Katana's max) when no limit specified by caller
- * - If caller specifies a limit, that limit is used per page
- * - ANY explicit `page` parameter in URL disables auto-pagination (e.g., `?page=1`)
- * - Only applies to GET requests (POST, PUT, etc. are never paginated)
- *
- * Mirrors Python client's PaginationTransport pattern from katana_client.py
+ * - ON by default for GET requests with NO `page` parameter in the URL
+ * - Uses 250 items per page (Katana's max) when the caller sets no `limit`;
+ *   a caller-supplied positive `limit` is used per page instead
+ * - ANY explicit `page` parameter disables auto-pagination (e.g. `?page=1`)
+ * - Only GET requests are paginated (POST, PUT, … pass straight through)
+ * - Stops at the last page (`total_pages`), on an empty page, at `maxPages`,
+ *   or once `maxItems` items are collected
+ * - A response WITHOUT pagination metadata (e.g. `GET /products/{id}`) is
+ *   returned untouched — only `maxItems` truncation is applied to a list body
+ * - A non-200 page, or a body that isn't JSON, is returned as-is
+ * - Raw-array endpoints keep their shape: the combined result is a bare array
  */
 
+import { getMethod, getUrl, isRequest, NOOP_LOGGER, type TransportLogger } from './shared.js';
+
 /**
- * Pagination metadata returned from Katana API
+ * Pagination metadata returned from Katana API (header or body).
  */
 export interface PaginationInfo {
   /** Current page number */
@@ -24,8 +28,16 @@ export interface PaginationInfo {
   total_pages?: number;
   /** Total number of items across all pages */
   total_items?: number;
+  /** Total number of records (Katana's `X-Pagination` name for the item count) */
+  total_records?: number;
   /** Items per page */
   per_page?: number;
+  /** Whether this is the first page */
+  first_page?: boolean;
+  /** Whether this is the last page */
+  last_page?: boolean;
+  /** Any other pagination fields the server sends */
+  [key: string]: unknown;
 }
 
 /**
@@ -64,27 +76,89 @@ export interface PaginatedResponse<T> {
   };
 }
 
-/**
- * Extract pagination information from response headers and body
- */
-export function extractPaginationInfo(
-  headers: Headers,
-  body: Record<string, unknown>
-): PaginationInfo | null {
-  const info: PaginationInfo = {};
+/** Pagination fields that must be integers for correct comparisons. */
+const NUMERIC_FIELDS = [
+  'page',
+  'total_pages',
+  'total_items',
+  'limit',
+  'offset',
+  'count',
+  'per_page',
+  'current_page',
+  'total_records',
+];
 
-  // Check for X-Pagination header (JSON format)
+/** Pagination fields Katana sends as `"true"` / `"false"` strings. */
+const BOOLEAN_FIELDS = ['first_page', 'last_page'];
+
+/**
+ * Normalise pagination values: numeric strings become integers (so `"5" >= "41"`
+ * string comparisons can't end pagination early) and `"true"`/`"false"` become
+ * booleans. Unparseable values are dropped so fallbacks apply.
+ */
+export function normalizePaginationValues(info: Record<string, unknown>): PaginationInfo {
+  const result: Record<string, unknown> = { ...info };
+  for (const field of NUMERIC_FIELDS) {
+    if (!(field in result)) continue;
+    const value = result[field];
+    if (typeof value === 'string') {
+      const parsed = /^\s*-?\d+\s*$/.test(value) ? Number.parseInt(value, 10) : Number.NaN;
+      if (Number.isNaN(parsed)) {
+        delete result[field];
+      } else {
+        result[field] = parsed;
+      }
+    } else if (typeof value === 'number') {
+      result[field] = Math.trunc(value);
+    }
+  }
+  for (const field of BOOLEAN_FIELDS) {
+    if (!(field in result)) continue;
+    const value = result[field];
+    if (typeof value === 'string') {
+      const lower = value.toLowerCase();
+      if (lower === 'true' || lower === 'false') {
+        result[field] = lower === 'true';
+      } else {
+        delete result[field];
+      }
+    } else if (typeof value !== 'boolean') {
+      result[field] = Boolean(value);
+    }
+  }
+  return result as PaginationInfo;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Extract pagination information from response headers and body.
+ *
+ * Priority: a non-empty `X-Pagination` JSON object header wins outright;
+ * otherwise `X-Total-Pages` / `X-Current-Page` headers are merged with a body
+ * `pagination` (or `meta.pagination`) object. Values are normalised.
+ */
+export function extractPaginationInfo(headers: Headers, body: unknown): PaginationInfo | null {
   const xPagination = headers.get('X-Pagination');
   if (xPagination) {
     try {
-      const parsed = JSON.parse(xPagination);
-      return parsed as PaginationInfo;
+      const parsed: unknown = JSON.parse(xPagination);
+      if (isPlainObject(parsed)) {
+        const normalized = normalizePaginationValues(parsed);
+        if (Object.keys(normalized).length > 0) {
+          return normalized;
+        }
+      }
     } catch {
-      // Ignore parse errors, try other methods
+      // Malformed header — fall through to the other sources.
     }
   }
 
-  // Check for individual headers
+  const info: Record<string, unknown> = {};
+
   const xTotalPages = headers.get('X-Total-Pages');
   if (xTotalPages) {
     const parsed = Number.parseInt(xTotalPages, 10);
@@ -101,18 +175,18 @@ export function extractPaginationInfo(
     }
   }
 
-  // Check for pagination in response body
-  if (body.pagination && typeof body.pagination === 'object') {
-    Object.assign(info, body.pagination);
-  } else if (
-    body.meta &&
-    typeof body.meta === 'object' &&
-    (body.meta as Record<string, unknown>).pagination
-  ) {
-    Object.assign(info, (body.meta as Record<string, unknown>).pagination);
+  if (isPlainObject(body)) {
+    if (isPlainObject(body.pagination)) {
+      Object.assign(info, body.pagination);
+    } else if (isPlainObject(body.meta) && isPlainObject(body.meta.pagination)) {
+      Object.assign(info, body.meta.pagination);
+    }
   }
 
-  return Object.keys(info).length > 0 ? info : null;
+  if (Object.keys(info).length === 0) {
+    return null;
+  }
+  return normalizePaginationValues(info);
 }
 
 /**
@@ -132,23 +206,15 @@ export interface PaginatedFetchOptions {
   /** Whether auto-pagination is enabled. Default: true */
   autoPagination?: boolean;
   /** Optional logger */
-  logger?: {
-    debug: (message: string, ...args: unknown[]) => void;
-    info: (message: string, ...args: unknown[]) => void;
-    warn: (message: string, ...args: unknown[]) => void;
-  };
+  logger?: Pick<TransportLogger, 'debug' | 'info' | 'warn'>;
 }
 
 /**
  * Create a fetch function with automatic pagination support.
  *
- * Auto-pagination behavior:
- * - ON by default for GET requests with NO page parameter in URL
- * - Uses 250 items per page (Katana's max) when no limit specified by caller
- * - If caller specifies a limit, that limit is used per page
- * - ANY explicit `page` parameter in URL disables auto-pagination (e.g., `?page=1`)
- * - Disabled when autoPagination option is false
- * - Only applies to GET requests
+ * Works for both `fetch(url, init)` and the generated SDK's `fetch(request)`
+ * call style; each page request keeps the original method, headers and abort
+ * signal.
  *
  * @param baseFetch - Base fetch function to wrap
  * @param options - Pagination options
@@ -163,11 +229,7 @@ export interface PaginatedFetchOptions {
  * // Auto-paginate: collects all pages (uses limit=250 per page)
  * const response = await paginatedFetch('https://api.katanamrp.com/v1/products');
  *
- * // Auto-paginate with custom limit per page
- * const custom = await paginatedFetch('https://api.katanamrp.com/v1/products?limit=100');
- *
  * // Disable auto-pagination with explicit page (ANY page value)
- * const page1 = await paginatedFetch('https://api.katanamrp.com/v1/products?page=1');
  * const page2 = await paginatedFetch('https://api.katanamrp.com/v1/products?page=2');
  * ```
  */
@@ -181,35 +243,43 @@ export function createPaginatedFetch(
   };
 
   const autoPaginationEnabled = options.autoPagination !== false;
-
-  const logger = options.logger ?? {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-  };
+  const logger = options.logger ?? NOOP_LOGGER;
 
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const method = init?.method ?? 'GET';
-
-    // Only paginate GET requests
-    if (method.toUpperCase() !== 'GET') {
+    if (!autoPaginationEnabled || getMethod(input, init) !== 'GET') {
       return baseFetch(input, init);
     }
-
-    // Get the URL
-    const url =
-      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-
-    // Check if auto-pagination should be disabled
-    const hasExplicitPage = hasExplicitPageParam(url);
-
-    if (!autoPaginationEnabled || hasExplicitPage) {
+    if (hasExplicitPageParam(getUrl(input))) {
       return baseFetch(input, init);
     }
-
-    // Perform auto-pagination
-    return performPagination(baseFetch, url, init, config, logger);
+    return performPagination(baseFetch, input, init, config, logger);
   };
+}
+
+/** Rebuild the response with a new JSON body, keeping status and headers. */
+function jsonResponse(body: unknown, source: Response): Response {
+  const headers = new Headers(source.headers);
+  headers.delete('content-encoding');
+  headers.delete('content-length');
+  return new Response(JSON.stringify(body), { status: 200, statusText: 'OK', headers });
+}
+
+/** Apply `maxItems` truncation to a single (non-paginated) body, preserving its shape. */
+function truncateSingleResponse(
+  response: Response,
+  body: unknown,
+  maxItems: number | undefined
+): Response {
+  if (maxItems === undefined) {
+    return response;
+  }
+  if (Array.isArray(body) && body.length > maxItems) {
+    return jsonResponse(body.slice(0, maxItems), response);
+  }
+  if (isPlainObject(body) && Array.isArray(body.data) && body.data.length > maxItems) {
+    return jsonResponse({ ...body, data: body.data.slice(0, maxItems) }, response);
+  }
+  return response;
 }
 
 /**
@@ -217,148 +287,148 @@ export function createPaginatedFetch(
  */
 async function performPagination(
   baseFetch: typeof fetch,
-  baseUrl: string,
+  input: RequestInfo | URL,
   init: RequestInit | undefined,
   config: PaginationConfig,
-  logger: {
-    debug: (msg: string, ...args: unknown[]) => void;
-    info: (msg: string, ...args: unknown[]) => void;
-    warn: (msg: string, ...args: unknown[]) => void;
-  }
+  logger: Pick<TransportLogger, 'debug' | 'info' | 'warn'>
 ): Promise<Response> {
   const allData: unknown[] = [];
   let totalPages: number | undefined;
   let lastResponse: Response | undefined;
-  let pageNum: number;
+  let originalIsRawList = false;
+  let pageNum = 1;
 
+  const baseUrl = getUrl(input);
   logger.info(`Auto-paginating request: ${baseUrl}`);
 
-  // Determine if URL is absolute by trying to parse it
-  let isRelativeUrl: boolean;
+  // Relative URLs (only possible with string input) are resolved against a
+  // placeholder origin and re-emitted relative.
+  let isRelativeUrl = false;
   let url: URL;
   try {
     url = new URL(baseUrl);
-    isRelativeUrl = false;
   } catch {
-    // Failed to parse as absolute URL - treat as relative
     url = new URL(baseUrl, 'http://placeholder.local');
     isRelativeUrl = true;
   }
 
-  // Get caller's limit or default to 250 (Katana's max) for efficiency
   const originalLimit = url.searchParams.get('limit');
-  const parsedLimit = originalLimit ? Number.parseInt(originalLimit, 10) : null;
-  const pageSize =
-    parsedLimit && !Number.isNaN(parsedLimit) && parsedLimit > 0
-      ? parsedLimit
-      : config.defaultPageSize;
+  const parsedLimit = originalLimit ? Number.parseInt(originalLimit, 10) : Number.NaN;
+  let pageSize = config.defaultPageSize;
+  if (originalLimit !== null) {
+    if (!Number.isNaN(parsedLimit) && parsedLimit > 0) {
+      pageSize = parsedLimit;
+    } else {
+      logger.warn(
+        `Invalid limit parameter ${JSON.stringify(originalLimit)}, using default ${config.defaultPageSize}`
+      );
+    }
+  }
 
   for (pageNum = 1; pageNum <= config.maxPages; pageNum++) {
-    // Update page parameter
-    url.searchParams.set('page', String(pageNum));
-
-    // Determine limit for this request
+    let limit = pageSize;
     if (config.maxItems !== undefined) {
       const remaining = config.maxItems - allData.length;
       if (remaining <= 0) {
         break;
       }
-
-      // Use min of page size and remaining items
-      url.searchParams.set('limit', String(Math.min(pageSize, remaining)));
-    } else {
-      // Use caller's page size (or default 250)
-      url.searchParams.set('limit', String(pageSize));
+      limit = Math.min(pageSize, remaining);
     }
+    url.searchParams.set('page', String(pageNum));
+    url.searchParams.set('limit', String(limit));
 
-    // Build the request URL
-    const requestUrl = isRelativeUrl ? `${url.pathname}${url.search}` : url.toString();
+    const pageUrl = isRelativeUrl ? `${url.pathname}${url.search}` : url.toString();
+    // A Request carries method/headers/signal itself — rebuild it for the new URL.
+    const pageInput: RequestInfo = isRequest(input) ? new Request(pageUrl, input) : pageUrl;
 
-    // Make the request
-    const response = await baseFetch(requestUrl, init);
+    const response = await baseFetch(pageInput, init);
     lastResponse = response;
 
-    // Check for errors
-    if (!response.ok) {
+    if (response.status !== 200) {
       return response;
     }
 
-    // Parse the response
-    let body: Record<string, unknown>;
+    // Parse a clone so the untouched original can be returned when we bail out.
+    let body: unknown;
     try {
-      body = await response.json();
+      body = await response.clone().json();
     } catch {
       logger.warn('Failed to parse paginated response as JSON');
       return response;
     }
 
-    // Extract pagination info
+    if (pageNum === 1) {
+      originalIsRawList = Array.isArray(body);
+    }
+
     const paginationInfo = extractPaginationInfo(response.headers, body);
-
-    if (paginationInfo) {
-      if (paginationInfo.total_pages !== undefined) {
-        totalPages = paginationInfo.total_pages;
+    if (!paginationInfo) {
+      // Not a paginated endpoint (e.g. a single resource): return it as-is.
+      if (pageNum === 1) {
+        logger.debug('No pagination info found, returning single-page response');
+        return truncateSingleResponse(response, body, config.maxItems);
       }
-
-      // Extract data items
-      const items = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : [];
-      allData.push(...items);
-
-      // Check maxItems limit
-      if (config.maxItems !== undefined && allData.length >= config.maxItems) {
-        allData.splice(config.maxItems); // Truncate to exact limit
-        logger.info(`Reached maxItems limit (${config.maxItems}), stopping pagination`);
-        break;
-      }
-
-      // Check if we've collected all pages
-      if ((totalPages && pageNum >= totalPages) || items.length === 0) {
-        break;
-      }
-
-      logger.debug(
-        `Collected page ${pageNum}/${totalPages ?? '?'}, items: ${items.length}, total: ${allData.length}`
-      );
-    } else {
-      // No pagination info - treat as single page
-      const items = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : [];
-      allData.push(...items);
-
-      // Apply maxItems limit
-      if (config.maxItems !== undefined && allData.length > config.maxItems) {
-        allData.splice(config.maxItems);
-      }
+      // A later page without metadata still contributes its items, then stop.
+      allData.push(...extractItems(body));
       break;
     }
+
+    const currentPage = paginationInfo.page ?? pageNum;
+    if (paginationInfo.total_pages !== undefined) {
+      totalPages = paginationInfo.total_pages;
+    }
+
+    const items = extractItems(body);
+    allData.push(...items);
+
+    if (config.maxItems !== undefined && allData.length >= config.maxItems) {
+      allData.splice(config.maxItems);
+      logger.info(`Reached maxItems limit (${config.maxItems}), stopping pagination`);
+      break;
+    }
+
+    if ((totalPages && currentPage >= totalPages) || items.length === 0) {
+      break;
+    }
+
+    logger.debug(
+      `Collected page ${currentPage}/${totalPages ?? '?'}, items: ${items.length}, total: ${allData.length}`
+    );
   }
 
   if (!lastResponse) {
     throw new Error('No response available after pagination');
   }
 
-  // Build combined response data
-  const combinedData: PaginatedResponse<unknown> = { data: allData };
+  // The loop variable overshoots by one when it runs to maxPages.
+  const collectedPages = Math.min(pageNum, config.maxPages);
+  logger.info(
+    `Auto-pagination complete: collected ${allData.length} items from ${collectedPages} pages`
+  );
 
+  if (originalIsRawList) {
+    return jsonResponse(allData, lastResponse);
+  }
+
+  const combined: PaginatedResponse<unknown> = { data: allData };
   if (totalPages) {
-    combinedData.pagination = {
+    combined.pagination = {
       total_pages: totalPages,
-      collected_pages: pageNum,
+      collected_pages: collectedPages,
       total_items: allData.length,
       auto_paginated: true,
     };
   }
+  return jsonResponse(combined, lastResponse);
+}
 
-  logger.info(`Auto-pagination complete: collected ${allData.length} items from ${pageNum} pages`);
-
-  // Create a new Response with combined data
-  // Copy headers but remove content-encoding/length
-  const headers = new Headers(lastResponse.headers);
-  headers.delete('content-encoding');
-  headers.delete('content-length');
-
-  return new Response(JSON.stringify(combinedData), {
-    status: 200,
-    statusText: 'OK',
-    headers,
-  });
+/** The item array of a page body: a bare array, or the `data` array of an object. */
+function extractItems(body: unknown): unknown[] {
+  if (Array.isArray(body)) {
+    return body;
+  }
+  if (isPlainObject(body) && Array.isArray(body.data)) {
+    return body.data;
+  }
+  return [];
 }
