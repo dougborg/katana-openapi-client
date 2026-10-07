@@ -118,5 +118,6 @@ uv run mkdocs gh-deploy
 ### Low Priority
 
 - [ ] Add social media cards (og:image)
-- [ ] Add analytics (if desired)
+- [x] Add analytics: Umami through `@dougborg/site-analytics`, set up by
+  `scripts/site_analytics.mjs` (see its header for configuration and rollback)
 - [ ] Add "Edit this page" links (already configured in theme)
