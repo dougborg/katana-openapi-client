@@ -1,6 +1,6 @@
 {
   "name": "katana-openapi-client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "TypeScript client for Katana Manufacturing ERP API with automatic retries, rate limiting, and pagination",
   "type": "module",
   "main": "./dist/index.cjs",
