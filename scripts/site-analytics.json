@@ -1,0 +1,10 @@
+{
+  "package": "@dougborg/site-analytics",
+  "version": "0.4.0",
+  "integrity": "sha512-yk3WFkTSArH07PRtjeM7Po2tIe87dKiLODnad7aBdMmx9IgUa2OLU7ZcKyqIDaNxAymWpzWnokvESykqiXgCRA==",
+  "websiteId": "86b4f907-4165-4c7b-9250-fe7402c5262f",
+  "collector": "https://stats.dougborg.net",
+  "hostname": "dougborg.org",
+  "declaredEvents": [],
+  "privacyUrl": "https://dougborg.org/privacy/"
+}
