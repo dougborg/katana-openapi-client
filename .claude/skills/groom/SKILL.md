@@ -139,6 +139,10 @@ When a category is empty, the corresponding section reads "clean". A
 **fully-green** groom run (all categories clean) prints "Board is clean
 — no proposals." and exits.
 
+**Handling `truncated`** — if the output has `"truncated": true`, the
+board fetch hit `ITEM_LIMIT` in `analyze.py` and the newest items were not
+analyzed. Raise the limit and re-run before presenting any proposals.
+
 **Handling `fetch_errors`** — if the analyzer output includes a
 `fetch_errors` array, some issues couldn't be read at the gh layer
 (auth, rate-limit, network glitch — _not_ "this number is a PR not an
