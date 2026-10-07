@@ -34,6 +34,12 @@ PROJECT_TITLE = "Katana MCP — Rolling Backlog"
 STALE_P3_DAYS = 90
 IDLE_P0_P1_DAYS = 21
 
+# Upper bound passed to ``gh project item-list --limit``. gh pages under the
+# hood, so this only caps the total; it must stay well above the board size
+# (a fixed 300 silently dropped the newest items once the board passed 300).
+# Hitting it exactly is reported as ``truncated`` so the gap is never silent.
+ITEM_LIMIT = 5000
+
 
 def run_gh(args: list[str]) -> str:
     proc = subprocess.run(["gh", *args], check=True, capture_output=True, text=True)
@@ -50,7 +56,7 @@ def fetch_project_items() -> list[dict[str, Any]]:
             "--owner",
             OWNER,
             "--limit",
-            "300",
+            str(ITEM_LIMIT),
             "--format",
             "json",
         ]
@@ -267,6 +273,10 @@ def main() -> int:
     if fetch_errors:
         output["fetch_errors"] = fetch_errors
         summary["fetch_errors"] = len(fetch_errors)
+    # A fetch that returns exactly ITEM_LIMIT items may have been cut off;
+    # every heuristic would then miss the newest items.
+    if len(items) >= ITEM_LIMIT:
+        output["truncated"] = True
     json.dump(output, sys.stdout, indent=2)
     print()
     return 0
