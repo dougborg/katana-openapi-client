@@ -8,6 +8,6 @@
   {% set site_analytics %}{% include "partials/site-analytics.html" ignore missing %}{% endset %}
   {% if site_analytics | trim %}
     {{ site_analytics }}
-    <script type="module" src="{{ base_url }}/assets/site-analytics/analytics.js"></script>
+    <script type="module" src="{{ 'assets/site-analytics/analytics.js' | url }}"></script>
   {% endif %}
 {% endblock %}

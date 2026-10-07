@@ -12,8 +12,9 @@
 // adds the module tag. With an empty websiteId both files are removed, so the site
 // ships no tracker: that is the rollback. Local builds never run it.
 //
-// `check` fails if a built page lacks the privacy link, or, while tracking is on,
-// the config element or the module tag.
+// `check` fails if a built page lacks the privacy link; while tracking is on, if a
+// page lacks the config element or the module tag, or the module file is missing;
+// and while it is off, if any page still carries either.
 //
 // This site is served from https://dougborg.org/<project>/, the blog's origin, so it
 // uses the blog's Umami website ID and privacy page (one website ID per origin, see
@@ -24,6 +25,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -38,6 +40,10 @@ import { pathToFileURL } from "node:url";
 const CONFIG = "scripts/site-analytics.json";
 const PARTIAL = "overrides/partials/site-analytics.html";
 const ASSET = "docs/assets/site-analytics/analytics.js";
+const BUILT_ASSET = "assets/site-analytics/analytics.js";
+// Attribute order varies: plugins that reparse a page (swagger-ui-tag) rewrite it.
+const MODULE_TAG =
+  /<script\b(?=[^>]*\btype="module")[^>]*\bsrc="[^"]*assets\/site-analytics\/analytics\.js"/;
 
 const config = JSON.parse(readFileSync(CONFIG, "utf8"));
 
@@ -50,32 +56,35 @@ async function prepare() {
   }
   const work = mkdtempSync(join(tmpdir(), "site-analytics-"));
   const spec = `${config.package}@${config.version}`;
-  const tarball = join(
-    work,
-    execFileSync("npm", ["pack", spec, "--silent", "--pack-destination", work], {
-      encoding: "utf8",
-    }).trim(),
-  );
-  const integrity = `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`;
-  if (integrity !== config.integrity) {
-    throw new Error(`${spec}: tarball integrity ${integrity} does not match ${CONFIG}`);
+  try {
+    const [packed] = JSON.parse(
+      execFileSync("npm", ["pack", spec, "--json", "--pack-destination", work], {
+        encoding: "utf8",
+      }),
+    );
+    const tarball = join(work, packed.filename);
+    const integrity = `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`;
+    if (integrity !== config.integrity) {
+      throw new Error(`${spec}: tarball integrity ${integrity} does not match ${CONFIG}`);
+    }
+    execFileSync("tar", ["-xzf", tarball, "-C", work]);
+    const pkg = join(work, "package", "dist");
+    const { configElement } = await import(pathToFileURL(join(pkg, "index.js")).href);
+    const element = configElement({
+      websiteId: config.websiteId,
+      collector: config.collector,
+      hostname: config.hostname,
+      declaredEvents: config.declaredEvents,
+    });
+    mkdirSync(dirname(PARTIAL), { recursive: true });
+    // Only the config element is generated; overrides/main.html adds the module
+    // tag itself when this partial exists.
+    writeFileSync(PARTIAL, `${element}\n`);
+    mkdirSync(dirname(ASSET), { recursive: true });
+    copyFileSync(join(pkg, "analytics.js"), ASSET);
+  } finally {
+    rmSync(work, { recursive: true, force: true });
   }
-  execFileSync("tar", ["-xzf", tarball, "-C", work]);
-  const pkg = join(work, "package", "dist");
-  const { configElement } = await import(pathToFileURL(join(pkg, "index.js")).href);
-  const element = configElement({
-    websiteId: config.websiteId,
-    collector: config.collector,
-    hostname: config.hostname,
-    declaredEvents: config.declaredEvents,
-  });
-  mkdirSync(dirname(PARTIAL), { recursive: true });
-  // Only the config element is generated; overrides/main.html adds the module
-  // tag itself when this partial exists.
-  writeFileSync(PARTIAL, `${element}\n`);
-  mkdirSync(dirname(ASSET), { recursive: true });
-  copyFileSync(join(pkg, "analytics.js"), ASSET);
-  rmSync(work, { recursive: true, force: true });
   console.log(`site-analytics: ${spec} prepared for ${config.hostname}`);
 }
 
@@ -97,14 +106,19 @@ function check(siteDir) {
     if (!html.includes(`href="${config.privacyUrl}"`)) {
       problems.push(`${file}: no link to ${config.privacyUrl}`);
     }
-    if (config.websiteId && !html.includes('id="site-analytics"')) {
-      problems.push(`${file}: no site-analytics config element`);
-    }
-    if (config.websiteId && !html.includes('assets/site-analytics/analytics.js"')) {
-      problems.push(`${file}: no site-analytics module tag`);
+    const hasElement = html.includes('id="site-analytics"');
+    const hasModule = MODULE_TAG.test(html);
+    if (config.websiteId) {
+      if (!hasElement) problems.push(`${file}: no site-analytics config element`);
+      if (!hasModule) problems.push(`${file}: no site-analytics module tag`);
+    } else if (hasElement || hasModule) {
+      problems.push(`${file}: site-analytics tracker present with no websiteId`);
     }
   }
   if (checked === 0) problems.push(`${siteDir}: no theme pages found`);
+  if (config.websiteId && !existsSync(join(siteDir, BUILT_ASSET))) {
+    problems.push(`${siteDir}: ${BUILT_ASSET} missing`);
+  }
   if (problems.length) {
     console.error(problems.join("\n"));
     process.exit(1);
