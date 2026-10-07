@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/dougborg/katana-openapi-client/compare/ts-v0.3.0...ts-v0.4.0) (2026-10-07)
+
+
+### Features
+
+* **ts:** add response helpers, typecheck tests, and live test-tenant smoke suite ([2ff98f2](https://github.com/dougborg/katana-openapi-client/commit/2ff98f21b57c5b2af9173432e382049585ebc2a5)), closes [#911](https://github.com/dougborg/katana-openapi-client/issues/911)
+
 ## [0.3.0](https://github.com/dougborg/katana-openapi-client/compare/ts-v0.2.0...ts-v0.3.0) (2026-10-07)
 
 
