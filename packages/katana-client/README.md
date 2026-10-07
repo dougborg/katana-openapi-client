@@ -50,6 +50,14 @@ pnpm --dir packages/katana-client test
 pnpm --dir packages/katana-client run build
 ```
 
+`typecheck` covers `src/` and `tests/`. Live smoke tests against the Katana **test**
+tenant run separately and skip when `KATANA_TEST_API_KEY` is unset (they never use
+`KATANA_API_KEY`); see [Testing Guide](docs/testing.md#live-tests-test-tenant):
+
+```bash
+pnpm --dir packages/katana-client test:live
+```
+
 ## Quick Start
 
 ```typescript
@@ -304,7 +312,7 @@ const katana = await KatanaClient.create();
 // Use SDK functions with the resilient client
 const { data, error } = await getAllProducts({ client: katana.sdk });
 if (data) {
-  console.log(`Found ${data.length} products`);
+  console.log(`Found ${data.data?.length ?? 0} products`); // `{ data: [...] }` envelope
 }
 
 // Or use the config shorthand
@@ -316,6 +324,43 @@ The SDK functions provide:
 - Full TypeScript types for all request/response bodies
 - Auto-completion for query parameters
 - Type-safe error handling
+
+### Response Helpers
+
+SDK calls resolve to `{ data, error, request, response }`. The response helpers return
+the data or throw the matching typed error — parity with the Python client's `unwrap` /
+`unwrap_data` / `is_success` / `is_error` / `get_error_message`:
+
+```typescript
+import {
+  getAllProducts,
+  getErrorMessage,
+  getProduct,
+  isSuccess,
+  unwrap,
+  unwrapData,
+} from 'katana-openapi-client';
+
+const product = unwrap(await getProduct({ client: katana.sdk, path: { id: 1 } })); // Product
+const products = unwrapData(await getAllProducts({ client: katana.sdk })); // Product[]
+
+const result = await getProduct({ client: katana.sdk, path: { id: 2 } });
+if (isSuccess(result)) {
+  console.log(result.data.name); // narrowed to Product
+} else {
+  console.error(getErrorMessage(result));
+}
+```
+
+- `unwrap(result)` returns the data (`undefined` for a 204, e.g. most DELETEs) or throws
+  `AuthenticationError` (401), `ValidationError` (422), `RateLimitError` (429, after
+  retries), `ServerError` (5xx), `KatanaError` (any other status), or `NetworkError` (no
+  response: connection failure, timeout, abort — original error as `cause`).
+- `unwrapData(result)` unwraps the `{ data: [...] }` list envelope (and passes through
+  the bare-array `GET /bin_locations`). Passing a single-resource result is a compile
+  error.
+- `isSuccess` / `isError` are type guards; `getError` / `getErrorMessage` return the
+  typed error / its message for a failed call (`undefined` on success).
 
 ## Environment Variables
 

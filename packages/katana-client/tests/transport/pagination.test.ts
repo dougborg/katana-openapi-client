@@ -4,13 +4,14 @@
  * These tests mirror the Python client's test_transport_auto_pagination.py
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createPaginatedFetch,
   extractPaginationInfo,
   hasExplicitPageParam,
   normalizePaginationValues,
 } from '../../src/transport/pagination.js';
+import { createMockFetch, type MockFetch, sentRequest } from '../helpers/mockFetch.js';
 
 describe('hasExplicitPageParam', () => {
   it('should detect page param in URL', () => {
@@ -102,10 +103,10 @@ describe('extractPaginationInfo', () => {
 });
 
 describe('createPaginatedFetch', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch();
   });
 
   describe('Auto-pagination disabled conditions', () => {
@@ -503,10 +504,10 @@ describe('normalizePaginationValues', () => {
 });
 
 describe('createPaginatedFetch — Python PaginationTransport parity', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch();
   });
 
   function page(body: unknown, headers: Record<string, string> = {}, status = 200): Response {
@@ -554,8 +555,10 @@ describe('createPaginatedFetch — Python PaginationTransport parity', () => {
   });
 
   it('compares string page counts numerically ("5" vs "41")', async () => {
-    mockFetch.mockImplementation((input: string) => {
-      const pageNum = Number(new URL(input).searchParams.get('page'));
+    mockFetch.mockImplementation((input) => {
+      const pageNum = Number(
+        new URL(input instanceof Request ? input.url : input).searchParams.get('page')
+      );
       return Promise.resolve(
         page(
           { data: [{ id: pageNum }] },
@@ -604,7 +607,7 @@ describe('createPaginatedFetch — Python PaginationTransport parity', () => {
 
     const response = await createPaginatedFetch(mockFetch)(request);
 
-    const sent = mockFetch.mock.calls.map(([input]) => input as Request);
+    const sent = mockFetch.mock.calls.map((_, i) => sentRequest(mockFetch, i));
     expect(sent[1].url).toBe('https://api.example.com/products?ids=1&ids=2&page=2&limit=250');
     expect(sent[1].headers.get('Authorization')).toBe('Bearer k');
     expect((await response.json()).data).toEqual([{ id: 1 }, { id: 2 }]);

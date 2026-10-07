@@ -15,8 +15,10 @@ function json(body: unknown, status: number): Response {
 describe('createErrorLoggingFetch', () => {
   it('logs a 4xx with method, sanitised URL and the parsed message', async () => {
     const logger = { error: vi.fn() };
-    const base = vi.fn().mockResolvedValue(json({ message: 'Product not found' }, 404));
-    const logged = createErrorLoggingFetch(base as unknown as typeof fetch, logger);
+    const base = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ message: 'Product not found' }, 404));
+    const logged = createErrorLoggingFetch(base, logger);
 
     const response = await logged('https://api.example.com/products/9?api_key=secret&x=1', {
       method: 'DELETE',
@@ -34,7 +36,7 @@ describe('createErrorLoggingFetch', () => {
 
   it('includes the formatted validation details for a 422', async () => {
     const logger = { error: vi.fn() };
-    const base = vi.fn().mockResolvedValue(
+    const base = vi.fn<typeof fetch>().mockResolvedValue(
       json(
         {
           error: {
@@ -55,7 +57,7 @@ describe('createErrorLoggingFetch', () => {
         422
       )
     );
-    const logged = createErrorLoggingFetch(base as unknown as typeof fetch, logger);
+    const logged = createErrorLoggingFetch(base, logger);
 
     await logged(new Request('https://api.example.com/products', { method: 'POST', body: '{}' }));
 
@@ -66,8 +68,8 @@ describe('createErrorLoggingFetch', () => {
 
   it.each([200, 204, 429, 500, 503])('does not log status %i', async (status) => {
     const logger = { error: vi.fn() };
-    const base = vi.fn().mockResolvedValue(new Response(null, { status }));
-    const logged = createErrorLoggingFetch(base as unknown as typeof fetch, logger);
+    const base = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status }));
+    const logged = createErrorLoggingFetch(base, logger);
 
     await logged('https://api.example.com/products');
 
@@ -76,8 +78,10 @@ describe('createErrorLoggingFetch', () => {
 
   it('still logs when the 4xx body is not JSON', async () => {
     const logger = { error: vi.fn() };
-    const base = vi.fn().mockResolvedValue(new Response('<html>nope</html>', { status: 403 }));
-    const logged = createErrorLoggingFetch(base as unknown as typeof fetch, logger);
+    const base = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('<html>nope</html>', { status: 403 }));
+    const logged = createErrorLoggingFetch(base, logger);
 
     await logged('https://api.example.com/products');
 

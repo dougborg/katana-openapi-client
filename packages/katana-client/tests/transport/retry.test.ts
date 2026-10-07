@@ -16,6 +16,7 @@ import {
   type RetryConfig,
   shouldRetry,
 } from '../../src/transport/resilient.js';
+import { createMockFetch, type MockFetch, sentRequest } from '../helpers/mockFetch.js';
 
 /** Deterministic config: no jitter, so backoff is exactly factor * 2^n seconds. */
 const NO_JITTER: RetryConfig = { ...DEFAULT_RETRY_CONFIG, backoffJitter: 0 };
@@ -195,10 +196,10 @@ describe('calculateRetryDelay', () => {
 });
 
 describe('createResilientFetch', () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
+  let mockFetch: MockFetch;
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    mockFetch = createMockFetch();
     vi.useFakeTimers();
   });
 
@@ -208,7 +209,7 @@ describe('createResilientFetch', () => {
 
   function resilient(retry: Partial<RetryConfig> = {}): typeof fetch {
     return createResilientFetch({
-      baseFetch: mockFetch as unknown as typeof fetch,
+      baseFetch: mockFetch,
       retry: { backoffJitter: 0, ...retry },
     });
   }
@@ -336,7 +337,7 @@ describe('createResilientFetch', () => {
     await pending;
 
     const bodies = await Promise.all(
-      mockFetch.mock.calls.map(([input]) => (input as Request).text())
+      mockFetch.mock.calls.map((_, i) => sentRequest(mockFetch, i).text())
     );
     expect(bodies).toEqual(['{"name":"Widget"}', '{"name":"Widget"}']);
   });

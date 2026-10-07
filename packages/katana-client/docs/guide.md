@@ -387,12 +387,63 @@ const katana = await KatanaClient.create();
 // Use SDK functions with the resilient client
 const { data, error } = await getAllProducts({ client: katana.sdk });
 if (data) {
-  console.log(`Found ${data.length} products`);
+  console.log(`Found ${data.data?.length ?? 0} products`); // `{ data: [...] }` envelope
 }
 
 // Or use the config shorthand
 const result = await getAllProducts(katana.getConfig());
 ```
+
+### Response Helpers
+
+SDK functions resolve to `{ data, error, request, response }`. The response helpers turn
+that into "the data, or a typed error" — the TypeScript equivalents of the Python
+client's `unwrap` / `unwrap_data` / `is_success` / `is_error` / `get_error_message`:
+
+```typescript
+import {
+  getAllProducts,
+  getProduct,
+  deleteProduct,
+  getErrorMessage,
+  isSuccess,
+  unwrap,
+  unwrapData,
+} from 'katana-openapi-client';
+
+// Single resource: data or a thrown KatanaError subclass. Inferred as `Product`.
+const product = unwrap(await getProduct({ client: katana.sdk, path: { id: 1 } }));
+
+// List endpoint: unwraps the `{ data: [...] }` envelope. Inferred as `Product[]`.
+const products = unwrapData(await getAllProducts({ client: katana.sdk }));
+
+// 204 No Content (most DELETEs): `unwrap` returns `undefined`.
+unwrap(await deleteProduct({ client: katana.sdk, path: { id: 1 } }));
+
+// Non-throwing style
+const result = await getProduct({ client: katana.sdk, path: { id: 1 } });
+if (isSuccess(result)) {
+  console.log(result.data.name); // narrowed to Product
+} else {
+  console.error(getErrorMessage(result));
+}
+```
+
+| Helper                    | Returns / throws                                                           |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `unwrap(result)`          | The data (`undefined` for 204), or throws the typed error                  |
+| `unwrapData(result)`      | The list items; list endpoints only (a single resource is a compile error) |
+| `isSuccess` / `isError`   | Type guards over the result                                                |
+| `getError(result)`        | The typed `KatanaError` for a failed call, else `undefined`                |
+| `getErrorMessage(result)` | Its message (Katana's nested `{ error: {...} }` envelope unwrapped)        |
+
+Errors map exactly like `parseError`: 401 → `AuthenticationError`, 422 →
+`ValidationError` (with `details`), 429 → `RateLimitError` (after retries are
+exhausted), 5xx → `ServerError`, any other status → `KatanaError`; a call that got no
+response (connection failure, timeout, abort) → `NetworkError` with the original error
+as `cause`. `unwrapData` also accepts the one list endpoint that returns a bare array
+(`getAllStorageBins`, `GET /bin_locations`); the bare-model `GET /user_info` is a single
+resource, so use `unwrap` there.
 
 ### SDK Benefits
 

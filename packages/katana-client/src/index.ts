@@ -42,6 +42,19 @@ export {
 export type { Client } from './generated/client/types.gen.js';
 // Re-export generated SDK functions for direct API access
 export * from './generated/sdk.gen.js';
+// Response helpers for generated SDK results (parity with the Python client's utils)
+export {
+  getError,
+  getErrorMessage,
+  isError,
+  isSuccess,
+  type ListItem,
+  type ListResultGuard,
+  type SdkResult,
+  type SuccessData,
+  unwrap,
+  unwrapData,
+} from './responses.js';
 // Re-export transport utilities for advanced usage (custom fetch chains)
 export { createErrorLoggingFetch } from './transport/errorLogging.js';
 export {
