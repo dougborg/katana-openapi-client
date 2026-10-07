@@ -5,7 +5,7 @@ MkDocs and deployed to GitHub Pages.
 
 ## Documentation Site
 
-**Live Site**: https://dougborg.github.io/katana-openapi-client/
+**Live Site**: https://dougborg.org/katana-openapi-client/
 
 The documentation is automatically built and deployed on every release via GitHub
 Actions.
@@ -106,7 +106,6 @@ uv run mkdocs gh-deploy
 
 ### High Priority
 
-- [ ] Configure custom domain DNS (katana-openapi-client.dougborg.org)
 - [ ] Add version information to docs (currently using mike but not configured)
 
 ### Medium Priority
