@@ -17,11 +17,27 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 from uuid import uuid4
+
+import httpx
 
 from .katana_client import KatanaClient
 from .testing import make_test_client
+
+# Waits before re-trying deletes refused because a dependent record still
+# appears to exist (409/412); see LiveTestArtifacts.cleanup.
+DEPENDENCY_RETRY_DELAYS: tuple[float, ...] = (1.0, 2.0, 4.0, 8.0)
+_DEPENDENCY_CONFLICT_STATUSES = frozenset({409, 412})
+
+
+def _is_dependency_conflict(
+    error: Exception | None,
+) -> TypeGuard[httpx.HTTPStatusError]:
+    return (
+        isinstance(error, httpx.HTTPStatusError)
+        and error.response.status_code in _DEPENDENCY_CONFLICT_STATUSES
+    )
 
 
 def ledger_directory() -> Path:
@@ -99,6 +115,32 @@ class LiveTestArtifacts:
         )
         self._save()
 
+    async def _delete_row(
+        self, row: dict[str, Any], failures: list[Exception]
+    ) -> Exception | None:
+        """Delete one tracked resource and persist the outcome.
+
+        Returns the delete error (a 404 counts as already deleted); a failure
+        to persist the ledger is appended to ``failures`` instead.
+        """
+        error: Exception | None = None
+        try:
+            response = await self.client.get_async_httpx_client().delete(
+                f"{row['endpoint']}/{row['entity_id']}"
+            )
+            if response.status_code != 404:
+                response.raise_for_status()
+            row["deleted_at"] = datetime.now(UTC).isoformat()
+            row["delete_error"] = None
+        except Exception as exc:
+            row["delete_error"] = str(exc)
+            error = exc
+        try:
+            self._save()
+        except OSError as exc:
+            failures.append(exc)
+        return error
+
     async def cleanup(self) -> None:
         """Delete tracked resources; retain failures for recovery and fail loudly."""
         pending = [row for row in self.rows if not row.get("deleted_at")]
@@ -118,22 +160,30 @@ class LiveTestArtifacts:
                     f"Unverifiable or foreign artifact ledger: {self.path}"
                 )
         failures: list[Exception] = []
+        blocked: list[tuple[dict[str, Any], Exception]] = []
         for row in reversed(pending):
-            try:
-                response = await self.client.get_async_httpx_client().delete(
-                    f"{row['endpoint']}/{row['entity_id']}"
-                )
-                if response.status_code != 404:
-                    response.raise_for_status()
-                row["deleted_at"] = datetime.now(UTC).isoformat()
-                row["delete_error"] = None
-            except Exception as exc:
-                row["delete_error"] = str(exc)
-                failures.append(exc)
-            try:
-                self._save()
-            except OSError as exc:
-                failures.append(exc)
+            error = await self._delete_row(row, failures)
+            if _is_dependency_conflict(error):
+                blocked.append((row, error))
+            elif error is not None:
+                failures.append(error)
+        # A parent can still refuse deletion for a few seconds after its last
+        # dependent was deleted (seen live: a sales order answering 412 "has
+        # return orders" right after its return was deleted, then deleting fine
+        # later). Retry only those rows, in the same order, with backoff.
+        for delay in DEPENDENCY_RETRY_DELAYS:
+            if not blocked:
+                break
+            await asyncio.sleep(delay)
+            still_blocked: list[tuple[dict[str, Any], Exception]] = []
+            for row, _ in blocked:
+                error = await self._delete_row(row, failures)
+                if _is_dependency_conflict(error):
+                    still_blocked.append((row, error))
+                elif error is not None:
+                    failures.append(error)
+            blocked = still_blocked
+        failures.extend(error for _, error in blocked)
         if failures:
             raise ExceptionGroup(
                 f"Artifact cleanup failed; recover {self.path}", failures
