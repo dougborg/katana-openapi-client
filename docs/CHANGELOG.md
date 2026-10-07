@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [0.87.1](https://github.com/dougborg/katana-openapi-client/compare/client-v0.87.0...client-v0.87.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **harness:** make /groom analyze the whole board, not the first 300 items ([853a2fb](https://github.com/dougborg/katana-openapi-client/commit/853a2fb8cd6db6f686ce5122dcdfb62ddee52ded))
+
 ## [0.87.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.86.0...client-v0.87.0) (2026-10-02)
 
 ### ⚠ BREAKING CHANGES

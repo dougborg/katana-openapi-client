@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/dougborg/katana-openapi-client/compare/ts-v0.1.0...ts-v0.2.0) (2026-10-07)
+
+
+### Features
+
+* **ts:** bring TS client resilience to parity with the Python client ([42f6efd](https://github.com/dougborg/katana-openapi-client/commit/42f6efd2cc02f3159b515a71917e347e88c879db)), closes [#594](https://github.com/dougborg/katana-openapi-client/issues/594)
+
 ## [0.1.0](https://github.com/dougborg/katana-openapi-client/compare/ts-v0.0.1...ts-v0.1.0) (2026-10-05)
 
 
