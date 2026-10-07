@@ -12,15 +12,26 @@ on:
       - "overrides/**"
       - "scripts/site_analytics.mjs"
       - "scripts/site-analytics.json"
+  # Pull requests build and check the tracked site but never deploy it.
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "katana_public_api_client/**"
+      - ".github/workflows/docs.yml"
+      - "overrides/**"
+      - "scripts/site_analytics.mjs"
+      - "scripts/site-analytics.json"
   workflow_dispatch:
 
 # Least privilege at the workflow level; jobs opt into the scopes they need.
 permissions: {}
 
-# Allow only one concurrent deployment
+# Allow only one concurrent deployment; pull request runs never deploy and get
+# their own group.
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -51,7 +62,8 @@ jobs:
 
       - name: Prepare visitor analytics
         # Fetches the pinned @dougborg/site-analytics, checks its integrity, and
-        # writes the config element and module; see scripts/site_analytics.mjs.
+        # writes the config element and module file; overrides/main.html adds the
+        # module tag. See scripts/site_analytics.mjs.
         run: node scripts/site_analytics.mjs prepare
 
       - name: Build documentation
@@ -67,11 +79,13 @@ jobs:
         run: node scripts/site_analytics.mjs check site
 
       - name: Upload documentation artifacts
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ./site
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
