@@ -1,5 +1,6 @@
 """Exercise cleanup across assertion, network, storage, and tenant failures."""
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import time_machine
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.testing_artifacts import (
+    DEPENDENCY_RETRY_DELAYS,
     LiveTestArtifacts,
     live_test_artifacts,
 )
@@ -217,3 +219,69 @@ async def test_recovery_reads_pending_rows_and_continues_past_foreign_file(
         await testing_artifacts.recover_artifacts(directory=tmp_path)
     assert deleted == ["/v1/sales_orders/2"]
     assert json.loads(own_path.read_text())["deleted_at"]
+
+
+@pytest.mark.looptime
+async def test_cleanup_retries_a_parent_its_deleted_child_still_blocks(
+    tmp_path: Path,
+) -> None:
+    """Katana can refuse a parent's delete with 412 for a moment after its
+    dependent was deleted; cleanup waits and retries instead of failing."""
+    loop = asyncio.get_running_loop()
+    attempts: list[tuple[str, float]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return httpx.Response(200, json={"factory_id": 123})
+        attempts.append((request.url.path, loop.time()))
+        blocked = [path for path, _ in attempts if path == "/v1/sales_orders/1"]
+        if request.url.path == "/v1/sales_orders/1" and len(blocked) == 1:
+            return httpx.Response(412, json={"error": "has return orders"})
+        return httpx.Response(204)
+
+    start = loop.time()
+    async with (
+        _client(handler) as client,
+        live_test_artifacts(client=client, directory=tmp_path) as artifacts,
+    ):
+        artifacts.record(endpoint="/sales_orders", entity_id=1, issue="#test")
+        artifacts.record(endpoint="/sales_returns", entity_id=2, issue="#test")
+
+    assert [path for path, _ in attempts] == [
+        "/v1/sales_returns/2",
+        "/v1/sales_orders/1",
+        "/v1/sales_orders/1",
+    ]
+    assert attempts[-1][1] - start == pytest.approx(DEPENDENCY_RETRY_DELAYS[0])
+    assert all(row["deleted_at"] for row in artifacts.rows)
+
+
+@pytest.mark.looptime
+async def test_cleanup_gives_up_on_a_lasting_dependency_conflict(
+    tmp_path: Path,
+) -> None:
+    loop = asyncio.get_running_loop()
+    attempts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return httpx.Response(200, json={"factory_id": 123})
+        attempts.append(request.url.path)
+        return httpx.Response(412, json={"error": "has return orders"})
+
+    artifacts: LiveTestArtifacts | None = None
+    start = loop.time()
+    async with _client(handler) as client:
+        with pytest.raises(ExceptionGroup) as raised:
+            async with live_test_artifacts(
+                client=client, directory=tmp_path
+            ) as artifacts:
+                artifacts.record(endpoint="/sales_orders", entity_id=1, issue="#test")
+
+    assert attempts == ["/v1/sales_orders/1"] * (1 + len(DEPENDENCY_RETRY_DELAYS))
+    assert loop.time() - start == pytest.approx(sum(DEPENDENCY_RETRY_DELAYS))
+    (error,) = raised.value.exceptions
+    assert isinstance(error, httpx.HTTPStatusError)
+    assert error.response.status_code == 412
+    assert artifacts is not None
+    assert artifacts.rows[0]["deleted_at"] is None
