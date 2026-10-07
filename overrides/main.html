@@ -1,8 +1,13 @@
 {% extends "base.html" %}
 
-{#- Visitor analytics: the partial exists only after
-    `node scripts/site_analytics.mjs prepare` (the docs workflow runs it). -#}
+{#- Visitor analytics. The config element partial exists only after
+    `node scripts/site_analytics.mjs prepare` (the docs workflow runs it), so
+    local builds ship neither it nor the module. -#}
 {% block extrahead %}
   {{ super() }}
-  {% include "partials/site-analytics.html" ignore missing %}
+  {% set site_analytics %}{% include "partials/site-analytics.html" ignore missing %}{% endset %}
+  {% if site_analytics | trim %}
+    {{ site_analytics }}
+    <script type="module" src="{{ base_url }}/assets/site-analytics/analytics.js"></script>
+  {% endif %}
 {% endblock %}

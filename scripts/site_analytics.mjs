@@ -7,12 +7,13 @@
 // `prepare` reads scripts/site-analytics.json, fetches exactly the pinned package
 // version, checks its tarball against the pinned registry integrity, and writes two
 // gitignored files: the config element (made by the package's own configElement(),
-// which validates it) plus the module tag, included by overrides/main.html, and the
-// package's analytics.js under docs/assets. With an empty websiteId it removes both,
-// so the site ships no tracker: that is the rollback. Local builds never run it.
+// which validates it) as a partial, and the package's analytics.js under
+// docs/assets. overrides/main.html includes the partial and, only when it exists,
+// adds the module tag. With an empty websiteId both files are removed, so the site
+// ships no tracker: that is the rollback. Local builds never run it.
 //
 // `check` fails if a built page lacks the privacy link, or, while tracking is on,
-// the config element.
+// the config element or the module tag.
 //
 // This site is served from https://dougborg.org/<project>/, the blog's origin, so it
 // uses the blog's Umami website ID and privacy page (one website ID per origin, see
@@ -69,10 +70,9 @@ async function prepare() {
     declaredEvents: config.declaredEvents,
   });
   mkdirSync(dirname(PARTIAL), { recursive: true });
-  writeFileSync(
-    PARTIAL,
-    `${element}\n<script type="module" src="{{ base_url }}/assets/site-analytics/analytics.js"></script>\n`,
-  );
+  // Only the config element is generated; overrides/main.html adds the module
+  // tag itself when this partial exists.
+  writeFileSync(PARTIAL, `${element}\n`);
   mkdirSync(dirname(ASSET), { recursive: true });
   copyFileSync(join(pkg, "analytics.js"), ASSET);
   rmSync(work, { recursive: true, force: true });
@@ -99,6 +99,9 @@ function check(siteDir) {
     }
     if (config.websiteId && !html.includes('id="site-analytics"')) {
       problems.push(`${file}: no site-analytics config element`);
+    }
+    if (config.websiteId && !html.includes('assets/site-analytics/analytics.js"')) {
+      problems.push(`${file}: no site-analytics module tag`);
     }
   }
   if (checked === 0) problems.push(`${siteDir}: no theme pages found`);
