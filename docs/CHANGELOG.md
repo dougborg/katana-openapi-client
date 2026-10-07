@@ -4,15 +4,16 @@
 
 ## [0.88.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.87.1...client-v0.88.0) (2026-10-07)
 
-
 ### Features
 
-* **ts:** add response helpers, typecheck tests, and live test-tenant smoke suite ([2ff98f2](https://github.com/dougborg/katana-openapi-client/commit/2ff98f21b57c5b2af9173432e382049585ebc2a5)), closes [#911](https://github.com/dougborg/katana-openapi-client/issues/911)
-
+- **ts:** add response helpers, typecheck tests, and live test-tenant smoke suite
+  ([2ff98f2](https://github.com/dougborg/katana-openapi-client/commit/2ff98f21b57c5b2af9173432e382049585ebc2a5)),
+  closes [#911](https://github.com/dougborg/katana-openapi-client/issues/911)
 
 ### Bug Fixes
 
-* **client:** retry live-test cleanup deletes blocked by a just-deleted dependent ([0ca4f4f](https://github.com/dougborg/katana-openapi-client/commit/0ca4f4fdf8aa2183cf385fd1625f839ebd82bad4))
+- **client:** retry live-test cleanup deletes blocked by a just-deleted dependent
+  ([0ca4f4f](https://github.com/dougborg/katana-openapi-client/commit/0ca4f4fdf8aa2183cf385fd1625f839ebd82bad4))
 
 ## [0.87.1](https://github.com/dougborg/katana-openapi-client/compare/client-v0.87.0...client-v0.87.1) (2026-10-07)
 
