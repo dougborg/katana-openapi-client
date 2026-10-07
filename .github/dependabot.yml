@@ -74,16 +74,35 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # The TS client's isolated code generator (packages/katana-client/codegen,
+  # its own pnpm lockfile). Stable @hey-api/openapi-ts calls the TypeScript
+  # compiler API, which TypeScript 7 no longer exposes to JavaScript, so this
+  # environment keeps TypeScript 6 while the client builds with 7. Bumps here
+  # regenerate the client: CI's typescript-client job regenerates and
+  # typechecks, so a generator update that breaks the client fails there.
+  - package-ecosystem: "npm"
+    directory: "/packages/katana-client/codegen"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "typescript"
     ignore:
-      # @hey-api/openapi-ts is intentionally pinned to the `next` nightly: the
-      # stable line (0.99.0) calls the TypeScript Compiler API (`ts.SyntaxKind`),
-      # which tsgo removed, so it crashes `pnpm run generate` under TypeScript 7.
-      # The v1 line (nightly-only today) dropped that dependency. Without this
-      # ignore, Dependabot would "update" the locked nightly down to the 0.99.0
-      # `latest` tag — a downgrade that re-breaks the TS 7 build. Remove this and
-      # move the pin to ^1.0.0 once hey-api ships a stable v1
-      # (check: `npm view @hey-api/openapi-ts dist-tags`).
-      - dependency-name: "@hey-api/openapi-ts"
+      # TypeScript 7 removes the compiler API the generator calls. Lift this
+      # once @hey-api/openapi-ts ships a stable release that no longer needs
+      # it (the `next` line already dropped it; issue hey-api/hey-api#4235).
+      - dependency-name: "typescript"
+        versions: [">=7"]
     commit-message:
       prefix: "chore"
       include: "scope"

@@ -59,20 +59,10 @@ Dependabot cannot yet parse.
 
 ### Configuration
 
-```typescript
-// openapi-ts.config.ts
-export default {
-  client: '@hey-api/client-fetch',
-  input: '../../docs/katana-openapi.yaml',
-  output: 'src/generated',
-  services: {
-    asClass: false,
-  },
-  types: {
-    enums: 'javascript',
-  },
-};
-```
+The generator config is `codegen/openapi-ts.config.ts`: the spec at
+`docs/katana-openapi.yaml` in, `src/generated` out, with the `@hey-api/typescript`,
+`@hey-api/client-fetch` and `@hey-api/sdk` plugins. Formatting is done afterwards by the
+client's Biome (ADR 0003).
 
 ### Generated Structure
 
@@ -132,6 +122,22 @@ const { data, error } = await getAllProducts({ client });
 ```bash
 pnpm run generate
 ```
+
+### Generator isolation
+
+The generator runs in its own pnpm project, `codegen/`, with its own lockfile. Stable
+`@hey-api/openapi-ts` calls the TypeScript compiler API (`ts.SyntaxKind` and friends),
+which TypeScript 7 no longer exposes to JavaScript, and it takes TypeScript as a peer
+dependency, so inside the client it would get the client's TypeScript 7 and crash.
+`codegen/` pins TypeScript 6 for the generator alone; the client builds, typechecks and
+tests with TypeScript 7. This works because the generated code has no runtime import
+from `@hey-api`: the generator is a build-time tool only.
+
+`pnpm run generate` installs `codegen/` from its frozen lockfile, runs `openapi-ts`
+there, then formats `src/generated` with the client's Biome. Dependabot watches
+`codegen/` separately and never offers TypeScript 7 there. Once a stable openapi-ts
+release no longer needs the compiler API (the `next` line already dropped it), the
+generator can move back into the client's own dependencies and `codegen/` can go.
 
 ### Build Output
 
