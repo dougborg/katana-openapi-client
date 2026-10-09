@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from ..models.sales_order_custom_fields_type_0 import SalesOrderCustomFieldsType0
     from ..models.sales_order_row import SalesOrderRow
     from ..models.sales_order_shipping_fee import SalesOrderShippingFee
+    from ..models.sales_order_shipping_fee_type_2 import SalesOrderShippingFeeType2
 
 
 T = TypeVar("T", bound="SalesOrder")
@@ -105,7 +106,8 @@ class SalesOrder:
         shipping_address_id (int | None | Unset): Reference to the customer address used for shipping
         linked_manufacturing_order_id (int | None | Unset): ID of the linked manufacturing order if this sales order has
             associated production
-        shipping_fee (None | SalesOrderShippingFee | Unset): Shipping fee details for this sales order
+        shipping_fee (None | SalesOrderShippingFee | SalesOrderShippingFeeType2 | Unset): Shipping fee details, null, or
+            an empty object when no fee is set
         addresses (list[SalesOrderAddress] | Unset): Complete address information for billing and shipping
         custom_fields (None | SalesOrderCustomFieldsType0 | Unset): Custom field values for the sales order, keyed by
             the
@@ -159,7 +161,9 @@ class SalesOrder:
     billing_address_id: int | Unset | None = UNSET
     shipping_address_id: int | Unset | None = UNSET
     linked_manufacturing_order_id: int | Unset | None = UNSET
-    shipping_fee: SalesOrderShippingFee | Unset | None = UNSET
+    shipping_fee: SalesOrderShippingFee | SalesOrderShippingFeeType2 | Unset | None = (
+        UNSET
+    )
     addresses: list[SalesOrderAddress] | Unset = UNSET
     custom_fields: SalesOrderCustomFieldsType0 | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -170,6 +174,9 @@ class SalesOrder:
         )
         from ..models.sales_order_shipping_fee import (
             SalesOrderShippingFee,
+        )
+        from ..models.sales_order_shipping_fee_type_2 import (
+            SalesOrderShippingFeeType2,
         )
 
         id = self.id
@@ -362,7 +369,9 @@ class SalesOrder:
         shipping_fee: dict[str, Any] | Unset | None
         if isinstance(self.shipping_fee, Unset):
             shipping_fee = UNSET
-        elif isinstance(self.shipping_fee, SalesOrderShippingFee):
+        elif isinstance(
+            self.shipping_fee, (SalesOrderShippingFee, SalesOrderShippingFeeType2)
+        ):
             shipping_fee = self.shipping_fee.to_dict()
         else:
             shipping_fee = self.shipping_fee
@@ -469,6 +478,9 @@ class SalesOrder:
         from ..models.sales_order_row import SalesOrderRow
         from ..models.sales_order_shipping_fee import (
             SalesOrderShippingFee,
+        )
+        from ..models.sales_order_shipping_fee_type_2 import (
+            SalesOrderShippingFeeType2,
         )
 
         d = dict(src_dict)
@@ -832,7 +844,9 @@ class SalesOrder:
             d.pop("linked_manufacturing_order_id", UNSET)
         )
 
-        def _parse_shipping_fee(data: object) -> SalesOrderShippingFee | Unset | None:
+        def _parse_shipping_fee(
+            data: object,
+        ) -> SalesOrderShippingFee | SalesOrderShippingFeeType2 | Unset | None:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -850,7 +864,19 @@ class SalesOrder:
                 return shipping_fee_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(SalesOrderShippingFee | Unset | None, data)
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                shipping_fee_type_2 = SalesOrderShippingFeeType2.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return shipping_fee_type_2
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                SalesOrderShippingFee | SalesOrderShippingFeeType2 | Unset | None, data
+            )
 
         shipping_fee = _parse_shipping_fee(d.pop("shipping_fee", UNSET))
 

@@ -11,6 +11,9 @@ if TYPE_CHECKING:
     from ..models.create_service_variant_request_custom_fields_item import (
         CreateServiceVariantRequestCustomFieldsItem,
     )
+    from ..models.create_service_variant_request_custom_fields_type_1 import (
+        CreateServiceVariantRequestCustomFieldsType1,
+    )
 
 
 T = TypeVar("T", bound="CreateServiceVariantRequest")
@@ -28,7 +31,11 @@ class CreateServiceVariantRequest:
     sku: str | Unset = UNSET
     sales_price: float | Unset | None = UNSET
     default_cost: float | Unset | None = UNSET
-    custom_fields: list[CreateServiceVariantRequestCustomFieldsItem] | Unset = UNSET
+    custom_fields: (
+        CreateServiceVariantRequestCustomFieldsType1
+        | list[CreateServiceVariantRequestCustomFieldsItem]
+        | Unset
+    ) = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
@@ -45,12 +52,17 @@ class CreateServiceVariantRequest:
         else:
             default_cost = self.default_cost
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
+        custom_fields: dict[str, Any] | list[dict[str, Any]] | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, list):
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for custom_fields_type_0_item_data in self.custom_fields:
+                custom_fields_type_0_item = custom_fields_type_0_item_data.to_dict()
+                custom_fields.append(custom_fields_type_0_item)
+
+        else:
+            custom_fields = self.custom_fields.to_dict()
 
         field_dict: dict[str, Any] = {}
 
@@ -70,6 +82,9 @@ class CreateServiceVariantRequest:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_service_variant_request_custom_fields_item import (
             CreateServiceVariantRequestCustomFieldsItem,
+        )
+        from ..models.create_service_variant_request_custom_fields_type_1 import (
+            CreateServiceVariantRequestCustomFieldsType1,
         )
 
         d = dict(src_dict)
@@ -93,18 +108,43 @@ class CreateServiceVariantRequest:
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[CreateServiceVariantRequestCustomFieldsItem] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = (
-                    CreateServiceVariantRequestCustomFieldsItem.from_dict(
-                        cast(Mapping[str, Any], custom_fields_item_data)
+        def _parse_custom_fields(
+            data: object,
+        ) -> (
+            CreateServiceVariantRequestCustomFieldsType1
+            | list[CreateServiceVariantRequestCustomFieldsItem]
+            | Unset
+        ):
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                custom_fields_type_0 = []
+                _custom_fields_type_0 = data
+                for custom_fields_type_0_item_data in _custom_fields_type_0:
+                    custom_fields_type_0_item = (
+                        CreateServiceVariantRequestCustomFieldsItem.from_dict(
+                            cast(Mapping[str, Any], custom_fields_type_0_item_data)
+                        )
                     )
-                )
 
-                custom_fields.append(custom_fields_item)
+                    custom_fields_type_0.append(custom_fields_type_0_item)
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            custom_fields_type_1 = (
+                CreateServiceVariantRequestCustomFieldsType1.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+            )
+
+            return custom_fields_type_1
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         create_service_variant_request = cls(
             sku=sku,

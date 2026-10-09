@@ -147,6 +147,9 @@ class KatanaPydanticBase(SQLModel):
         use_enum_values=False,
         # Validate default values
         validate_default=True,
+        # Accept Python field names as well as wire aliases so model_dump()
+        # can be validated again, including nested options such as appearsOn.
+        populate_by_name=True,
     )
 
     # Class variable to store the corresponding attrs model class

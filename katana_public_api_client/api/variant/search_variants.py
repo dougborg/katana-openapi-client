@@ -5,9 +5,12 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
+from ...models.search_variants_x_custom_fields_format import (
+    SearchVariantsXCustomFieldsFormat,
+)
 from ...models.variant_list_response import VariantListResponse
 from ...models.variant_search_request import VariantSearchRequest
 
@@ -15,8 +18,11 @@ from ...models.variant_search_request import VariantSearchRequest
 def _get_kwargs(
     *,
     body: VariantSearchRequest,
+    x_custom_fields_format: SearchVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -85,6 +91,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: VariantSearchRequest,
+    x_custom_fields_format: SearchVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | VariantListResponse]:
     """Search variants
 
@@ -96,6 +103,7 @@ def sync_detailed(
     ``GET /variants`` — a paginated list of records.
 
     Args:
+        x_custom_fields_format (SearchVariantsXCustomFieldsFormat | Unset):
         body (VariantSearchRequest): Structured search body for ``POST /variants/search``. Returns
             the
             same paginated ``{"data": [...]}`` shape as the corresponding list
@@ -115,6 +123,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -128,6 +137,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: VariantSearchRequest,
+    x_custom_fields_format: SearchVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | VariantListResponse | None:
     """Search variants
 
@@ -139,6 +149,7 @@ def sync(
     ``GET /variants`` — a paginated list of records.
 
     Args:
+        x_custom_fields_format (SearchVariantsXCustomFieldsFormat | Unset):
         body (VariantSearchRequest): Structured search body for ``POST /variants/search``. Returns
             the
             same paginated ``{"data": [...]}`` shape as the corresponding list
@@ -159,6 +170,7 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -166,6 +178,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: VariantSearchRequest,
+    x_custom_fields_format: SearchVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | VariantListResponse]:
     """Search variants
 
@@ -177,6 +190,7 @@ async def asyncio_detailed(
     ``GET /variants`` — a paginated list of records.
 
     Args:
+        x_custom_fields_format (SearchVariantsXCustomFieldsFormat | Unset):
         body (VariantSearchRequest): Structured search body for ``POST /variants/search``. Returns
             the
             same paginated ``{"data": [...]}`` shape as the corresponding list
@@ -196,6 +210,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -207,6 +222,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: VariantSearchRequest,
+    x_custom_fields_format: SearchVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | VariantListResponse | None:
     """Search variants
 
@@ -218,6 +234,7 @@ async def asyncio(
     ``GET /variants`` — a paginated list of records.
 
     Args:
+        x_custom_fields_format (SearchVariantsXCustomFieldsFormat | Unset):
         body (VariantSearchRequest): Structured search body for ``POST /variants/search``. Returns
             the
             same paginated ``{"data": [...]}`` shape as the corresponding list
@@ -239,5 +256,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

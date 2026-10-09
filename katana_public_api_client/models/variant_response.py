@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     from ..models.variant_response_custom_fields_type_0_item import (
         VariantResponseCustomFieldsType0Item,
     )
+    from ..models.variant_response_custom_fields_type_1 import (
+        VariantResponseCustomFieldsType1,
+    )
 
 
 T = TypeVar("T", bound="VariantResponse")
@@ -60,12 +63,20 @@ class VariantResponse:
     config_attributes: list[VariantResponseConfigAttributesType0Item] | Unset | None = (
         UNSET
     )
-    custom_fields: list[VariantResponseCustomFieldsType0Item] | Unset | None = UNSET
+    custom_fields: (
+        list[VariantResponseCustomFieldsType0Item]
+        | Unset
+        | VariantResponseCustomFieldsType1
+        | None
+    ) = UNSET
     product_or_material: Material | Product | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.product import Product
+        from ..models.variant_response_custom_fields_type_1 import (
+            VariantResponseCustomFieldsType1,
+        )
 
         id = self.id
 
@@ -153,7 +164,7 @@ class VariantResponse:
         else:
             config_attributes = self.config_attributes
 
-        custom_fields: list[dict[str, Any]] | Unset | None
+        custom_fields: dict[str, Any] | list[dict[str, Any]] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(self.custom_fields, list):
@@ -162,6 +173,8 @@ class VariantResponse:
                 custom_fields_type_0_item = custom_fields_type_0_item_data.to_dict()
                 custom_fields.append(custom_fields_type_0_item)
 
+        elif isinstance(self.custom_fields, VariantResponseCustomFieldsType1):
+            custom_fields = self.custom_fields.to_dict()
         else:
             custom_fields = self.custom_fields
 
@@ -226,6 +239,9 @@ class VariantResponse:
         )
         from ..models.variant_response_custom_fields_type_0_item import (
             VariantResponseCustomFieldsType0Item,
+        )
+        from ..models.variant_response_custom_fields_type_1 import (
+            VariantResponseCustomFieldsType1,
         )
 
         d = dict(src_dict)
@@ -377,14 +393,16 @@ class VariantResponse:
 
         def _parse_custom_fields(
             data: object,
-        ) -> list[VariantResponseCustomFieldsType0Item] | Unset | None:
+        ) -> (
+            list[VariantResponseCustomFieldsType0Item]
+            | Unset
+            | VariantResponseCustomFieldsType1
+            | None
+        ):
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            # Empty dict -> None (Katana wire quirk; see #509).
-            if isinstance(data, dict) and not data:
-                return None
             try:
                 if not isinstance(data, list):
                     raise TypeError()
@@ -402,7 +420,23 @@ class VariantResponse:
                 return custom_fields_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(list[VariantResponseCustomFieldsType0Item] | Unset | None, data)
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_1 = VariantResponseCustomFieldsType1.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                list[VariantResponseCustomFieldsType0Item]
+                | Unset
+                | VariantResponseCustomFieldsType1
+                | None,
+                data,
+            )
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 

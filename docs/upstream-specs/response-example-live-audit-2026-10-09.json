@@ -1,0 +1,2289 @@
+{
+  "checked_at": "2026-10-09T18:00:40.249275+00:00",
+  "factory_id": 104008,
+  "summary": {
+    "portal_example_wrong": 54,
+    "local_schema_wrong": 16,
+    "unverified_no_nonnull_sample": 2,
+    "unverified_no_samples": 11
+  },
+  "findings": [
+    {
+      "finding": 1,
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "safety_stock_level"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {
+        "string": 100
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 2,
+      "method": "POST",
+      "endpoint": "/inventory_reorder_points",
+      "status": 200,
+      "field_path": [
+        "value"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 3,
+      "method": "POST",
+      "endpoint": "/inventory_safety_stock_levels",
+      "status": 200,
+      "field_path": [
+        "value"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 4,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 134
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 5,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 134
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 6,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 122,
+        "null": 57
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 7,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 134
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 8,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 122,
+        "null": 57
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 9,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 134
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 10,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 134
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 11,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 12,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 13,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 3
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 14,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 15,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 3
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 16,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 17,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 18,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 19,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 20,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4,
+        "null": 1
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 21,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 22,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4,
+        "null": 1
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 23,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 24,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 25,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 26,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 27,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 2,
+        "string": 2
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 28,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 29,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 2,
+        "string": 2
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Portal numeric example is also inconsistent with observed non-null strings. Local schema gap is missing nullability, not a change from string to number."
+    },
+    {
+      "finding": 30,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 31,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 32,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 100
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 33,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 73,
+        "null": 27
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 34,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 72,
+        "null": 28
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 35,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 36,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 37,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample",
+      "limitation": "Only null recipe cost observed on create/update; schema permits null, but no non-null type verified for these operations."
+    },
+    {
+      "finding": 38,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 39,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 40,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 3,
+        "null": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 41,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 42,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 43,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample",
+      "limitation": "Only null recipe cost observed on create/update; schema permits null, but no non-null type verified for these operations."
+    },
+    {
+      "finding": 44,
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "type",
+      "portal_type": "array",
+      "observed_types": {
+        "object": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 45,
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 46,
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "string": 3
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 47,
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 48,
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "purchase_order_id"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Accounting metadata collection returned an empty data array; no API write endpoint exists to create metadata."
+    },
+    {
+      "finding": 49,
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200,
+      "field_path": [
+        "data",
+        1,
+        "purchase_order_id"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Accounting metadata collection returned an empty data array; no API write endpoint exists to create metadata."
+    },
+    {
+      "finding": 50,
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200,
+      "field_path": [
+        "data",
+        0
+      ],
+      "schema_keyword": "oneOf",
+      "portal_type": "object",
+      "observed_types": {
+        "number": 16
+      },
+      "evidence_field_path": [
+        "data",
+        0,
+        "purchase_order_rows",
+        0,
+        "landed_cost"
+      ],
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 51,
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "oneOf",
+      "portal_type": "object",
+      "observed_types": {
+        "number": 2
+      },
+      "evidence_field_path": [
+        "purchase_order_rows",
+        0,
+        "landed_cost"
+      ],
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 52,
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "oneOf",
+      "portal_type": "object",
+      "observed_types": {
+        "number": 1
+      },
+      "evidence_field_path": [
+        "purchase_order_rows",
+        0,
+        "landed_cost"
+      ],
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 53,
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "sales_order_fulfillment_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 54,
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200,
+      "field_path": [
+        "sales_order_fulfillment_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 55,
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 100
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 56,
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 57,
+      "method": "POST",
+      "endpoint": "/sales_order_rows",
+      "status": 200,
+      "field_path": [
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 58,
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 59,
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 60,
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 6
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 61,
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 62,
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 63,
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "amount"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 64,
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200,
+      "field_path": [
+        "data",
+        1,
+        "amount"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 65,
+      "method": "POST",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200,
+      "field_path": [
+        "amount"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "number": 1
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 66,
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200,
+      "field_path": [
+        "amount"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 67,
+      "method": "PATCH",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200,
+      "field_path": [
+        "amount"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 68,
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 100
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 69,
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "sales_order_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 70,
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200,
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 3
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 71,
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 62
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 72,
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "location_id"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {
+        "number": 62
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 73,
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200,
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 6
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 74,
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200,
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Null legacy batch_id not observed on temporary batch-tracked orders or delivered fulfillments. Explicit null allocations rejected with 422 on sales-row PATCH and outsourced-recipe POST/PATCH; unallocated outsourced receipt rejected with UNTRACED_BATCH_TRACKABLE_INGREDIENTS. Request rejections do not establish response nullability."
+    },
+    {
+      "finding": 75,
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "type",
+      "portal_type": "array",
+      "observed_types": {
+        "object": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 76,
+      "method": "POST",
+      "endpoint": "/serial_numbers",
+      "status": 200,
+      "field_path": [
+        "failed",
+        0,
+        "reason"
+      ],
+      "schema_keyword": "enum",
+      "portal_type": "string",
+      "observed_types": {},
+      "verdict": "unverified_no_samples",
+      "limitation": "Serial failure probe rejected by automatic approval review because an accepted attachment could mutate a pre-existing serial without a verified rollback. Not executed."
+    },
+    {
+      "finding": 77,
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "type",
+      "portal_type": "array",
+      "observed_types": {
+        "object": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 78,
+      "method": "GET",
+      "endpoint": "/stock_adjustments",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "stock_adjustment_rows",
+        0,
+        "traceability"
+      ],
+      "schema_keyword": "additionalProperties",
+      "portal_type": "array",
+      "observed_types": {
+        "array": 1
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 79,
+      "method": "GET",
+      "endpoint": "/stock_adjustments",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "stock_adjustment_rows",
+        1,
+        "traceability"
+      ],
+      "schema_keyword": "additionalProperties",
+      "portal_type": "array",
+      "observed_types": {
+        "array": 1
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 80,
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "status": 200,
+      "field_path": [
+        "stock_adjustment_rows",
+        0,
+        "traceability"
+      ],
+      "schema_keyword": "additionalProperties",
+      "portal_type": "array",
+      "observed_types": {
+        "array": 1
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 81,
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "status": 200,
+      "field_path": [
+        "stock_adjustment_rows",
+        1,
+        "traceability"
+      ],
+      "schema_keyword": "additionalProperties",
+      "portal_type": "array",
+      "observed_types": {
+        "array": 1
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 82,
+      "method": "PATCH",
+      "endpoint": "/stock_adjustments/{id}",
+      "status": 200,
+      "field_path": [
+        "stock_adjustment_rows",
+        0,
+        "traceability"
+      ],
+      "schema_keyword": "additionalProperties",
+      "portal_type": "array",
+      "observed_types": {
+        "array": 1
+      },
+      "verdict": "local_schema_wrong"
+    },
+    {
+      "finding": 83,
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "stock_transfer_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "null",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "local_schema_wrong",
+      "limitation": "Null legacy batch_id confirmed after the owned transfer changed from draft to inTransit."
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/factory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_adjustments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/locations",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/suppliers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/customers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/inventory_reorder_points",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/inventory_safety_stock_levels",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/stock_adjustments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_adjustments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/factory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/locations",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/suppliers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/customers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_order_receive",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_order_receive",
+      "status": 422,
+      "error_details": [
+        {}
+      ]
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/factory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/locations",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/suppliers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/customers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_order_receive",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/stock_transfers/{id}/status",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_order_receive",
+      "status": 422,
+      "error_details": [
+        {}
+      ]
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    }
+  ],
+  "cleanup": {
+    "created": 14,
+    "deleted": 14
+  },
+  "cleanup_ledgers": [
+    "/var/folders/6_/gs55t2cj3p1frp0ypdhblfh00000gn/T/katana-test-ledgers/104008-14ed9f452e3f483ea172ae4078355192.jsonl",
+    "/var/folders/6_/gs55t2cj3p1frp0ypdhblfh00000gn/T/katana-test-ledgers/104008-fb46de051d9040e4ac0880516952c7fa.jsonl",
+    "/var/folders/6_/gs55t2cj3p1frp0ypdhblfh00000gn/T/katana-test-ledgers/104008-b104e914180140058faa1767010df56c.jsonl",
+    "/var/folders/6_/gs55t2cj3p1frp0ypdhblfh00000gn/T/katana-test-ledgers/104008-3063e9f2c28142a994c3a2cd9812947e.jsonl",
+    "/var/folders/6_/gs55t2cj3p1frp0ypdhblfh00000gn/T/katana-test-ledgers/104008-a08fa55f4538426fa4e94ae97e62745c.jsonl",
+    "/var/folders/6_/gs55t2cj3p1frp0ypdhblfh00000gn/T/katana-test-ledgers/104008-f0953b705c7a4cbd8843ae0de2d6e6a1.jsonl"
+  ],
+  "additional_cleanup": [
+    {
+      "created": 5,
+      "deleted": 5
+    },
+    {
+      "created": 5,
+      "deleted": 5
+    }
+  ],
+  "scope": "83 portal example validation errors across 41 operation/status pairs. Counts refer to error occurrences, not unique schema properties. Only test-client credentials used; raw tenant payloads omitted.",
+  "earlier_probe_cleanup": {
+    "created": 8,
+    "deleted": 8
+  },
+  "final_probe_cleanup": [
+    {
+      "created": 5,
+      "deleted": 5
+    },
+    {
+      "created": 5,
+      "deleted": 5
+    }
+  ]
+}

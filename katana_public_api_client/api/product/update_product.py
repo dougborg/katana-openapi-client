@@ -6,19 +6,25 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.product import Product
 from ...models.update_product_request import UpdateProductRequest
+from ...models.update_product_x_custom_fields_format import (
+    UpdateProductXCustomFieldsFormat,
+)
 
 
 def _get_kwargs(
     id: int,
     *,
     body: UpdateProductRequest,
+    x_custom_fields_format: UpdateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
@@ -85,6 +91,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
+    x_custom_fields_format: UpdateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Product]:
     """Update a product
 
@@ -93,6 +100,7 @@ def sync_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateProductXCustomFieldsFormat | Unset):
         body (UpdateProductRequest): Request payload for updating an existing finished product's
             properties, configurations, and manufacturing specifications Example: {'name':
             'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
@@ -116,6 +124,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -130,6 +139,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
+    x_custom_fields_format: UpdateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Product | None:
     """Update a product
 
@@ -138,6 +148,7 @@ def sync(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateProductXCustomFieldsFormat | Unset):
         body (UpdateProductRequest): Request payload for updating an existing finished product's
             properties, configurations, and manufacturing specifications Example: {'name':
             'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
@@ -162,6 +173,7 @@ def sync(
         id=id,
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -170,6 +182,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
+    x_custom_fields_format: UpdateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Product]:
     """Update a product
 
@@ -178,6 +191,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateProductXCustomFieldsFormat | Unset):
         body (UpdateProductRequest): Request payload for updating an existing finished product's
             properties, configurations, and manufacturing specifications Example: {'name':
             'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
@@ -201,6 +215,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -213,6 +228,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
+    x_custom_fields_format: UpdateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Product | None:
     """Update a product
 
@@ -221,6 +237,7 @@ async def asyncio(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateProductXCustomFieldsFormat | Unset):
         body (UpdateProductRequest): Request payload for updating an existing finished product's
             properties, configurations, and manufacturing specifications Example: {'name':
             'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
@@ -246,5 +263,6 @@ async def asyncio(
             id=id,
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

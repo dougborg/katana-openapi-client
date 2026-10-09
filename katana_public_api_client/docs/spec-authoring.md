@@ -156,12 +156,24 @@ UUID-keyed scalar map or the legacy array (at most three entries). Map values ar
 strings, numbers, booleans, or null; nested objects and non-UUID keys are rejected. The
 live test account rejects nonempty variant maps with an account-feature error, even
 though they pass gateway validation. Do not infer that every tenant can use the object
-format, or that request support changes the response shape.
+format. Item responses can use either representation; the optional
+`X-Custom-Fields-Format` header selects `default` (UUID-keyed object) or `legacy`
+(name/value array) when the account supports both. Enabled account features determine
+the default and whether a requested representation is accepted.
 
 Keep missing fields, `{}`, and `null` distinct in serialization. An empty object is
 valid input and must not be normalized to null. Add definition entity types only after
 verifying their separate API contract; request-field support alone does not prove that a
-definition can be created for that entity type.
+definition can be created for that entity type. The portal's definition endpoint
+documents the entity enum and feature requirements; the gateway leaves it as a bare
+string. Use the shared spec's `CustomFieldEntityType` for the supported values.
+
+Definition `options` may contain `choices`, `appearsOn`, or both. `choices` is required
+for `singleSelect`, but must not be required for every options object. Variant
+definitions can link to transactional entities via `appearsOn`; production-operation
+definitions can link to manufacturing orders. Values snapshotted onto new records are
+editable and are not re-synced after the source changes. Omitted option keys keep their
+current values on update; an explicit empty `appearsOn` array removes all targets.
 
 Sales-order custom-field **search** paths use snake_case `custom_fields.<uuid>` in
 `where`/`order` (matching the request/response body), per Katana's live

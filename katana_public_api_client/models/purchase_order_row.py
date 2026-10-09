@@ -44,8 +44,8 @@ class PurchaseOrderRow:
     tax_rate_id: int | Unset = UNSET
     price_per_unit: float | Unset = UNSET
     price_per_unit_in_base_currency: float | Unset = UNSET
-    purchase_uom_conversion_rate: float | Unset = UNSET
-    purchase_uom: str | Unset = UNSET
+    purchase_uom_conversion_rate: float | Unset | None = UNSET
+    purchase_uom: str | Unset | None = UNSET
     currency: str | Unset = UNSET
     conversion_rate: float | Unset | None = UNSET
     total: float | Unset = UNSET
@@ -89,9 +89,17 @@ class PurchaseOrderRow:
 
         price_per_unit_in_base_currency = self.price_per_unit_in_base_currency
 
-        purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
+        purchase_uom_conversion_rate: float | Unset | None
+        if isinstance(self.purchase_uom_conversion_rate, Unset):
+            purchase_uom_conversion_rate = UNSET
+        else:
+            purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        purchase_uom = self.purchase_uom
+        purchase_uom: str | Unset | None
+        if isinstance(self.purchase_uom, Unset):
+            purchase_uom = UNSET
+        else:
+            purchase_uom = self.purchase_uom
 
         currency = self.currency
 
@@ -256,9 +264,25 @@ class PurchaseOrderRow:
             "price_per_unit_in_base_currency", UNSET
         )
 
-        purchase_uom_conversion_rate = d.pop("purchase_uom_conversion_rate", UNSET)
+        def _parse_purchase_uom_conversion_rate(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
 
-        purchase_uom = d.pop("purchase_uom", UNSET)
+        purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
+            d.pop("purchase_uom_conversion_rate", UNSET)
+        )
+
+        def _parse_purchase_uom(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
         currency = d.pop("currency", UNSET)
 

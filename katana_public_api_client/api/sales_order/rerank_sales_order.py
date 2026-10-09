@@ -8,6 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
+from ...models.rerank_orders_response import RerankOrdersResponse
 from ...models.rerank_sales_order_request import RerankSalesOrderRequest
 
 
@@ -32,7 +33,12 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse | None:
+    if response.status_code == 200:
+        response_200 = RerankOrdersResponse.from_dict(response.json())
+
+        return response_200
+
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -70,7 +76,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,18 +89,29 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: RerankSalesOrderRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]:
     """Change a sales order's rank
 
-     Repositions a sales order in the schedule relative to another sales order.
+     Moves one or more sales orders to an exact place in the sales order list.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the
+    place set in `place`. The first id ends up highest in the list. All other sales orders keep their
+    order relative to each other.
 
-    Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they
-    move
-    together with the sales order.
+    `before_id` places them directly above that sales order, and `after_id` directly below it. Sending
+    the same request again changes nothing, so a request can be retried safely.
+
+    Only open sales orders can be reranked. A sales order moves together with its linked manufacturing
+    orders.
+
+    To rerank more than 250 sales orders, send them in batches: the first batch with `place.position`
+    set to `top`, each next batch with `place.after_id` set to the last id in the previous response's
+    `order_ids`.
+
+    Sales order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the sales orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
 
     Args:
         body (RerankSalesOrderRequest): Request payload for repositioning a sales order in the
@@ -107,7 +124,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]
     """
 
     kwargs = _get_kwargs(
@@ -125,18 +142,29 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: RerankSalesOrderRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse | None:
     """Change a sales order's rank
 
-     Repositions a sales order in the schedule relative to another sales order.
+     Moves one or more sales orders to an exact place in the sales order list.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the
+    place set in `place`. The first id ends up highest in the list. All other sales orders keep their
+    order relative to each other.
 
-    Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they
-    move
-    together with the sales order.
+    `before_id` places them directly above that sales order, and `after_id` directly below it. Sending
+    the same request again changes nothing, so a request can be retried safely.
+
+    Only open sales orders can be reranked. A sales order moves together with its linked manufacturing
+    orders.
+
+    To rerank more than 250 sales orders, send them in batches: the first batch with `place.position`
+    set to `top`, each next batch with `place.after_id` set to the last id in the previous response's
+    `order_ids`.
+
+    Sales order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the sales orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
 
     Args:
         body (RerankSalesOrderRequest): Request payload for repositioning a sales order in the
@@ -149,7 +177,7 @@ def sync(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse
     """
 
     return sync_detailed(
@@ -162,18 +190,29 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: RerankSalesOrderRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]:
     """Change a sales order's rank
 
-     Repositions a sales order in the schedule relative to another sales order.
+     Moves one or more sales orders to an exact place in the sales order list.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the
+    place set in `place`. The first id ends up highest in the list. All other sales orders keep their
+    order relative to each other.
 
-    Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they
-    move
-    together with the sales order.
+    `before_id` places them directly above that sales order, and `after_id` directly below it. Sending
+    the same request again changes nothing, so a request can be retried safely.
+
+    Only open sales orders can be reranked. A sales order moves together with its linked manufacturing
+    orders.
+
+    To rerank more than 250 sales orders, send them in batches: the first batch with `place.position`
+    set to `top`, each next batch with `place.after_id` set to the last id in the previous response's
+    `order_ids`.
+
+    Sales order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the sales orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
 
     Args:
         body (RerankSalesOrderRequest): Request payload for repositioning a sales order in the
@@ -186,7 +225,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]
     """
 
     kwargs = _get_kwargs(
@@ -202,18 +241,29 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: RerankSalesOrderRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse | None:
     """Change a sales order's rank
 
-     Repositions a sales order in the schedule relative to another sales order.
+     Moves one or more sales orders to an exact place in the sales order list.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the
+    place set in `place`. The first id ends up highest in the list. All other sales orders keep their
+    order relative to each other.
 
-    Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they
-    move
-    together with the sales order.
+    `before_id` places them directly above that sales order, and `after_id` directly below it. Sending
+    the same request again changes nothing, so a request can be retried safely.
+
+    Only open sales orders can be reranked. A sales order moves together with its linked manufacturing
+    orders.
+
+    To rerank more than 250 sales orders, send them in batches: the first batch with `place.position`
+    set to `top`, each next batch with `place.after_id` set to the last id in the previous response's
+    `order_ids`.
+
+    Sales order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the sales orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
 
     Args:
         body (RerankSalesOrderRequest): Request payload for repositioning a sales order in the
@@ -226,7 +276,7 @@ async def asyncio(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse
     """
 
     return (

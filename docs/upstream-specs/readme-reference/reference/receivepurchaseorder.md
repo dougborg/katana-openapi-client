@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Receive a purchase order
 
@@ -79,6 +79,8 @@ If you receive the items on the purchase order, you can mark the purchase order 
                         },
                         "batch_transactions": {
                           "type": "array",
+                          "deprecated": true,
+                          "description": "Batch breakdown of the received quantity, in the purchase unit of the row. **Deprecated** — prefer `traceability`, which follows the same quantity rules. Cannot be combined with `traceability` on the same row.",
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
@@ -91,6 +93,42 @@ If you receive the items on the purchase order, you can mark the purchase order 
                                 "type": "integer",
                                 "nullable": true,
                                 "description": "ID of the batch to receive stock for. Use `null` to record unbatched (untraced) stock."
+                              }
+                            }
+                          }
+                        },
+                        "traceability": {
+                          "type": "array",
+                          "description": "Batch, serial number and bin location breakdown of the received quantity, in the purchase unit of the row. Preferred over `batch_transactions`; cannot be combined with it on the same row. When neither is sent, the received quantity takes the traceability pre-assigned to the row and any quantity it leaves uncovered is received untraced. The inventory settings of the account may reject a receipt that is not fully traced (422).",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "One allocation entry for the received quantity. Entries replace the traceability pre-assigned to the row for this receipt.\n\n- **Non-tracked variant** — omit `traceability`, or send entries with only `bin_location_id` and `quantity` to receive into bins.\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to receive into multiple batches.\n- **Serial-tracked** — each entry sets `serial_number_id` and no `quantity`, one entry per serial number. A serial number is one unit in the stock unit of the variant, so a row with a `purchase_uom_conversion_rate` takes the row's received `quantity` × `purchase_uom_conversion_rate` serial numbers. Create serial numbers first with `POST /serial_numbers`.\n\nQuantities are in the purchase unit of the row, like the row's `quantity`, and together may not exceed it. Depending on the account's traceability settings, any quantity the entries leave uncovered is received untraced or the receipt is rejected with a 422. Each entry sets at most one of `batch_id` / `serial_number_id`.",
+                            "properties": {
+                              "batch_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Batch id. Mutually exclusive with `serial_number_id`."
+                              },
+                              "serial_number_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Serial number id. Mutually exclusive with `batch_id`."
+                              },
+                              "bin_location_id": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "nullable": true,
+                                "description": "Bin location id at the receiving location that the stock arrives in. Optional."
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "description": "Positive decimal string in the purchase unit of the row. Required for batch and bin-only entries; omit it for serial entries."
                               }
                             }
                           }
@@ -125,6 +163,8 @@ If you receive the items on the purchase order, you can mark the purchase order 
                       },
                       "batch_transactions": {
                         "type": "array",
+                        "deprecated": true,
+                        "description": "Batch breakdown of the received quantity, in the purchase unit of the row. **Deprecated** — prefer `traceability`, which follows the same quantity rules. Cannot be combined with `traceability` on the same row.",
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
@@ -137,6 +177,42 @@ If you receive the items on the purchase order, you can mark the purchase order 
                               "type": "integer",
                               "nullable": true,
                               "description": "ID of the batch to receive stock for. Use `null` to record unbatched (untraced) stock."
+                            }
+                          }
+                        }
+                      },
+                      "traceability": {
+                        "type": "array",
+                        "description": "Batch, serial number and bin location breakdown of the received quantity, in the purchase unit of the row. Preferred over `batch_transactions`; cannot be combined with it on the same row. When neither is sent, the received quantity takes the traceability pre-assigned to the row and any quantity it leaves uncovered is received untraced. The inventory settings of the account may reject a receipt that is not fully traced (422).",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "description": "One allocation entry for the received quantity. Entries replace the traceability pre-assigned to the row for this receipt.\n\n- **Non-tracked variant** — omit `traceability`, or send entries with only `bin_location_id` and `quantity` to receive into bins.\n- **Batch-tracked** — each entry sets `batch_id` and `quantity`. Use multiple entries to receive into multiple batches.\n- **Serial-tracked** — each entry sets `serial_number_id` and no `quantity`, one entry per serial number. A serial number is one unit in the stock unit of the variant, so a row with a `purchase_uom_conversion_rate` takes the row's received `quantity` × `purchase_uom_conversion_rate` serial numbers. Create serial numbers first with `POST /serial_numbers`.\n\nQuantities are in the purchase unit of the row, like the row's `quantity`, and together may not exceed it. Depending on the account's traceability settings, any quantity the entries leave uncovered is received untraced or the receipt is rejected with a 422. Each entry sets at most one of `batch_id` / `serial_number_id`.",
+                          "properties": {
+                            "batch_id": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647,
+                              "nullable": true,
+                              "description": "Batch id. Mutually exclusive with `serial_number_id`."
+                            },
+                            "serial_number_id": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647,
+                              "nullable": true,
+                              "description": "Serial number id. Mutually exclusive with `batch_id`."
+                            },
+                            "bin_location_id": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647,
+                              "nullable": true,
+                              "description": "Bin location id at the receiving location that the stock arrives in. Optional."
+                            },
+                            "quantity": {
+                              "type": "string",
+                              "description": "Positive decimal string in the purchase unit of the row. Required for batch and bin-only entries; omit it for serial entries."
                             }
                           }
                         }

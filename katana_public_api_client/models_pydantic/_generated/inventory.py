@@ -43,11 +43,11 @@ from .common import (
     CustomField,
     CustomField1,
     CustomField3,
-    CustomField4,
     CustomFields,
     CustomFields1,
     CustomFields2,
     CustomFields3,
+    CustomFields4,
     InventoryItemType,
     InventoryMovementResourceType,
     Location,
@@ -215,9 +215,16 @@ class Variant(UpdatableEntity, DeletableEntity):
         Field(description="Minimum quantity that must be ordered from suppliers"),
     ] = None
     custom_fields: Annotated[
-        list[CustomField] | None,
+        list[CustomField]
+        | dict[
+            constr(
+                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            ),
+            str | float | bool | None,
+        ]
+        | None,
         Field(
-            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)"
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
     config_attributes: Annotated[
@@ -256,9 +263,16 @@ class ServiceVariant(UpdatableEntity, DeletableEntity):
     ]
     type: VariantType | None = None
     custom_fields: Annotated[
-        list[CustomField1] | None,
+        list[CustomField1]
+        | dict[
+            constr(
+                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            ),
+            str | float | bool | None,
+        ]
+        | None,
         Field(
-            description='Custom field values specific to this service variant, in\nthe legacy ``[{field_name, field_value}]`` array shape\n(configured via ``/custom_fields_collections``; distinct\nfrom the sales-order ``custom_fields`` dict — see\n``CustomFieldValue``). The API returns ``null`` (not\n``[]``) when the variant has no custom-field assignments —\nnon-nullable here causes the generated parser to fail with\n"NoneType is not iterable" on every create_service /\nget_service response.\n'
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
 
@@ -563,7 +577,7 @@ class CreateMaterialVariantRequest(KatanaPydanticBase):
         | CustomFields
         | None,
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
 
@@ -660,7 +674,7 @@ class CreateVariantRequest(KatanaPydanticBase):
         | CustomFields1
         | None,
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
 
@@ -739,7 +753,7 @@ class UpdateVariantRequest(KatanaPydanticBase):
         | CustomFields2
         | None,
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
 
@@ -812,8 +826,17 @@ class CreateServiceVariantRequest(KatanaPydanticBase):
         ),
     ] = None
     custom_fields: Annotated[
-        list[CustomField4] | None,
-        Field(description="Custom field values for this variant", max_length=3),
+        CustomFields3
+        | dict[
+            constr(
+                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            ),
+            str | float | bool | None,
+        ]
+        | None,
+        Field(
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
+        ),
     ] = None
 
 
@@ -1336,10 +1359,10 @@ class UpdateServiceRequest(KatanaPydanticBase):
             ),
             str | float | bool | None,
         ]
-        | CustomFields3
+        | CustomFields4
         | None,
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
 
@@ -1568,9 +1591,16 @@ class VariantResponse(DeletableEntity):
         Field(description="Configuration attribute values that define this variant"),
     ] = None
     custom_fields: Annotated[
-        list[CustomField3] | None,
+        list[CustomField3]
+        | dict[
+            constr(
+                pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            ),
+            str | float | bool | None,
+        ]
+        | None,
         Field(
-            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)"
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
     product_or_material: Annotated[
@@ -1659,10 +1689,19 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
         Field(description="Minimum quantity that must be ordered from suppliers"),
     ] = None
     custom_fields: Annotated[
-        Mapped[list[CustomField] | None],
+        Mapped[
+            list[CustomField]
+            | dict[
+                constr(
+                    pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                ),
+                str | float | bool | None,
+            ]
+            | None
+        ],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
         ),
     ] = None
     config_attributes: Annotated[

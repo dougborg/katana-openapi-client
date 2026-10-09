@@ -10,6 +10,9 @@ from ...client_types import UNSET, Response, Unset
 from ...models.abc_classification import AbcClassification
 from ...models.error_response import ErrorResponse
 from ...models.get_all_variants_extend_item import GetAllVariantsExtendItem
+from ...models.get_all_variants_x_custom_fields_format import (
+    GetAllVariantsXCustomFieldsFormat,
+)
 from ...models.inventory_item_type import InventoryItemType
 from ...models.variant_list_response import VariantListResponse
 
@@ -36,7 +39,11 @@ def _get_kwargs(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     params: dict[str, Any] = {}
 
@@ -127,6 +134,7 @@ def _get_kwargs(
         "params": params,
     }
 
+    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -193,6 +201,7 @@ def sync_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[ErrorResponse | VariantListResponse]:
     """List all variants
 
@@ -222,6 +231,7 @@ def sync_detailed(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllVariantsXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -253,6 +263,7 @@ def sync_detailed(
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -285,6 +296,7 @@ def sync(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> ErrorResponse | VariantListResponse | None:
     """List all variants
 
@@ -314,6 +326,7 @@ def sync(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllVariantsXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -346,6 +359,7 @@ def sync(
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -372,6 +386,7 @@ async def asyncio_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[ErrorResponse | VariantListResponse]:
     """List all variants
 
@@ -401,6 +416,7 @@ async def asyncio_detailed(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllVariantsXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -432,6 +448,7 @@ async def asyncio_detailed(
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -462,6 +479,7 @@ async def asyncio(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllVariantsXCustomFieldsFormat | Unset = UNSET,
 ) -> ErrorResponse | VariantListResponse | None:
     """List all variants
 
@@ -491,6 +509,7 @@ async def asyncio(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllVariantsXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -524,5 +543,6 @@ async def asyncio(
             created_at_max=created_at_max,
             updated_at_min=updated_at_min,
             updated_at_max=updated_at_max,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

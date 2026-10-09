@@ -18,11 +18,10 @@ T = TypeVar("T", bound="CreateSerialNumbersResponse")
 
 @_attrs_define
 class CreateSerialNumbersResponse:
-    """Published 200 response from ``POST /serial_numbers``. A current valid
-    attachment success was not available for destructive verification, so
-    this envelope is retained. Invalid strings do not produce this response:
-    the verified API rejects the entire request with ``422`` instead of
-    returning per-string entries in ``failed``.
+    """Attachment results from ``POST /serial_numbers``. A matching-variant
+    attachment returned this 200 envelope in October 2026 with an empty
+    failed array. Invalid strings and quantity conflicts can reject the
+    entire request with 422 instead of returning per-string failures.
 
         Example:
             {'successful': [{'id': 886853, 'transaction_id': '0f054aa0-1234-5678-9abc-def012345678', 'serial_number':

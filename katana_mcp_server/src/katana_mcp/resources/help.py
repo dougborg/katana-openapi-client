@@ -2524,7 +2524,7 @@ async def get_help_custom_fields(context: Context) -> str:
         )
         definitions = [d for d in response.definitions if d.entity_type == entity_type]
         for definition in definitions:
-            choices = definition.options.choices if definition.options else []
+            choices = (definition.options.choices or []) if definition.options else []
             active = [choice for choice in choices if not choice.deleted]
             summary = (
                 ", ".join(f"{choice.id}: {cell(choice.label)}" for choice in active)

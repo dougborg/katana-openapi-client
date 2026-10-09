@@ -27,7 +27,7 @@ from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
-    Quantity,
+    Quantity2,
     TraceabilityRequest,
     Transaction,
 )
@@ -68,6 +68,7 @@ class CreateSerialNumberResourceType(StrEnum):
 class CreateSerialNumberFailureReason(StrEnum):
     duplicate = "DUPLICATE"
     missing = "MISSING"
+    not_in_stock = "NOT_IN_STOCK"
 
 
 class Batch(KatanaPydanticBase):
@@ -350,7 +351,8 @@ class SerialNumberTransaction(KatanaPydanticBase):
         int, Field(description="ID of the serial number for the fulfilled item")
     ]
     quantity: Annotated[
-        Quantity | None, Field(description="1 to add the serial number, 0 to remove it")
+        Quantity2 | None,
+        Field(description="1 to add the serial number, 0 to remove it"),
     ] = None
 
 
@@ -372,6 +374,25 @@ class StockAdjustmentBatchTransaction(KatanaPydanticBase):
     quantity: Annotated[
         float, Field(description="Quantity adjusted for this specific batch")
     ]
+
+
+class StockAdjustmentTraceability(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        int | None, Field(description="Batch ID, or null for unallocated stock")
+    ] = None
+    serial_number_id: Annotated[
+        int | None,
+        Field(description="Serial number ID, or null for nonserialized stock"),
+    ] = None
+    bin_location_id: Annotated[
+        int | None, Field(description="Bin ID, or null when no bin is allocated")
+    ] = None
+    quantity: Annotated[
+        str | None, Field(description="Allocated quantity as a decimal string")
+    ] = None
 
 
 class StockAdjustmentRow(KatanaPydanticBase):
@@ -399,6 +420,16 @@ class StockAdjustmentRow(KatanaPydanticBase):
     batch_transactions: Annotated[
         list[StockAdjustmentBatchTransaction] | None,
         Field(description="Optional batch-specific adjustments for tracked inventory"),
+    ] = None
+    traceability: Annotated[
+        list[StockAdjustmentTraceability] | None,
+        Field(
+            description="Batch, serial, and bin allocations returned for this adjustment row"
+        ),
+    ] = None
+    deleted_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Deletion timestamp for this row, or null while active"),
     ] = None
 
 
@@ -537,7 +568,9 @@ class UpdateStockAdjustmentRequest(KatanaPydanticBase):
 
 
 class BatchTransaction7(KatanaPydanticBase):
-    batch_id: Annotated[int, Field(description="ID of the batch being transferred")]
+    batch_id: Annotated[
+        int | None, Field(description="ID of the batch being transferred")
+    ]
     quantity: Annotated[float, Field(description="Quantity from this specific batch")]
 
 
@@ -1039,6 +1072,17 @@ class CachedStockAdjustmentRow(KatanaPydanticBase, table=True):
             sa_column=Column(PydanticJSON),
             description="Optional batch-specific adjustments for tracked inventory",
         ),
+    ] = None
+    traceability: Annotated[
+        Mapped[list[StockAdjustmentTraceability] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Batch, serial, and bin allocations returned for this adjustment row",
+        ),
+    ] = None
+    deleted_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Deletion timestamp for this row, or null while active"),
     ] = None
     stock_adjustment: Mapped[Optional["CachedStockAdjustment"]] = Relationship(
         back_populates="stock_adjustment_rows"

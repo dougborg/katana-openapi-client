@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a manufacturing order recipe row
 
@@ -112,6 +112,12 @@ Updates the specified manufacturing order recipe row. Once the manufacturing ord
                         }
                       }
                     }
+                  },
+                  "custom_fields": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true,
+                    "description": "Custom field values keyed by custom field definition ID (UUID) of a definition with `entity_type` `RecipeBom`. Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Keys you send are merged into the stored values — keys you leave out keep their current value. Send `null` as a key’s value to clear that field, or `null` in place of the whole object to clear every value. Omit the property to leave all values unchanged. Unknown definition IDs are rejected with a 422."
                   }
                 }
               }
@@ -181,6 +187,10 @@ Updates the specified manufacturing order recipe row. Once the manufacturing ord
                     }
                   ],
                   "cost": 50.4,
+                  "custom_fields": {
+                    "2fa40b67-e0f1-46be-84b2-6441f2c976c3": "AISI 304",
+                    "b6c0cbb5-6ba0-4f6e-a6f4-2b6c3f4a57ea": 12
+                  },
                   "created_at": "2021-02-18T12:33:39.957Z",
                   "updated_at": "2021-02-18T12:33:39.957Z",
                   "deleted_at": null

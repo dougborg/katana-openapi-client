@@ -2799,3 +2799,19 @@ async def test_modify_item_config_response_is_json_serializable(item_type, previ
         update.assert_awaited_once()
         assert response.actions[0].succeeded is True
         assert response.actions[0].verified is True
+
+
+@pytest.mark.parametrize(
+    "values", [{}, {"00000000-0000-0000-0000-000000000001": False}]
+)
+def test_variant_details_preserve_uuid_custom_fields_on_cache_and_api_paths(values):
+    from katana_mcp.tools.foundation.items import _dict_to_variant_details
+
+    from katana_public_api_client.models import Variant
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    body = {"id": 1, "sku": "TEST", "custom_fields": values}
+    attrs_variant = Variant.from_dict(body)
+    cached_variant = CachedVariant.model_validate(body)
+    assert _dict_to_variant_details(attrs_variant).custom_fields == values
+    assert _dict_to_variant_details(cached_variant).custom_fields == values

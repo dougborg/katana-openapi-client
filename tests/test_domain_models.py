@@ -134,6 +134,7 @@ class TestKatanaVariantFactoryMethods:
         domain = KatanaVariant.from_generated(generated)
 
         assert len(domain.custom_fields) == 2
+        assert isinstance(domain.custom_fields, list)
         assert domain.custom_fields[0] == {
             "field_name": "Warranty",
             "field_value": "1 year",
@@ -683,3 +684,17 @@ class TestBuildVariantDisplayName:
         assert row["Is Sellable"] is True
         assert row["Variant Count"] == 5
         assert row["Created At"] == "2024-01-01T12:00:00+00:00"
+
+
+def test_variant_domain_preserves_uuid_custom_fields():
+    from katana_public_api_client import models
+    from katana_public_api_client.domain.variant import KatanaVariant
+
+    identifier = "00000000-0000-0000-0000-000000000001"
+    values = {identifier: False}
+    variant = models.Variant.from_dict(
+        {"id": 1, "sku": "TEST", "custom_fields": values}
+    )
+    domain = KatanaVariant.from_attrs(variant)
+    assert domain.custom_fields == values
+    assert domain.get_custom_field(identifier) is False

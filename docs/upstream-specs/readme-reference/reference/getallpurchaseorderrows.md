@@ -1,13 +1,16 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all purchase order rows
 
 Returns a list of purchase order rows you’ve previously created.
   The purchase order rows are returned in sorted order, with the most recent rows appearing first.
+  `traceability` lists the batch, serial number and bin location allocations of each row in its purchase unit,
+  like `quantity`, including the untraced remainder as an entry with both ids null. Serial number entries carry
+  no `quantity`: each is one unit in the stock unit of the variant.
 
 # OpenAPI definition
 
@@ -44,7 +47,7 @@ Returns a list of purchase order rows you’ve previously created.
         "tags": [
           "Purchase order row"
         ],
-        "description": "Returns a list of purchase order rows you’ve previously created.\n  The purchase order rows are returned in sorted order, with the most recent rows appearing first.",
+        "description": "Returns a list of purchase order rows you’ve previously created.\n  The purchase order rows are returned in sorted order, with the most recent rows appearing first.\n  `traceability` lists the batch, serial number and bin location allocations of each row in its purchase unit,\n  like `quantity`, including the untraced remainder as an entry with both ids null. Serial number entries carry\n  no `quantity`: each is one unit in the stock unit of the variant.",
         "operationId": "getAllPurchaseOrderRows",
         "parameters": [
           {
@@ -227,6 +230,9 @@ Returns a list of purchase order rows you’ve previously created.
                       "landed_cost": 45.5,
                       "group_id": 11,
                       "location_id": 1,
+                      "custom_fields": {
+                        "9d1c4b52-7f38-4e0a-9a6d-3f2b8c1e4a70": "inspect on arrival"
+                      },
                       "batch_transactions": [
                         {
                           "batch_id": 1,
@@ -235,6 +241,20 @@ Returns a list of purchase order rows you’ve previously created.
                         {
                           "batch_id": null,
                           "quantity": 5
+                        }
+                      ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 3,
+                          "quantity": "10"
+                        },
+                        {
+                          "batch_id": null,
+                          "serial_number_id": null,
+                          "bin_location_id": null,
+                          "quantity": "5"
                         }
                       ]
                     }

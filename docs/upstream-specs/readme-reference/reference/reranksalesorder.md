@@ -1,16 +1,24 @@
 ---
 updatedAt: 2026-07-17T12:23:10.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Change a sales order's rank
 
-Repositions a sales order in the schedule relative to another sales order.
+Moves one or more sales orders to an exact place in the sales order list.
 
-Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target order.
+The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the list. All other sales orders keep their order relative to each other.
 
-Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move together with the sales order.
+`before_id` places them directly above that sales order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.
+
+Only open sales orders can be reranked. A sales order moves together with its linked manufacturing orders.
+
+To rerank more than 250 sales orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`.
+
+Sales order lists show the new order shortly after the request returns.
+
+The request returns 422 when any of the sales orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
 
 # OpenAPI definition
 
@@ -47,11 +55,11 @@ Only open sales orders can be reranked. If the reranked order has linked manufac
         "tags": [
           "Sales order"
         ],
-        "description": "Repositions a sales order in the schedule relative to another sales order.\n\nRanking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target order.\n\nOnly open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move together with the sales order.",
+        "description": "Moves one or more sales orders to an exact place in the sales order list.\n\nThe sales orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the list. All other sales orders keep their order relative to each other.\n\n`before_id` places them directly above that sales order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.\n\nOnly open sales orders can be reranked. A sales order moves together with its linked manufacturing orders.\n\nTo rerank more than 250 sales orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`.\n\nSales order lists show the new order shortly after the request returns.\n\nThe request returns 422 when any of the sales orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.",
         "operationId": "reRankSalesOrder",
         "requestBody": {
           "required": true,
-          "description": "Rerank sales order body",
+          "description": "The sales orders to move and where to put them",
           "content": {
             "application/json": {
               "schema": {
@@ -63,26 +71,94 @@ Only open sales orders can be reranked. If the reranked order has linked manufac
                 ],
                 "properties": {
                   "order_ids": {
-                    "description": "Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
+                    "description": "IDs of the sales orders to move, in the order they should appear, highest first. 1 to 250 unique IDs.",
                     "type": "array",
                     "minItems": 1,
-                    "maxItems": 1,
+                    "maxItems": 250,
+                    "uniqueItems": true,
                     "items": {
-                      "type": "integer"
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2147483647
                     }
                   },
                   "place": {
-                    "description": "Where to place the reranked order, relative to another sales order.",
+                    "description": "Where to put the sales orders. Set exactly one of `position`, `before_id` or `after_id`.",
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "before_id"
-                    ],
+                    "minProperties": 1,
+                    "maxProperties": 1,
                     "properties": {
+                      "position": {
+                        "type": "string",
+                        "enum": [
+                          "top",
+                          "bottom"
+                        ],
+                        "description": "- `top` — above all other sales orders\n- `bottom` — below all other sales orders"
+                      },
                       "before_id": {
-                        "description": "ID of the sales order to place the reranked order before. Placement is relative (drag-and-drop): the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.",
-                        "type": "integer"
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647,
+                        "description": "ID of the sales order to place them directly above. It can't be one of `order_ids`."
+                      },
+                      "after_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647,
+                        "description": "ID of the sales order to place them directly below. It can't be one of `order_ids`."
                       }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "top": {
+                  "summary": "Move to the top",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "position": "top"
+                    }
+                  }
+                },
+                "before": {
+                  "summary": "Move directly above another sales order",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "before_id": 55
+                    }
+                  }
+                },
+                "after": {
+                  "summary": "Move directly below another sales order",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "after_id": 55
+                    }
+                  }
+                },
+                "bottom": {
+                  "summary": "Move to the bottom",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "position": "bottom"
                     }
                   }
                 }
@@ -91,8 +167,8 @@ Only open sales orders can be reranked. If the reranked order has linked manufac
           }
         },
         "responses": {
-          "204": {
-            "description": "Sales order reranked successfully",
+          "200": {
+            "description": "Sales orders reranked",
             "headers": {
               "X-Ratelimit-Limit": {
                 "description": "Number of requests available for this application.",
@@ -110,6 +186,35 @@ Only open sales orders can be reranked. If the reranked order has linked manufac
                 "description": "The timestamp when the quota will reset.",
                 "schema": {
                   "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "order_ids"
+                  ],
+                  "properties": {
+                    "order_ids": {
+                      "description": "The moved sales orders in their resulting order.",
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "order_ids": [
+                    101,
+                    102
+                  ]
                 }
               }
             }
@@ -142,38 +247,6 @@ Only open sales orders can be reranked. If the reranked order has linked manufac
                   "statusCode": 401,
                   "name": "UnauthorizedError",
                   "message": "Unauthorized"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Make sure data is correct",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 404,
-                  "name": "NotFoundError",
-                  "message": "Not found"
                 }
               }
             }

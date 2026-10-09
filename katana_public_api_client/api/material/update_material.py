@@ -6,19 +6,25 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.material import Material
 from ...models.update_material_request import UpdateMaterialRequest
+from ...models.update_material_x_custom_fields_format import (
+    UpdateMaterialXCustomFieldsFormat,
+)
 
 
 def _get_kwargs(
     id: int,
     *,
     body: UpdateMaterialRequest,
+    x_custom_fields_format: UpdateMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
@@ -85,6 +91,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateMaterialRequest,
+    x_custom_fields_format: UpdateMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     """Update a material
 
@@ -93,6 +100,7 @@ def sync_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateMaterialXCustomFieldsFormat | Unset):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
             properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
@@ -114,6 +122,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -128,6 +137,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateMaterialRequest,
+    x_custom_fields_format: UpdateMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Material | None:
     """Update a material
 
@@ -136,6 +146,7 @@ def sync(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateMaterialXCustomFieldsFormat | Unset):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
             properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
@@ -158,6 +169,7 @@ def sync(
         id=id,
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -166,6 +178,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateMaterialRequest,
+    x_custom_fields_format: UpdateMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     """Update a material
 
@@ -174,6 +187,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateMaterialXCustomFieldsFormat | Unset):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
             properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
@@ -195,6 +209,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -207,6 +222,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateMaterialRequest,
+    x_custom_fields_format: UpdateMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Material | None:
     """Update a material
 
@@ -215,6 +231,7 @@ async def asyncio(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateMaterialXCustomFieldsFormat | Unset):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
             properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
             'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
@@ -238,5 +255,6 @@ async def asyncio(
             id=id,
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

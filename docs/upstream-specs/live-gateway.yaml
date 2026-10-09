@@ -3021,6 +3021,42 @@ components:
         received_date:
           format: date
           type: string
+        traceability:
+          items:
+            additionalProperties: false
+            properties:
+              batch_id:
+                maximum: 2147483647
+                minimum: 0
+                nullable: true
+                type: number
+              bin_location_id:
+                maximum: 2147483647
+                minimum: 0
+                nullable: true
+                type: number
+              quantity:
+                allOf:
+                - anyOf:
+                  - minimum: 0
+                    type: number
+                  - pattern: ^[0-9]+?\.?[0-9]*$
+                    type: string
+                - anyOf:
+                  - not:
+                      const: 0
+                    type: number
+                  - not:
+                      pattern: ^(-|)[0]+?\.?[0]*$
+                    type: string
+              serial_number_id:
+                maximum: 2147483647
+                minimum: 0
+                nullable: true
+                type: number
+            title: PurchaseOrderRowReceiveTraceabilityDto
+            type: object
+          type: array
       required:
       - purchase_order_row_id
       - quantity
@@ -3077,7 +3113,7 @@ components:
           type: number
       title: RecipeRowUpdateDto
       type: object
-    RerankManufacturingOrderDto:
+    RerankOrdersDto:
       additionalProperties: false
       properties:
         order_ids:
@@ -3085,45 +3121,44 @@ components:
             maximum: 2147483647
             minimum: 1
             type: integer
-          maxItems: 1
+          maxItems: 250
           minItems: 1
           type: array
+          uniqueItems: true
         place:
           $ref: '#/components/schemas/RerankPlaceDto'
       required:
       - order_ids
       - place
-      title: RerankManufacturingOrderDto
+      title: RerankOrdersDto
       type: object
     RerankPlaceDto:
       additionalProperties: false
+      oneOf:
+      - required:
+        - position
+      - required:
+        - before_id
+      - required:
+        - after_id
       properties:
+        after_id:
+          maximum: 2147483647
+          minimum: 1
+          nullable: false
+          type: integer
         before_id:
           maximum: 2147483647
           minimum: 1
           nullable: false
           type: integer
-      required:
-      - before_id
+        position:
+          enum:
+          - top
+          - bottom
+          nullable: false
+          type: string
       title: RerankPlaceDto
-      type: object
-    RerankSalesOrderDto:
-      additionalProperties: false
-      properties:
-        order_ids:
-          items:
-            maximum: 2147483647
-            minimum: 1
-            type: integer
-          maxItems: 1
-          minItems: 1
-          type: array
-        place:
-          $ref: '#/components/schemas/RerankPlaceDto'
-      required:
-      - order_ids
-      - place
-      title: RerankSalesOrderDto
       type: object
     SalesReturnPatchDto:
       additionalProperties: false
@@ -7324,6 +7359,16 @@ paths:
         in: query
         name: pagination
       - in: query
+        name: demand_window
+        schema:
+          default: 30
+          enum:
+          - 7
+          - 30
+          - 60
+          - 90
+          type: integer
+      - in: query
         name: variant_id
         schema:
           items:
@@ -7891,7 +7936,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RerankManufacturingOrderDto'
+              $ref: '#/components/schemas/RerankOrdersDto'
         required: true
       responses:
         '200':
@@ -12166,7 +12211,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RerankSalesOrderDto'
+              $ref: '#/components/schemas/RerankOrdersDto'
         required: true
       responses:
         '200':

@@ -132,3 +132,99 @@ def test_nested_nonnullable_none_is_omitted() -> None:
         {"batch_transactions": [{"batch_id": 1, "quantity": None}]}
     )
     assert request.to_attrs().to_dict() == {"batch_transactions": [{"batch_id": 1}]}
+
+
+@pytest.mark.parametrize("entity", SCHEMAS["CustomFieldEntityType"]["enum"])
+def test_custom_field_definition_entities_round_trip(entity):
+    body = {
+        "label": "Origin",
+        "field_type": "shortText",
+        "entity_type": entity,
+        "source": "test-integration",
+    }
+    request = models.CreateCustomFieldDefinitionRequest.from_dict(body)
+    assert request.to_dict() == body
+    typed = _generated.CreateCustomFieldDefinitionRequest.model_validate(body)
+    assert typed.to_attrs().to_dict() == body
+
+
+@pytest.mark.parametrize("targets", [[], ["SalesOrderRow", "ManufacturingOrder"]])
+def test_variant_definition_options_without_choices_round_trip(targets):
+    body = {
+        "label": "Origin",
+        "field_type": "shortText",
+        "entity_type": "ProductVariant",
+        "source": "test-integration",
+        "options": {"appearsOn": targets},
+    }
+    request = models.CreateCustomFieldDefinitionRequest.from_dict(body)
+    assert request.to_dict() == body
+    typed = _generated.CreateCustomFieldDefinitionRequest.model_validate(body)
+    assert typed.to_attrs().to_dict() == body
+    update = {"options": {"appearsOn": targets}}
+    assert (
+        models.UpdateCustomFieldDefinitionRequest.from_dict(update).to_dict() == update
+    )
+    assert (
+        _generated.UpdateCustomFieldDefinitionRequest.model_validate(update)
+        .to_attrs()
+        .to_dict()
+    ) == update
+
+
+@pytest.mark.parametrize("name", ["Variant", "ServiceVariant", "VariantResponse"])
+@pytest.mark.parametrize("value", [{}, {UUID: "US"}, {UUID: False}, {UUID: None}, None])
+def test_variant_custom_field_responses_round_trip(name, value):
+    body = deepcopy(SCHEMAS[name].get("example", {}))
+    body["custom_fields"] = value
+    parsed = getattr(models, name).from_dict(body)
+    assert parsed.to_dict()["custom_fields"] == value
+    typed = getattr(_generated, name).from_attrs(parsed)
+    assert typed.model_dump()["custom_fields"] == value
+
+
+def test_item_custom_field_format_is_sent_as_header():
+    from katana_public_api_client.api.variant import get_all_variants
+    from katana_public_api_client.models.get_all_variants_x_custom_fields_format import (
+        GetAllVariantsXCustomFieldsFormat,
+    )
+
+    kwargs = get_all_variants._get_kwargs(
+        x_custom_fields_format=GetAllVariantsXCustomFieldsFormat.DEFAULT
+    )
+    assert kwargs["headers"]["X-Custom-Fields-Format"] == "default"
+    assert "X-Custom-Fields-Format" not in kwargs["params"]
+    assert "X-Custom-Fields-Format" not in get_all_variants._get_kwargs()["headers"]
+
+
+@pytest.mark.parametrize(
+    "values", [{}, {UUID: False, "00000000-0000-0000-0000-000000000002": None}]
+)
+def test_cached_variant_persists_uuid_custom_fields(values):
+    from sqlmodel import Session, create_engine
+
+    engine = create_engine("sqlite://")
+    _generated.CachedVariant.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add(_generated.CachedVariant(id=1, sku="TEST", custom_fields=values))
+        session.commit()
+        session.expunge_all()
+        cached = session.get(_generated.CachedVariant, 1)
+        assert cached is not None
+        assert cached.custom_fields == values
+    engine.dispose()
+
+
+def test_definition_options_python_names_validate_after_model_dump():
+    body = {
+        "label": "Origin",
+        "field_type": "shortText",
+        "entity_type": "ProductVariant",
+        "source": "test-integration",
+        "options": {"appearsOn": ["SalesOrderRow"]},
+    }
+    request = _generated.CreateCustomFieldDefinitionRequest.model_validate(body)
+    restored = _generated.CreateCustomFieldDefinitionRequest.model_validate(
+        request.model_dump(exclude_unset=True)
+    )
+    assert restored.to_attrs().to_dict() == body

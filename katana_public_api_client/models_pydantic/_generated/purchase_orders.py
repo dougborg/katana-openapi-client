@@ -30,6 +30,8 @@ from .base import DeletableEntity
 from .common import (
     CostDistributionMethod,
     DocumentSendStatus,
+    Quantity,
+    Quantity1,
     SearchComparator,
     SearchScalarValue1,
 )
@@ -439,6 +441,42 @@ class UpdatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
     ] = None
 
 
+class PurchaseOrderReceiveTraceability(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[
+        float | None,
+        Field(
+            description="Batch to receive into, or null for unallocated stock",
+            ge=0.0,
+            le=2147483647.0,
+        ),
+    ] = None
+    bin_location_id: Annotated[
+        float | None,
+        Field(
+            description="Destination bin, or null when no bin is allocated",
+            ge=0.0,
+            le=2147483647.0,
+        ),
+    ] = None
+    serial_number_id: Annotated[
+        float | None,
+        Field(
+            description="Received serial number, or null for nonserialized stock",
+            ge=0.0,
+            le=2147483647.0,
+        ),
+    ] = None
+    quantity: Annotated[
+        Quantity | Quantity1 | None,
+        Field(
+            description="Positive quantity, accepted as a number or decimal string.",
+        ),
+    ] = None
+
+
 class PurchaseOrderReceiveRow(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -465,6 +503,10 @@ class PurchaseOrderReceiveRow(KatanaPydanticBase):
             ge=1,
             le=2147483647,
         ),
+    ] = None
+    traceability: Annotated[
+        list[PurchaseOrderReceiveTraceability] | None,
+        Field(description="Batch, serial number, or bin allocations for this receipt."),
     ] = None
     batch_transactions: Annotated[
         list[BatchTransaction5] | None,
@@ -715,9 +757,9 @@ class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
         int, Field(description="The variant of the ingredient material required")
     ]
     planned_quantity_per_unit: Annotated[
-        float,
+        str | float,
         Field(
-            description="The planned quantity of this ingredient per unit of production"
+            description="Quantity per unit: a decimal string on create and a JSON number on read",
         ),
     ]
     ingredient_availability: Annotated[

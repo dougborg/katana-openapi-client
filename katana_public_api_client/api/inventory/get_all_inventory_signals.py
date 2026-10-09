@@ -7,6 +7,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
+from ...models.get_all_inventory_signals_demand_window import (
+    GetAllInventorySignalsDemandWindow,
+)
 from ...models.get_all_inventory_signals_stock_risk import (
     GetAllInventorySignalsStockRisk,
 )
@@ -15,6 +18,8 @@ from ...models.inventory_signal_list_response import InventorySignalListResponse
 
 def _get_kwargs(
     *,
+    demand_window: GetAllInventorySignalsDemandWindow
+    | Unset = GetAllInventorySignalsDemandWindow.VALUE_30,
     variant_id: list[int] | Unset = UNSET,
     stock_risk: GetAllInventorySignalsStockRisk | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -22,6 +27,12 @@ def _get_kwargs(
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
+
+    json_demand_window: int | Unset = UNSET
+    if not isinstance(demand_window, Unset):
+        json_demand_window = demand_window.value
+
+    params["demand_window"] = json_demand_window
 
     json_variant_id: list[int] | Unset = UNSET
     if not isinstance(variant_id, Unset):
@@ -98,6 +109,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    demand_window: GetAllInventorySignalsDemandWindow
+    | Unset = GetAllInventorySignalsDemandWindow.VALUE_30,
     variant_id: list[int] | Unset = UNSET,
     stock_risk: GetAllInventorySignalsStockRisk | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -108,13 +121,15 @@ def sync_detailed(
      Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
       across all locations.
 
-      Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer
-    rows
+      Only variants with demand in the selected demand window have a row, so a variant_id filter can
+    return fewer rows
       than ids requested. A missing row means no recent demand, not a missing variant - use /inventory
     for a
       full listing.
 
     Args:
+        demand_window (GetAllInventorySignalsDemandWindow | Unset):  Default:
+            GetAllInventorySignalsDemandWindow.VALUE_30.
         variant_id (list[int] | Unset):
         stock_risk (GetAllInventorySignalsStockRisk | Unset):
         limit (int | Unset):  Default: 50.
@@ -131,6 +146,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        demand_window=demand_window,
         variant_id=variant_id,
         stock_risk=stock_risk,
         limit=limit,
@@ -147,6 +163,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    demand_window: GetAllInventorySignalsDemandWindow
+    | Unset = GetAllInventorySignalsDemandWindow.VALUE_30,
     variant_id: list[int] | Unset = UNSET,
     stock_risk: GetAllInventorySignalsStockRisk | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -157,13 +175,15 @@ def sync(
      Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
       across all locations.
 
-      Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer
-    rows
+      Only variants with demand in the selected demand window have a row, so a variant_id filter can
+    return fewer rows
       than ids requested. A missing row means no recent demand, not a missing variant - use /inventory
     for a
       full listing.
 
     Args:
+        demand_window (GetAllInventorySignalsDemandWindow | Unset):  Default:
+            GetAllInventorySignalsDemandWindow.VALUE_30.
         variant_id (list[int] | Unset):
         stock_risk (GetAllInventorySignalsStockRisk | Unset):
         limit (int | Unset):  Default: 50.
@@ -181,6 +201,7 @@ def sync(
 
     return sync_detailed(
         client=client,
+        demand_window=demand_window,
         variant_id=variant_id,
         stock_risk=stock_risk,
         limit=limit,
@@ -191,6 +212,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    demand_window: GetAllInventorySignalsDemandWindow
+    | Unset = GetAllInventorySignalsDemandWindow.VALUE_30,
     variant_id: list[int] | Unset = UNSET,
     stock_risk: GetAllInventorySignalsStockRisk | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -201,13 +224,15 @@ async def asyncio_detailed(
      Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
       across all locations.
 
-      Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer
-    rows
+      Only variants with demand in the selected demand window have a row, so a variant_id filter can
+    return fewer rows
       than ids requested. A missing row means no recent demand, not a missing variant - use /inventory
     for a
       full listing.
 
     Args:
+        demand_window (GetAllInventorySignalsDemandWindow | Unset):  Default:
+            GetAllInventorySignalsDemandWindow.VALUE_30.
         variant_id (list[int] | Unset):
         stock_risk (GetAllInventorySignalsStockRisk | Unset):
         limit (int | Unset):  Default: 50.
@@ -224,6 +249,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        demand_window=demand_window,
         variant_id=variant_id,
         stock_risk=stock_risk,
         limit=limit,
@@ -238,6 +264,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    demand_window: GetAllInventorySignalsDemandWindow
+    | Unset = GetAllInventorySignalsDemandWindow.VALUE_30,
     variant_id: list[int] | Unset = UNSET,
     stock_risk: GetAllInventorySignalsStockRisk | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -248,13 +276,15 @@ async def asyncio(
      Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
       across all locations.
 
-      Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer
-    rows
+      Only variants with demand in the selected demand window have a row, so a variant_id filter can
+    return fewer rows
       than ids requested. A missing row means no recent demand, not a missing variant - use /inventory
     for a
       full listing.
 
     Args:
+        demand_window (GetAllInventorySignalsDemandWindow | Unset):  Default:
+            GetAllInventorySignalsDemandWindow.VALUE_30.
         variant_id (list[int] | Unset):
         stock_risk (GetAllInventorySignalsStockRisk | Unset):
         limit (int | Unset):  Default: 50.
@@ -273,6 +303,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            demand_window=demand_window,
             variant_id=variant_id,
             stock_risk=stock_risk,
             limit=limit,

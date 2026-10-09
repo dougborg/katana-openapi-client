@@ -30,6 +30,20 @@ from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 from .base import DeletableEntity, UpdatableEntity
 
 
+class OrderId(RootModel[int]):
+    root: Annotated[int, Field(ge=1, le=2147483647)]
+
+
+class RerankOrdersResponse(KatanaPydanticBase):
+    order_ids: Annotated[
+        list[OrderId],
+        Field(
+            description="IDs of the orders moved, in their resulting order",
+            min_length=1,
+        ),
+    ]
+
+
 class Comparison(StrEnum):
     field_ = "<"
 
@@ -596,69 +610,98 @@ class InventorySignalLeadTimeSource(StrEnum):
     fallback = "fallback"
 
 
+class InventorySignalStockRisk(IntEnum):
+    integer_0 = 0
+    integer_1 = 1
+    integer_2 = 2
+    integer_3 = 3
+
+
+class DemandWindow(IntEnum):
+    integer_7 = 7
+    integer_30 = 30
+    integer_60 = 60
+    integer_90 = 90
+
+
 class InventorySignal(KatanaPydanticBase):
-    variant_id: Annotated[
-        int | None,
-        Field(
-            description="The variant the signal describes. One row per variant, summed across all locations."
-        ),
-    ] = None
-    avg_daily_demand_30d: Annotated[
+    avg_daily_demand: Annotated[
         str | None,
         Field(
-            description="Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC."
+            description="Quantity consumed over the last demand_window days divided by demand_window. Demand counts\n        sales, manufacturing ingredient consumption, and outsourced purchase order recipe rows. If the variant's\n        first stock movement is less than demand_window days old, the divisor is the days since that movement\n        instead. Recalculated nightly at 07:00 UTC, so it can be up to 24 hours old. The average is flat: no\n        seasonality and no trend."
         ),
     ] = None
-    reorder_point: Annotated[
+    committed: Annotated[
         str | None,
         Field(
-            description="Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on /inventory. Null while demand has not yet been calculated."
+            description="Quantity already claimed by open sales and manufacturing orders, so it cannot cover the demand\n        ahead. stock_risk and safety_stock_breach_at are worked out from in_stock less committed.\n        days_of_stock_left is not."
         ),
     ] = None
     days_of_stock_left: Annotated[
         int | None,
         Field(
-            description="floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand has not yet been calculated."
+            description="Whole days until stock runs out at the current demand rate (= floor(in_stock /\n        avg_daily_demand)). Uses in_stock alone: it ignores committed stock and incoming supply, so it can disagree\n        with stock_risk. Null while the variant's demand has not yet been calculated."
         ),
     ] = None
-    stock_risk: Annotated[
-        int | None,
-        Field(
-            description="Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been calculated."
-        ),
-    ] = None
-    in_stock: Annotated[
-        str | None, Field(description="Quantity on hand, summed across all locations")
-    ] = None
-    committed: Annotated[
-        str | None,
-        Field(description="Quantity claimed by open sales and manufacturing orders"),
-    ] = None
-    safety_stock_breach_at: Annotated[
+    demand_calculated_at: Annotated[
         AwareDatetime | None,
         Field(
-            description="Projected date stock falls below safety stock. Set on high and critical rows only."
+            description="When avg_daily_demand was last calculated. It dates the average, not the row. Every other field\n        updates within seconds of a change to in_stock, safety_stock or incoming supply. A lead time change is not\n        applied within seconds."
+        ),
+    ] = None
+    demand_window: Annotated[
+        DemandWindow | None,
+        Field(
+            description="The number of days avg_daily_demand is calculated over: 7, 30, 60 or 90. Matches the\n        demand_window query parameter, which defaults to 30."
         ),
     ] = None
     expected_before_safety_stock_breach: Annotated[
         str | None,
         Field(
-            description="Incoming quantity that stock_risk counted as landing in time"
+            description="The incoming quantity that stock_risk counted. Open orders are taken in expected-date order. An\n        order counts only if it lands on or before the projected breach day, and each counted order pushes that day\n        further out. An overdue order counts as landing today. 0 means nothing incoming lands in time. Null where\n        incoming supply could not change the risk. Neither value means nothing is incoming."
         ),
     ] = None
-    safety_stock: Annotated[
-        str | None, Field(description="The safety stock level set for the variant")
-    ] = None
-    lead_time_used: Annotated[
-        int | None, Field(description="Lead time in days used in the calculations")
+    in_stock: Annotated[
+        str | None, Field(description="Quantity on hand, summed across all locations.")
     ] = None
     lead_time_source: Annotated[
         InventorySignalLeadTimeSource | None,
-        Field(description="Which source supplied lead_time_used"),
+        Field(
+            description="Which source supplied lead_time_used: sku (variant lead time), system_po (factory default\n        purchase lead time), system_mo (factory default manufacturing lead time) or fallback (14 days)."
+        ),
     ] = None
-    demand_calculated_at: Annotated[
+    lead_time_used: Annotated[
+        int | None,
+        Field(
+            description="Lead time in days used in the calculations. The variant lead time. Where that is not set, the\n        factory default purchase lead time, then the factory default manufacturing lead time, then 14 days."
+        ),
+    ] = None
+    reorder_point: Annotated[
+        str | None,
+        Field(
+            description="The calculated stock level under which the shortfall lands inside the lead time\n        (= avg_daily_demand * lead_time_used + safety_stock). Null while the variant's demand has not yet been\n        calculated. This is not the reorder_point on the inventory object, which is the user-set safety stock."
+        ),
+    ] = None
+    safety_stock: Annotated[
+        str | None, Field(description="The safety stock level set for the variant.")
+    ] = None
+    safety_stock_breach_at: Annotated[
         AwareDatetime | None,
-        Field(description="When avg_daily_demand_30d was last calculated"),
+        Field(
+            description="The projected date on which in_stock less committed, counting incoming supply, falls below\n        safety stock. Set on high (1) and critical (2) rows only. Null everywhere else."
+        ),
+    ] = None
+    stock_risk: Annotated[
+        InventorySignalStockRisk | None,
+        Field(
+            description="How urgent replenishment is, as an integer from 0 to 3. Worked out from in_stock less\n        committed, plus incoming supply that lands in time, over a horizon of lead_time_used + 7 days.\n        0 = low: stock stays at or above safety stock through the horizon.\n        1 = high: stock falls below safety stock inside the horizon, but after the lead time.\n        2 = critical: stock falls below safety stock inside the lead time, so an order placed now arrives late.\n        3 = stockout: in_stock is 0 or less.\n        Stockout is checked first and the first match wins. Values are in ascending severity, so a value of 1 or\n        more means the variant needs attention. Null while the variant's demand has not yet been calculated.",
+        ),
+    ] = None
+    variant_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the product or material variant the signal describes. Signals are account-wide: one row\n        per variant, summed across all locations."
+        ),
     ] = None
 
 
@@ -735,22 +778,55 @@ class EntityType1(StrEnum):
     outsourced_1 = "outsourced"
 
 
-class RerankPlace(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    before_id: Annotated[
-        int,
+class Quantity(RootModel[float]):
+    root: Annotated[
+        float,
         Field(
-            description="ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.",
-            ge=1,
-            le=2147483647,
+            description="Positive quantity, accepted as a number or decimal string.",
+            gt=0.0,
         ),
     ]
 
 
-class OrderId(RootModel[int]):
-    root: Annotated[int, Field(ge=1, le=2147483647)]
+class Quantity1(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="Positive quantity, accepted as a number or decimal string.",
+            pattern="^[0-9]+?\\.?[0-9]*$",
+        ),
+    ]
+
+
+class Position(StrEnum):
+    top = "top"
+    bottom = "bottom"
+
+
+class RerankPlace(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    after_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the order to place the reranked order after.",
+            ge=1,
+            le=2147483647,
+        ),
+    ] = None
+    position: Annotated[
+        Position | None,
+        Field(description="Move the reranked orders to the top or bottom of the list."),
+    ] = None
+    before_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the order to place the reranked orders directly above.",
+            ge=1,
+            le=2147483647,
+        ),
+    ] = None
 
 
 class RerankManufacturingOrderRequest(KatanaPydanticBase):
@@ -760,8 +836,8 @@ class RerankManufacturingOrderRequest(KatanaPydanticBase):
     order_ids: Annotated[
         list[OrderId],
         Field(
-            description="Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
-            max_length=1,
+            description="Manufacturing orders to rerank, in the desired order. Accepts up to 250 distinct IDs.",
+            max_length=250,
             min_length=1,
         ),
     ]
@@ -780,8 +856,8 @@ class RerankSalesOrderRequest(KatanaPydanticBase):
     order_ids: Annotated[
         list[OrderId],
         Field(
-            description="Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
-            max_length=1,
+            description="Sales orders to rerank, in the desired order. Accepts up to 250 distinct IDs.",
+            max_length=250,
             min_length=1,
         ),
     ]
@@ -876,7 +952,7 @@ class CustomFields(RootModel[list[CustomField2]]):
     root: Annotated[
         list[CustomField2],
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
             max_length=3,
         ),
     ]
@@ -890,7 +966,7 @@ class CustomFields1(RootModel[list[CustomFields1Item]]):
     root: Annotated[
         list[CustomFields1Item],
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
             max_length=3,
         ),
     ]
@@ -928,7 +1004,7 @@ class CustomFields2(RootModel[list[CustomFields2Item]]):
     root: Annotated[
         list[CustomFields2Item],
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
             max_length=3,
         ),
     ]
@@ -1133,12 +1209,22 @@ class Event(StrEnum):
     product_recipe_row_updated = "product_recipe_row.updated"
 
 
-class CustomField4(KatanaPydanticBase):
+class CustomFields3Item(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
     field_name: Annotated[str, Field(description="Custom field name", max_length=40)]
     field_value: Annotated[str, Field(description="Custom field value", max_length=100)]
+
+
+class CustomFields3(RootModel[list[CustomFields3Item]]):
+    root: Annotated[
+        list[CustomFields3Item],
+        Field(
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
+            max_length=3,
+        ),
+    ]
 
 
 class DemandForecastPeriod(KatanaPydanticBase):
@@ -1269,7 +1355,7 @@ class Attribute(KatanaPydanticBase):
     value: Annotated[str | None, Field(description="Attribute value")] = None
 
 
-class Quantity(IntEnum):
+class Quantity2(IntEnum):
     integer_0 = 0
     integer_1 = 1
 
@@ -1559,6 +1645,17 @@ class CustomFieldType(StrEnum):
 class CustomFieldEntityType(StrEnum):
     sales_order = "SalesOrder"
     sales_order_row = "SalesOrderRow"
+    product_variant = "ProductVariant"
+    material_variant = "MaterialVariant"
+    service_variant = "ServiceVariant"
+    purchase_order = "PurchaseOrder"
+    purchase_order_row = "PurchaseOrderRow"
+    outsourced_purchase_order = "OutsourcedPurchaseOrder"
+    outsourced_purchase_order_row = "OutsourcedPurchaseOrderRow"
+    production_operation = "ProductionOperation"
+    recipe_bom = "RecipeBom"
+    supplier = "Supplier"
+    customer = "Customer"
 
 
 class CustomFieldChoice(KatanaPydanticBase):
@@ -1587,16 +1684,30 @@ class CustomFieldChoiceCreate(KatanaPydanticBase):
     label: Annotated[str, Field(description="Human-readable label for the choice.")]
 
 
+class AppearsOnEnum(StrEnum):
+    sales_order_row = "SalesOrderRow"
+    purchase_order_row = "PurchaseOrderRow"
+    outsourced_purchase_order_row = "OutsourcedPurchaseOrderRow"
+    manufacturing_order = "ManufacturingOrder"
+
+
 class CustomFieldOptions(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
     choices: Annotated[
-        list[CustomFieldChoice],
+        list[CustomFieldChoice] | None,
         Field(
             description="The allowed choices, each with its server-assigned integer\n``id`` and ``label``. Soft-deleted choices remain present so\nhistorical values stay resolvable.\n"
         ),
-    ]
+    ] = None
+    appears_on: Annotated[
+        list[AppearsOnEnum] | None,
+        Field(
+            alias="appearsOn",
+            description="Replaces the current list of transactional entities this variant definition also applies to. Omit to leave it untouched. Removing a target stops the definition being a valid key on that entity, and values already snapshotted onto existing records of that type stop being returned — they are retained and reappear if the target is added back. Same validation as on create — see `POST /custom_field_definitions`.",
+        ),
+    ] = None
 
 
 class CustomFieldOptionsCreate(KatanaPydanticBase):
@@ -1604,9 +1715,16 @@ class CustomFieldOptionsCreate(KatanaPydanticBase):
         extra="forbid",
     )
     choices: Annotated[
-        list[CustomFieldChoiceCreate],
+        list[CustomFieldChoiceCreate] | None,
         Field(description="The choices to create, each identified by ``label`` only."),
-    ]
+    ] = None
+    appears_on: Annotated[
+        list[AppearsOnEnum] | None,
+        Field(
+            alias="appearsOn",
+            description="Transactional entities this definition additionally applies to, on top of its own `entity_type`. Listing a target makes this definition's id a valid key in that entity's `custom_fields` — nothing is copied, and the target's `custom_fields` accepts its own definitions and linked-in ones alike.\n\nOnly variant definitions (`ProductVariant` / `MaterialVariant` / `ServiceVariant`) may target `SalesOrderRow`, `PurchaseOrderRow`, `OutsourcedPurchaseOrderRow`, and `ManufacturingOrder`; a `ProductionOperation` definition may target `ManufacturingOrder` only. Any other combination, a duplicate entry, or the definition's own `entity_type` is rejected with a 422.\n\nSeparately from this, a row or manufacturing order created against a variant takes a **snapshot** of that variant's current values for the fields that name it in `appearsOn`. The snapshot is editable on the record afterwards and is never re-synced, so later edits to the variant do not reach records that already exist. A value whose definition no longer applies to the entity — the target was dropped from `appearsOn`, or the definition was deleted — is retained but no longer returned on reads of that record.\n\nBehind a feature flag on the target side too — contact support@katanamrp.com to enable.",
+        ),
+    ] = None
 
 
 class Transaction(KatanaPydanticBase):
@@ -1738,11 +1856,11 @@ class ProductOperationRowListResponse(KatanaPydanticBase):
     ] = None
 
 
-class CustomFields3(RootModel[list[CustomFieldValue]]):
+class CustomFields4(RootModel[list[CustomFieldValue]]):
     root: Annotated[
         list[CustomFieldValue],
         Field(
-            description="Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.",
+            description="Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
             max_length=3,
         ),
     ]
@@ -1942,7 +2060,7 @@ class CustomFieldDefinition(KatanaPydanticBase):
     options: Annotated[
         CustomFieldOptions | None,
         Field(
-            description="Choice configuration. Present and meaningful only when\n``field_type`` is ``singleSelect``; ``null`` for every other\ntype. Each choice carries its server-assigned integer ``id``\n(the value stored on the entity) and ``label``; soft-deleted\nchoices remain in the array so historical values stay\nresolvable.\n",
+            description="Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies.",
         ),
     ] = None
     created_at: Annotated[
@@ -1987,7 +2105,7 @@ class CreateCustomFieldDefinitionRequest(KatanaPydanticBase):
     options: Annotated[
         CustomFieldOptionsCreate | None,
         Field(
-            description="Choice configuration. Required when ``field_type`` is\n``singleSelect``; omit (or send ``null``) for every other type.\nOn create, send each choice with just a ``label`` — the server\nassigns each one an integer ``id`` and returns the resolved\narray. Use those ``id`` values when setting the field on a\nsales order.\n",
+            description="Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies. Choices are required for singleSelect; send labels only when creating choices.",
         ),
     ] = None
 
@@ -2005,7 +2123,7 @@ class UpdateCustomFieldDefinitionRequest(KatanaPydanticBase):
     options: Annotated[
         CustomFieldOptions | None,
         Field(
-            description='Updated choice configuration (``singleSelect`` only). Send the\n**full** ``choices`` array — every existing choice must be\nincluded and identified by its server-assigned ``id``. A choice\npresent in the array without an ``id`` is created. A choice\nomitted from the array is removed from the active choices list\n(it can no longer be selected), but its past values on existing\nrecords are not resolvable after removal. Use ``"deleted": true``\ninstead to soft-delete a choice — it stays in the array so\nhistorical values referencing its ``id`` remain resolvable, but\nit is no longer offered as a new selection. Choices are never\nhard-deleted.\n',
+            description="Keys you omit keep their current value, so send only what you are changing. `null` clears the whole object (rejected on a `singleSelect`, which must always keep its choices).\n\n`choices` is only meaningful when the field is a `singleSelect`, and is the exception to the merge rule: send the **full** array, every existing choice included and identified by its server-assigned `id`. Omit a choice and it is removed from history — use `deleted: true` instead to soft-delete it and keep historical values resolvable. New choices are sent without an `id`.",
         ),
     ] = None
 
@@ -2329,7 +2447,7 @@ class CachedCustomFieldDefinition(KatanaPydanticBase, table=True):
         Mapped[CustomFieldOptions | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Choice configuration. Present and meaningful only when\n``field_type`` is ``singleSelect``; ``null`` for every other\ntype. Each choice carries its server-assigned integer ``id``\n(the value stored on the entity) and ``label``; soft-deleted\nchoices remain in the array so historical values stay\nresolvable.\n",
+            description="Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies.",
         ),
     ] = None
     created_at: Annotated[

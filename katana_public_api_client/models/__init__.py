@@ -107,6 +107,7 @@ from .create_material_variant_request_custom_fields_item import (
 from .create_material_variant_request_custom_fields_type_0 import (
     CreateMaterialVariantRequestCustomFieldsType0,
 )
+from .create_material_x_custom_fields_format import CreateMaterialXCustomFieldsFormat
 from .create_outsourced_purchase_order_recipe_row_request import (
     CreateOutsourcedPurchaseOrderRecipeRowRequest,
 )
@@ -126,6 +127,7 @@ from .create_product_operation_row_item import CreateProductOperationRowItem
 from .create_product_operation_rows_request import CreateProductOperationRowsRequest
 from .create_product_request import CreateProductRequest
 from .create_product_request_configs_item import CreateProductRequestConfigsItem
+from .create_product_x_custom_fields_format import CreateProductXCustomFieldsFormat
 from .create_purchase_order_additional_cost_row_request import (
     CreatePurchaseOrderAdditionalCostRowRequest,
 )
@@ -179,6 +181,10 @@ from .create_service_variant_request import CreateServiceVariantRequest
 from .create_service_variant_request_custom_fields_item import (
     CreateServiceVariantRequestCustomFieldsItem,
 )
+from .create_service_variant_request_custom_fields_type_1 import (
+    CreateServiceVariantRequestCustomFieldsType1,
+)
+from .create_service_x_custom_fields_format import CreateServiceXCustomFieldsFormat
 from .create_stock_adjustment_request import CreateStockAdjustmentRequest
 from .create_stock_adjustment_request_stock_adjustment_rows_item import (
     CreateStockAdjustmentRequestStockAdjustmentRowsItem,
@@ -208,6 +214,7 @@ from .create_variant_request_custom_fields_item import (
 from .create_variant_request_custom_fields_type_0 import (
     CreateVariantRequestCustomFieldsType0,
 )
+from .create_variant_x_custom_fields_format import CreateVariantXCustomFieldsFormat
 from .create_webhook_request import CreateWebhookRequest
 from .custom_field import CustomField
 from .custom_field_choice import CustomFieldChoice
@@ -217,7 +224,11 @@ from .custom_field_definition import CustomFieldDefinition
 from .custom_field_definition_list_response import CustomFieldDefinitionListResponse
 from .custom_field_entity_type import CustomFieldEntityType
 from .custom_field_options import CustomFieldOptions
+from .custom_field_options_appears_on_item import CustomFieldOptionsAppearsOnItem
 from .custom_field_options_create import CustomFieldOptionsCreate
+from .custom_field_options_create_appears_on_item import (
+    CustomFieldOptionsCreateAppearsOnItem,
+)
 from .custom_field_type import CustomFieldType
 from .custom_field_value import CustomFieldValue
 from .custom_fields_collection import CustomFieldsCollection
@@ -265,12 +276,15 @@ from .format_validation_error_code import FormatValidationErrorCode
 from .format_validation_error_info import FormatValidationErrorInfo
 from .generic_validation_error import GenericValidationError
 from .get_all_inventory_point_extend_item import GetAllInventoryPointExtendItem
+from .get_all_inventory_signals_demand_window import GetAllInventorySignalsDemandWindow
 from .get_all_inventory_signals_stock_risk import GetAllInventorySignalsStockRisk
 from .get_all_materials_batch_tracked import GetAllMaterialsBatchTracked
 from .get_all_materials_extend_item import GetAllMaterialsExtendItem
+from .get_all_materials_x_custom_fields_format import GetAllMaterialsXCustomFieldsFormat
 from .get_all_products_batch_tracked import GetAllProductsBatchTracked
 from .get_all_products_extend_item import GetAllProductsExtendItem
 from .get_all_products_serial_tracked import GetAllProductsSerialTracked
+from .get_all_products_x_custom_fields_format import GetAllProductsXCustomFieldsFormat
 from .get_all_sales_order_rows_extend_item import GetAllSalesOrderRowsExtendItem
 from .get_all_sales_order_rows_product_availability import (
     GetAllSalesOrderRowsProductAvailability,
@@ -278,12 +292,18 @@ from .get_all_sales_order_rows_product_availability import (
 from .get_all_sales_orders_product_availability import (
     GetAllSalesOrdersProductAvailability,
 )
+from .get_all_services_x_custom_fields_format import GetAllServicesXCustomFieldsFormat
 from .get_all_variants_extend_item import GetAllVariantsExtendItem
+from .get_all_variants_x_custom_fields_format import GetAllVariantsXCustomFieldsFormat
 from .get_material_extend_item import GetMaterialExtendItem
+from .get_material_x_custom_fields_format import GetMaterialXCustomFieldsFormat
 from .get_product_extend_item import GetProductExtendItem
+from .get_product_x_custom_fields_format import GetProductXCustomFieldsFormat
 from .get_purchase_order_extend_item import GetPurchaseOrderExtendItem
 from .get_sales_order_row_extend_item import GetSalesOrderRowExtendItem
+from .get_service_x_custom_fields_format import GetServiceXCustomFieldsFormat
 from .get_variant_extend_item import GetVariantExtendItem
+from .get_variant_x_custom_fields_format import GetVariantXCustomFieldsFormat
 from .ingredient_availability import IngredientAvailability
 from .inventory import Inventory
 from .inventory_item import InventoryItem
@@ -298,8 +318,10 @@ from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
 from .inventory_signal import InventorySignal
+from .inventory_signal_demand_window import InventorySignalDemandWindow
 from .inventory_signal_lead_time_source import InventorySignalLeadTimeSource
 from .inventory_signal_list_response import InventorySignalListResponse
+from .inventory_signal_stock_risk import InventorySignalStockRisk
 from .item_config import ItemConfig
 from .location import Location
 from .location_address import LocationAddress
@@ -446,6 +468,7 @@ from .purchase_order_receive_row import PurchaseOrderReceiveRow
 from .purchase_order_receive_row_batch_transactions_item import (
     PurchaseOrderReceiveRowBatchTransactionsItem,
 )
+from .purchase_order_receive_traceability import PurchaseOrderReceiveTraceability
 from .purchase_order_row import PurchaseOrderRow
 from .purchase_order_row_batch_transactions_item import (
     PurchaseOrderRowBatchTransactionsItem,
@@ -465,7 +488,9 @@ from .required_validation_error import RequiredValidationError
 from .required_validation_error_code import RequiredValidationErrorCode
 from .required_validation_error_info import RequiredValidationErrorInfo
 from .rerank_manufacturing_order_request import RerankManufacturingOrderRequest
+from .rerank_orders_response import RerankOrdersResponse
 from .rerank_place import RerankPlace
+from .rerank_place_position import RerankPlacePosition
 from .rerank_sales_order_request import RerankSalesOrderRequest
 from .returnable_item import ReturnableItem
 from .sales_order import SalesOrder
@@ -517,6 +542,7 @@ from .sales_order_search_filter_or_item import SalesOrderSearchFilterOrItem
 from .sales_order_search_request import SalesOrderSearchRequest
 from .sales_order_shipping_fee import SalesOrderShippingFee
 from .sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
+from .sales_order_shipping_fee_type_2 import SalesOrderShippingFeeType2
 from .sales_order_status import SalesOrderStatus
 from .sales_return import SalesReturn
 from .sales_return_list_response import SalesReturnListResponse
@@ -529,6 +555,7 @@ from .sales_return_row_batch_transactions_item import (
 from .sales_return_row_list_response import SalesReturnRowListResponse
 from .sales_return_status import SalesReturnStatus
 from .search_comparator import SearchComparator
+from .search_variants_x_custom_fields_format import SearchVariantsXCustomFieldsFormat
 from .serial_number import SerialNumber
 from .serial_number_list_response import SerialNumberListResponse
 from .serial_number_resource_type import SerialNumberResourceType
@@ -542,10 +569,12 @@ from .service_variant import ServiceVariant
 from .service_variant_custom_fields_type_0_item import (
     ServiceVariantCustomFieldsType0Item,
 )
+from .service_variant_custom_fields_type_1 import ServiceVariantCustomFieldsType1
 from .stock_adjustment import StockAdjustment
 from .stock_adjustment_batch_transaction import StockAdjustmentBatchTransaction
 from .stock_adjustment_list_response import StockAdjustmentListResponse
 from .stock_adjustment_row import StockAdjustmentRow
+from .stock_adjustment_traceability import StockAdjustmentTraceability
 from .stock_transfer import StockTransfer
 from .stock_transfer_list_response import StockTransferListResponse
 from .stock_transfer_row import StockTransferRow
@@ -624,6 +653,7 @@ from .update_manufacturing_order_request_custom_fields_type_0 import (
 )
 from .update_material_request import UpdateMaterialRequest
 from .update_material_request_configs_item import UpdateMaterialRequestConfigsItem
+from .update_material_x_custom_fields_format import UpdateMaterialXCustomFieldsFormat
 from .update_outsourced_purchase_order_recipe_row_request import (
     UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 )
@@ -639,6 +669,7 @@ from .update_product_operation_row_request_custom_fields_type_0 import (
 )
 from .update_product_request import UpdateProductRequest
 from .update_product_request_configs_item import UpdateProductRequestConfigsItem
+from .update_product_x_custom_fields_format import UpdateProductXCustomFieldsFormat
 from .update_purchase_order_additional_cost_row_request import (
     UpdatePurchaseOrderAdditionalCostRowRequest,
 )
@@ -675,6 +706,7 @@ from .update_service_request import UpdateServiceRequest
 from .update_service_request_custom_fields_type_0 import (
     UpdateServiceRequestCustomFieldsType0,
 )
+from .update_service_x_custom_fields_format import UpdateServiceXCustomFieldsFormat
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_transfer_request import UpdateStockTransferRequest
 from .update_stock_transfer_status_request import UpdateStockTransferStatusRequest
@@ -695,6 +727,7 @@ from .update_variant_request_custom_fields_item import (
 from .update_variant_request_custom_fields_type_0 import (
     UpdateVariantRequestCustomFieldsType0,
 )
+from .update_variant_x_custom_fields_format import UpdateVariantXCustomFieldsFormat
 from .update_webhook_request import UpdateWebhookRequest
 from .user import User
 from .user_info import UserInfo
@@ -702,6 +735,7 @@ from .user_list_response import UserListResponse
 from .variant import Variant
 from .variant_config_attributes_type_0_item import VariantConfigAttributesType0Item
 from .variant_custom_fields_type_0_item import VariantCustomFieldsType0Item
+from .variant_custom_fields_type_1 import VariantCustomFieldsType1
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
 from .variant_default_storage_bin_link_response import (
     VariantDefaultStorageBinLinkResponse,
@@ -714,6 +748,7 @@ from .variant_response_config_attributes_type_0_item import (
 from .variant_response_custom_fields_type_0_item import (
     VariantResponseCustomFieldsType0Item,
 )
+from .variant_response_custom_fields_type_1 import VariantResponseCustomFieldsType1
 from .variant_search_filter import VariantSearchFilter
 from .variant_search_filter_and_item import VariantSearchFilterAndItem
 from .variant_search_filter_or_item import VariantSearchFilterOrItem
@@ -799,6 +834,7 @@ __all__ = (
     "CreateMaterialVariantRequestConfigAttributesItem",
     "CreateMaterialVariantRequestCustomFieldsItem",
     "CreateMaterialVariantRequestCustomFieldsType0",
+    "CreateMaterialXCustomFieldsFormat",
     "CreateOutsourcedPurchaseOrderRecipeRowRequest",
     "CreateOutsourcedPurchaseOrderRecipeRowRequestCustomFieldsType0",
     "CreatePriceListCustomerRequest",
@@ -810,6 +846,7 @@ __all__ = (
     "CreateProductOperationRowsRequest",
     "CreateProductRequest",
     "CreateProductRequestConfigsItem",
+    "CreateProductXCustomFieldsFormat",
     "CreatePurchaseOrderAdditionalCostRowRequest",
     "CreatePurchaseOrderInitialStatus",
     "CreatePurchaseOrderRequest",
@@ -841,6 +878,8 @@ __all__ = (
     "CreateServiceRequest",
     "CreateServiceVariantRequest",
     "CreateServiceVariantRequestCustomFieldsItem",
+    "CreateServiceVariantRequestCustomFieldsType1",
+    "CreateServiceXCustomFieldsFormat",
     "CreateStockAdjustmentRequest",
     "CreateStockAdjustmentRequestStockAdjustmentRowsItem",
     "CreateStockTransferRequest",
@@ -856,6 +895,7 @@ __all__ = (
     "CreateVariantRequestConfigAttributesItem",
     "CreateVariantRequestCustomFieldsItem",
     "CreateVariantRequestCustomFieldsType0",
+    "CreateVariantXCustomFieldsFormat",
     "CreateWebhookRequest",
     "CustomField",
     "CustomFieldChoice",
@@ -865,7 +905,9 @@ __all__ = (
     "CustomFieldDefinitionListResponse",
     "CustomFieldEntityType",
     "CustomFieldOptions",
+    "CustomFieldOptionsAppearsOnItem",
     "CustomFieldOptionsCreate",
+    "CustomFieldOptionsCreateAppearsOnItem",
     "CustomFieldType",
     "CustomFieldValue",
     "CustomFieldsCollection",
@@ -909,21 +951,30 @@ __all__ = (
     "FormatValidationErrorInfo",
     "GenericValidationError",
     "GetAllInventoryPointExtendItem",
+    "GetAllInventorySignalsDemandWindow",
     "GetAllInventorySignalsStockRisk",
     "GetAllMaterialsBatchTracked",
     "GetAllMaterialsExtendItem",
+    "GetAllMaterialsXCustomFieldsFormat",
     "GetAllProductsBatchTracked",
     "GetAllProductsExtendItem",
     "GetAllProductsSerialTracked",
+    "GetAllProductsXCustomFieldsFormat",
     "GetAllSalesOrderRowsExtendItem",
     "GetAllSalesOrderRowsProductAvailability",
     "GetAllSalesOrdersProductAvailability",
+    "GetAllServicesXCustomFieldsFormat",
     "GetAllVariantsExtendItem",
+    "GetAllVariantsXCustomFieldsFormat",
     "GetMaterialExtendItem",
+    "GetMaterialXCustomFieldsFormat",
     "GetProductExtendItem",
+    "GetProductXCustomFieldsFormat",
     "GetPurchaseOrderExtendItem",
     "GetSalesOrderRowExtendItem",
+    "GetServiceXCustomFieldsFormat",
     "GetVariantExtendItem",
+    "GetVariantXCustomFieldsFormat",
     "IngredientAvailability",
     "Inventory",
     "InventoryItem",
@@ -938,8 +989,10 @@ __all__ = (
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
     "InventorySignal",
+    "InventorySignalDemandWindow",
     "InventorySignalLeadTimeSource",
     "InventorySignalListResponse",
+    "InventorySignalStockRisk",
     "ItemConfig",
     "Location",
     "LocationAddress",
@@ -1040,6 +1093,7 @@ __all__ = (
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
     "PurchaseOrderReceiveRowBatchTransactionsItem",
+    "PurchaseOrderReceiveTraceability",
     "PurchaseOrderRow",
     "PurchaseOrderRowBatchTransactionsItem",
     "PurchaseOrderRowListResponse",
@@ -1057,7 +1111,9 @@ __all__ = (
     "RequiredValidationErrorCode",
     "RequiredValidationErrorInfo",
     "RerankManufacturingOrderRequest",
+    "RerankOrdersResponse",
     "RerankPlace",
+    "RerankPlacePosition",
     "RerankSalesOrderRequest",
     "ReturnableItem",
     "SalesOrder",
@@ -1095,6 +1151,7 @@ __all__ = (
     "SalesOrderSearchRequest",
     "SalesOrderShippingFee",
     "SalesOrderShippingFeeListResponse",
+    "SalesOrderShippingFeeType2",
     "SalesOrderStatus",
     "SalesReturn",
     "SalesReturnListResponse",
@@ -1105,6 +1162,7 @@ __all__ = (
     "SalesReturnRowListResponse",
     "SalesReturnStatus",
     "SearchComparator",
+    "SearchVariantsXCustomFieldsFormat",
     "SerialNumber",
     "SerialNumberListResponse",
     "SerialNumberResourceType",
@@ -1116,10 +1174,12 @@ __all__ = (
     "ServiceType",
     "ServiceVariant",
     "ServiceVariantCustomFieldsType0Item",
+    "ServiceVariantCustomFieldsType1",
     "StockAdjustment",
     "StockAdjustmentBatchTransaction",
     "StockAdjustmentListResponse",
     "StockAdjustmentRow",
+    "StockAdjustmentTraceability",
     "StockTransfer",
     "StockTransferListResponse",
     "StockTransferRow",
@@ -1174,6 +1234,7 @@ __all__ = (
     "UpdateManufacturingOrderRequestCustomFieldsType0",
     "UpdateMaterialRequest",
     "UpdateMaterialRequestConfigsItem",
+    "UpdateMaterialXCustomFieldsFormat",
     "UpdateOutsourcedPurchaseOrderRecipeRowRequest",
     "UpdateOutsourcedPurchaseOrderRecipeRowRequestCustomFieldsType0",
     "UpdatePriceListCustomerRequest",
@@ -1183,6 +1244,7 @@ __all__ = (
     "UpdateProductOperationRowRequestCustomFieldsType0",
     "UpdateProductRequest",
     "UpdateProductRequestConfigsItem",
+    "UpdateProductXCustomFieldsFormat",
     "UpdatePurchaseOrderAdditionalCostRowRequest",
     "UpdatePurchaseOrderRequest",
     "UpdatePurchaseOrderRequestCustomFieldsType0",
@@ -1203,6 +1265,7 @@ __all__ = (
     "UpdateSalesReturnRowRequest",
     "UpdateServiceRequest",
     "UpdateServiceRequestCustomFieldsType0",
+    "UpdateServiceXCustomFieldsFormat",
     "UpdateStockAdjustmentRequest",
     "UpdateStockTransferRequest",
     "UpdateStockTransferStatusRequest",
@@ -1215,6 +1278,7 @@ __all__ = (
     "UpdateVariantRequestConfigAttributesItem",
     "UpdateVariantRequestCustomFieldsItem",
     "UpdateVariantRequestCustomFieldsType0",
+    "UpdateVariantXCustomFieldsFormat",
     "UpdateWebhookRequest",
     "User",
     "UserInfo",
@@ -1222,12 +1286,14 @@ __all__ = (
     "Variant",
     "VariantConfigAttributesType0Item",
     "VariantCustomFieldsType0Item",
+    "VariantCustomFieldsType1",
     "VariantDefaultStorageBinLink",
     "VariantDefaultStorageBinLinkResponse",
     "VariantListResponse",
     "VariantResponse",
     "VariantResponseConfigAttributesType0Item",
     "VariantResponseCustomFieldsType0Item",
+    "VariantResponseCustomFieldsType1",
     "VariantSearchFilter",
     "VariantSearchFilterAndItem",
     "VariantSearchFilterOrItem",

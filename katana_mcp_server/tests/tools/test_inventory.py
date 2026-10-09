@@ -1460,6 +1460,7 @@ async def test_get_variant_details():
     assert result.config_attributes[0]["config_name"] == "Size"
     assert result.custom_fields is not None
     assert len(result.custom_fields) == 1
+    assert isinstance(result.custom_fields, list)
     assert result.custom_fields[0]["field_name"] == "Warranty"
 
 

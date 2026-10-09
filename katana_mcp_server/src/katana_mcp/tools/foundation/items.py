@@ -2113,9 +2113,11 @@ class VariantDetailsResponse(SoftDeletableResponse):
 
     # Configuration & Custom Fields
     config_attributes: list[dict[str, str]] = Field(default_factory=list)
-    custom_fields: list[dict[str, str]] | None = Field(
+    custom_fields: (
+        list[dict[str, str]] | dict[str, str | float | bool | None] | None
+    ) = Field(
         default=None,
-        description="Legacy custom-field values, null when unavailable, or an array (which may be empty).",
+        description="Custom-field values as a UUID-keyed object or legacy name/value array; null when unavailable.",
     )
 
     # Metadata
@@ -2205,6 +2207,16 @@ def _dict_to_variant_details(
     plain-dict-shaped for JSON consumers — same wire shape the legacy
     cache emitted via ``json_columns``.
     """
+
+    def _dump_custom_fields(fields: Any) -> Any:
+        if fields is None:
+            return None
+        if hasattr(fields, "to_dict"):
+            return fields.to_dict()
+        if isinstance(fields, dict):
+            return fields
+        return _dump_list(fields)
+
     product_id = _attr(v, "product_id")
     material_id = _attr(v, "material_id")
     # Variants don't have their own page in Katana; link to whichever
@@ -2282,11 +2294,7 @@ def _dict_to_variant_details(
         lead_time=_attr(v, "lead_time"),
         minimum_order_quantity=_attr(v, "minimum_order_quantity"),
         config_attributes=_dump_list(_attr(v, "config_attributes")),
-        custom_fields=(
-            _dump_list(fields)
-            if (fields := _attr(v, "custom_fields")) is not None
-            else None
-        ),
+        custom_fields=_dump_custom_fields(_attr(v, "custom_fields")),
         created_at=_iso_or_none(_attr(v, "created_at")),
         updated_at=_iso_or_none(_attr(v, "updated_at")),
         deleted_at=_iso_or_none(_attr(v, "deleted_at")),

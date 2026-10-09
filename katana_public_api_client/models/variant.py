@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         VariantConfigAttributesType0Item,
     )
     from ..models.variant_custom_fields_type_0_item import VariantCustomFieldsType0Item
+    from ..models.variant_custom_fields_type_1 import VariantCustomFieldsType1
 
 
 T = TypeVar("T", bound="Variant")
@@ -52,12 +53,18 @@ class Variant:
     supplier_item_codes: list[str] | Unset = UNSET
     lead_time: int | Unset | None = UNSET
     minimum_order_quantity: float | Unset | None = UNSET
-    custom_fields: list[VariantCustomFieldsType0Item] | Unset | None = UNSET
+    custom_fields: (
+        list[VariantCustomFieldsType0Item] | Unset | VariantCustomFieldsType1 | None
+    ) = UNSET
     config_attributes: list[VariantConfigAttributesType0Item] | Unset | None = UNSET
     abc_classification: AbcClassification | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.variant_custom_fields_type_1 import (
+            VariantCustomFieldsType1,
+        )
+
         id = self.id
 
         sku: str | None
@@ -131,7 +138,7 @@ class Variant:
         else:
             minimum_order_quantity = self.minimum_order_quantity
 
-        custom_fields: list[dict[str, Any]] | Unset | None
+        custom_fields: dict[str, Any] | list[dict[str, Any]] | Unset | None
         if isinstance(self.custom_fields, Unset):
             custom_fields = UNSET
         elif isinstance(self.custom_fields, list):
@@ -140,6 +147,8 @@ class Variant:
                 custom_fields_type_0_item = custom_fields_type_0_item_data.to_dict()
                 custom_fields.append(custom_fields_type_0_item)
 
+        elif isinstance(self.custom_fields, VariantCustomFieldsType1):
+            custom_fields = self.custom_fields.to_dict()
         else:
             custom_fields = self.custom_fields
 
@@ -215,6 +224,9 @@ class Variant:
         )
         from ..models.variant_custom_fields_type_0_item import (
             VariantCustomFieldsType0Item,
+        )
+        from ..models.variant_custom_fields_type_1 import (
+            VariantCustomFieldsType1,
         )
 
         d = dict(src_dict)
@@ -338,14 +350,13 @@ class Variant:
 
         def _parse_custom_fields(
             data: object,
-        ) -> list[VariantCustomFieldsType0Item] | Unset | None:
+        ) -> (
+            list[VariantCustomFieldsType0Item] | Unset | VariantCustomFieldsType1 | None
+        ):
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            # Empty dict -> None (Katana wire quirk; see #509).
-            if isinstance(data, dict) and not data:
-                return None
             try:
                 if not isinstance(data, list):
                     raise TypeError()
@@ -361,7 +372,23 @@ class Variant:
                 return custom_fields_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(list[VariantCustomFieldsType0Item] | Unset | None, data)
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_1 = VariantCustomFieldsType1.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                list[VariantCustomFieldsType0Item]
+                | Unset
+                | VariantCustomFieldsType1
+                | None,
+                data,
+            )
 
         custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 

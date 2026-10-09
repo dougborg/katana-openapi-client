@@ -46,21 +46,21 @@ class ManufacturingOrderOperationRow:
     manufacturing_order_id: int | Unset = UNSET
     operation_id: int | Unset = UNSET
     operation_name: str | Unset = UNSET
-    resource_id: int | Unset = UNSET
-    resource_name: str | Unset = UNSET
+    resource_id: int | Unset | None = UNSET
+    resource_name: str | Unset | None = UNSET
     assigned_operators: list[AssignedOperator] | Unset = UNSET
     completed_by_operators: list[AssignedOperator] | Unset = UNSET
-    active_operator_id: float | Unset = UNSET
+    active_operator_id: float | Unset | None = UNSET
     planned_time_per_unit: str | Unset = UNSET
     planned_time_parameter: str | Unset = UNSET
-    total_actual_time: str | Unset = UNSET
+    total_actual_time: str | Unset | None = UNSET
     planned_cost_per_unit: str | Unset = UNSET
-    total_actual_cost: str | Unset = UNSET
+    total_actual_cost: str | Unset | None = UNSET
     total_consumed_time: float | Unset = UNSET
     total_remaining_time: float | Unset = UNSET
     cost_per_hour: str | Unset = UNSET
     cost_parameter: str | Unset = UNSET
-    group_boundary: float | Unset = UNSET
+    group_boundary: float | Unset | None = UNSET
     is_status_actionable: bool | Unset = UNSET
     completed_at: datetime.datetime | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -100,9 +100,17 @@ class ManufacturingOrderOperationRow:
 
         operation_name = self.operation_name
 
-        resource_id = self.resource_id
+        resource_id: int | Unset | None
+        if isinstance(self.resource_id, Unset):
+            resource_id = UNSET
+        else:
+            resource_id = self.resource_id
 
-        resource_name = self.resource_name
+        resource_name: str | Unset | None
+        if isinstance(self.resource_name, Unset):
+            resource_name = UNSET
+        else:
+            resource_name = self.resource_name
 
         assigned_operators: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.assigned_operators, Unset):
@@ -118,17 +126,29 @@ class ManufacturingOrderOperationRow:
                 completed_by_operators_item = completed_by_operators_item_data.to_dict()
                 completed_by_operators.append(completed_by_operators_item)
 
-        active_operator_id = self.active_operator_id
+        active_operator_id: float | Unset | None
+        if isinstance(self.active_operator_id, Unset):
+            active_operator_id = UNSET
+        else:
+            active_operator_id = self.active_operator_id
 
         planned_time_per_unit = self.planned_time_per_unit
 
         planned_time_parameter = self.planned_time_parameter
 
-        total_actual_time = self.total_actual_time
+        total_actual_time: str | Unset | None
+        if isinstance(self.total_actual_time, Unset):
+            total_actual_time = UNSET
+        else:
+            total_actual_time = self.total_actual_time
 
         planned_cost_per_unit = self.planned_cost_per_unit
 
-        total_actual_cost = self.total_actual_cost
+        total_actual_cost: str | Unset | None
+        if isinstance(self.total_actual_cost, Unset):
+            total_actual_cost = UNSET
+        else:
+            total_actual_cost = self.total_actual_cost
 
         total_consumed_time = self.total_consumed_time
 
@@ -138,7 +158,11 @@ class ManufacturingOrderOperationRow:
 
         cost_parameter = self.cost_parameter
 
-        group_boundary = self.group_boundary
+        group_boundary: float | Unset | None
+        if isinstance(self.group_boundary, Unset):
+            group_boundary = UNSET
+        else:
+            group_boundary = self.group_boundary
 
         is_status_actionable = self.is_status_actionable
 
@@ -272,9 +296,23 @@ class ManufacturingOrderOperationRow:
 
         operation_name = d.pop("operation_name", UNSET)
 
-        resource_id = d.pop("resource_id", UNSET)
+        def _parse_resource_id(data: object) -> int | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | Unset | None, data)
 
-        resource_name = d.pop("resource_name", UNSET)
+        resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
+
+        def _parse_resource_name(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        resource_name = _parse_resource_name(d.pop("resource_name", UNSET))
 
         _assigned_operators = d.pop("assigned_operators", UNSET)
         assigned_operators: list[AssignedOperator] | Unset = UNSET
@@ -298,17 +336,40 @@ class ManufacturingOrderOperationRow:
 
                 completed_by_operators.append(completed_by_operators_item)
 
-        active_operator_id = d.pop("active_operator_id", UNSET)
+        def _parse_active_operator_id(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
+
+        active_operator_id = _parse_active_operator_id(
+            d.pop("active_operator_id", UNSET)
+        )
 
         planned_time_per_unit = d.pop("planned_time_per_unit", UNSET)
 
         planned_time_parameter = d.pop("planned_time_parameter", UNSET)
 
-        total_actual_time = d.pop("total_actual_time", UNSET)
+        def _parse_total_actual_time(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        total_actual_time = _parse_total_actual_time(d.pop("total_actual_time", UNSET))
 
         planned_cost_per_unit = d.pop("planned_cost_per_unit", UNSET)
 
-        total_actual_cost = d.pop("total_actual_cost", UNSET)
+        def _parse_total_actual_cost(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        total_actual_cost = _parse_total_actual_cost(d.pop("total_actual_cost", UNSET))
 
         total_consumed_time = d.pop("total_consumed_time", UNSET)
 
@@ -318,7 +379,14 @@ class ManufacturingOrderOperationRow:
 
         cost_parameter = d.pop("cost_parameter", UNSET)
 
-        group_boundary = d.pop("group_boundary", UNSET)
+        def _parse_group_boundary(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
+
+        group_boundary = _parse_group_boundary(d.pop("group_boundary", UNSET))
 
         is_status_actionable = d.pop("is_status_actionable", UNSET)
 

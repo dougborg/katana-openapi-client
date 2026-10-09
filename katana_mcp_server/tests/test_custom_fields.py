@@ -107,6 +107,7 @@ async def test_discovery_filters_deleted_and_groups_help(context_with_typed_cach
         assert result.total_count == 2
         options = result.definitions[0].options
         assert options is not None
+        assert options.choices is not None
         assert options.choices[1].label == "Retired"
         filtered = await _list_custom_field_definitions_impl(
             request=ListCustomFieldDefinitionsRequest(

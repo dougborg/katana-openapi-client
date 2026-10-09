@@ -614,3 +614,17 @@ def test_cache_primary_key_preserves_identifier_type(gen, entity, identifier_typ
     assert (
         f"id: Annotated[{identifier_type}, SQLField(primary_key=True" in result.source
     )
+
+
+def test_inject_json_columns_preserves_nested_uuid_key_metadata(gen):
+    cls = _make_cls(
+        gen,
+        "CachedVariant",
+        '    custom_fields: Annotated[dict[Annotated[str, Field(pattern="uuid")], str | None] | list[CustomField] | None, Field(description="Values")] = None\n'
+        "    config_attributes: list[ConfigAttribute] | None = None\n"
+        "    supplier_item_codes: list[str] | None = None\n",
+    )
+    result = gen.inject_json_columns([cls])[0].source
+    assert 'Annotated[str, Field(pattern="uuid")]' in result
+    assert 'SQLField(sa_column=Column(PydanticJSON), description="Values")' in result
+    compile(result, "<generated>", "exec")

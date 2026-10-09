@@ -1063,7 +1063,10 @@ class SalesOrderShippingFee(KatanaPydanticBase):
         int, Field(description="ID of the sales order this shipping fee applies to")
     ]
     amount: Annotated[
-        str, Field(description="Shipping fee amount in the order currency")
+        str | float,
+        Field(
+            description="Shipping fee amount in the order currency. Creation returns a\nJSON number; list, detail, and update responses return decimal\nstrings. Preserve the wire representation in either case.\n",
+        ),
     ]
     tax_rate_id: Annotated[
         int | None, Field(description="ID of the tax rate applied to the shipping fee")
@@ -1506,9 +1509,9 @@ class SalesOrder(DeletableEntity):
         ),
     ] = None
     shipping_fee: Annotated[
-        SalesOrderShippingFee | None,
+        SalesOrderShippingFee | dict[str, Any] | None,
         Field(
-            description="Shipping fee details for this sales order",
+            description="Shipping fee details, null, or an empty object when no fee is set",
         ),
     ] = None
     addresses: Annotated[
@@ -1972,10 +1975,10 @@ class CachedSalesOrder(DeletableEntity, table=True):
         ),
     ] = None
     shipping_fee: Annotated[
-        Mapped[SalesOrderShippingFee | None],
+        Mapped[SalesOrderShippingFee | dict[str, Any] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Shipping fee details for this sales order",
+            description="Shipping fee details, null, or an empty object when no fee is set",
         ),
     ] = None
     addresses: Annotated[

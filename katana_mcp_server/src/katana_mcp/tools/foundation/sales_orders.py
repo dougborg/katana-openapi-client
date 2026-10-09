@@ -138,6 +138,7 @@ from katana_public_api_client.models import (
     SalesOrderFulfillmentStatus,
     SalesOrderRow,
     SalesOrderShippingFee,
+    SalesOrderShippingFeeType2,
     UpdateSalesOrderAddressRequest as APIUpdateSOAddressRequest,
     UpdateSalesOrderFulfillmentRequest as APIUpdateSOFulfillmentRequest,
     UpdateSalesOrderRequest as APIUpdateSalesOrderRequest,
@@ -1621,7 +1622,7 @@ class SalesOrderShippingFeeInfo(BaseModel):
 
     id: int
     sales_order_id: int | None = None
-    amount: str | None = None
+    amount: str | float | None = None
     tax_rate_id: int | None = None
     description: str | None = None
 
@@ -1751,7 +1752,7 @@ def _shipping_fee_from_attrs(fee: Any) -> SalesOrderShippingFeeInfo | None:
     (malformed payload), return ``None`` so the SO assembly completes
     rather than crashing with an opaque ``AttributeError`` (#501).
     """
-    if fee is None:
+    if fee is None or isinstance(fee, SalesOrderShippingFeeType2):
         return None
     if isinstance(fee, dict):
         from katana_public_api_client.models import SalesOrderShippingFee

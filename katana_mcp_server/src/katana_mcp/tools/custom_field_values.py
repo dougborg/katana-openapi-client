@@ -65,7 +65,7 @@ def _matches_type(*, definition: CustomFieldDefinition, value: Any) -> bool:
             and definition.options is not None
             and any(
                 choice.id == value and not choice.deleted
-                for choice in definition.options.choices
+                for choice in (definition.options.choices or [])
             )
         )
     if kind == CustomFieldType.date:
@@ -230,7 +230,9 @@ async def resolve_custom_field_values(
         for identifier, value in (record.custom_fields or {}).items():
             definition = definitions.get(identifier)
             choices = (
-                definition.options.choices if definition and definition.options else []
+                (definition.options.choices or [])
+                if definition and definition.options
+                else []
             )
             value_label = next(
                 (choice.label for choice in choices if choice.id == value), None

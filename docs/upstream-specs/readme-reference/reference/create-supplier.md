@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a supplier
 
@@ -104,6 +104,12 @@ Creates a new supplier object.
                         }
                       }
                     }
+                  },
+                  "custom_fields": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true,
+                    "description": "Custom field values keyed by custom field definition ID (UUID) of a definition with `entity_type` `Supplier`. Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Unknown definition IDs are rejected with a 422."
                   }
                 }
               }
@@ -142,6 +148,10 @@ Creates a new supplier object.
                   "phone": "123456",
                   "currency": "USD",
                   "comment": "Luke Skywalker was a Tatooine farmboy who rose from humble beginnings to become one of the\n              greatest Jedi the galaxy has ever known.",
+                  "custom_fields": {
+                    "2fa40b67-e0f1-46be-84b2-6441f2c976c3": "Net 30",
+                    "b6c0cbb5-6ba0-4f6e-a6f4-2b6c3f4a57ea": 14
+                  },
                   "created_at": "2020-10-23T10:37:05.085Z",
                   "updated_at": "2020-10-23T10:37:05.085Z",
                   "default_address_id": 1,

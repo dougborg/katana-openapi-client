@@ -53,7 +53,7 @@ def response_for(definition):
     return MagicMock(
         status_code=200,
         parsed=AttrsDefinition.from_dict(
-            definition.model_dump(mode="json", exclude_none=True)
+            definition.model_dump(mode="json", by_alias=True, exclude_none=True)
         ),
     )
 
@@ -179,6 +179,45 @@ async def test_update_preview_preserves_explicit_description_and_all_choices(
     )
     assert roundtrip.model_fields_set == request.model_fields_set | {"preview"}
     assert "label" not in roundtrip.model_fields_set
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview", [True, False])
+async def test_choice_edits_preserve_appears_on(context_with_typed_cache, preview):
+    context, _lifespan, _cache = context_with_typed_cache
+    wire = current_definition().model_dump(mode="json", by_alias=True)
+    wire["entity_type"] = "ProductVariant"
+    wire["options"]["appearsOn"] = ["SalesOrderRow", "ManufacturingOrder"]
+    current = CustomFieldDefinition.model_validate(wire)
+    request = UpdateCustomFieldDefinitionRequest.model_validate(
+        {
+            "definition_id": FIELD_ID,
+            "choice_changes": {"add": ["D"]},
+            "preview": preview,
+        }
+    )
+    with (
+        patch(
+            "katana_mcp.tools.foundation.custom_fields.api_get.asyncio_detailed",
+            AsyncMock(return_value=response_for(current)),
+        ),
+        patch(
+            "katana_mcp.tools.foundation.custom_field_mutations.api_update.asyncio_detailed",
+            AsyncMock(return_value=response_for(current)),
+        ) as endpoint,
+    ):
+        result = await _update_custom_field_definition_impl(
+            request=request, context=context
+        )
+        assert result.payload["options"]["appearsOn"] == wire["options"]["appearsOn"]
+        assert result.payload["options"]["choices"][-1] == {"label": "D"}
+        if preview:
+            endpoint.assert_not_awaited()
+        else:
+            assert (
+                endpoint.call_args.kwargs["body"].to_dict()["options"]
+                == result.payload["options"]
+            )
 
 
 @pytest.mark.asyncio

@@ -920,13 +920,15 @@ class ManufacturingOrderOperationRow(DeletableEntity):
         str | None, Field(description="Parameter for calculating planned time")
     ] = None
     total_actual_time: Annotated[
-        str | None, Field(description="Total actual time spent on this operation")
+        str | None,
+        Field(description="Actual time as a decimal string, or null before completion"),
     ] = None
     planned_cost_per_unit: Annotated[
         str | None, Field(description="Planned cost per unit for this operation")
     ] = None
     total_actual_cost: Annotated[
-        str | None, Field(description="Total actual cost incurred for this operation")
+        str | None,
+        Field(description="Actual cost as a decimal string, or null before completion"),
     ] = None
     total_consumed_time: Annotated[
         float | None, Field(description="Total time consumed so far for this operation")

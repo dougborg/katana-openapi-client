@@ -179,6 +179,20 @@ def test_valid_empty_object_is_not_normalized_to_null(regen: ModuleType) -> None
     assert result == _TYPED_PARSER
 
 
+def test_explicit_empty_shipping_fee_branch_is_still_normalized(
+    regen: ModuleType,
+) -> None:
+    source = _TYPED_PARSER.replace(
+        "return cast(None | SalesOrderShippingFee | Unset, data)",
+        "return SalesOrderShippingFeeType2.from_dict(data)",
+    )
+    result, count = regen._insert_empty_dict_normalization(
+        source, empty_object_classes={"SalesOrderShippingFeeType2"}
+    )
+    assert count == 1
+    assert "if isinstance(data, dict) and not data:" in result
+
+
 def test_nullable_array_keeps_empty_dict_normalization(regen: ModuleType) -> None:
     array_parser = _TYPED_PARSER.replace(
         "isinstance(data, dict)", "isinstance(data, list)"

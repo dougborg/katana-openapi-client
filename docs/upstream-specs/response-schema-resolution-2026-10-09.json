@@ -1,0 +1,1502 @@
+{
+  "checked_at": "2026-10-09T18:50:41.953922+00:00",
+  "factory_id": 104008,
+  "live_schema_errors": [],
+  "request_count": 84,
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/factory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/locations",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/suppliers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/customers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/inventory_reorder_points",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/inventory_safety_stock_levels",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/stock_adjustments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/stock_transfers/{id}/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200
+    }
+  ],
+  "cleanup": {
+    "created": 14,
+    "deleted": 14
+  },
+  "serial_probes": [
+    {
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "/products",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "endpoint": "/customers",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "endpoint": "/sales_orders",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "endpoint": "/serial_numbers",
+          "status": 422
+        }
+      ],
+      "user_authorized_existing_serial_probe": true,
+      "factory_id": 104008,
+      "response_keys": [
+        "error"
+      ],
+      "failure_reasons": [],
+      "error_codes": [],
+      "cleanup": {
+        "created": 3,
+        "deleted": 3
+      }
+    },
+    {
+      "user_authorized_existing_serial_probe": true,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "/serial_numbers",
+          "status": 200
+        }
+      ],
+      "matching_active_variant_found": true,
+      "factory_id": 104008,
+      "response_keys": [
+        "successful",
+        "failed"
+      ],
+      "failure_reasons": [],
+      "error_codes": [],
+      "cleanup": {
+        "created": 2,
+        "deleted": 2
+      }
+    },
+    {
+      "user_authorized_existing_serial_probe": true,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "/serial_numbers",
+          "status": 422
+        }
+      ],
+      "matching_active_variant_found": true,
+      "factory_id": 104008,
+      "response_keys": [
+        "error"
+      ],
+      "failure_reasons": [],
+      "successful_count": 0,
+      "error_codes": [],
+      "serial_stock_flag_unchanged_after_cleanup": true,
+      "cleanup": {
+        "created": 1,
+        "deleted": 1
+      }
+    },
+    {
+      "user_authorized_existing_serial_probe": true,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "/serial_numbers",
+          "status": 200
+        }
+      ],
+      "matching_active_variant_found": true,
+      "factory_id": 104008,
+      "schema_errors": [],
+      "response_keys": [
+        "successful",
+        "failed"
+      ],
+      "failure_reasons": [],
+      "successful_count": 1,
+      "error_codes": [],
+      "serial_stock_flag_unchanged_after_cleanup": true,
+      "cleanup": {
+        "created": 2,
+        "deleted": 2
+      }
+    }
+  ],
+  "response_source_policy": "Observed live shapes drive fixes. Documented nullable batch responses and NOT_IN_STOCK are supported without claiming their unobserved cases were reproduced. Legacy allocation requests stay strict.",
+  "original_finding_dispositions": [
+    {
+      "finding": 1,
+      "method": "GET",
+      "endpoint": "/inventory",
+      "field_path": [
+        "data",
+        0,
+        "safety_stock_level"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 2,
+      "method": "POST",
+      "endpoint": "/inventory_reorder_points",
+      "field_path": [
+        "value"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 3,
+      "method": "POST",
+      "endpoint": "/inventory_safety_stock_levels",
+      "field_path": [
+        "value"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 4,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "planned_time_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 5,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "planned_time_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 6,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "total_actual_time"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 7,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "planned_cost_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 8,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "total_actual_cost"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 9,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "cost_per_hour"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 10,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "data",
+        0,
+        "cost_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 11,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 12,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 13,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "total_actual_time"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 14,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 15,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 16,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 17,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "field_path": [
+        "cost_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 18,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 19,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 20,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "total_actual_time"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 21,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 22,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 23,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 24,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "cost_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 25,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 26,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 27,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "total_actual_time"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 28,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 29,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 30,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 31,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "field_path": [
+        "cost_parameter"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 32,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "field_path": [
+        "data",
+        0,
+        "planned_quantity_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 33,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "field_path": [
+        "data",
+        0,
+        "total_actual_quantity"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 34,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "field_path": [
+        "data",
+        0,
+        "cost"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 35,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 36,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 37,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "field_path": [
+        "cost"
+      ],
+      "disposition": "schema_retained_nonnull_case_unobserved",
+      "note": "Null recipe cost is supported and observed; non-null wire type was not established for create/update."
+    },
+    {
+      "finding": 38,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 39,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 40,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "field_path": [
+        "cost"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 41,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 42,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 43,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "field_path": [
+        "cost"
+      ],
+      "disposition": "schema_retained_nonnull_case_unobserved",
+      "note": "Null recipe cost is supported and observed; non-null wire type was not established for create/update."
+    },
+    {
+      "finding": 44,
+      "method": "GET",
+      "endpoint": "/operators",
+      "field_path": [],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 45,
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "field_path": [
+        "data",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 46,
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 47,
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "field_path": [
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 48,
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "field_path": [
+        "data",
+        0,
+        "purchase_order_id"
+      ],
+      "disposition": "schema_retained_no_live_records",
+      "note": "Accounting metadata remained empty; retain snake_case identifier based on prior archived verification. Do not make required fields optional solely because this tenant has no metadata."
+    },
+    {
+      "finding": 49,
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "field_path": [
+        "data",
+        1,
+        "purchase_order_id"
+      ],
+      "disposition": "schema_retained_no_live_records",
+      "note": "Accounting metadata remained empty; retain snake_case identifier based on prior archived verification. Do not make required fields optional solely because this tenant has no metadata."
+    },
+    {
+      "finding": 50,
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "field_path": [
+        "data",
+        0
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 51,
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "field_path": [],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 52,
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "field_path": [],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 53,
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments",
+      "field_path": [
+        "data",
+        0,
+        "sales_order_fulfillment_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 54,
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "field_path": [
+        "sales_order_fulfillment_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 55,
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "field_path": [
+        "data",
+        0,
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 56,
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "field_path": [
+        "data",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 57,
+      "method": "POST",
+      "endpoint": "/sales_order_rows",
+      "field_path": [
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 58,
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "field_path": [
+        "data",
+        0,
+        "quantity"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 59,
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "field_path": [
+        "data",
+        0,
+        "total"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 60,
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "field_path": [
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 61,
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "field_path": [
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 62,
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "field_path": [
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 63,
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee",
+      "field_path": [
+        "data",
+        0,
+        "amount"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 64,
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee",
+      "field_path": [
+        "data",
+        1,
+        "amount"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 65,
+      "method": "POST",
+      "endpoint": "/sales_order_shipping_fee",
+      "field_path": [
+        "amount"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 66,
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "field_path": [
+        "amount"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 67,
+      "method": "PATCH",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "field_path": [
+        "amount"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 68,
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "field_path": [
+        "data",
+        0,
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 69,
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "field_path": [
+        "data",
+        0,
+        "sales_order_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 70,
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 71,
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "field_path": [
+        "data",
+        0,
+        "total"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 72,
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "field_path": [
+        "data",
+        0,
+        "location_id"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 73,
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 74,
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Allow documented null batch IDs on response allocations; keep request allocations integer-only. The null case was not observed for this response."
+    },
+    {
+      "finding": 75,
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "field_path": [],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 76,
+      "method": "POST",
+      "endpoint": "/serial_numbers",
+      "field_path": [
+        "failed",
+        0,
+        "reason"
+      ],
+      "disposition": "published_response_supported_case_unobserved",
+      "note": "Added documented NOT_IN_STOCK enum value; matching-variant 200 envelope verified, but failure reason not reproduced."
+    },
+    {
+      "finding": 77,
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "field_path": [],
+      "disposition": "existing_schema_retained_live_verified",
+      "note": "Portal example differs from sampled live responses; preserve the observed wire types and wrapper."
+    },
+    {
+      "finding": 78,
+      "method": "GET",
+      "endpoint": "/stock_adjustments",
+      "field_path": [
+        "data",
+        0,
+        "stock_adjustment_rows",
+        0,
+        "traceability"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 79,
+      "method": "GET",
+      "endpoint": "/stock_adjustments",
+      "field_path": [
+        "data",
+        0,
+        "stock_adjustment_rows",
+        1,
+        "traceability"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 80,
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "field_path": [
+        "stock_adjustment_rows",
+        0,
+        "traceability"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 81,
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "field_path": [
+        "stock_adjustment_rows",
+        1,
+        "traceability"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 82,
+      "method": "PATCH",
+      "endpoint": "/stock_adjustments/{id}",
+      "field_path": [
+        "stock_adjustment_rows",
+        0,
+        "traceability"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    },
+    {
+      "finding": 83,
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "field_path": [
+        "data",
+        0,
+        "stock_transfer_rows",
+        0,
+        "batch_transactions",
+        1,
+        "batch_id"
+      ],
+      "disposition": "schema_fixed_live_verified",
+      "note": "Corrected response types, nullability, or property coverage; subsequent full response probe reports zero schema errors."
+    }
+  ],
+  "validation": {
+    "repository_check": "passed",
+    "python_unit_tests": {
+      "passed": 4831,
+      "skipped": 15
+    },
+    "browser_tests": {
+      "passed": 59,
+      "deselected": 2
+    },
+    "schema_tests": {
+      "passed": 2440,
+      "skipped": 137
+    },
+    "typescript_lint": "passed",
+    "typescript_typecheck": "passed",
+    "typescript_tests": {
+      "passed": 225
+    },
+    "portal_example_validator": {
+      "remaining_failures": 62,
+      "status": "upstream discrepancies or unobserved states; snapshots preserved"
+    }
+  }
+}

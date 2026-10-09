@@ -34,7 +34,7 @@ class Location:
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | Unset | None = UNSET
-    legal_name: str | Unset = UNSET
+    legal_name: str | Unset | None = UNSET
     address_id: int | Unset | None = UNSET
     address: LocationAddress | Unset | None = UNSET
     is_primary: bool | Unset = UNSET
@@ -66,7 +66,11 @@ class Location:
         else:
             deleted_at = self.deleted_at
 
-        legal_name = self.legal_name
+        legal_name: str | Unset | None
+        if isinstance(self.legal_name, Unset):
+            legal_name = UNSET
+        else:
+            legal_name = self.legal_name
 
         address_id: int | Unset | None
         if isinstance(self.address_id, Unset):
@@ -161,7 +165,14 @@ class Location:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        legal_name = d.pop("legal_name", UNSET)
+        def _parse_legal_name(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        legal_name = _parse_legal_name(d.pop("legal_name", UNSET))
 
         def _parse_address_id(data: object) -> int | Unset | None:
             if data is None:

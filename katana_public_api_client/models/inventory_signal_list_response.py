@@ -22,11 +22,11 @@ class InventorySignalListResponse:
     """Response containing a list of inventory replenishment signals with pagination support.
 
     Example:
-        {'data': [{'variant_id': 1, 'avg_daily_demand_30d': '3.50000000000000000000', 'reorder_point':
-            '49.00000000000000000000', 'days_of_stock_left': 12, 'stock_risk': 1, 'in_stock': '42.00000000000000000000',
-            'committed': '0.00000000000000000000', 'safety_stock_breach_at': '2026-08-24T00:00:00.000Z',
-            'expected_before_safety_stock_breach': '30.00000000000000000000', 'safety_stock': '0.00000000000000000000',
-            'lead_time_used': 14, 'lead_time_source': 'sku', 'demand_calculated_at': '2026-08-12T07:00:00.000Z'}]}
+        {'data': [{'variant_id': 1, 'reorder_point': '49.00000000000000000000', 'days_of_stock_left': 12, 'stock_risk':
+            1, 'in_stock': '42.00000000000000000000', 'committed': '0.00000000000000000000', 'safety_stock_breach_at':
+            '2026-08-24T00:00:00.000Z', 'expected_before_safety_stock_breach': '30.00000000000000000000', 'safety_stock':
+            '0.00000000000000000000', 'lead_time_used': 14, 'lead_time_source': 'sku', 'demand_calculated_at':
+            '2026-08-12T07:00:00.000Z', 'avg_daily_demand': '3.50000000000000000000', 'demand_window': 30}]}
     """
 
     data: list[InventorySignal] | Unset = UNSET

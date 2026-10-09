@@ -9,6 +9,7 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
 from ...models.get_material_extend_item import GetMaterialExtendItem
+from ...models.get_material_x_custom_fields_format import GetMaterialXCustomFieldsFormat
 from ...models.material import Material
 
 
@@ -16,7 +17,11 @@ def _get_kwargs(
     id: int,
     *,
     extend: list[GetMaterialExtendItem] | Unset = UNSET,
+    x_custom_fields_format: GetMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     params: dict[str, Any] = {}
 
@@ -39,6 +44,7 @@ def _get_kwargs(
         "params": params,
     }
 
+    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -87,6 +93,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     extend: list[GetMaterialExtendItem] | Unset = UNSET,
+    x_custom_fields_format: GetMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[ErrorResponse | Material]:
     """Retrieve a material
 
@@ -95,6 +102,7 @@ def sync_detailed(
     Args:
         id (int):
         extend (list[GetMaterialExtendItem] | Unset):
+        x_custom_fields_format (GetMaterialXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -108,6 +116,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         extend=extend,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -122,6 +131,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     extend: list[GetMaterialExtendItem] | Unset = UNSET,
+    x_custom_fields_format: GetMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> ErrorResponse | Material | None:
     """Retrieve a material
 
@@ -130,6 +140,7 @@ def sync(
     Args:
         id (int):
         extend (list[GetMaterialExtendItem] | Unset):
+        x_custom_fields_format (GetMaterialXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -144,6 +155,7 @@ def sync(
         id=id,
         client=client,
         extend=extend,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -152,6 +164,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     extend: list[GetMaterialExtendItem] | Unset = UNSET,
+    x_custom_fields_format: GetMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[ErrorResponse | Material]:
     """Retrieve a material
 
@@ -160,6 +173,7 @@ async def asyncio_detailed(
     Args:
         id (int):
         extend (list[GetMaterialExtendItem] | Unset):
+        x_custom_fields_format (GetMaterialXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,6 +187,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         extend=extend,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -185,6 +200,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     extend: list[GetMaterialExtendItem] | Unset = UNSET,
+    x_custom_fields_format: GetMaterialXCustomFieldsFormat | Unset = UNSET,
 ) -> ErrorResponse | Material | None:
     """Retrieve a material
 
@@ -193,6 +209,7 @@ async def asyncio(
     Args:
         id (int):
         extend (list[GetMaterialExtendItem] | Unset):
+        x_custom_fields_format (GetMaterialXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -208,5 +225,6 @@ async def asyncio(
             id=id,
             client=client,
             extend=extend,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

@@ -1,4 +1,7 @@
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
+---
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
+---
 
 # `reference` field now available on Purchase Order additional cost rows
 

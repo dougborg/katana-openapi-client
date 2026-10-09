@@ -165,7 +165,7 @@ def _merge_choices(
     existing = (
         [
             choice.model_dump(mode="json", exclude_none=True)
-            for choice in current.options.choices
+            for choice in (current.options.choices or [])
         ]
         if current.options
         else []
@@ -271,9 +271,15 @@ async def _update_custom_field_definition_impl(
             changes.append(f"{name}: {getattr(current, name)} → {value}")
     if request.choices is not None or request.choice_changes is not None:
         choices = _merge_choices(current=current, request=request)
-        payload["options"] = {"choices": choices}
+        options = (
+            current.options.model_dump(mode="json", by_alias=True, exclude_none=True)
+            if current.options
+            else {}
+        )
+        options["choices"] = choices
+        payload["options"] = options
         before = (
-            {choice.id: choice for choice in current.options.choices}
+            {choice.id: choice for choice in (current.options.choices or [])}
             if current.options
             else {}
         )

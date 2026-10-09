@@ -6,14 +6,20 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
+from ...models.get_service_x_custom_fields_format import GetServiceXCustomFieldsFormat
 from ...models.service import Service
 
 
 def _get_kwargs(
     id: int,
+    *,
+    x_custom_fields_format: GetServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "get",
@@ -22,6 +28,7 @@ def _get_kwargs(
         ),
     }
 
+    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -73,6 +80,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    x_custom_fields_format: GetServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[Any | ErrorResponse | Service]:
     """Get Service
 
@@ -81,6 +89,7 @@ def sync_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (GetServiceXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -93,6 +102,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -106,6 +116,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    x_custom_fields_format: GetServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Any | ErrorResponse | Service | None:
     """Get Service
 
@@ -114,6 +125,7 @@ def sync(
 
     Args:
         id (int):
+        x_custom_fields_format (GetServiceXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -127,6 +139,7 @@ def sync(
     return sync_detailed(
         id=id,
         client=client,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -134,6 +147,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    x_custom_fields_format: GetServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[Any | ErrorResponse | Service]:
     """Get Service
 
@@ -142,6 +156,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (GetServiceXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,6 +169,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -165,6 +181,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
+    x_custom_fields_format: GetServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Any | ErrorResponse | Service | None:
     """Get Service
 
@@ -173,6 +190,7 @@ async def asyncio(
 
     Args:
         id (int):
+        x_custom_fields_format (GetServiceXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -187,5 +205,6 @@ async def asyncio(
         await asyncio_detailed(
             id=id,
             client=client,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed
