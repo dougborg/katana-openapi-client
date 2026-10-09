@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.122.0](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.121.3...mcp-v0.122.0) (2026-10-09)
+
+
+### Features
+
+* **client:** sync upstream contracts and fix live response schemas ([52b8315](https://github.com/dougborg/katana-openapi-client/commit/52b83158569c649edad44e666b0bcead24b799fb))
+
 ## [0.121.3](https://github.com/dougborg/katana-openapi-client/compare/mcp-v0.121.2...mcp-v0.121.3) (2026-10-07)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/dougborg/katana-openapi-client/compare/ts-v0.4.0...ts-v0.5.0) (2026-10-09)
+
+
+### Features
+
+* **client:** sync upstream contracts and fix live response schemas ([52b8315](https://github.com/dougborg/katana-openapi-client/commit/52b83158569c649edad44e666b0bcead24b799fb))
+
 ## [0.4.0](https://github.com/dougborg/katana-openapi-client/compare/ts-v0.3.0...ts-v0.4.0) (2026-10-07)
 
 
