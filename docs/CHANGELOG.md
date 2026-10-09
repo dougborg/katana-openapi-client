@@ -4,15 +4,15 @@
 
 ## [0.89.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.88.0...client-v0.89.0) (2026-10-09)
 
-
 ### Features
 
-* **client:** sync upstream contracts and fix live response schemas ([52b8315](https://github.com/dougborg/katana-openapi-client/commit/52b83158569c649edad44e666b0bcead24b799fb))
-
+- **client:** sync upstream contracts and fix live response schemas
+  ([52b8315](https://github.com/dougborg/katana-openapi-client/commit/52b83158569c649edad44e666b0bcead24b799fb))
 
 ### Bug Fixes
 
-* validate portal examples with live API evidence ([43628d3](https://github.com/dougborg/katana-openapi-client/commit/43628d3d8bf409efdc2c10fd726a5599936391f0))
+- validate portal examples with live API evidence
+  ([43628d3](https://github.com/dougborg/katana-openapi-client/commit/43628d3d8bf409efdc2c10fd726a5599936391f0))
 
 ## [0.88.0](https://github.com/dougborg/katana-openapi-client/compare/client-v0.87.1...client-v0.88.0) (2026-10-07)
 
