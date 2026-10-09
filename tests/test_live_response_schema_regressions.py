@@ -1,5 +1,6 @@
 """Response contracts verified by the October 2026 test-tenant audit."""
 
+from http import HTTPStatus
 from pathlib import Path
 
 import httpx
@@ -9,11 +10,14 @@ from scripts.validate_response_examples import _build_local_registry, load_yaml_
 from sqlalchemy import create_engine
 from sqlmodel import SQLModel
 
-from katana_public_api_client import Client, models, models_pydantic
+from katana_public_api_client import Client, KatanaClient, models, models_pydantic
+from katana_public_api_client.api.custom_fields import get_all_custom_fields_collections
 from katana_public_api_client.api.sales_orders import (
     create_sales_order_shipping_fee,
     get_sales_order_shipping_fee,
 )
+from katana_public_api_client.client_types import Response
+from katana_public_api_client.utils import unwrap_data
 
 SPEC = load_yaml_spec(Path(__file__).parents[1] / "docs/katana-openapi.yaml")
 REGISTRY = _build_local_registry(SPEC)
@@ -206,3 +210,69 @@ def test_recipe_notes_and_purchase_conversion_can_be_null():
         "PurchaseOrderRow",
         {"id": 1, "quantity": 1, "variant_id": 2, "purchase_uom_conversion_rate": None},
     )
+
+
+def test_supplier_missing_contact_and_address_values_can_be_null():
+    round_trip(
+        "Supplier",
+        {
+            "id": 1,
+            "name": "SDT-SUPPLIER",
+            "email": None,
+            "phone": None,
+            "comment": None,
+            "default_address_id": None,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "ManufacturingOrderProductionIngredient",
+        "ManufacturingOrderProductionIngredientResponse",
+    ],
+)
+def test_production_ingredient_decimal_strings_are_preserved(name):
+    round_trip(
+        name,
+        {"id": 1, "quantity": "1.2500000000", "cost": "2.5000000000"},
+    )
+
+
+def test_uncategorized_negative_stock_accepts_null():
+    round_trip("NegativeStock", {"variant_id": 1, "category": None})
+
+
+@pytest.mark.parametrize(
+    "body",
+    [[], [{"id": 1, "name": "SDT-COLLECTION"}]],
+)
+def test_custom_collection_bare_array_is_parsed_without_losing_records(body):
+    from scripts.live_contracts import validate_sample
+
+    validate_sample("/custom_fields_collections", "get", 200, body)
+    parsed = get_all_custom_fields_collections._parse_response(
+        client=Client(base_url="https://example.test"),
+        response=httpx.Response(200, json=body),
+    )
+    assert isinstance(parsed, list)
+    assert [row.to_dict() for row in parsed] == body
+    response = Response(
+        status_code=HTTPStatus.OK, content=b"", headers={}, parsed=parsed
+    )
+    assert unwrap_data(response) is parsed
+    assert unwrap_data(response, default=[]) is parsed
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [[], [{"id": 1, "name": "SDT-COLLECTION"}]])
+async def test_custom_collection_namespace_preserves_bare_arrays(body):
+    async with KatanaClient(
+        api_key="test-key",
+        base_url="https://katana.test/v1",
+        max_retries=0,
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=body)),
+    ) as client:
+        rows = await client.api.custom_fields.list()
+    assert [row.to_dict() for row in rows] == body

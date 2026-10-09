@@ -4618,12 +4618,18 @@ components:
             production_id:
               type: integer
             quantity:
-              type: number
+              type:
+                - number
+                - string
+              description: Decimal value; the live API can return a decimal string.
             production_date:
               type: string
               format: date-time
             cost:
-              type: number
+              type:
+                - number
+                - string
+              description: Decimal value; the live API can return a decimal string.
         - $ref: "#/components/schemas/DeletableEntity"
     UpdateManufacturingOrderProductionIngredientRequest:
       description: Request payload for updating ingredient consumption data in a manufacturing order production batch
@@ -5443,14 +5449,18 @@ components:
           type: integer
           description: ID of the production batch where ingredient was used
         quantity:
-          type: number
+          type:
+            - number
+            - string
           description: Actual quantity of ingredient consumed
         production_date:
           type: string
           format: date-time
           description: Date when the ingredient was consumed in production
         cost:
-          type: number
+          type:
+            - number
+            - string
           description: Cost of the ingredient consumed
       example:
         id: 4001
@@ -5917,7 +5927,9 @@ components:
           type: string
           description: Stock keeping unit (SKU) of the variant
         category:
-          type: string
+          type:
+            - string
+            - "null"
           description: Category classification of the variant
         quantity_on_hand:
           type: number
@@ -7666,20 +7678,28 @@ components:
               type: string
               description: Business name of the supplier company or individual
             email:
-              type: string
+              type:
+                - string
+                - "null"
               description: Primary email address for supplier communication and order confirmations
             phone:
-              type: string
+              type:
+                - string
+                - "null"
               description: Primary phone number for supplier contact and communication
             currency:
               type: string
               pattern: ^[A-Z]{3}$
               description: Default currency used for transactions with this supplier (ISO 4217 format)
             comment:
-              type: string
+              type:
+                - string
+                - "null"
               description: Optional notes or comments about the supplier relationship
             default_address_id:
-              type: integer
+              type:
+                - integer
+                - "null"
               description: Unique identifier of the default address for this supplier
             addresses:
               type: array
@@ -25332,7 +25352,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomFieldsCollectionListResponse"
+                anyOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/CustomFieldsCollection"
+                  - $ref: "#/components/schemas/CustomFieldsCollectionListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":

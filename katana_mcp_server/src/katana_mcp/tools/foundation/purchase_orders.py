@@ -3586,7 +3586,7 @@ def register_tools(mcp: FastMCP) -> None:
     _modify = ToolAnnotations(
         read_only_hint=False,
         destructive_hint=True,
-        idempotent_hint=True,
+        idempotent_hint=False,
         open_world_hint=True,
     )
 
