@@ -1,0 +1,1464 @@
+{
+  "checked_at": "2026-10-09T19:17:02.436305+00:00",
+  "factory_id": 104008,
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/factory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/locations",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/suppliers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/customers",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/inventory_reorder_points",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/inventory_safety_stock_levels",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_adjustments",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/stock_adjustments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 422,
+      "error_details": []
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/outsourced_purchase_order_recipe_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_shipping_fee",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_shipping_fee/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/products",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/outsourced_purchase_order_recipe_rows",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 422,
+      "error_details": [
+        {
+          "path": "/batch_transactions/0/batch_id",
+          "code": "type"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_fulfillments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_fulfillments/{id}",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/stock_transfers/{id}/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/stock_transfers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/factory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200
+    }
+  ],
+  "findings": [
+    {
+      "finding": 1,
+      "method": "GET",
+      "endpoint": "/inventory",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "safety_stock_level"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {
+        "string": 100
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 2,
+      "method": "POST",
+      "endpoint": "/inventory_reorder_points",
+      "status": 200,
+      "field_path": [
+        "value"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 3,
+      "method": "POST",
+      "endpoint": "/inventory_safety_stock_levels",
+      "status": 200,
+      "field_path": [
+        "value"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 4,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 89
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 5,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 89
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 6,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 60,
+        "null": 29
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 7,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 89
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 8,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 60,
+        "null": 29
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 9,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 89
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 10,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 89
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 11,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 12,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 13,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample"
+    },
+    {
+      "finding": 14,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 15,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample"
+    },
+    {
+      "finding": 16,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 17,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_operation_rows",
+      "status": 200,
+      "field_path": [
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 18,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 19,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 20,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 3,
+        "null": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 21,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 22,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 3,
+        "null": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 23,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 24,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 25,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 26,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_time_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 27,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_time"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample"
+    },
+    {
+      "finding": 28,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_cost_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 29,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample"
+    },
+    {
+      "finding": 30,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_per_hour"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 31,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_operation_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost_parameter"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 32,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 33,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 49,
+        "null": 18
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 34,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 48,
+        "null": 19
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 35,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 36,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 37,
+      "method": "POST",
+      "endpoint": "/manufacturing_order_recipe_rows",
+      "status": 200,
+      "field_path": [
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample"
+    },
+    {
+      "finding": 38,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 39,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 4
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 40,
+      "method": "GET",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 3,
+        "null": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 41,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "planned_quantity_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 42,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "total_actual_quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 43,
+      "method": "PATCH",
+      "endpoint": "/manufacturing_order_recipe_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "cost"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "null": 1
+      },
+      "verdict": "unverified_no_nonnull_sample"
+    },
+    {
+      "finding": 44,
+      "method": "GET",
+      "endpoint": "/operators",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "type",
+      "portal_type": "array",
+      "observed_types": {
+        "object": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 45,
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "purchase_order_id"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {},
+      "verdict": "unverified_no_samples"
+    },
+    {
+      "finding": 46,
+      "method": "GET",
+      "endpoint": "/purchase_order_accounting_metadata",
+      "status": 200,
+      "field_path": [
+        "data",
+        1,
+        "purchase_order_id"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {},
+      "verdict": "unverified_no_samples"
+    },
+    {
+      "finding": 47,
+      "method": "GET",
+      "endpoint": "/purchase_orders",
+      "status": 200,
+      "field_path": [
+        "data",
+        0
+      ],
+      "schema_keyword": "oneOf",
+      "portal_type": "object",
+      "observed_types": {
+        "number": 31
+      },
+      "evidence_field_path": [
+        "data",
+        0,
+        "purchase_order_rows",
+        0,
+        "landed_cost"
+      ],
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 48,
+      "method": "POST",
+      "endpoint": "/purchase_orders",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "oneOf",
+      "portal_type": "object",
+      "observed_types": {
+        "number": 3
+      },
+      "evidence_field_path": [
+        "purchase_order_rows",
+        0,
+        "landed_cost"
+      ],
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 49,
+      "method": "GET",
+      "endpoint": "/purchase_orders/{id}",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "oneOf",
+      "portal_type": "object",
+      "observed_types": {
+        "number": 8
+      },
+      "evidence_field_path": [
+        "purchase_order_rows",
+        0,
+        "landed_cost"
+      ],
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 50,
+      "method": "GET",
+      "endpoint": "/sales_order_rows",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 51,
+      "method": "POST",
+      "endpoint": "/sales_order_rows",
+      "status": 200,
+      "field_path": [
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 52,
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "quantity"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 53,
+      "method": "POST",
+      "endpoint": "/sales_order_rows/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 54,
+      "method": "GET",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 55,
+      "method": "PATCH",
+      "endpoint": "/sales_order_rows/{id}",
+      "status": 200,
+      "field_path": [
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 1
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 56,
+      "method": "GET",
+      "endpoint": "/sales_orders",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 67
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 57,
+      "method": "POST",
+      "endpoint": "/sales_orders",
+      "status": 200,
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 58,
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "total"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 62
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 59,
+      "method": "POST",
+      "endpoint": "/sales_orders/search",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "location_id"
+      ],
+      "schema_keyword": "required",
+      "portal_type": "absent",
+      "observed_types": {
+        "number": 62
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 60,
+      "method": "GET",
+      "endpoint": "/sales_orders/{id}",
+      "status": 200,
+      "field_path": [
+        "sales_order_rows",
+        0,
+        "price_per_unit"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "number",
+      "observed_types": {
+        "string": 5
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 61,
+      "method": "GET",
+      "endpoint": "/serial_numbers",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "type",
+      "portal_type": "array",
+      "observed_types": {
+        "object": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 62,
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200,
+      "field_path": [],
+      "schema_keyword": "type",
+      "portal_type": "array",
+      "observed_types": {
+        "object": 2
+      },
+      "verdict": "portal_example_wrong"
+    },
+    {
+      "finding": 63,
+      "method": "GET",
+      "endpoint": "/serial_numbers_stock",
+      "status": 200,
+      "field_path": [
+        "data",
+        0,
+        "id"
+      ],
+      "schema_keyword": "type",
+      "portal_type": "string",
+      "observed_types": {
+        "number": 56
+      },
+      "verdict": "portal_example_wrong",
+      "context": "Exposed after correcting the raw-array response wrapper"
+    }
+  ],
+  "summary": {
+    "portal_example_wrong": 54,
+    "unverified_no_nonnull_sample": 6,
+    "unverified_no_samples": 2
+  },
+  "live_schema_errors": [],
+  "cleanup": {
+    "created": 14,
+    "deleted": 14
+  }
+}
