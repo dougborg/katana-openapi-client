@@ -611,8 +611,8 @@ audit-frontend-enums = "python scripts/audit_frontend_enums.py"
 # Validate inline `example:` blocks against their schemas.
 validate-examples = "python scripts/validate_spec_examples.py"
 # Validate README.io developer-portal response examples (from
-# docs/upstream-specs/readme-portal.yaml) against local response schemas —
-# catches drift the live gateway can't surface (no response shapes there).
+# docs/upstream-specs/readme-portal.yaml), with live-evidenced example repairs,
+# against local response schemas. Use --raw-upstream for the untouched examples.
 validate-response-examples = "python scripts/validate_response_examples.py"
 
 # -----------------------------------------------------------------------------

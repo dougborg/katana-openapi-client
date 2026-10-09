@@ -1,0 +1,660 @@
+# Public example repairs grounded in the linked test-tenant probe.
+# Keep readme-portal.yaml untouched. Literal values remain illustrative.
+# Null values illustrate observed precompletion states; non-null types for
+# those POST/PATCH states remain unverified. No accounting metadata samples
+# were available, so their two failures intentionally remain unresolved.
+evidence: response-example-corrections-live-2026-10-09.json
+corrections:
+- method: GET
+  endpoint: /inventory
+  status: '200'
+  media_type: application/json
+  upstream_sha256: bf9ea45ecf0e7820e81ea30e826a7c0fc6a6040f9afae23bbd3fbc3a5a8f4bb3
+  patches:
+  - finding: 1
+    field_path:
+    - data
+    - 0
+    - safety_stock_level
+    example_path:
+    - data
+    - 0
+    - safety_stock_level
+    value: '0.0000000000'
+- method: POST
+  endpoint: /inventory_reorder_points
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 87b7415937fcf8bf3fd6344686ea048807a357a77b1dc000df32ea8eeb42c846
+  patches:
+  - finding: 2
+    field_path:
+    - value
+    example_path:
+    - value
+    value: '10'
+- method: POST
+  endpoint: /inventory_safety_stock_levels
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 87b7415937fcf8bf3fd6344686ea048807a357a77b1dc000df32ea8eeb42c846
+  patches:
+  - finding: 3
+    field_path:
+    - value
+    example_path:
+    - value
+    value: '10'
+- method: GET
+  endpoint: /manufacturing_order_operation_rows
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 0769b5b0f77abfff508371ead5b277ae8a96d0245d88f3089fcc1895ab568032
+  patches:
+  - finding: 4
+    field_path:
+    - data
+    - 0
+    - planned_time_per_unit
+    example_path:
+    - data
+    - 0
+    - planned_time_per_unit
+    value: '1'
+  - finding: 5
+    field_path:
+    - data
+    - 0
+    - planned_time_parameter
+    example_path:
+    - data
+    - 0
+    - planned_time_parameter
+    value: '1'
+  - finding: 6
+    field_path:
+    - data
+    - 0
+    - total_actual_time
+    example_path:
+    - data
+    - 0
+    - total_actual_time
+    value: '1'
+  - finding: 7
+    field_path:
+    - data
+    - 0
+    - planned_cost_per_unit
+    example_path:
+    - data
+    - 0
+    - planned_cost_per_unit
+    value: '1'
+  - finding: 8
+    field_path:
+    - data
+    - 0
+    - total_actual_cost
+    example_path:
+    - data
+    - 0
+    - total_actual_cost
+    value: '1'
+  - finding: 9
+    field_path:
+    - data
+    - 0
+    - cost_per_hour
+    example_path:
+    - data
+    - 0
+    - cost_per_hour
+    value: '1'
+  - finding: 10
+    field_path:
+    - data
+    - 0
+    - cost_parameter
+    example_path:
+    - data
+    - 0
+    - cost_parameter
+    value: '1'
+- method: POST
+  endpoint: /manufacturing_order_operation_rows
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 9c7138b37523804fa11b51a882e3a80c545389ad4d7a7c882e0c460b80ae80d3
+  patches:
+  - finding: 11
+    field_path:
+    - planned_time_per_unit
+    example_path:
+    - planned_time_per_unit
+    value: '1'
+  - finding: 12
+    field_path:
+    - planned_time_parameter
+    example_path:
+    - planned_time_parameter
+    value: '1'
+  - finding: 13
+    field_path:
+    - total_actual_time
+    example_path:
+    - total_actual_time
+    value: null
+  - finding: 14
+    field_path:
+    - planned_cost_per_unit
+    example_path:
+    - planned_cost_per_unit
+    value: '1'
+  - finding: 15
+    field_path:
+    - total_actual_cost
+    example_path:
+    - total_actual_cost
+    value: null
+  - finding: 16
+    field_path:
+    - cost_per_hour
+    example_path:
+    - cost_per_hour
+    value: '1'
+  - finding: 17
+    field_path:
+    - cost_parameter
+    example_path:
+    - cost_parameter
+    value: '1'
+- method: GET
+  endpoint: /manufacturing_order_operation_rows/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 1b9f5874237e2e7478ab2f82728ab105377ec012afe38b27d26a8cfe80182929
+  patches:
+  - finding: 18
+    field_path:
+    - planned_time_per_unit
+    example_path:
+    - moOperationRowResponseExample
+    - planned_time_per_unit
+    value: '1'
+  - finding: 19
+    field_path:
+    - planned_time_parameter
+    example_path:
+    - moOperationRowResponseExample
+    - planned_time_parameter
+    value: '1'
+  - finding: 20
+    field_path:
+    - total_actual_time
+    example_path:
+    - moOperationRowResponseExample
+    - total_actual_time
+    value: '1'
+  - finding: 21
+    field_path:
+    - planned_cost_per_unit
+    example_path:
+    - moOperationRowResponseExample
+    - planned_cost_per_unit
+    value: '1'
+  - finding: 22
+    field_path:
+    - total_actual_cost
+    example_path:
+    - moOperationRowResponseExample
+    - total_actual_cost
+    value: '1'
+  - finding: 23
+    field_path:
+    - cost_per_hour
+    example_path:
+    - moOperationRowResponseExample
+    - cost_per_hour
+    value: '1'
+  - finding: 24
+    field_path:
+    - cost_parameter
+    example_path:
+    - moOperationRowResponseExample
+    - cost_parameter
+    value: '1'
+- method: PATCH
+  endpoint: /manufacturing_order_operation_rows/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 1b9f5874237e2e7478ab2f82728ab105377ec012afe38b27d26a8cfe80182929
+  patches:
+  - finding: 25
+    field_path:
+    - planned_time_per_unit
+    example_path:
+    - moOperationRowResponseExample
+    - planned_time_per_unit
+    value: '1'
+  - finding: 26
+    field_path:
+    - planned_time_parameter
+    example_path:
+    - moOperationRowResponseExample
+    - planned_time_parameter
+    value: '1'
+  - finding: 27
+    field_path:
+    - total_actual_time
+    example_path:
+    - moOperationRowResponseExample
+    - total_actual_time
+    value: null
+  - finding: 28
+    field_path:
+    - planned_cost_per_unit
+    example_path:
+    - moOperationRowResponseExample
+    - planned_cost_per_unit
+    value: '1'
+  - finding: 29
+    field_path:
+    - total_actual_cost
+    example_path:
+    - moOperationRowResponseExample
+    - total_actual_cost
+    value: null
+  - finding: 30
+    field_path:
+    - cost_per_hour
+    example_path:
+    - moOperationRowResponseExample
+    - cost_per_hour
+    value: '1'
+  - finding: 31
+    field_path:
+    - cost_parameter
+    example_path:
+    - moOperationRowResponseExample
+    - cost_parameter
+    value: '1'
+- method: GET
+  endpoint: /manufacturing_order_recipe_rows
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 15baf84e1319b159b014149d1466d31201c09dcbcfaada12aafa276b04be251f
+  patches:
+  - finding: 32
+    field_path:
+    - data
+    - 0
+    - planned_quantity_per_unit
+    example_path:
+    - data
+    - 0
+    - planned_quantity_per_unit
+    value: '1.2'
+  - finding: 33
+    field_path:
+    - data
+    - 0
+    - total_actual_quantity
+    example_path:
+    - data
+    - 0
+    - total_actual_quantity
+    value: '12'
+  - finding: 34
+    field_path:
+    - data
+    - 0
+    - cost
+    example_path:
+    - data
+    - 0
+    - cost
+    value: '50.4'
+- method: POST
+  endpoint: /manufacturing_order_recipe_rows
+  status: '200'
+  media_type: application/json
+  upstream_sha256: e97ae098a632867e92965c00c66a29b53eafc35e3f9fc64f2beec514c5df8d86
+  patches:
+  - finding: 35
+    field_path:
+    - planned_quantity_per_unit
+    example_path:
+    - planned_quantity_per_unit
+    value: '1.2'
+  - finding: 36
+    field_path:
+    - total_actual_quantity
+    example_path:
+    - total_actual_quantity
+    value: '12'
+  - finding: 37
+    field_path:
+    - cost
+    example_path:
+    - cost
+    value: null
+- method: GET
+  endpoint: /manufacturing_order_recipe_rows/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: e97ae098a632867e92965c00c66a29b53eafc35e3f9fc64f2beec514c5df8d86
+  patches:
+  - finding: 38
+    field_path:
+    - planned_quantity_per_unit
+    example_path:
+    - planned_quantity_per_unit
+    value: '1.2'
+  - finding: 39
+    field_path:
+    - total_actual_quantity
+    example_path:
+    - total_actual_quantity
+    value: '12'
+  - finding: 40
+    field_path:
+    - cost
+    example_path:
+    - cost
+    value: '50.4'
+- method: PATCH
+  endpoint: /manufacturing_order_recipe_rows/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: e97ae098a632867e92965c00c66a29b53eafc35e3f9fc64f2beec514c5df8d86
+  patches:
+  - finding: 41
+    field_path:
+    - planned_quantity_per_unit
+    example_path:
+    - planned_quantity_per_unit
+    value: '1.2'
+  - finding: 42
+    field_path:
+    - total_actual_quantity
+    example_path:
+    - total_actual_quantity
+    value: '12'
+  - finding: 43
+    field_path:
+    - cost
+    example_path:
+    - cost
+    value: null
+- method: GET
+  endpoint: /operators
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 4a943eb4d0a0e6a1091a853fa9f07fe73fbf2d49bf687b7995e634c8efdc044a
+  patches:
+  - finding: 44
+    field_path: []
+    example_path: []
+    value:
+      data:
+      - id: 1
+        operator_name: Shopfloor Thomas
+      - id: 2
+        operator_name: Warehouse Mike
+- method: GET
+  endpoint: /purchase_orders
+  status: '200'
+  media_type: application/json
+  upstream_sha256: e8b98012d7e34908454f0c1201eee06fde13e02809ab196f729874453ef1238a
+  patches:
+  - finding: 47
+    field_path:
+    - data
+    - 0
+    - purchase_order_rows
+    - 0
+    - landed_cost
+    example_path:
+    - data
+    - 0
+    - purchase_order_rows
+    - 0
+    - landed_cost
+    value: 45.0
+- method: POST
+  endpoint: /purchase_orders
+  status: '200'
+  media_type: application/json
+  upstream_sha256: e46092d9325b0df09eb7fa15a1b614544f8d26040058fdf698001468b924e561
+  patches:
+  - finding: 48
+    field_path:
+    - purchase_order_rows
+    - 0
+    - landed_cost
+    example_path:
+    - purchase_order_rows
+    - 0
+    - landed_cost
+    value: 45.0
+- method: GET
+  endpoint: /purchase_orders/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 0fc5c1ee9a704a37dc3348015489febe40b460bd4147d655d006c40713eff55b
+  patches:
+  - finding: 49
+    field_path:
+    - purchase_order_rows
+    - 0
+    - landed_cost
+    example_path:
+    - purchase_order_rows
+    - 0
+    - landed_cost
+    value: 45.0
+- method: GET
+  endpoint: /sales_order_rows
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 8fcc2462353bc6f8ec3011a395e4ec03ff2e94f2b6e88f4bee807213adad3cd6
+  patches:
+  - finding: 50
+    field_path:
+    - data
+    - 0
+    - price_per_unit
+    example_path:
+    - data
+    - 0
+    - price_per_unit
+    value: '150'
+- method: POST
+  endpoint: /sales_order_rows
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 88b405b52c76a8fafcffeb7ecc57142cb1c0f27499695ebf0d7efa4f4f96cce7
+  patches:
+  - finding: 51
+    field_path:
+    - price_per_unit
+    example_path:
+    - price_per_unit
+    value: '150'
+- method: POST
+  endpoint: /sales_order_rows/search
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 006f1b41e01192d60d8681b93459fd4270833c0b6ea7876a33b9947775a42427
+  patches:
+  - finding: 52
+    field_path:
+    - data
+    - 0
+    - quantity
+    example_path:
+    - data
+    - 0
+    - quantity
+    value: 2.0
+  - finding: 53
+    field_path:
+    - data
+    - 0
+    - total
+    example_path:
+    - data
+    - 0
+    - total
+    value: 199.98
+- method: GET
+  endpoint: /sales_order_rows/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: bb68e7677f23221e3599c8913764d13930ebc1668127300e3f05bcd36ae6a586
+  patches:
+  - finding: 54
+    field_path:
+    - price_per_unit
+    example_path:
+    - price_per_unit
+    value: '150'
+- method: PATCH
+  endpoint: /sales_order_rows/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 256c38916f08b54b85e54c28732a419880410bc9c1f7551bb329c7a09a4113fb
+  patches:
+  - finding: 55
+    field_path:
+    - price_per_unit
+    example_path:
+    - price_per_unit
+    value: '150'
+- method: GET
+  endpoint: /sales_orders
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 55d20f5d4ab7201c75c8dbcd05268ae44d5646953aa33f1dfa3c21f6d0513978
+  patches:
+  - finding: 56
+    field_path:
+    - data
+    - 0
+    - sales_order_rows
+    - 0
+    - price_per_unit
+    example_path:
+    - data
+    - 0
+    - sales_order_rows
+    - 0
+    - price_per_unit
+    value: '75'
+- method: POST
+  endpoint: /sales_orders
+  status: '200'
+  media_type: application/json
+  upstream_sha256: a1a69ac83d9e0ba78f6fe67b3dfdda8be32f2684ce68a4e041168e4ed5bd21f7
+  patches:
+  - finding: 57
+    field_path:
+    - sales_order_rows
+    - 0
+    - price_per_unit
+    example_path:
+    - sales_order_rows
+    - 0
+    - price_per_unit
+    value: '150'
+- method: POST
+  endpoint: /sales_orders/search
+  status: '200'
+  media_type: application/json
+  upstream_sha256: 7ac54d88456f743329d835751010656f1c08fd495ccb63184207948d54dd06da
+  patches:
+  - finding: 58
+    field_path:
+    - data
+    - 0
+    - total
+    example_path:
+    - data
+    - 0
+    - total
+    value: 199.99
+  - finding: 59
+    field_path:
+    - data
+    - 0
+    - location_id
+    example_path:
+    - data
+    - 0
+    - location_id
+    value: 1
+- method: GET
+  endpoint: /sales_orders/{id}
+  status: '200'
+  media_type: application/json
+  upstream_sha256: a288cb640927487f50fb3b2d00fac21592ce3630fac03cc904e2d75708950f20
+  patches:
+  - finding: 60
+    field_path:
+    - sales_order_rows
+    - 0
+    - price_per_unit
+    example_path:
+    - sales_order_rows
+    - 0
+    - price_per_unit
+    value: '75'
+- method: GET
+  endpoint: /serial_numbers
+  status: '200'
+  media_type: application/json
+  upstream_sha256: d263a44bf50d59d1d92f391c43ecb740ef06d5dca78961d2c75f1bce6afee656
+  patches:
+  - finding: 61
+    field_path: []
+    example_path: []
+    value:
+      data:
+      - id: 1
+        quantity_change: 1
+        resource_id: 2
+        resource_type: ManufacturingOrder
+        serial_number: SN1
+        transaction_date: '2020-10-23T10:37:05.085Z'
+        transaction_id: eb4da756-0842-4495-9118-f8135f681234
+- method: GET
+  endpoint: /serial_numbers_stock
+  status: '200'
+  media_type: application/json
+  upstream_sha256: cda87ffe059516d61963081583a43020f8654d7722ca110f0cd056868390f6e6
+  patches:
+  - finding: 62
+    field_path: []
+    example_path: []
+    value:
+      data:
+      - id: '1'
+        in_stock: true
+        serial_number: SN1
+        transactions:
+        - id: eb4da756-0842-4495-9118-f8135f681234
+          quantity_change: 1
+          resource_id: 2
+          resource_type: ManufacturingOrder
+          transaction_date: '2020-10-23T10:37:05.085Z'
+  - finding: 63
+    field_path:
+    - data
+    - 0
+    - id
+    example_path:
+    - data
+    - 0
+    - id
+    value: 1

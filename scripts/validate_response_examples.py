@@ -4,8 +4,8 @@
 The live OpenAPI spec at ``https://api.katanamrp.com/v1/openapi.json``
 defines no response shapes — every ``200`` is just ``{description: ...}``
 with no schema or example. The README.io developer portal's spec, on
-the other hand, has inline response examples copied from real responses
-by Katana's docs team. ``poe refresh-upstream-spec`` pulls that spec
+the other hand, has inline response examples curated by Katana's docs
+team. ``poe refresh-upstream-spec`` pulls that spec
 into ``docs/upstream-specs/readme-portal.yaml``.
 
 This script bridges that ``readme-portal.yaml`` against the local spec
@@ -22,8 +22,10 @@ Failures fall into three buckets:
    integration tests, then close as no-op.
 3. **Mixed** — both sides need review.
 
-Wired as ``poe validate-response-examples``. Reads exclusively from the
-two YAML specs — no markdown parsing, no per-page scraping.
+Wired as ``poe validate-response-examples``. The default applies separately
+recorded, live-evidenced example corrections before validation and reports their
+count alongside the raw failure count. ``--raw-upstream`` validates the untouched
+download. Corrections are pinned to exact examples and fail when they go stale.
 """
 
 from __future__ import annotations
@@ -39,10 +41,12 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
 from scripts._yaml import safe_load_yaml
+from scripts.response_example_corrections import apply_corrections
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL = REPO_ROOT / "docs" / "katana-openapi.yaml"
 DEFAULT_README = REPO_ROOT / "docs" / "upstream-specs" / "readme-portal.yaml"
+DEFAULT_CORRECTIONS = DEFAULT_README.parent / "response-example-corrections.yaml"
 
 SPEC_URI = "urn:openapi-spec"
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
@@ -66,6 +70,8 @@ class ValidationReport:
     examples_skipped_no_schema: int = 0
     failures: list[ValidationFailure] = field(default_factory=list)
     paths_no_match: list[tuple[str, str, str]] = field(default_factory=list)
+    corrections_applied: int = 0
+    raw_upstream_failures: int | None = None
 
     @property
     def ok(self) -> bool:
@@ -227,6 +233,11 @@ def format_report(report: ValidationReport, *, show_unmatched: bool = False) -> 
         f"- Failures: **{len(report.failures)}**",
         "",
     ]
+    if report.raw_upstream_failures is not None:
+        lines[6:6] = [
+            f"- Raw upstream failures: **{report.raw_upstream_failures}**",
+            f"- Live-evidenced field corrections applied: **{report.corrections_applied}**",
+        ]
     if report.ok:
         if report.examples_validated == 0:
             lines.append(
@@ -297,6 +308,16 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--raw-upstream",
+        action="store_true",
+        help="Validate the untouched portal snapshot without example corrections",
+    )
+    parser.add_argument(
+        "--corrections",
+        type=Path,
+        help="Use an explicit live-evidenced correction manifest",
+    )
+    parser.add_argument(
         "--show-unmatched",
         action="store_true",
         help="Include endpoints with examples but no local response schema",
@@ -321,7 +342,26 @@ def main(argv: list[str] | None = None) -> int:
 
     local_spec = load_yaml_spec(args.local)
     readme_spec = load_yaml_spec(args.readme)
-    report = validate(local_spec, readme_spec)
+    corrections = args.corrections
+    if corrections is None and args.readme == DEFAULT_README:
+        corrections = DEFAULT_CORRECTIONS
+    if args.raw_upstream and args.corrections:
+        parser.error("--raw-upstream and --corrections are mutually exclusive")
+    raw_report = validate(local_spec, readme_spec)
+    report = raw_report
+    if not args.raw_upstream and corrections is not None:
+        try:
+            corrected, count = apply_corrections(
+                readme_spec,
+                load_yaml_spec(corrections),
+                directory=corrections.parent,
+            )
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"error: example corrections: {exc}", file=sys.stderr)
+            return 2
+        report = validate(local_spec, corrected)
+        report.corrections_applied = count
+        report.raw_upstream_failures = len(raw_report.failures)
     text = format_report(report, show_unmatched=args.show_unmatched)
     if args.output:
         args.output.write_text(text, encoding="utf-8")
