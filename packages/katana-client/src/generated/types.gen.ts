@@ -2472,9 +2472,15 @@ export type ManufacturingOrderProductionIngredient = {
   manufacturing_order_id?: number;
   manufacturing_order_recipe_row_id?: number;
   production_id?: number;
-  quantity?: number;
+  /**
+   * Decimal value; the live API can return a decimal string.
+   */
+  quantity?: number | string;
   production_date?: string;
-  cost?: number;
+  /**
+   * Decimal value; the live API can return a decimal string.
+   */
+  cost?: number | string;
 } & DeletableEntity;
 
 /**
@@ -3083,7 +3089,7 @@ export type ManufacturingOrderProductionIngredientResponse = {
   /**
    * Actual quantity of ingredient consumed
    */
-  quantity?: number;
+  quantity?: number | string;
   /**
    * Date when the ingredient was consumed in production
    */
@@ -3091,7 +3097,7 @@ export type ManufacturingOrderProductionIngredientResponse = {
   /**
    * Cost of the ingredient consumed
    */
-  cost?: number;
+  cost?: number | string;
 };
 
 /**
@@ -3361,7 +3367,7 @@ export type NegativeStock = {
   /**
    * Category classification of the variant
    */
-  category?: string;
+  category?: string | null;
   /**
    * Current negative quantity showing the deficit amount
    */
@@ -4506,11 +4512,11 @@ export type Supplier = {
   /**
    * Primary email address for supplier communication and order confirmations
    */
-  email?: string;
+  email?: string | null;
   /**
    * Primary phone number for supplier contact and communication
    */
-  phone?: string;
+  phone?: string | null;
   /**
    * Default currency used for transactions with this supplier (ISO 4217 format)
    */
@@ -4518,11 +4524,11 @@ export type Supplier = {
   /**
    * Optional notes or comments about the supplier relationship
    */
-  comment?: string;
+  comment?: string | null;
   /**
    * Unique identifier of the default address for this supplier
    */
-  default_address_id?: number;
+  default_address_id?: number | null;
   /**
    * List of addresses associated with this supplier
    */
@@ -22517,7 +22523,7 @@ export type GetAllCustomFieldsCollectionsResponses = {
   /**
    * Custom field collections
    */
-  200: CustomFieldsCollectionListResponse;
+  200: Array<CustomFieldsCollection> | CustomFieldsCollectionListResponse;
 };
 
 export type GetAllCustomFieldsCollectionsResponse =

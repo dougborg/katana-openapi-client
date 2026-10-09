@@ -10,51 +10,72 @@ name: Live integration
 #     # optional, only if the test tenant lives on a non-default base URL:
 #     gh variable set KATANA_TEST_BASE_URL --body 'https://api.katanamrp.com/v1'
 #
-# Until ``KATANA_TEST_API_KEY`` exists, this workflow is a green no-op:
-# ``make_test_client()`` raises ``MissingTestCredentialsError`` and the
-# ``live_client`` fixture turns that into a skip. The same is true for PRs
-# from forks (secrets aren't exposed there) — by design.
+# Nightly/manual runs require the test key. PRs from forks cannot access
+# secrets and skip explicitly. Client/spec changes run a fast PR subset;
+# needs-live-test opts a PR into the full suite.
 #
-# Triggers:
-#   - schedule  : nightly, surfaces drift even when nobody touches the code
-#   - dispatch  : manual run from the Actions tab
-#   - PR + label: opt-in only, via the ``needs-live-test`` label. There is no
-#                 automatic live run on every PR (live calls cost real API
-#                 quota; write tests use SDT-tagging and tenant-scoped cleanup).
-#
-# Soft-fail by design (mirrors ``spec-drift-audit.yml``): results surface via
-# the job summary + an uploaded artifact; a red suite does not block. Promote
-# to a hard gate once the suite is proven stable on the test tenant.
-#
-# Three jobs: the client live suite (`poe test-integration-live`), the MCP
-# server smoke suite (`poe test-smoke-mcp`, Phase 4 of #837), and the
-# TypeScript client live suite (`pnpm test:live`). They share the gating /
-# secret / soft-fail contract but report independently.
+# Nightly/manual failures fail the workflow and update a tracking issue.
+# PR runs are informational: automatic smoke coverage for client/spec changes,
+# or the full suite when labelled needs-live-test. All jobs share one key's
+# quota, so both workflows and their jobs run sequentially.
 
 on:
   schedule:
     - cron: '0 7 * * *'  # nightly at 07:00 UTC (off-peak)
   workflow_dispatch:
   pull_request:
-    types: [labeled, synchronize, reopened]
+    types: [opened, labeled, synchronize, reopened]
     branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: live-test-tenant
+  cancel-in-progress: false
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run: >-
+        ${{ github.event_name != 'pull_request' ||
+        contains(github.event.pull_request.labels.*.name, 'needs-live-test') || steps.filter.outputs.client == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            client:
+              - 'katana_public_api_client/**'
+              - 'katana_mcp_server/**'
+              - 'packages/katana-client/**'
+              - 'tests/integration/**'
+              - 'scripts/live_contracts.py'
+              - 'scripts/validate_response_examples.py'
+              - 'docs/katana-openapi.yaml'
+              - '.github/workflows/live-integration.yml'
+              - 'pyproject.toml'
+              - 'uv.lock'
   live-integration:
-    # Schedule / manual dispatch always run. PRs run only when explicitly
-    # opted in with the ``needs-live-test`` label.
-    if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     # Map the secret to a job-level env var so steps can branch on its
     # presence (the ``secrets`` context isn't available in ``if:``).
     env:
       KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
       KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+      KATANA_LIVE_FAST: >-
+        ${{ github.event_name == 'pull_request' &&
+        !contains(github.event.pull_request.labels.*.name, 'needs-live-test') && '1' || '0' }}
     steps:
       - name: Configure test artifact ledger
         run: echo "KATANA_TEST_LEDGER_DIR=$RUNNER_TEMP/katana-test-ledgers" >> "$GITHUB_ENV"
@@ -81,15 +102,24 @@ jobs:
           set, so the live suite will skip. Set it with \`gh secret set \
           KATANA_TEST_API_KEY\` to exercise the test tenant."
 
+      - name: Require credentials for nightly and manual runs
+        if: github.event_name != 'pull_request' && env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo '::error::KATANA_TEST_API_KEY is required for nightly/manual live validation'
+          exit 1
+
       - name: Run live client integration tests
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
-          # pipefail so the step reflects pytest's exit code, not tee's —
-          # otherwise a failing suite would show green and defeat the
-          # "visible but non-blocking" intent of continue-on-error.
+          # Capture stderr too; pipefail preserves the test exit status.
           set -o pipefail
-          uv run poe test-integration-live | tee live-integration-report.txt
+          if [ "$KATANA_LIVE_FAST" = '1' ]; then
+            uv run pytest tests/integration/test_shared_sdk_contracts_live.py \
+              -m live_smoke --timeout=180 --tb=short 2>&1 | tee live-integration-report.txt
+          else
+            uv run poe test-integration-live 2>&1 | tee live-integration-report.txt
+          fi
 
       - name: Retry test artifact cleanup
         if: always() && env.KATANA_TEST_API_KEY != ''
@@ -125,15 +155,17 @@ jobs:
 
   mcp-smoke:
     # Phase 4 of #837: live MCP-server smoke tests. Same gating / secret /
-    # soft-fail contract as the client suite above, kept as a separate job so
+    # failure-reporting contract as the client suite above, kept as a separate job so
     # the two concerns (client vs MCP server) report independently.
-    if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    needs: [changes, live-integration]
+    if: always() && needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
       KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+      KATANA_LIVE_FAST: >-
+        ${{ github.event_name == 'pull_request' &&
+        !contains(github.event.pull_request.labels.*.name, 'needs-live-test') && '1' || '0' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -157,13 +189,19 @@ jobs:
           set, so the MCP smoke suite will skip. Set it with \`gh secret set \
           KATANA_TEST_API_KEY\` to exercise the test tenant."
 
+      - name: Require credentials for nightly and manual runs
+        if: github.event_name != 'pull_request' && env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo '::error::KATANA_TEST_API_KEY is required for nightly/manual live validation'
+          exit 1
+
       - name: Run MCP server smoke tests
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
           # pipefail so the step reflects pytest's exit code, not tee's.
           set -o pipefail
-          uv run poe test-smoke-mcp | tee mcp-smoke-report.txt
+          uv run poe test-smoke-mcp 2>&1 | tee mcp-smoke-report.txt
 
       - name: Upload report
         if: always()
@@ -194,24 +232,39 @@ jobs:
   typescript-live:
     # Live smoke tests for the TypeScript client's public SDK path
     # (`pnpm test:live` in packages/katana-client). Same gating / secret /
-    # soft-fail contract as the Python jobs above, reported independently.
+    # failure-reporting contract as the Python jobs above, reported independently.
     # The suite reads only KATANA_TEST_API_KEY / KATANA_TEST_BASE_URL and
     # skips (green) when the key is absent.
-    if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    needs: [changes, mcp-smoke]
+    if: always() && needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
       KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+      KATANA_LIVE_FAST: >-
+        ${{ github.event_name == 'pull_request' &&
+        !contains(github.event.pull_request.labels.*.name, 'needs-live-test') && '1' || '0' }}
     defaults:
       run:
         working-directory: packages/katana-client
     steps:
+      - name: Configure test artifact ledger
+        working-directory: .
+        run: echo "KATANA_TEST_LEDGER_DIR=$RUNNER_TEMP/katana-test-ledgers" >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.14"
+
+      - name: Install Python wire-validator and recovery dependencies
+        working-directory: .
+        run: uv sync --all-extras
 
       - name: Setup pnpm
         # Reads the pnpm version from `packageManager` in the package's package.json.
@@ -236,20 +289,33 @@ jobs:
           set, so the TypeScript live suite will skip. Set it with \`gh secret \
           set KATANA_TEST_API_KEY\` to exercise the test tenant."
 
+      - name: Require credentials for nightly and manual runs
+        if: github.event_name != 'pull_request' && env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo '::error::KATANA_TEST_API_KEY is required for nightly/manual live validation'
+          exit 1
+
       - name: Run TypeScript live tests
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
           # pipefail so the step reflects vitest's exit code, not tee's.
           set -o pipefail
-          pnpm test:live | tee typescript-live-report.txt
+          pnpm test:live 2>&1 | tee typescript-live-report.txt
+
+      - name: Retry test artifact cleanup
+        if: always() && env.KATANA_TEST_API_KEY != ''
+        working-directory: .
+        run: uv run python -m katana_public_api_client.testing_artifacts
 
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: typescript-live-report
-          path: packages/katana-client/typescript-live-report.txt
+          path: |
+            packages/katana-client/typescript-live-report.txt
+            ${{ env.KATANA_TEST_LEDGER_DIR }}/*.jsonl
           retention-days: 30
 
       - name: Render summary
@@ -269,3 +335,39 @@ jobs:
             cat typescript-live-report.txt 2>/dev/null || echo "(no report)"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  track-failure:
+    needs: [changes, live-integration, mcp-smoke, typescript-live]
+    if: >-
+      always() && github.event_name != 'pull_request' &&
+      contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the live-validation tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RESULTS: ${{ toJSON(needs) }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title='Live API validation failures'
+          body_file="$RUNNER_TEMP/live-failure.md"
+          python3 - <<'PYBODY' > "$body_file"
+          import json, os
+          print("Live test-tenant validation failed. Investigate before the next release.")
+          print("\nRun: " + os.environ["RUN_URL"])
+          for name, job in json.loads(os.environ["RESULTS"]).items():
+              print(f"- {name}: {job['result']}")
+          print("\nReports and test-only cleanup ledgers are attached to the run.")
+          PYBODY
+          number=$(gh issue list --state open --search '"Live API validation failures" in:title' \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file "$body_file"
+          else
+            gh issue create --title "$title" --body-file "$body_file"
+          fi

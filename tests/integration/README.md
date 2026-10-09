@@ -34,11 +34,24 @@ export KATANA_TEST_BASE_URL=https://api.katanamrp.com/v1   # optional; this is t
 ## Running in CI
 
 The [`live-integration.yml`](../../.github/workflows/live-integration.yml) workflow runs
-this suite on a nightly schedule, on manual dispatch, and on any PR carrying the
-`needs-live-test` label (no automatic live run on every PR). It is **soft-fail** — a red
-suite surfaces in the job summary + an uploaded artifact but does not block.
+this suite on a nightly schedule and on manual dispatch. Client, transport, MCP, shared
+live-harness, and schema PR changes automatically run a fast subset; `needs-live-test`
+selects the full suite. Nightly/manual failures fail the workflow and open or update a
+tracking issue. PR test failures remain informational. Missing credentials fail
+nightly/manual runs; fork PRs explicitly skip.
 
-One-time setup by a repo owner — the workflow is a green no-op until the secret exists:
+The Python and TypeScript generated SDKs use the same eight core write scenarios in
+`fixtures/core_round_trips.json`. Read coverage comes from every GET operation in the
+source spec. Detail reads without test-tenant records are reported as skips, not counted
+as successful coverage. Each sampled response is checked against its operation's
+response schema. TypeScript runs the shared Python wire validator with payloads over
+stdin, so its live suite also needs `uv sync --all-extras` at the repo root. Neither
+response payloads nor credentials are written to CI artifacts.
+
+The jobs and workflow runs execute sequentially against the shared key. Both clients
+write tenant-scoped cleanup ledgers that the test-only recovery CLI can retry.
+
+One-time setup by a repo owner — nightly/manual validation requires the test secret:
 
 ```bash
 gh secret set KATANA_TEST_API_KEY            # test-tenant key
@@ -139,5 +152,5 @@ factory and API URL before writing, and deletes its temporary sales order throug
 `live_artifacts`. These fixture IDs are test data, not credentials.
 
 For another test tenant, set `KATANA_TEST_BATCH_FIXTURE` to a JSON file with the same
-fields describing an approved fixture in that tenant. A tenant mismatch fails before
-any write; the test never falls back to production credentials or creates a replacement.
+fields describing an approved fixture in that tenant. A tenant mismatch fails before any
+write; the test never falls back to production credentials or creates a replacement.

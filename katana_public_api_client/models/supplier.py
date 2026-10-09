@@ -37,11 +37,11 @@ class Supplier:
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | Unset | None = UNSET
     name: str | Unset = UNSET
-    email: str | Unset = UNSET
-    phone: str | Unset = UNSET
+    email: str | Unset | None = UNSET
+    phone: str | Unset | None = UNSET
     currency: str | Unset = UNSET
-    comment: str | Unset = UNSET
-    default_address_id: int | Unset = UNSET
+    comment: str | Unset | None = UNSET
+    default_address_id: int | Unset | None = UNSET
     addresses: list[SupplierAddress] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -66,15 +66,31 @@ class Supplier:
 
         name = self.name
 
-        email = self.email
+        email: str | Unset | None
+        if isinstance(self.email, Unset):
+            email = UNSET
+        else:
+            email = self.email
 
-        phone = self.phone
+        phone: str | Unset | None
+        if isinstance(self.phone, Unset):
+            phone = UNSET
+        else:
+            phone = self.phone
 
         currency = self.currency
 
-        comment = self.comment
+        comment: str | Unset | None
+        if isinstance(self.comment, Unset):
+            comment = UNSET
+        else:
+            comment = self.comment
 
-        default_address_id = self.default_address_id
+        default_address_id: int | Unset | None
+        if isinstance(self.default_address_id, Unset):
+            default_address_id = UNSET
+        else:
+            default_address_id = self.default_address_id
 
         addresses: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.addresses, Unset):
@@ -153,15 +169,45 @@ class Supplier:
 
         name = d.pop("name", UNSET)
 
-        email = d.pop("email", UNSET)
+        def _parse_email(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
 
-        phone = d.pop("phone", UNSET)
+        email = _parse_email(d.pop("email", UNSET))
+
+        def _parse_phone(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        phone = _parse_phone(d.pop("phone", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        comment = d.pop("comment", UNSET)
+        def _parse_comment(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
 
-        default_address_id = d.pop("default_address_id", UNSET)
+        comment = _parse_comment(d.pop("comment", UNSET))
+
+        def _parse_default_address_id(data: object) -> int | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | Unset | None, data)
+
+        default_address_id = _parse_default_address_id(
+            d.pop("default_address_id", UNSET)
+        )
 
         _addresses = d.pop("addresses", UNSET)
         addresses: list[SupplierAddress] | Unset = UNSET

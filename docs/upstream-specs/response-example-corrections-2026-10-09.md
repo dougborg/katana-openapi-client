@@ -59,3 +59,26 @@ continues to fail schema validation.
 - Corrected example validation: two unresolved metadata errors; exits 1.
 - Raw upstream example validation: 62 errors; exits 1.
 - `git diff --check`: passed.
+
+## Follow-up: recurring SDK wire validation (#1157)
+
+The spec-derived live SDK suite subsequently exercised all 88 GET operations and shared
+write scenarios for eight core entities. The first Python run reported 77 passed, 14
+skipped (detail reads without tenant fixtures), and five failures. Those failures
+exposed four additional response contracts:
+
+- `GET /suppliers`: `email`, `phone`, `comment`, and `default_address_id` can be null,
+  including on a newly created SDT supplier.
+- `GET /manufacturing_order_production_ingredients`: `quantity` and `cost` can be
+  decimal strings.
+- `GET /negative_stock`: `category` can be null.
+- `GET /custom_fields_collections`: the test tenant returns a bare array. The response
+  now accepts both that shape and the existing documented wrapper; the generated Python
+  parser preserves an empty array as a list rather than silently constructing an empty
+  wrapper.
+
+The shared spec and all generated clients were updated from this live evidence. The
+write scenarios use test-only credentials, SDT tags, factory verification, and
+persistent cleanup ledgers. No tenant payloads or credentials are stored in this report.
+Empty collections do not establish the shape of non-empty records, and skipped detail
+reads remain explicit coverage gaps.
