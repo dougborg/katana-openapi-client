@@ -238,24 +238,37 @@ class TestOpenAPISpecification:
 class TestCustomFieldsSurfaceAlignment:
     """Pin the custom-fields surface to Katana's live API (issue #805).
 
-    These invariants were verified against the live official Katana catalog
-    (``/custom_field_definitions``, ``/sales_orders/search``,
-    ``/sales_order_rows/search``) on 2026-06-02. The live API supersedes the
-    pre-GA partner PDF on three points captured here: only 6 field types (no
-    ``multiSelect``), entity_type limited to ``SalesOrder`` / ``SalesOrderRow``,
-    and a narrower search operator set.
+    Definition contracts come from the refreshed developer portal; the gateway
+    leaves their entity and field types as bare strings. Search operators follow
+    the live gateway rather than the pre-GA partner PDF.
     """
 
     @pytest.fixture(scope="class")
     def schemas(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
         return openapi_spec["components"]["schemas"]
 
-    def test_entity_type_narrowed_to_live_values(self, schemas: dict[str, Any]):
-        """Only sales orders and rows carry partner custom fields today."""
-        assert schemas["CustomFieldEntityType"]["enum"] == [
-            "SalesOrder",
-            "SalesOrderRow",
-        ], "entity_type must match the live allowlist; add a value only once live."
+    def test_entity_types_match_upstream_definitions(self, schemas: dict[str, Any]):
+        """Definition entity types must follow the published endpoint contract."""
+        portal = yaml.safe_load(
+            (
+                Path(__file__).parents[1] / "docs/upstream-specs/readme-portal.yaml"
+            ).read_text()
+        )
+        properties = portal["paths"]["/custom_field_definitions"]["post"][
+            "requestBody"
+        ]["content"]["application/json"]["schema"]["properties"]
+        assert (
+            schemas["CustomFieldEntityType"]["enum"]
+            == properties["entity_type"]["enum"]
+        )
+        for name in ("CustomFieldOptions", "CustomFieldOptionsCreate"):
+            assert "choices" not in schemas[name].get("required", [])
+            appears_on = schemas[name]["properties"]["appearsOn"]
+            assert appears_on["uniqueItems"] is True
+            assert (
+                appears_on["items"]
+                == properties["options"]["properties"]["appearsOn"]["items"]
+            )
 
     def test_field_type_has_no_multiselect(self, schemas: dict[str, Any]):
         """The live API enumerates 6 types; multiSelect is not yet live."""

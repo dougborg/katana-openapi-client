@@ -5,8 +5,11 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.create_variant_request import CreateVariantRequest
+from ...models.create_variant_x_custom_fields_format import (
+    CreateVariantXCustomFieldsFormat,
+)
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.variant import Variant
@@ -15,8 +18,11 @@ from ...models.variant import Variant
 def _get_kwargs(
     *,
     body: CreateVariantRequest,
+    x_custom_fields_format: CreateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -80,6 +86,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
+    x_custom_fields_format: CreateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Create a variant
 
@@ -88,6 +95,7 @@ def sync_detailed(
         you have to specify either product_id or material_id, not both.
 
     Args:
+        x_custom_fields_format (CreateVariantXCustomFieldsFormat | Unset):
         body (CreateVariantRequest): Request payload for creating a new product or material
             variant with specific SKU and configuration attributes.
 
@@ -113,6 +121,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -126,6 +135,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
+    x_custom_fields_format: CreateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Create a variant
 
@@ -134,6 +144,7 @@ def sync(
         you have to specify either product_id or material_id, not both.
 
     Args:
+        x_custom_fields_format (CreateVariantXCustomFieldsFormat | Unset):
         body (CreateVariantRequest): Request payload for creating a new product or material
             variant with specific SKU and configuration attributes.
 
@@ -160,6 +171,7 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -167,6 +179,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
+    x_custom_fields_format: CreateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Create a variant
 
@@ -175,6 +188,7 @@ async def asyncio_detailed(
         you have to specify either product_id or material_id, not both.
 
     Args:
+        x_custom_fields_format (CreateVariantXCustomFieldsFormat | Unset):
         body (CreateVariantRequest): Request payload for creating a new product or material
             variant with specific SKU and configuration attributes.
 
@@ -200,6 +214,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -211,6 +226,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
+    x_custom_fields_format: CreateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Create a variant
 
@@ -219,6 +235,7 @@ async def asyncio(
         you have to specify either product_id or material_id, not both.
 
     Args:
+        x_custom_fields_format (CreateVariantXCustomFieldsFormat | Unset):
         body (CreateVariantRequest): Request payload for creating a new product or material
             variant with specific SKU and configuration attributes.
 
@@ -246,5 +263,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

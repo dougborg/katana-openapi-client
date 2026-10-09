@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-14T13:38:42.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a custom field definition
 
@@ -79,8 +79,22 @@ Updates the `label`, `description`, or `options` of a custom field definition. O
                     "type": "object",
                     "nullable": true,
                     "additionalProperties": false,
-                    "description": "Only meaningful when the field is a `singleSelect`. Send the **full** `choices` array — every existing choice must be included and identified by its server-assigned `id`. Omit a choice and it is removed from history (use `deleted: true` instead to soft-delete it and keep historical values resolvable). New choices in the array are created without an `id`.",
+                    "description": "Keys you omit keep their current value, so send only what you are changing. `null` clears the whole object (rejected on a `singleSelect`, which must always keep its choices).\n\n`choices` is only meaningful when the field is a `singleSelect`, and is the exception to the merge rule: send the **full** array, every existing choice included and identified by its server-assigned `id`. Omit a choice and it is removed from history — use `deleted: true` instead to soft-delete it and keep historical values resolvable. New choices are sent without an `id`.",
                     "properties": {
+                      "appearsOn": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "description": "Replaces the current list of transactional entities this variant definition also applies to. Omit to leave it untouched. Removing a target stops the definition being a valid key on that entity, and values already snapshotted onto existing records of that type stop being returned — they are retained and reappear if the target is added back. Same validation as on create — see `POST /custom_field_definitions`.",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "SalesOrderRow",
+                            "PurchaseOrderRow",
+                            "OutsourcedPurchaseOrderRow",
+                            "ManufacturingOrder"
+                          ]
+                        }
+                      },
                       "choices": {
                         "type": "array",
                         "items": {
@@ -114,6 +128,17 @@ Updates the `label`, `description`, or `options` of a custom field definition. O
                   "summary": "Rename the field",
                   "value": {
                     "label": "Sales channel"
+                  }
+                },
+                "widenAppearsOn": {
+                  "summary": "Also apply a variant field to purchase order rows",
+                  "value": {
+                    "options": {
+                      "appearsOn": [
+                        "SalesOrderRow",
+                        "PurchaseOrderRow"
+                      ]
+                    }
                   }
                 },
                 "addAndSoftDeleteChoices": {

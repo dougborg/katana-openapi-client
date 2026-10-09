@@ -24,7 +24,7 @@ class SalesOrderShippingFee:
 
     id: int
     sales_order_id: int
-    amount: str
+    amount: float | str
     tax_rate_id: int | Unset = UNSET
     description: str | Unset | None = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -34,6 +34,7 @@ class SalesOrderShippingFee:
 
         sales_order_id = self.sales_order_id
 
+        amount: float | str
         amount = self.amount
 
         tax_rate_id = self.tax_rate_id
@@ -67,7 +68,10 @@ class SalesOrderShippingFee:
 
         sales_order_id = d.pop("sales_order_id")
 
-        amount = d.pop("amount")
+        def _parse_amount(data: object) -> float | str:
+            return cast(float | str, data)
+
+        amount = _parse_amount(d.pop("amount"))
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 

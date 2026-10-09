@@ -40,7 +40,7 @@ class ManufacturingOrderRecipeRow:
     deleted_at: datetime.datetime | Unset | None = UNSET
     manufacturing_order_id: int | Unset = UNSET
     variant_id: int | Unset = UNSET
-    notes: str | Unset = UNSET
+    notes: str | Unset | None = UNSET
     planned_quantity_per_unit: str | Unset = UNSET
     total_actual_quantity: str | Unset | None = UNSET
     ingredient_availability: IngredientAvailability | Unset = UNSET
@@ -76,7 +76,11 @@ class ManufacturingOrderRecipeRow:
 
         variant_id = self.variant_id
 
-        notes = self.notes
+        notes: str | Unset | None
+        if isinstance(self.notes, Unset):
+            notes = UNSET
+        else:
+            notes = self.notes
 
         planned_quantity_per_unit = self.planned_quantity_per_unit
 
@@ -197,7 +201,14 @@ class ManufacturingOrderRecipeRow:
 
         variant_id = d.pop("variant_id", UNSET)
 
-        notes = d.pop("notes", UNSET)
+        def _parse_notes(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        notes = _parse_notes(d.pop("notes", UNSET))
 
         planned_quantity_per_unit = d.pop("planned_quantity_per_unit", UNSET)
 

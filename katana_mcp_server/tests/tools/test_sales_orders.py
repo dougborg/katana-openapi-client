@@ -2770,6 +2770,23 @@ def test_shipping_fee_from_attrs_handles_typed_input():
     assert result.tax_rate_id == 7
 
 
+def test_shipping_fee_from_attrs_handles_empty_wire_object():
+    """The API returns an empty object when an order has no shipping fee."""
+    from katana_public_api_client.models import SalesOrderShippingFeeType2
+
+    assert _shipping_fee_from_attrs(SalesOrderShippingFeeType2()) is None
+
+
+def test_shipping_fee_from_attrs_preserves_numeric_create_amount():
+    from katana_public_api_client.models import SalesOrderShippingFee
+
+    result = _shipping_fee_from_attrs(
+        SalesOrderShippingFee(id=1, sales_order_id=2, amount=3.14)
+    )
+    assert result is not None
+    assert result.amount == 3.14
+
+
 def test_shipping_fee_from_attrs_handles_dict_input_from_silent_fallthrough():
     """Regression for #501: when SalesOrder._parse_shipping_fee falls
     through to the raw dict cast, the consumer must accept dict input

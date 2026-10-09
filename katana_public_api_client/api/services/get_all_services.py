@@ -8,6 +8,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
+from ...models.get_all_services_x_custom_fields_format import (
+    GetAllServicesXCustomFieldsFormat,
+)
 from ...models.service_list_response import ServiceListResponse
 
 
@@ -26,7 +29,11 @@ def _get_kwargs(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllServicesXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     params: dict[str, Any] = {}
 
@@ -80,6 +87,7 @@ def _get_kwargs(
         "params": params,
     }
 
+    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -139,6 +147,7 @@ def sync_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllServicesXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[ErrorResponse | ServiceListResponse]:
     """Get All Services
 
@@ -159,6 +168,7 @@ def sync_detailed(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllServicesXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,6 +193,7 @@ def sync_detailed(
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -208,6 +219,7 @@ def sync(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllServicesXCustomFieldsFormat | Unset = UNSET,
 ) -> ErrorResponse | ServiceListResponse | None:
     """Get All Services
 
@@ -228,6 +240,7 @@ def sync(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllServicesXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -253,6 +266,7 @@ def sync(
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -272,6 +286,7 @@ async def asyncio_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllServicesXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[ErrorResponse | ServiceListResponse]:
     """Get All Services
 
@@ -292,6 +307,7 @@ async def asyncio_detailed(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllServicesXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -316,6 +332,7 @@ async def asyncio_detailed(
         created_at_max=created_at_max,
         updated_at_min=updated_at_min,
         updated_at_max=updated_at_max,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -339,6 +356,7 @@ async def asyncio(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
+    x_custom_fields_format: GetAllServicesXCustomFieldsFormat | Unset = UNSET,
 ) -> ErrorResponse | ServiceListResponse | None:
     """Get All Services
 
@@ -359,6 +377,7 @@ async def asyncio(
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
+        x_custom_fields_format (GetAllServicesXCustomFieldsFormat | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -385,5 +404,6 @@ async def asyncio(
             created_at_max=created_at_max,
             updated_at_min=updated_at_min,
             updated_at_max=updated_at_max,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

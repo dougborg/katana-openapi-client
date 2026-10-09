@@ -1145,7 +1145,7 @@ export const getAllInventoryMovements = <ThrowOnError extends boolean = false>(
  * Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
  * across all locations.
  *
- * Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
+ * Only variants with demand in the selected demand window have a row, so a variant_id filter can return fewer rows
  * than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
  * full listing.
  */
@@ -1384,13 +1384,21 @@ export const makeToOrderManufacturingOrder = <ThrowOnError extends boolean = fal
 /**
  * Change a manufacturing order's rank
  *
- * Repositions a manufacturing order in the production schedule relative to another manufacturing order.
+ * Moves one or more manufacturing orders to an exact place in the production schedule.
  *
- * Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
- * order.
+ * The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the schedule. All other manufacturing orders keep their order relative to each other.
  *
- * Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales order, all
- * related manufacturing orders are repositioned together.
+ * `before_id` places them directly above that manufacturing order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.
+ *
+ * Only open manufacturing orders can be reranked.
+ *
+ * Manufacturing orders linked to the same sales order always stay together. Listing one of them moves all of them, placed where the first of them is listed and keeping their order among themselves, and the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id` is a manufacturing order linked to a sales order, the orders are placed above or below all manufacturing orders of that sales order.
+ *
+ * To rerank more than 250 manufacturing orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the same batch.
+ *
+ * Manufacturing order lists show the new order shortly after the request returns.
+ *
+ * The request returns 422 when any of the manufacturing orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or is linked to the same sales order as one of them.
  */
 export const rerankManufacturingOrder = <ThrowOnError extends boolean = false>(
   options: Options<RerankManufacturingOrderData, ThrowOnError>
@@ -3773,13 +3781,19 @@ export const updateStockTransferStatus = <ThrowOnError extends boolean = false>(
 /**
  * Change a sales order's rank
  *
- * Repositions a sales order in the schedule relative to another sales order.
+ * Moves one or more sales orders to an exact place in the sales order list.
  *
- * Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
- * order.
+ * The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the list. All other sales orders keep their order relative to each other.
  *
- * Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move
- * together with the sales order.
+ * `before_id` places them directly above that sales order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.
+ *
+ * Only open sales orders can be reranked. A sales order moves together with its linked manufacturing orders.
+ *
+ * To rerank more than 250 sales orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`.
+ *
+ * Sales order lists show the new order shortly after the request returns.
+ *
+ * The request returns 422 when any of the sales orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
  */
 export const rerankSalesOrder = <ThrowOnError extends boolean = false>(
   options: Options<RerankSalesOrderData, ThrowOnError>

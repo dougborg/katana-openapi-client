@@ -290,7 +290,9 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
         ),
     ),
     "StockAdjustment": CacheTableSpec(),
-    "StockAdjustmentRow": CacheTableSpec(json_columns=("batch_transactions",)),
+    "StockAdjustmentRow": CacheTableSpec(
+        json_columns=("batch_transactions", "traceability")
+    ),
     "ManufacturingOrder": CacheTableSpec(
         json_columns=("batch_transactions", "serial_numbers"),
     ),
@@ -389,8 +391,8 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
                 ),
             ),
         ),
-        # ``custom_fields`` and ``config_attributes`` are lists of nested
-        # objects SQLAlchemy can't auto-map. ``supplier_item_codes`` is a
+        # ``custom_fields`` can be a UUID-keyed map or a legacy list;
+        # ``config_attributes`` is a list of nested objects. ``supplier_item_codes`` is a
         # ``list[str]`` — JSON-columned for the same reason; the FTS-friendly
         # joined form lives in ``supplier_item_codes_text`` (extra_field).
         json_columns=("custom_fields", "config_attributes", "supplier_item_codes"),
@@ -2143,24 +2145,44 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
             continue
         new_source = cls.source
         for field_name in fields:
-            # Case 1: Annotated[T, Field(description=...)] — most common.
-            # Rewrite `Field(` → `SQLField(` AND inject sa_column=Column(JSON).
-            # pydantic.Field doesn't accept ``sa_column``; SQLField does.
-            #
-            # ``[^\[\]]|\[[^\[\]]*\]`` matches a non-bracket char OR a
-            # single-level bracket pair, so ``dict[str, Any] | None`` (with
-            # an inner comma) is captured fully. This is the same balanced
-            # pattern ``wrap_cache_fields_in_mapped`` uses; the ``,\s*Field(``
-            # delimiter terminates the type group at the right comma.
-            pattern_field = (
-                rf"({re.escape(field_name)}:\s*Annotated\[\s*"
-                rf"(?:[^\[\]]|\[[^\[\]]*\])+?,\s*)Field\(\s*(description=)"
-            )
-            replacement_field = r"\1SQLField(sa_column=Column(PydanticJSON), \2"
-            new_source, n = re.subn(
-                pattern_field, replacement_field, new_source, count=1
-            )
-            if n == 1:
+            # Locate the outer Field call structurally: UUID-keyed maps can
+            # contain their own Annotated key and Field(pattern=...) metadata.
+            # A bracket-limited regex cannot distinguish these nested calls.
+            class_node = ast.parse(new_source).body[0]
+            assert isinstance(class_node, ast.ClassDef)
+            injected = False
+            for statement in class_node.body:
+                if not (
+                    isinstance(statement, ast.AnnAssign)
+                    and isinstance(statement.target, ast.Name)
+                    and statement.target.id == field_name
+                    and isinstance(statement.annotation, ast.Subscript)
+                    and isinstance(statement.annotation.value, ast.Name)
+                    and statement.annotation.value.id == "Annotated"
+                    and isinstance(statement.annotation.slice, ast.Tuple)
+                ):
+                    continue
+                metadata = statement.annotation.slice.elts[-1]
+                if not (
+                    isinstance(metadata, ast.Call)
+                    and isinstance(metadata.func, ast.Name)
+                    and metadata.func.id == "Field"
+                ):
+                    continue
+                lines = new_source.splitlines(keepends=True)
+                offset = sum(len(line) for line in lines[: metadata.lineno - 1])
+                # AST columns count UTF-8 bytes, whereas string slices count characters.
+                offset += len(
+                    lines[metadata.lineno - 1].encode()[: metadata.col_offset].decode()
+                )
+                new_source = (
+                    new_source[:offset]
+                    + "SQLField(sa_column=Column(PydanticJSON), "
+                    + new_source[offset + len("Field(") :]
+                )
+                injected = True
+                break
+            if injected:
                 continue
             # Case 2: bare ``name: T = Default`` (no Annotated, no Field) —
             # datamodel-codegen omits Annotated when the property has no

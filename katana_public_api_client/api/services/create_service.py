@@ -5,8 +5,11 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.create_service_request import CreateServiceRequest
+from ...models.create_service_x_custom_fields_format import (
+    CreateServiceXCustomFieldsFormat,
+)
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.service import Service
@@ -15,8 +18,11 @@ from ...models.service import Service
 def _get_kwargs(
     *,
     body: CreateServiceRequest,
+    x_custom_fields_format: CreateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -80,6 +86,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateServiceRequest,
+    x_custom_fields_format: CreateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Create Service
 
@@ -87,6 +94,7 @@ def sync_detailed(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
+        x_custom_fields_format (CreateServiceXCustomFieldsFormat | Unset):
         body (CreateServiceRequest): Request payload for creating a new service with variants and
             specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
             'Manufacturing Services', 'additional_info': 'Professional product assembly service',
@@ -105,6 +113,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -118,6 +127,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateServiceRequest,
+    x_custom_fields_format: CreateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Create Service
 
@@ -125,6 +135,7 @@ def sync(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
+        x_custom_fields_format (CreateServiceXCustomFieldsFormat | Unset):
         body (CreateServiceRequest): Request payload for creating a new service with variants and
             specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
             'Manufacturing Services', 'additional_info': 'Professional product assembly service',
@@ -144,6 +155,7 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -151,6 +163,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateServiceRequest,
+    x_custom_fields_format: CreateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Create Service
 
@@ -158,6 +171,7 @@ async def asyncio_detailed(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
+        x_custom_fields_format (CreateServiceXCustomFieldsFormat | Unset):
         body (CreateServiceRequest): Request payload for creating a new service with variants and
             specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
             'Manufacturing Services', 'additional_info': 'Professional product assembly service',
@@ -176,6 +190,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -187,6 +202,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateServiceRequest,
+    x_custom_fields_format: CreateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Create Service
 
@@ -194,6 +210,7 @@ async def asyncio(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
+        x_custom_fields_format (CreateServiceXCustomFieldsFormat | Unset):
         body (CreateServiceRequest): Request payload for creating a new service with variants and
             specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
             'Manufacturing Services', 'additional_info': 'Professional product assembly service',
@@ -214,5 +231,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

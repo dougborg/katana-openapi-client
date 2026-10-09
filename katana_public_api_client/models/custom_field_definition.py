@@ -20,17 +20,10 @@ T = TypeVar("T", bound="CustomFieldDefinition")
 
 @_attrs_define
 class CustomFieldDefinition:
-    """A partner-defined custom field that callers register once via
-    ``POST /custom_field_definitions`` and then attach values for on a
-    sales order (or sales order row) through that resource's
-    ``custom_fields`` property, keyed by this definition's ``id``
-    (UUID).
-
-    Scope today: ``entity_type`` is limited to ``SalesOrder`` /
-    ``SalesOrderRow`` (see ``CustomFieldEntityType``). A factory may
-    hold at most **50 definitions**. ``field_type``, ``entity_type``,
-    and ``source`` are **immutable** after creation; only ``label``,
-    ``description``, and ``options`` may be updated.
+    """A custom field definition registered through POST /custom_field_definitions. Values are keyed by its UUID in the
+    entity custom_fields property. See CustomFieldEntityType for supported entities and account feature requirements. A
+    factory may hold at most 50 definitions. field_type, entity_type, and source are immutable; label, description, and
+    options may be updated.
 
         Example:
             {'id': '0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef', 'label': 'Channel', 'field_type': 'shortText', 'entity_type':
@@ -145,9 +138,6 @@ class CustomFieldDefinition:
                 return data
             if isinstance(data, Unset):
                 return data
-            # Empty dict -> None (Katana wire quirk; see #509).
-            if isinstance(data, dict) and not data:
-                return None
             try:
                 if not isinstance(data, dict):
                     raise TypeError()

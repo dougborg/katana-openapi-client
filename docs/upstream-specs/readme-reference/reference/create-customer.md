@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a customer
 
@@ -92,6 +92,12 @@ Creates a new customer object.
                   },
                   "discount_rate": {
                     "type": "number"
+                  },
+                  "custom_fields": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true,
+                    "description": "_Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID) of a definition with `entity_type` `Customer`. Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Unknown definition IDs are rejected with a 422."
                   },
                   "addresses": {
                     "type": "array",
@@ -198,6 +204,10 @@ Creates a new customer object.
                   "currency": "USD",
                   "reference_id": "ref-12345",
                   "category": "category-12345",
+                  "custom_fields": {
+                    "37460d24-ea57-416d-888e-bea7c0505642": "VIP",
+                    "6afe78d2-2b95-4d71-92f5-1bc2be852afe": 5
+                  },
                   "created_at": "2020-10-23T10:37:05.085Z",
                   "updated_at": "2020-10-23T10:37:05.085Z",
                   "deleted_at": null,

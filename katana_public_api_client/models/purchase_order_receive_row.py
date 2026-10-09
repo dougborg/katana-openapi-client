@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from ..models.purchase_order_receive_row_batch_transactions_item import (
         PurchaseOrderReceiveRowBatchTransactionsItem,
     )
+    from ..models.purchase_order_receive_traceability import (
+        PurchaseOrderReceiveTraceability,
+    )
 
 
 T = TypeVar("T", bound="PurchaseOrderReceiveRow")
@@ -25,6 +28,7 @@ class PurchaseOrderReceiveRow:
     quantity: float
     received_date: datetime.datetime | Unset = UNSET
     location_id: int | Unset = UNSET
+    traceability: list[PurchaseOrderReceiveTraceability] | Unset = UNSET
     batch_transactions: list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset = (
         UNSET
     )
@@ -39,6 +43,13 @@ class PurchaseOrderReceiveRow:
             received_date = self.received_date.isoformat()
 
         location_id = self.location_id
+
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
 
         batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
@@ -59,6 +70,8 @@ class PurchaseOrderReceiveRow:
             field_dict["received_date"] = received_date
         if location_id is not UNSET:
             field_dict["location_id"] = location_id
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
 
@@ -68,6 +81,9 @@ class PurchaseOrderReceiveRow:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.purchase_order_receive_row_batch_transactions_item import (
             PurchaseOrderReceiveRowBatchTransactionsItem,
+        )
+        from ..models.purchase_order_receive_traceability import (
+            PurchaseOrderReceiveTraceability,
         )
 
         d = dict(src_dict)
@@ -83,6 +99,17 @@ class PurchaseOrderReceiveRow:
             received_date = datetime.datetime.fromisoformat(_received_date)
 
         location_id = d.pop("location_id", UNSET)
+
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[PurchaseOrderReceiveTraceability] | Unset = UNSET
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = PurchaseOrderReceiveTraceability.from_dict(
+                    cast(Mapping[str, Any], traceability_item_data)
+                )
+
+                traceability.append(traceability_item)
 
         _batch_transactions = d.pop("batch_transactions", UNSET)
         batch_transactions: (
@@ -104,6 +131,7 @@ class PurchaseOrderReceiveRow:
             quantity=quantity,
             received_date=received_date,
             location_id=location_id,
+            traceability=traceability,
             batch_transactions=batch_transactions,
         )
 

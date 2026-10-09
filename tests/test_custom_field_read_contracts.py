@@ -65,7 +65,7 @@ def test_probe_reports_shape_drift_without_echoing_values(schemas):
         records=[{"custom_fields": {"secret": "tenant value"}}], contract=contract
     )
     assert result["shapes"] == {"object": 1}
-    assert result["violations"] == {"custom_fields/: type": 1}
+    assert result["violations"] == {"custom_fields/: anyOf": 1}
     assert "secret" not in str(result)
     assert "tenant value" not in str(result)
 

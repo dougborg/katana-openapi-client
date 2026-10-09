@@ -39,6 +39,26 @@ components:
       type: http
       scheme: bearer
   parameters:
+    custom_fields_format:
+      description: "Selects the representation of `custom_fields` on items, for both the request body and
+        the response.\n\n- `default` — object keyed by custom field definition id (UUID).\n- `legacy` — the
+        `{field_name, field_value}` array tied to custom fields collections.\n\nMost accounts do not need
+        this header: an account that has not moved to item custom fields always gets `legacy`, and an account
+        that has moved and no longer uses collections always gets the object representation. The header matters
+        only while both are available for the account, where `legacy` is the default and `default` opts into
+        the object representation.\n\nRequesting a representation the account does not have returns 422, as
+        does sending a `custom_fields` body whose shape does not match the representation in force, mixing
+        both shapes in one request, or combining `custom_field_collection_id` with the object representation
+        — that field belongs to the legacy representation and is left out of responses entirely under the
+        object one. Responses vary on this header."
+      in: header
+      name: X-Custom-Fields-Format
+      required: false
+      schema:
+        enum:
+          - default
+          - legacy
+        type: string
     ids:
       name: ids
       in: query
@@ -1223,6 +1243,23 @@ components:
               name: PreconditionFailedError
               message: Cannot delete sales orders as sales orders have return orders.
   schemas:
+    RerankOrdersResponse:
+      type: object
+      description: Orders in their resulting order, including linked manufacturing orders moved together.
+      required:
+        - order_ids
+      properties:
+        order_ids:
+          type: array
+          description: IDs of the orders moved, in their resulting order
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+      example:
+        order_ids: [101, 102]
     ErrorResponse:
       type: object
       description: Base error message schema
@@ -2180,8 +2217,11 @@ components:
       enum:
         - DUPLICATE
         - MISSING
+        - NOT_IN_STOCK
       description: |
-        Legacy per-string failure reason in the published 200 response schema.
+        Per-string failure reasons documented in the published 200 response schema.
+        NOT_IN_STOCK is documented for unavailable stock; it was not reproduced
+        by the October 2026 test-tenant probes.
         Current invalid-input probes never produced these values: unknown,
         duplicate, and mixed valid/invalid inputs hard-failed the entire
         request with ``422``. The enum remains modeled until a successful
@@ -3435,19 +3475,28 @@ components:
                 - "null"
               description: Minimum quantity that must be ordered from suppliers
             custom_fields:
-              type:
-                - array
-                - "null"
-              description: 'Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)'
-              items:
-                type: object
-                properties:
-                  field_name:
-                    type: string
-                    description: Name of the custom field
-                  field_value:
-                    type: string
-                    description: Value stored in the custom field
+              description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
+              anyOf:
+                - type: array
+                  items:
+                    type: object
+                    properties:
+                      field_name:
+                        type: string
+                        description: Name of the custom field
+                      field_value:
+                        type: string
+                        description: Value stored in the custom field
+                - type: object
+                  propertyNames:
+                    pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+                  additionalProperties:
+                    type:
+                      - string
+                      - number
+                      - boolean
+                      - 'null'
+                - type: 'null'
             config_attributes:
               type:
                 - array
@@ -3477,7 +3526,7 @@ components:
         sku: KNF-PRO-8PC-STL
         sales_price: 299.99
         product_id: 101
-        material_id: null
+        material_id:
         purchase_price: 150.0
         type: product
         internal_barcode: INT-KNF-001
@@ -3497,7 +3546,7 @@ components:
         abc_classification: A
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
-        deleted_at: null
+        deleted_at:
     ServiceVariant:
       description: Service variant with unique pricing and configuration for external services
       allOf:
@@ -3530,28 +3579,28 @@ components:
             type:
               $ref: "#/components/schemas/VariantType"
             custom_fields:
-              type:
-                - array
-                - "null"
-              description: |
-                Custom field values specific to this service variant, in
-                the legacy ``[{field_name, field_value}]`` array shape
-                (configured via ``/custom_fields_collections``; distinct
-                from the sales-order ``custom_fields`` dict — see
-                ``CustomFieldValue``). The API returns ``null`` (not
-                ``[]``) when the variant has no custom-field assignments —
-                non-nullable here causes the generated parser to fail with
-                "NoneType is not iterable" on every create_service /
-                get_service response.
-              items:
-                type: object
-                properties:
-                  field_name:
-                    type: string
-                    description: Name of the custom field
-                  field_value:
-                    type: string
-                    description: Value for the custom field
+              description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
+              anyOf:
+                - type: array
+                  items:
+                    type: object
+                    properties:
+                      field_name:
+                        type: string
+                        description: Name of the custom field
+                      field_value:
+                        type: string
+                        description: Value for the custom field
+                - type: object
+                  propertyNames:
+                    pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+                  additionalProperties:
+                    type:
+                      - string
+                      - number
+                      - boolean
+                      - 'null'
+                - type: 'null'
           required:
             - sku
             - service_id
@@ -3570,7 +3619,7 @@ components:
             field_value: 2 hours
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
-        deleted_at: null
+        deleted_at:
     LocationAddress:
       description: Physical address information for manufacturing locations and warehouse facilities
       type: object
@@ -3621,7 +3670,9 @@ components:
               type: string
               description: Display name of the location
             legal_name:
-              type: string
+              type:
+                - string
+                - "null"
               description: Legal name of the entity that owns the location
             address_id:
               type:
@@ -3858,72 +3909,108 @@ components:
         - system_mo
         - fallback
 
+    InventorySignalStockRisk:
+      type: integer
+      enum: [0, 1, 2, 3]
+      description: Replenishment urgency from low (0) to stockout (3).
     InventorySignal:
-      description:
-        Replenishment signal for a single variant, summed across all locations. Derived nightly from the last 30
-        days of demand.
+      description: Replenishment signal for one variant, summed across all locations, using the selected
+        demand window.
       type: object
       properties:
-        variant_id:
-          type: integer
-          description: The variant the signal describes. One row per variant, summed across all locations.
-        avg_daily_demand_30d:
+        avg_daily_demand:
+          description: "Quantity consumed over the last demand_window days divided by demand_window. Demand
+            counts\n        sales, manufacturing ingredient consumption, and outsourced purchase order recipe
+            rows. If the variant's\n        first stock movement is less than demand_window days old, the
+            divisor is the days since that movement\n        instead. Recalculated nightly at 07:00 UTC, so
+            it can be up to 24 hours old. The average is flat: no\n        seasonality and no trend."
           type: string
-          description: Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC.
-        reorder_point:
-          type:
-            - string
-            - "null"
-          description:
-            Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on
-            /inventory. Null while demand has not yet been calculated.
-        days_of_stock_left:
-          type:
-            - integer
-            - "null"
-          description:
-            floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand
-            has not yet been calculated.
-        stock_risk:
-          type:
-            - integer
-            - "null"
-          description:
-            Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been
-            calculated.
-        in_stock:
-          type: string
-          description: Quantity on hand, summed across all locations
         committed:
+          description: "Quantity already claimed by open sales and manufacturing orders, so it cannot cover
+            the demand\n        ahead. stock_risk and safety_stock_breach_at are worked out from in_stock
+            less committed.\n        days_of_stock_left is not."
           type: string
-          description: Quantity claimed by open sales and manufacturing orders
-        safety_stock_breach_at:
+        days_of_stock_left:
+          description: "Whole days until stock runs out at the current demand rate (= floor(in_stock /\n \
+            \       avg_daily_demand)). Uses in_stock alone: it ignores committed stock and incoming supply,
+            so it can disagree\n        with stock_risk. Null while the variant's demand has not yet been
+            calculated."
           type:
-            - string
-            - "null"
-          format: date-time
-          description: Projected date stock falls below safety stock. Set on high and critical rows only.
-        expected_before_safety_stock_breach:
-          type:
-            - string
-            - "null"
-          description: Incoming quantity that stock_risk counted as landing in time
-        safety_stock:
-          type: string
-          description: The safety stock level set for the variant
-        lead_time_used:
-          type: integer
-          description: Lead time in days used in the calculations
-        lead_time_source:
-          description: Which source supplied lead_time_used
-          $ref: "#/components/schemas/InventorySignalLeadTimeSource"
+            - integer
+            - 'null'
         demand_calculated_at:
-          type: string
+          description: "When avg_daily_demand was last calculated. It dates the average, not the row. Every
+            other field\n        updates within seconds of a change to in_stock, safety_stock or incoming
+            supply. A lead time change is not\n        applied within seconds."
           format: date-time
-          description: When avg_daily_demand_30d was last calculated
+          type: string
+        demand_window:
+          description: "The number of days avg_daily_demand is calculated over: 7, 30, 60 or 90. Matches the\n\
+            \        demand_window query parameter, which defaults to 30."
+          enum:
+            - 7
+            - 30
+            - 60
+            - 90
+          type: integer
+        expected_before_safety_stock_breach:
+          description: "The incoming quantity that stock_risk counted. Open orders are taken in expected-date
+            order. An\n        order counts only if it lands on or before the projected breach day, and each
+            counted order pushes that day\n        further out. An overdue order counts as landing today.
+            0 means nothing incoming lands in time. Null where\n        incoming supply could not change the
+            risk. Neither value means nothing is incoming."
+          type:
+            - string
+            - 'null'
+        in_stock:
+          description: Quantity on hand, summed across all locations.
+          type: string
+        lead_time_source:
+          $ref: '#/components/schemas/InventorySignalLeadTimeSource'
+          description: "Which source supplied lead_time_used: sku (variant lead time), system_po (factory
+            default\n        purchase lead time), system_mo (factory default manufacturing lead time) or fallback
+            (14 days)."
+        lead_time_used:
+          description: "Lead time in days used in the calculations. The variant lead time. Where that is not
+            set, the\n        factory default purchase lead time, then the factory default manufacturing lead
+            time, then 14 days."
+          type: integer
+        reorder_point:
+          description: "The calculated stock level under which the shortfall lands inside the lead time\n\
+            \        (= avg_daily_demand * lead_time_used + safety_stock). Null while the variant's demand
+            has not yet been\n        calculated. This is not the reorder_point on the inventory object, which
+            is the user-set safety stock."
+          type:
+            - string
+            - 'null'
+        safety_stock:
+          description: The safety stock level set for the variant.
+          type: string
+        safety_stock_breach_at:
+          description: "The projected date on which in_stock less committed, counting incoming supply, falls
+            below\n        safety stock. Set on high (1) and critical (2) rows only. Null everywhere else."
+          format: date-time
+          type:
+            - string
+            - 'null'
+        stock_risk:
+          description: "How urgent replenishment is, as an integer from 0 to 3. Worked out from in_stock less\n\
+            \        committed, plus incoming supply that lands in time, over a horizon of lead_time_used
+            + 7 days.\n        0 = low: stock stays at or above safety stock through the horizon.\n      \
+            \  1 = high: stock falls below safety stock inside the horizon, but after the lead time.\n   \
+            \     2 = critical: stock falls below safety stock inside the lead time, so an order placed now
+            arrives late.\n        3 = stockout: in_stock is 0 or less.\n        Stockout is checked first
+            and the first match wins. Values are in ascending severity, so a value of 1 or\n        more means
+            the variant needs attention. Null while the variant's demand has not yet been calculated."
+          anyOf:
+            - $ref: '#/components/schemas/InventorySignalStockRisk'
+            - type: 'null'
+        variant_id:
+          description: "ID of the product or material variant the signal describes. Signals are account-wide:
+            one row\n        per variant, summed across all locations."
+          type: integer
       example:
         variant_id: 1
-        avg_daily_demand_30d: "3.50000000000000000000"
         reorder_point: "49.00000000000000000000"
         days_of_stock_left: 12
         stock_risk: 1
@@ -3936,6 +4023,8 @@ components:
         lead_time_source: sku
         demand_calculated_at: "2026-08-12T07:00:00.000Z"
 
+        avg_daily_demand: '3.50000000000000000000'
+        demand_window: 30
     InventorySignalListResponse:
       description: |
         Response containing a list of inventory replenishment signals with pagination support.
@@ -3949,7 +4038,6 @@ components:
       example:
         data:
           - variant_id: 1
-            avg_daily_demand_30d: "3.50000000000000000000"
             reorder_point: "49.00000000000000000000"
             days_of_stock_left: 12
             stock_risk: 1
@@ -3962,6 +4050,8 @@ components:
             lead_time_source: sku
             demand_calculated_at: "2026-08-12T07:00:00.000Z"
 
+            avg_daily_demand: "3.50000000000000000000"
+            demand_window: 30
     InventorySafetyStockLevelResponse:
       description: Complete safety stock level configuration with metadata including timestamps and deletion status
       allOf:
@@ -4134,10 +4224,14 @@ components:
               type: number
               description: Total planned time for all production operations
             sales_order_id:
-              type: integer
+              type:
+                - integer
+                - "null"
               description: ID of the linked sales order, if applicable
             sales_order_row_id:
-              type: integer
+              type:
+                - integer
+                - "null"
               description: ID of the specific sales order row, if applicable
             sales_order_delivery_deadline:
               type:
@@ -4146,13 +4240,19 @@ components:
               format: date-time
               description: Delivery deadline from the linked sales order
             material_cost:
-              type: number
+              type:
+                - number
+                - "null"
               description: Total cost of materials used in production
             subassemblies_cost:
-              type: number
+              type:
+                - number
+                - "null"
               description: Total cost of subassemblies used in production
             operations_cost:
-              type: number
+              type:
+                - number
+                - "null"
               description: Total cost of production operations and labor
             serial_numbers:
               type: array
@@ -4581,10 +4681,14 @@ components:
               type: string
               description: Name of the operation being performed
             resource_id:
-              type: integer
+              type:
+                - integer
+                - "null"
               description: ID of the resource (machine/workstation) used for this operation
             resource_name:
-              type: string
+              type:
+                - string
+                - "null"
               description: Name of the resource (machine/workstation) used
             assigned_operators:
               type: array
@@ -4597,7 +4701,9 @@ components:
               items:
                 $ref: "#/components/schemas/AssignedOperator"
             active_operator_id:
-              type: number
+              type:
+                - number
+                - "null"
               description: ID of the currently active operator working on this operation
             planned_time_per_unit:
               type: string
@@ -4607,14 +4713,18 @@ components:
               type: string
               description: Parameter for calculating planned time
             total_actual_time:
-              type: string
-              description: Total actual time spent on this operation
+              type:
+                - string
+                - "null"
+              description: Actual time as a decimal string, or null before completion
             planned_cost_per_unit:
               type: string
               description: Planned cost per unit for this operation
             total_actual_cost:
-              type: string
-              description: Total actual cost incurred for this operation
+              type:
+                - string
+                - "null"
+              description: Actual cost as a decimal string, or null before completion
             total_consumed_time:
               type: number
               description: Total time consumed so far for this operation
@@ -4629,7 +4739,9 @@ components:
               type: string
               description: Parameter for calculating operation costs, returned as a fixed-precision decimal string
             group_boundary:
-              type: number
+              type:
+                - number
+                - "null"
               description: Group boundary setting for operation grouping
             is_status_actionable:
               type: boolean
@@ -4990,7 +5102,9 @@ components:
               type: integer
               description: ID of the ingredient variant required for production
             notes:
-              type: string
+              type:
+                - string
+                - "null"
               description: Additional notes about this ingredient or special handling instructions
             planned_quantity_per_unit:
               type: string
@@ -5148,11 +5262,10 @@ components:
 
     CreateSerialNumbersResponse:
       description: |
-        Published 200 response from ``POST /serial_numbers``. A current valid
-        attachment success was not available for destructive verification, so
-        this envelope is retained. Invalid strings do not produce this response:
-        the verified API rejects the entire request with ``422`` instead of
-        returning per-string entries in ``failed``.
+        Attachment results from ``POST /serial_numbers``. A matching-variant
+        attachment returned this 200 envelope in October 2026 with an empty
+        failed array. Invalid strings and quantity conflicts can reject the
+        entire request with 422 instead of returning per-string failures.
       type: object
       properties:
         successful:
@@ -5482,7 +5595,9 @@ components:
               type: string
               description: Unit of measurement for the item (e.g., pcs, kg, m)
             category_name:
-              type: string
+              type:
+                - string
+                - "null"
               description: Category for organizational grouping and reporting
             is_sellable:
               type: boolean
@@ -6666,10 +6781,14 @@ components:
               type: number
               description: Unit price converted to the base currency
             purchase_uom_conversion_rate:
-              type: number
+              type:
+                - number
+                - "null"
               description: The conversion rate between the purchase and stock tracking UoMs.
             purchase_uom:
-              type: string
+              type:
+                - string
+                - "null"
               description: |
                 The unit used to measure the quantity of the items (e.g. pcs, kg, m) you purchase. It can be different
                 from the unit used to track stock.
@@ -7061,6 +7180,35 @@ components:
         price: 150.0
         distribution_method: BY_VALUE
         reference: "Customs invoice #123"
+    PurchaseOrderReceiveTraceability:
+      type: object
+      additionalProperties: false
+      description: Traceability allocation supplied when receiving a purchase order row.
+      properties:
+        batch_id:
+          description: Batch to receive into, or null for unallocated stock
+          type: [number, "null"]
+          minimum: 0
+          maximum: 2147483647
+        bin_location_id:
+          description: Destination bin, or null when no bin is allocated
+          type: [number, "null"]
+          minimum: 0
+          maximum: 2147483647
+        serial_number_id:
+          description: Received serial number, or null for nonserialized stock
+          type: [number, "null"]
+          minimum: 0
+          maximum: 2147483647
+        quantity:
+          description: Positive quantity, accepted as a number or decimal string.
+          anyOf:
+            - type: number
+              exclusiveMinimum: 0
+            - type: string
+              pattern: ^[0-9]+?\.?[0-9]*$
+              not:
+                pattern: ^(-|)[0]+?\.?[0]*$
     PurchaseOrderReceiveRow:
       description: Row-level data for receiving items against a purchase order, including quantity and batch details
       type: object
@@ -7089,6 +7237,11 @@ components:
             Destination location to receive this row into, enabling multi-location
             receiving on a single purchase order. Defaults to the row's location (or the
             order-level location) when omitted.
+        traceability:
+          type: array
+          description: Batch, serial number, or bin allocations for this receipt.
+          items:
+            $ref: "#/components/schemas/PurchaseOrderReceiveTraceability"
         batch_transactions:
           type: array
           description: Array of batch-specific transactions for this received quantity
@@ -7105,25 +7258,30 @@ components:
                 type: number
                 maximum: 100000000000000000
     RerankPlace:
-      description:
-        Placement target for a rerank operation. Ranking is relative, mirroring drag-and-drop reordering - the
-        reranked order is moved next to the target order.
+      description: Exact placement for reranked orders. Supply exactly one of before_id, after_id, or
+        position.
       type: object
       additionalProperties: false
-      required:
-        - before_id
       properties:
+        after_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the order to place the reranked order after.
+        position:
+          type: string
+          enum: [top, bottom]
+          description: Move the reranked orders to the top or bottom of the list.
         before_id:
           type: integer
           minimum: 1
           maximum: 2147483647
-          description:
-            ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order
-            is moved next to this target, landing directly above it when moving up and directly below it when
-            moving down.
+          description: ID of the order to place the reranked orders directly above.
       example:
         before_id: 4
 
+      minProperties: 1
+      maxProperties: 1
     RerankManufacturingOrderRequest:
       description:
         Request payload for repositioning a manufacturing order in the production schedule, relative to another
@@ -7137,14 +7295,14 @@ components:
         order_ids:
           type: array
           minItems: 1
-          maxItems: 1
+          maxItems: 250
+          uniqueItems: true
           items:
             type: integer
             minimum: 1
             maximum: 2147483647
           description:
-            Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array
-            shape is reserved for future bulk reranking.
+            Manufacturing orders to rerank, in the desired order. Accepts up to 250 distinct IDs.
         place:
           description: Where to place the reranked order, relative to another manufacturing order
           $ref: "#/components/schemas/RerankPlace"
@@ -7165,14 +7323,14 @@ components:
         order_ids:
           type: array
           minItems: 1
-          maxItems: 1
+          maxItems: 250
+          uniqueItems: true
           items:
             type: integer
             minimum: 1
             maximum: 2147483647
           description:
-            Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is
-            reserved for future bulk reranking.
+            Sales orders to rerank, in the desired order. Accepts up to 250 distinct IDs.
         place:
           description: Where to place the reranked order, relative to another sales order
           $ref: "#/components/schemas/RerankPlace"
@@ -7940,8 +8098,7 @@ components:
                 type: string
                 description: Value for this configuration attribute (e.g., Blue, Large)
         custom_fields:
-          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
-            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
           anyOf:
             - type: object
               propertyNames:
@@ -8072,8 +8229,7 @@ components:
                 type: string
                 description: Value for this configuration attribute (e.g., Blue, Large)
         custom_fields:
-          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
-            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
           anyOf:
             - type: object
               propertyNames:
@@ -8200,19 +8356,28 @@ components:
                     type: string
                     description: Value for this configuration attribute (e.g., Blue, Large)
             custom_fields:
-              type:
-                - array
-                - "null"
-              description: 'Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)'
-              items:
-                type: object
-                properties:
-                  field_name:
-                    type: string
-                    description: Name of the custom field
-                  field_value:
-                    type: string
-                    description: Value stored in the custom field
+              description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
+              anyOf:
+                - type: array
+                  items:
+                    type: object
+                    properties:
+                      field_name:
+                        type: string
+                        description: Name of the custom field
+                      field_value:
+                        type: string
+                        description: Value stored in the custom field
+                - type: object
+                  propertyNames:
+                    pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+                  additionalProperties:
+                    type:
+                      - string
+                      - number
+                      - boolean
+                      - 'null'
+                - type: 'null'
             product_or_material:
               oneOf:
                 - $ref: "#/components/schemas/Product"
@@ -8230,7 +8395,7 @@ components:
         sales_price: 299.99
         purchase_price: 150.0
         product_id: 101
-        material_id: null
+        material_id:
         type: product
         internal_barcode: INT-KNF-001
         registered_barcode: "789123456789"
@@ -8257,10 +8422,10 @@ components:
           type: product
           created_at: "2024-01-15T08:00:00.000Z"
           updated_at: "2024-08-20T14:45:00.000Z"
-          archived_at: null
+          archived_at:
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
-        deleted_at: null
+        deleted_at:
     UpdateVariantRequest:
       description: |
         Request payload for updating product variant details including pricing, configuration, and inventory information.
@@ -8320,8 +8485,7 @@ components:
                 type: string
                 description: Value of the configuration attribute for this variant
         custom_fields:
-          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
-            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
           anyOf:
             - type: object
               propertyNames:
@@ -9092,24 +9256,35 @@ components:
           minimum: 0
           description: Default cost which is used to calculate profit
         custom_fields:
-          type: array
-          maxItems: 3
-          description: Custom field values for this variant
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - field_name
-              - field_value
-            properties:
-              field_name:
-                type: string
-                maxLength: 40
-                description: Custom field name
-              field_value:
-                type: string
-                maxLength: 100
-                description: Custom field value
+          description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
+          anyOf:
+            - type: array
+              maxItems: 3
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - field_name
+                  - field_value
+                properties:
+                  field_name:
+                    type: string
+                    maxLength: 40
+                    description: Custom field name
+                  field_value:
+                    type: string
+                    maxLength: 100
+                    description: Custom field value
+                title: CustomFieldsItem
+            - type: object
+              propertyNames:
+                pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+              additionalProperties:
+                type:
+                  - string
+                  - number
+                  - boolean
+                  - 'null'
       example:
         sku: ASSM-001
         sales_price: 75.0
@@ -9168,8 +9343,7 @@ components:
           maximum: 2147483647
           description: ID of the custom field collection to associate with this service
         custom_fields:
-          description: Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value
-            array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+          description: Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
           anyOf:
             - type: object
               propertyNames:
@@ -9936,7 +10110,10 @@ components:
               anyOf:
                 - $ref: "#/components/schemas/SalesOrderShippingFee"
                 - type: "null"
-              description: Shipping fee details for this sales order
+                - type: object
+                  maxProperties: 0
+                  additionalProperties: false
+              description: Shipping fee details, null, or an empty object when no fee is set
             addresses:
               type: array
               description: Complete address information for billing and shipping
@@ -10114,7 +10291,9 @@ components:
                 type: object
                 properties:
                   batch_id:
-                    type: integer
+                    type:
+                      - integer
+                      - "null"
                     description: ID of the batch being allocated
                   quantity:
                     type: number
@@ -11660,6 +11839,34 @@ components:
       example:
         batch_id: 1001
         quantity: 50
+    StockAdjustmentTraceability:
+      description: Batch, serial, and bin allocation returned in a stock-adjustment response
+      type: object
+      additionalProperties: false
+      properties:
+        batch_id:
+          type:
+            - integer
+            - "null"
+          description: Batch ID, or null for unallocated stock
+        serial_number_id:
+          type:
+            - integer
+            - "null"
+          description: Serial number ID, or null for nonserialized stock
+        bin_location_id:
+          type:
+            - integer
+            - "null"
+          description: Bin ID, or null when no bin is allocated
+        quantity:
+          type: string
+          description: Allocated quantity as a decimal string
+      example:
+        batch_id: null
+        serial_number_id: null
+        bin_location_id: null
+        quantity: "5.0000000000"
     StockAdjustmentRow:
       description: Individual line item in a stock adjustment showing specific variant and quantity changes
       type: object
@@ -11685,6 +11892,17 @@ components:
           description: Optional batch-specific adjustments for tracked inventory
           items:
             $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
+        traceability:
+          type: array
+          description: Batch, serial, and bin allocations returned for this adjustment row
+          items:
+            $ref: "#/components/schemas/StockAdjustmentTraceability"
+        deleted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Deletion timestamp for this row, or null while active
       example:
         id: 3001
         variant_id: 501
@@ -12010,7 +12228,9 @@ components:
                 type: object
                 properties:
                   batch_id:
-                    type: integer
+                    type:
+                      - integer
+                      - "null"
                     description: ID of the batch being transferred
                   quantity:
                     type: number
@@ -12132,7 +12352,9 @@ components:
                       type: object
                       properties:
                         batch_id:
-                          type: integer
+                          type:
+                            - integer
+                            - "null"
                           description: ID of the batch
                         quantity:
                           type: number
@@ -13114,38 +13336,38 @@ components:
       enum:
         - SalesOrder
         - SalesOrderRow
-      description: |
-        Resource type a ``CustomFieldDefinition`` applies to. Immutable
-        after creation.
+        - ProductVariant
+        - MaterialVariant
+        - ServiceVariant
+        - PurchaseOrder
+        - PurchaseOrderRow
+        - OutsourcedPurchaseOrder
+        - OutsourcedPurchaseOrderRow
+        - ProductionOperation
+        - RecipeBom
+        - Supplier
+        - Customer
+      description: |-
+        Entity the custom field applies to. Immutable after creation.
+        - `SalesOrder` / `SalesOrderRow` — the field lives on a sales order, or on one of its rows.
+        - `ProductVariant` / `MaterialVariant` / `ServiceVariant` — the field lives on an item. In Katana these are the Products, Materials, and Services an item can be. Values are held **per variant**, not on the product / material / service itself: a `ProductVariant` definition is set and read on each of a product's variants, and a product with one variant simply has one place to set it.
+        - `PurchaseOrder` / `PurchaseOrderRow` / `OutsourcedPurchaseOrder` / `OutsourcedPurchaseOrderRow` — the field lives on a purchase order, standard or outsourced, or on one of its rows.
+        - `ProductionOperation` — the field lives on a production operation.
+        - `RecipeBom` — the field lives on a BOM row. The same definitions are used on manufacturing order recipe rows and outsourced purchase order recipe rows.
+        - `Supplier` — the field lives on a supplier.
+        - `Customer` — the field lives on a customer.
 
-        The partner-defined custom-fields surface (``/custom_field_definitions``)
-        is live for **sales orders and sales order rows only**. These are
-        the sole values the API accepts today; creating a definition with
-        any other ``entity_type`` is rejected.
+        Two groups each share a single pool of definitions, so a definition is accepted beyond the exact entity type it was created with:
+        - The three variant entity types — a definition created with any one of them is accepted on any variant, whatever kind of item it belongs to.
+        - Standard and outsourced purchase orders — `PurchaseOrder` and `OutsourcedPurchaseOrder` definitions are both accepted on any purchase order, and likewise `PurchaseOrderRow` / `OutsourcedPurchaseOrderRow` on any purchase order row.
 
-        Katana has signalled on its roadmap that custom fields will expand
-        to further entities (items / variants, and others). Each new entity
-        type must be added here only once the live API accepts it — keeping
-        this enum honest forces a deliberate spec edit per rollout rather
-        than advertising values that 422.
+        Katana's own UI still scopes each definition to the item type or kind of order it was created for, so pick the `entity_type` that matches where you want the field to appear.
 
-        Note: the legacy ``[{field_name, field_value}]`` custom-fields shape
-        on Variant / Product / Material / Service is a **separate** surface
-        (see ``/custom_fields_collections``) and is unrelated to this enum.
+        The variant entity types, the four purchase order entity types, `Customer`, and `ProductionOperation` are behind feature flags — contact support@katanamrp.com to enable. `ProductionOperation` additionally requires the Advanced Manufacturing or Manufacturing Management add-on.
 
     CustomFieldDefinition:
-      description: |
-        A partner-defined custom field that callers register once via
-        ``POST /custom_field_definitions`` and then attach values for on a
-        sales order (or sales order row) through that resource's
-        ``custom_fields`` property, keyed by this definition's ``id``
-        (UUID).
-
-        Scope today: ``entity_type`` is limited to ``SalesOrder`` /
-        ``SalesOrderRow`` (see ``CustomFieldEntityType``). A factory may
-        hold at most **50 definitions**. ``field_type``, ``entity_type``,
-        and ``source`` are **immutable** after creation; only ``label``,
-        ``description``, and ``options`` may be updated.
+      description: |-
+        A custom field definition registered through POST /custom_field_definitions. Values are keyed by its UUID in the entity custom_fields property. See CustomFieldEntityType for supported entities and account feature requirements. A factory may hold at most 50 definitions. field_type, entity_type, and source are immutable; label, description, and options may be updated.
       type: object
       additionalProperties: false
       properties:
@@ -13176,13 +13398,8 @@ components:
             - "null"
           description: Optional long-form description of the field's purpose
         options:
-          description: |
-            Choice configuration. Present and meaningful only when
-            ``field_type`` is ``singleSelect``; ``null`` for every other
-            type. Each choice carries its server-assigned integer ``id``
-            (the value stored on the entity) and ``label``; soft-deleted
-            choices remain in the array so historical values stay
-            resolvable.
+          description: |-
+            Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies.
           anyOf:
             - $ref: "#/components/schemas/CustomFieldOptions"
             - type: "null"
@@ -13217,7 +13434,7 @@ components:
         entity_type: SalesOrder
         source: your-integration
         description: Customer-facing sales channel classification
-        options: null
+        options:
         created_at: "2026-05-14T10:00:00Z"
         updated_at: "2026-05-14T10:00:00Z"
         deleted_at: null
@@ -13251,13 +13468,8 @@ components:
             - "null"
           description: Optional long-form description
         options:
-          description: |
-            Choice configuration. Required when ``field_type`` is
-            ``singleSelect``; omit (or send ``null``) for every other type.
-            On create, send each choice with just a ``label`` — the server
-            assigns each one an integer ``id`` and returns the resolved
-            array. Use those ``id`` values when setting the field on a
-            sales order.
+          description: |-
+            Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies. Choices are required for singleSelect; send labels only when creating choices.
           anyOf:
             - $ref: "#/components/schemas/CustomFieldOptionsCreate"
             - type: "null"
@@ -13285,18 +13497,10 @@ components:
             - "null"
           description: Updated long-form description
         options:
-          description: |
-            Updated choice configuration (``singleSelect`` only). Send the
-            **full** ``choices`` array — every existing choice must be
-            included and identified by its server-assigned ``id``. A choice
-            present in the array without an ``id`` is created. A choice
-            omitted from the array is removed from the active choices list
-            (it can no longer be selected), but its past values on existing
-            records are not resolvable after removal. Use ``"deleted": true``
-            instead to soft-delete a choice — it stays in the array so
-            historical values referencing its ``id`` remain resolvable, but
-            it is no longer offered as a new selection. Choices are never
-            hard-deleted.
+          description: |-
+            Keys you omit keep their current value, so send only what you are changing. `null` clears the whole object (rejected on a `singleSelect`, which must always keep its choices).
+
+            `choices` is only meaningful when the field is a `singleSelect`, and is the exception to the merge rule: send the **full** array, every existing choice included and identified by its server-assigned `id`. Omit a choice and it is removed from history — use `deleted: true` instead to soft-delete it and keep historical values resolvable. New choices are sent without an `id`.
           anyOf:
             - $ref: "#/components/schemas/CustomFieldOptions"
             - type: "null"
@@ -13370,13 +13574,12 @@ components:
       example:
         label: Online
     CustomFieldOptions:
-      description: |
-        Choice configuration for a ``singleSelect`` custom field definition,
-        as returned on read and supplied on update.
+      description: |-
+        Keys you omit keep their current value, so send only what you are changing. `null` clears the whole object (rejected on a `singleSelect`, which must always keep its choices).
+
+        `choices` is only meaningful when the field is a `singleSelect`, and is the exception to the merge rule: send the **full** array, every existing choice included and identified by its server-assigned `id`. Omit a choice and it is removed from history — use `deleted: true` instead to soft-delete it and keep historical values resolvable. New choices are sent without an `id`.
       type: object
       additionalProperties: false
-      required:
-        - choices
       properties:
         choices:
           type: array
@@ -13386,6 +13589,17 @@ components:
             historical values stay resolvable.
           items:
             $ref: "#/components/schemas/CustomFieldChoice"
+        appearsOn:
+          description: Replaces the current list of transactional entities this variant definition also applies to. Omit to leave it untouched. Removing a target stops the definition being a valid key on that entity, and values already snapshotted onto existing records of that type stop being returned — they are retained and reappear if the target is added back. Same validation as on create — see `POST /custom_field_definitions`.
+          items:
+            enum:
+              - SalesOrderRow
+              - PurchaseOrderRow
+              - OutsourcedPurchaseOrderRow
+              - ManufacturingOrder
+            type: string
+          type: array
+          uniqueItems: true
       example:
         choices:
           - id: 1
@@ -13395,20 +13609,28 @@ components:
           - id: 3
             label: Wholesale
     CustomFieldOptionsCreate:
-      description: |
-        Choice configuration supplied when creating a ``singleSelect``
-        custom field definition. Each choice carries only a ``label``; the
-        server assigns each one an integer ``id``.
+      description: |-
+        Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies.
       type: object
       additionalProperties: false
-      required:
-        - choices
       properties:
         choices:
           type: array
           description: The choices to create, each identified by ``label`` only.
           items:
             $ref: "#/components/schemas/CustomFieldChoiceCreate"
+        appearsOn:
+          description: "Transactional entities this definition additionally applies to, on top of its own `entity_type`. Listing a target makes this definition's id a valid key in that entity's `custom_fields` — nothing is copied, and the target's `custom_fields` accepts its own definitions and linked-in ones alike.\n\nOnly variant definitions (`ProductVariant` / `MaterialVariant` / `ServiceVariant`) may target `SalesOrderRow`, `PurchaseOrderRow`, `OutsourcedPurchaseOrderRow`, and `ManufacturingOrder`; a `ProductionOperation` definition may target `ManufacturingOrder` only. Any other combination, a duplicate entry, or the definition's own `entity_type` is rejected with a 422.\n\nSeparately from this, a row or manufacturing order created against a variant takes a **snapshot** of that variant's current values for the fields that name it in `appearsOn`. The snapshot is editable on the record afterwards and is never re-synced, so later edits to the variant do not reach records that already exist.
+            A value whose definition no longer applies to the entity — the target was dropped from `appearsOn`, or the definition was deleted — is retained but no longer returned on reads of that record.\n\nBehind a feature flag on the target side too — contact support@katanamrp.com to enable."
+          items:
+            enum:
+              - SalesOrderRow
+              - PurchaseOrderRow
+              - OutsourcedPurchaseOrderRow
+              - ManufacturingOrder
+            type: string
+          type: array
+          uniqueItems: true
       example:
         choices:
           - label: Online
@@ -14570,8 +14792,11 @@ components:
               type: integer
               description: The variant of the ingredient material required
             planned_quantity_per_unit:
-              type: number
-              description: The planned quantity of this ingredient per unit of production
+              type:
+                - string
+                - number
+              description: >-
+                Quantity per unit: a decimal string on create and a JSON number on read
             ingredient_availability:
               description: Current availability status of this ingredient
               $ref: "#/components/schemas/OutsourcedRecipeIngredientAvailability"
@@ -14592,7 +14817,9 @@ components:
                 type: object
                 properties:
                   batch_id:
-                    type: integer
+                    type:
+                      - integer
+                      - "null"
                   quantity:
                     type: number
               description: Batch allocation transactions for this ingredient
@@ -14723,8 +14950,13 @@ components:
           type: integer
           description: ID of the sales order this shipping fee applies to
         amount:
-          type: string
-          description: Shipping fee amount in the order currency
+          type:
+            - string
+            - number
+          description: |
+            Shipping fee amount in the order currency. Creation returns a
+            JSON number; list, detail, and update responses return decimal
+            strings. Preserve the wire representation in either case.
         tax_rate_id:
           type: integer
           description: ID of the tax rate applied to the shipping fee
@@ -16452,17 +16684,24 @@ paths:
         Returns a list of inventory replenishment signals, one per variant. Signals are account-wide, summed
           across all locations.
 
-          Only variants with demand in the last 30 days have a row, so a variant_id filter can return fewer rows
+          Only variants with demand in the selected demand window have a row, so a variant_id filter can return fewer rows
           than ids requested. A missing row means no recent demand, not a missing variant - use /inventory for a
           full listing.
       operationId: getAllInventorySignals
       parameters:
+        - name: demand_window
+          in: query
+          required: false
+          description: Number of days of demand history used to calculate replenishment signals.
+          schema:
+            type: integer
+            enum: [7, 30, 60, 90]
+            default: 30
         - name: variant_id
           in: query
           required: false
-          description:
-            Filters signals by valid variant ids. A variant with no demand in the 30-day window has no row, so the
-            response can contain fewer rows than ids requested.
+          description: Filters signals by valid variant ids. A variant with no demand in the selected
+            window has no row, so the response can contain fewer rows than ids requested.
           schema:
             type: array
             items:
@@ -16470,7 +16709,8 @@ paths:
         - name: stock_risk
           in: query
           required: false
-          description: Filters signals by risk level - 0 low, 1 high, 2 critical, 3 stockout. Any other value is a 400.
+          description: Filters signals by risk level - 0 low, 1 high, 2 critical, 3 stockout. Any
+            other value is a 400.
           schema:
             type: integer
             enum:
@@ -16499,7 +16739,6 @@ paths:
               example:
                 data:
                   - variant_id: 1
-                    avg_daily_demand_30d: "3.50000000000000000000"
                     reorder_point: "49.00000000000000000000"
                     days_of_stock_left: 12
                     stock_risk: 1
@@ -16511,6 +16750,8 @@ paths:
                     lead_time_used: 14
                     lead_time_source: sku
                     demand_calculated_at: "2026-08-12T07:00:00.000Z"
+                    avg_daily_demand: "3.50000000000000000000"
+                    demand_window: 30
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -17048,13 +17289,21 @@ paths:
       tags:
         - Manufacturing order
       description: |-
-        Repositions a manufacturing order in the production schedule relative to another manufacturing order.
+        Moves one or more manufacturing orders to an exact place in the production schedule.
 
-        Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
-        order.
+        The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the schedule. All other manufacturing orders keep their order relative to each other.
 
-        Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales order, all
-        related manufacturing orders are repositioned together.
+        `before_id` places them directly above that manufacturing order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.
+
+        Only open manufacturing orders can be reranked.
+
+        Manufacturing orders linked to the same sales order always stay together. Listing one of them moves all of them, placed where the first of them is listed and keeping their order among themselves, and the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id` is a manufacturing order linked to a sales order, the orders are placed above or below all manufacturing orders of that sales order.
+
+        To rerank more than 250 manufacturing orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the same batch.
+
+        Manufacturing order lists show the new order shortly after the request returns.
+
+        The request returns 422 when any of the manufacturing orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or is linked to the same sales order as one of them.
       operationId: rerankManufacturingOrder
       requestBody:
         description: manufacturing order rerank details
@@ -17083,6 +17332,23 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        '200':
+          description: Manufacturing orders reranked
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RerankOrdersResponse'
+              example:
+                order_ids:
+                  - 101
+                  - 102
   /manufacturing_order_unlink:
     post:
       summary: Unlink a manufacturing order from sales order row
@@ -18070,6 +18336,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateMaterialRequest"
+      parameters:
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: New material created
@@ -18160,6 +18428,7 @@ paths:
         - $ref: "#/components/parameters/created_at_max"
         - $ref: "#/components/parameters/updated_at_min"
         - $ref: "#/components/parameters/updated_at_max"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: List all materials
@@ -18249,6 +18518,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/id"
         - $ref: "#/components/parameters/extend_material"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: Details of an existing material
@@ -18335,6 +18605,7 @@ paths:
       operationId: updateMaterial
       parameters:
         - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_fields_format"
       requestBody:
         description: Material details
         required: true
@@ -18498,6 +18769,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateProductRequest"
+      parameters:
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: New product created
@@ -18599,6 +18872,7 @@ paths:
         - $ref: "#/components/parameters/created_at_max"
         - $ref: "#/components/parameters/updated_at_min"
         - $ref: "#/components/parameters/updated_at_max"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: List all products
@@ -18691,6 +18965,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/id"
         - $ref: "#/components/parameters/extend_product"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: Details of an existing product
@@ -18779,6 +19054,7 @@ paths:
       operationId: updateProduct
       parameters:
         - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_fields_format"
       requestBody:
         description: product details
         required: true
@@ -20383,6 +20659,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/VariantSearchRequest"
+      parameters:
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: Matching variants
@@ -20426,6 +20704,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateVariantRequest"
+      parameters:
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: New variant created
@@ -20499,6 +20779,7 @@ paths:
         - $ref: "#/components/parameters/created_at_max"
         - $ref: "#/components/parameters/updated_at_min"
         - $ref: "#/components/parameters/updated_at_max"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: List all product variants
@@ -20589,6 +20870,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/id"
         - $ref: "#/components/parameters/extend_variant"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: Details of an existing variant
@@ -20679,6 +20961,7 @@ paths:
       operationId: updateVariant
       parameters:
         - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_fields_format"
       requestBody:
         description: Variant details
         required: true
@@ -21818,6 +22101,7 @@ paths:
         - $ref: "#/components/parameters/created_at_max"
         - $ref: "#/components/parameters/updated_at_min"
         - $ref: "#/components/parameters/updated_at_max"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: A list of Service objects.
@@ -21846,6 +22130,8 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateServiceRequest"
       operationId: createService
+      parameters:
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: Service created successfully.
@@ -21872,6 +22158,7 @@ paths:
       operationId: getService
       parameters:
         - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_fields_format"
       responses:
         "200":
           description: A Service object.
@@ -21897,6 +22184,7 @@ paths:
       operationId: updateService
       parameters:
         - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_fields_format"
       requestBody:
         description: Service data for updating an existing service record
         required: true
@@ -22885,13 +23173,19 @@ paths:
       tags:
         - Sales order
       description: |-
-        Repositions a sales order in the schedule relative to another sales order.
+        Moves one or more sales orders to an exact place in the sales order list.
 
-        Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target
-        order.
+        The sales orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the list. All other sales orders keep their order relative to each other.
 
-        Only open sales orders can be reranked. If the reranked order has linked manufacturing orders, they move
-        together with the sales order.
+        `before_id` places them directly above that sales order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.
+
+        Only open sales orders can be reranked. A sales order moves together with its linked manufacturing orders.
+
+        To rerank more than 250 sales orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`.
+
+        Sales order lists show the new order shortly after the request returns.
+
+        The request returns 422 when any of the sales orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids`.
       operationId: rerankSalesOrder
       requestBody:
         description: sales order rerank details
@@ -22920,6 +23214,23 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        '200':
+          description: Sales orders reranked
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RerankOrdersResponse'
+              example:
+                order_ids:
+                  - 101
+                  - 102
   /sales_order_rows:
     get:
       summary: List sales order rows
@@ -25722,7 +26033,7 @@ paths:
               example:
                 id: 67890
                 sales_order_id: 12345
-                amount: "15.99"
+                amount: 15.99
                 description: Standard shipping
         "400":
           $ref: "#/components/responses/BadRequestError"

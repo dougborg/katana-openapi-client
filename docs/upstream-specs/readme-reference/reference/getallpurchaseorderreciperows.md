@@ -1,13 +1,16 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all outsourced purchase order recipe rows
 
 Returns a list of outsourced purchase order recipe rows you’ve previously created.
     The recipe rows are returned in sorted order, with the most recent rows appearing first.
+    `traceability` lists the batch, serial number and bin location allocations each ingredient is consumed
+    from, in the stock unit of the ingredient variant, including the untraced remainder as an entry with both ids
+    null.
 
 # OpenAPI definition
 
@@ -44,7 +47,7 @@ Returns a list of outsourced purchase order recipe rows you’ve previously crea
         "tags": [
           "Outsourced purchase order recipe row"
         ],
-        "description": "Returns a list of outsourced purchase order recipe rows you’ve previously created.\n    The recipe rows are returned in sorted order, with the most recent rows appearing first.",
+        "description": "Returns a list of outsourced purchase order recipe rows you’ve previously created.\n    The recipe rows are returned in sorted order, with the most recent rows appearing first.\n    `traceability` lists the batch, serial number and bin location allocations each ingredient is consumed\n    from, in the stock unit of the ingredient variant, including the untraced remainder as an entry with both ids\n    null.",
         "operationId": "getAllPurchaseOrderRecipeRows",
         "parameters": [
           {
@@ -196,10 +199,28 @@ Returns a list of outsourced purchase order recipe rows you’ve previously crea
                           "quantity": 5
                         }
                       ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 3,
+                          "quantity": "10"
+                        },
+                        {
+                          "batch_id": null,
+                          "serial_number_id": null,
+                          "bin_location_id": null,
+                          "quantity": "5"
+                        }
+                      ],
                       "cost": 0,
                       "created_at": "2020-10-23T10:37:05.085Z",
                       "updated_at": "2020-10-23T10:37:05.085Z",
-                      "deleted_at": null
+                      "deleted_at": null,
+                      "custom_fields": {
+                        "2fa40b67-e0f1-46be-84b2-6441f2c976c3": "AISI 304",
+                        "b6c0cbb5-6ba0-4f6e-a6f4-2b6c3f4a57ea": 12
+                      }
                     }
                   ]
                 }

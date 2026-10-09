@@ -98,8 +98,8 @@ overrides:
     reason: >-
       Live declares `options` as a bare nullable `object` with no properties;
       locally it is a typed `anyOf[$ref:CustomFieldOptionsCreate, null]`
-      describing the `{choices: [{label}]}` shape the wire actually accepts
-      (typed under #805). Local is strictly more precise.
+      describing optional `choices` (labels on create) and `appearsOn`
+      targets documented by the developer portal. Local is strictly more precise.
 
   - endpoint: "PATCH /custom_field_definitions/{id}"
     kind: type_diff
@@ -110,7 +110,8 @@ overrides:
     reason: >-
       Same shape as the POST variant: live declares a bare nullable `object`,
       local a typed `anyOf[$ref:CustomFieldOptions, null]` carrying the
-      server-assigned choice `id`s. Local is strictly more precise.
+      server-assigned choice `id`s and optional `appearsOn` targets.
+      Local is strictly more precise.
 
   # --- manufacturing_order_productions: typed batch_transaction -------------
   - endpoint: "POST /manufacturing_order_productions"

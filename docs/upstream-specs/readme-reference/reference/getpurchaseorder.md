@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Retrieve a purchase order
 
@@ -113,6 +113,10 @@ Retrieves the details of an existing purchase order based on ID
                   "tracking_location_id": null,
                   "total": 1,
                   "total_in_base_currency": 1,
+                  "custom_fields": {
+                    "37460d24-ea57-416d-888e-bea7c0505642": "expedited",
+                    "6afe78d2-2b95-4d71-92f5-1bc2be852afe": 5
+                  },
                   "created_at": "2021-10-13T15:31:48.490Z",
                   "updated_at": "2021-10-13T15:31:48.490Z",
                   "deleted_at": null,
@@ -145,10 +149,27 @@ Retrieves the details of an existing purchase order based on ID
                           "batch_id": null
                         }
                       ],
+                      "traceability": [
+                        {
+                          "batch_id": 1,
+                          "serial_number_id": null,
+                          "bin_location_id": 3,
+                          "quantity": "1"
+                        },
+                        {
+                          "batch_id": null,
+                          "serial_number_id": null,
+                          "bin_location_id": null,
+                          "quantity": "1"
+                        }
+                      ],
                       "purchase_order_id": 1,
                       "purchase_uom_conversion_rate": 1.1,
                       "landed_cost": "45.0000000000",
-                      "group_id": 11
+                      "group_id": 11,
+                      "custom_fields": {
+                        "9d1c4b52-7f38-4e0a-9a6d-3f2b8c1e4a70": "inspect on arrival"
+                      }
                     }
                   ],
                   "supplier": {

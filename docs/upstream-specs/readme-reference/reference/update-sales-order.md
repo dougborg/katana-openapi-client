@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Update a sales order
 
@@ -81,7 +81,7 @@ Updates the specified sales order by setting the values of the parameters passed
                   },
                   "delivery_date": {
                     "type": "string",
-                    "description": "Updatable only when sales order status is NOT_SHIPPED or PENDING."
+                    "description": "Updatable in all sales order statuses except DELIVERED."
                   },
                   "picked_date": {
                     "type": "string",

@@ -6,19 +6,25 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.service import Service
 from ...models.update_service_request import UpdateServiceRequest
+from ...models.update_service_x_custom_fields_format import (
+    UpdateServiceXCustomFieldsFormat,
+)
 
 
 def _get_kwargs(
     id: int,
     *,
     body: UpdateServiceRequest,
+    x_custom_fields_format: UpdateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
@@ -85,6 +91,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateServiceRequest,
+    x_custom_fields_format: UpdateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Update Service
 
@@ -93,6 +100,7 @@ def sync_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateServiceXCustomFieldsFormat | Unset):
         body (UpdateServiceRequest): Request payload for updating an existing service's properties
             and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
             'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
@@ -111,6 +119,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -125,6 +134,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateServiceRequest,
+    x_custom_fields_format: UpdateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Update Service
 
@@ -133,6 +143,7 @@ def sync(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateServiceXCustomFieldsFormat | Unset):
         body (UpdateServiceRequest): Request payload for updating an existing service's properties
             and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
             'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
@@ -152,6 +163,7 @@ def sync(
         id=id,
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -160,6 +172,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateServiceRequest,
+    x_custom_fields_format: UpdateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Update Service
 
@@ -168,6 +181,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateServiceXCustomFieldsFormat | Unset):
         body (UpdateServiceRequest): Request payload for updating an existing service's properties
             and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
             'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
@@ -186,6 +200,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -198,6 +213,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateServiceRequest,
+    x_custom_fields_format: UpdateServiceXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Update Service
 
@@ -206,6 +222,7 @@ async def asyncio(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateServiceXCustomFieldsFormat | Unset):
         body (UpdateServiceRequest): Request payload for updating an existing service's properties
             and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
             'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
@@ -226,5 +243,6 @@ async def asyncio(
             id=id,
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

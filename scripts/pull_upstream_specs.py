@@ -20,7 +20,9 @@ Together they're the inputs for our three audit tools:
   inside ``readme-portal.yaml`` against our local response schemas.
 
 Run as ``poe refresh-upstream-spec``. Idempotent — overwrites both
-output files in place.
+output files in place. The portal now serves endpoint-scoped specs;
+combine the OpenAPI blocks from the reference markdown crawl for full
+coverage, using the ssr-props fetch below only as a fallback.
 
 How the README.io slug is derived (no hard-coding):
 
@@ -443,9 +445,9 @@ async def fetch_readme_reference_markdown(
        it's the only place section headers (``API Reference`` vs
        ``Guides``) are preserved.
 
-    Returns True if at least one page was written. Existing files in
-    ``output_dir`` are cleared at the start of the run so upstream
-    removals are reflected on disk.
+    Returns True only after every discovered page was fetched. The index and
+    stale-file removal are committed only on complete crawls. A partial crawl
+    must never be promoted into the combined portal spec.
     """
     logger.info(f"📥 Fetching README.io index: {README_LLMS_INDEX_URL}")
     text = await _fetch_text(session, README_LLMS_INDEX_URL)
@@ -457,8 +459,6 @@ async def fetch_readme_reference_markdown(
     logger.info(f"  ✓ {len(pages)} pages across {len(sections)} sections")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    _write_if_changed(output_dir / "llms.txt", text)
-
     sem = asyncio.Semaphore(README_MD_FETCH_CONCURRENCY)
     results = await asyncio.gather(
         *(_fetch_markdown_page(session, p, output_dir, sem) for p in pages)
@@ -468,6 +468,10 @@ async def fetch_readme_reference_markdown(
         f"  ✓ {written}/{len(pages)} pages written to "
         f"{output_dir.relative_to(REPO_ROOT)}"
     )
+    if not pages or not all(results):
+        logger.error("  incomplete reference crawl — preserving index and stale pages")
+        return False
+    _write_if_changed(output_dir / "llms.txt", text)
 
     # Reap ``.md`` files no longer in the upstream index so removed pages
     # don't linger. Run after the fetch so a transient network failure
@@ -481,7 +485,7 @@ async def fetch_readme_reference_markdown(
         if stale not in expected:
             stale.unlink()
 
-    return written > 0
+    return True
 
 
 # ----------------------------------------------------------------------------
@@ -528,6 +532,30 @@ def save_spec(spec: dict[str, Any], path: Path) -> None:
     logger.info(f"  saved → {path.relative_to(REPO_ROOT)}")
 
 
+def collect_reference_specs(reference_dir: Path) -> dict[str, Any] | None:
+    """Combine endpoint-scoped OpenAPI blocks from the portal's markdown pages."""
+    combined: dict[str, Any] | None = None
+    for page in sorted((reference_dir / "reference").glob("*.md")):
+        for block in re.findall(r"```json\s*\n(.*?)\n```", page.read_text(), re.DOTALL):
+            try:
+                spec = json.loads(block)
+            except json.JSONDecodeError:
+                continue
+            if (
+                not isinstance(spec, dict)
+                or "openapi" not in spec
+                or "paths" not in spec
+            ):
+                continue
+            if combined is None:
+                combined = {**spec, "paths": {}, "components": {}}
+            for path, operations in spec["paths"].items():
+                combined["paths"].setdefault(path, {}).update(operations)
+            for section, entries in spec.get("components", {}).items():
+                combined["components"].setdefault(section, {}).update(entries)
+    return combined
+
+
 async def refresh(output_dir: Path) -> int:
     """Fetch all upstream artefacts, save them. Returns 0 on full success."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -547,6 +575,12 @@ async def refresh(output_dir: Path) -> int:
     else:
         logger.error("Live OpenAPI fetch failed — leaving live-gateway.yaml untouched")
         rc = 1
+    if reference_ok:
+        readme = collect_reference_specs(readme_reference_dir) or readme
+    else:
+        # Endpoint-scoped SSR fallback cannot safely replace the complete
+        # aggregate when the reference crawl failed or only partially finished.
+        readme = None
     if readme is not None:
         save_spec(readme, output_dir / "readme-portal.yaml")
     else:
@@ -554,7 +588,7 @@ async def refresh(output_dir: Path) -> int:
         rc = 1
     if not reference_ok:
         logger.error(
-            "README.io reference-page crawl produced no output — "
+            "README.io reference-page crawl incomplete — "
             f"leaving {readme_reference_dir.relative_to(REPO_ROOT)}/ stale"
         )
         rc = 1

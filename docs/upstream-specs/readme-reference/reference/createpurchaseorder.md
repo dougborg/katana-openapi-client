@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a purchase order
 
@@ -142,9 +142,21 @@ Creates a new purchase order object.
                         },
                         "arrival_date": {
                           "type": "string"
+                        },
+                        "custom_fields": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": true,
+                          "description": "_Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID) of a definition with `entity_type` `PurchaseOrderRow` or `OutsourcedPurchaseOrderRow`. Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Unknown definition IDs are rejected with a 422."
                         }
                       }
                     }
+                  },
+                  "custom_fields": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true,
+                    "description": "_Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID) of a definition with `entity_type` `PurchaseOrder` or `OutsourcedPurchaseOrder`. Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Unknown definition IDs are rejected with a 422."
                   }
                 }
               }
@@ -193,6 +205,10 @@ Creates a new purchase order object.
                   "tracking_location_id": null,
                   "total": 1,
                   "total_in_base_currency": 1,
+                  "custom_fields": {
+                    "37460d24-ea57-416d-888e-bea7c0505642": "expedited",
+                    "6afe78d2-2b95-4d71-92f5-1bc2be852afe": 5
+                  },
                   "created_at": "2021-02-03T13:13:07.110Z",
                   "updated_at": "2021-02-03T13:13:07.110Z",
                   "deleted_at": null,
@@ -217,7 +233,10 @@ Creates a new purchase order object.
                       "total": 1,
                       "total_in_base_currency": 1,
                       "landed_cost": "45.0000000000",
-                      "group_id": 11
+                      "group_id": 11,
+                      "custom_fields": {
+                        "9d1c4b52-7f38-4e0a-9a6d-3f2b8c1e4a70": "inspect on arrival"
+                      }
                     }
                   ]
                 }

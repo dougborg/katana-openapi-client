@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -13,11 +13,12 @@ T = TypeVar("T", bound="StockTransferRowBatchTransactionsItem")
 
 @_attrs_define
 class StockTransferRowBatchTransactionsItem:
-    batch_id: int
+    batch_id: int | None
     quantity: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        batch_id: int | None
         batch_id = self.batch_id
 
         quantity = self.quantity
@@ -36,7 +37,13 @@ class StockTransferRowBatchTransactionsItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        batch_id = d.pop("batch_id")
+
+        def _parse_batch_id(data: object) -> int | None:
+            if data is None:
+                return data
+            return cast(int | None, data)
+
+        batch_id = _parse_batch_id(d.pop("batch_id"))
 
         quantity = d.pop("quantity")
 

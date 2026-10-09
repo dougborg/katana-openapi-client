@@ -46,7 +46,7 @@ class Material:
     updated_at: datetime.datetime | Unset = UNSET
     archived_at: datetime.datetime | Unset | None = UNSET
     uom: str | Unset = UNSET
-    category_name: str | Unset = UNSET
+    category_name: str | Unset | None = UNSET
     is_sellable: bool | Unset = UNSET
     default_supplier_id: int | Unset | None = UNSET
     additional_info: str | Unset = UNSET
@@ -89,7 +89,11 @@ class Material:
 
         uom = self.uom
 
-        category_name = self.category_name
+        category_name: str | Unset | None
+        if isinstance(self.category_name, Unset):
+            category_name = UNSET
+        else:
+            category_name = self.category_name
 
         is_sellable = self.is_sellable
 
@@ -249,7 +253,14 @@ class Material:
 
         uom = d.pop("uom", UNSET)
 
-        category_name = d.pop("category_name", UNSET)
+        def _parse_category_name(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        category_name = _parse_category_name(d.pop("category_name", UNSET))
 
         is_sellable = d.pop("is_sellable", UNSET)
 

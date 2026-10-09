@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-07-31T03:25:47.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Search variants with advanced filters
 
@@ -10,7 +10,7 @@ Fetch the complete documentation index at: https://developer.katanamrp.com/llms.
 
 Searches variants using a structured filter body with nested logical operators (`and`, `or`) and per-field comparators. Use this when the flat query parameters on `GET /variants` aren’t expressive enough.
 
-Only the fields listed in the request schema may appear in `filter` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths.
+Only the fields listed in the request schema may appear in `filter` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths, whichever representation the account returns them in — `<uuid>` is always the custom field definition id. The values on each returned variant follow the account’s representation, so the `X-Custom-Fields-Format` header applies here as well.
 
 The response differs from `GET /variants`: the item reference is a single `item_id` with an `item_type` discriminator (rather than separate `product_id`/`material_id`), and the optional enriched item is returned under `item`. Use the `include` array to opt into `item` enrichment and to widen the result set to `archived` and/or `deleted` variants (both are excluded by default).
 
@@ -49,8 +49,23 @@ The response differs from `GET /variants`: the item reference is a single `item_
         "tags": [
           "Variant"
         ],
-        "description": "> 🚧 **Beta — subject to change.** This endpoint is publicly available, but its request/response shape may evolve before General Availability as we incorporate early feedback.\n\nSearches variants using a structured filter body with nested logical operators (`and`, `or`) and per-field comparators. Use this when the flat query parameters on `GET /variants` aren’t expressive enough.\n\nOnly the fields listed in the request schema may appear in `filter` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths.\n\nThe response differs from `GET /variants`: the item reference is a single `item_id` with an `item_type` discriminator (rather than separate `product_id`/`material_id`), and the optional enriched item is returned under `item`. Use the `include` array to opt into `item` enrichment and to widen the result set to `archived` and/or `deleted` variants (both are excluded by default).",
+        "description": "> 🚧 **Beta — subject to change.** This endpoint is publicly available, but its request/response shape may evolve before General Availability as we incorporate early feedback.\n\nSearches variants using a structured filter body with nested logical operators (`and`, `or`) and per-field comparators. Use this when the flat query parameters on `GET /variants` aren’t expressive enough.\n\nOnly the fields listed in the request schema may appear in `filter` and `order`; unknown fields return 422. Custom field values are addressable via `custom_fields.<uuid>` nested paths, whichever representation the account returns them in — `<uuid>` is always the custom field definition id. The values on each returned variant follow the account’s representation, so the `X-Custom-Fields-Format` header applies here as well.\n\nThe response differs from `GET /variants`: the item reference is a single `item_id` with an `item_type` discriminator (rather than separate `product_id`/`material_id`), and the optional enriched item is returned under `item`. Use the `include` array to opt into `item` enrichment and to widen the result set to `archived` and/or `deleted` variants (both are excluded by default).",
         "operationId": "searchVariants",
+        "parameters": [
+          {
+            "name": "X-Custom-Fields-Format",
+            "required": false,
+            "in": "header",
+            "description": "Selects the representation of `custom_fields` on items, for both the request body and the response.\n\n- `default` — object keyed by custom field definition id (UUID).\n- `legacy` — the `{field_name, field_value}` array tied to custom fields collections.\n\nMost accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.\n\nRequesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "default",
+                "legacy"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "description": "Structured filter body. See the schema for the field allowlist, the operator allowlist, and value caps.",
           "required": true,

@@ -1,16 +1,26 @@
 ---
 updatedAt: 2026-07-17T07:44:14.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Change a manufacturing order's rank
 
-Repositions a manufacturing order in the production schedule relative to another manufacturing order.
+Moves one or more manufacturing orders to an exact place in the production schedule.
 
-Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target order.
+The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the schedule. All other manufacturing orders keep their order relative to each other.
 
-Only open manufacturing orders can be reranked. If the reranked order is linked to a sales order, all manufacturing orders linked to that sales order move together.
+`before_id` places them directly above that manufacturing order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.
+
+Only open manufacturing orders can be reranked.
+
+Manufacturing orders linked to the same sales order always stay together. Listing one of them moves all of them, placed where the first of them is listed and keeping their order among themselves, and the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id` is a manufacturing order linked to a sales order, the orders are placed above or below all manufacturing orders of that sales order.
+
+To rerank more than 250 manufacturing orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the same batch.
+
+Manufacturing order lists show the new order shortly after the request returns.
+
+The request returns 422 when any of the manufacturing orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or is linked to the same sales order as one of them.
 
 # OpenAPI definition
 
@@ -47,11 +57,11 @@ Only open manufacturing orders can be reranked. If the reranked order is linked 
         "tags": [
           "Manufacturing order"
         ],
-        "description": "Repositions a manufacturing order in the production schedule relative to another manufacturing order.\n\nRanking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the target order.\n\nOnly open manufacturing orders can be reranked. If the reranked order is linked to a sales order, all manufacturing orders linked to that sales order move together.",
+        "description": "Moves one or more manufacturing orders to an exact place in the production schedule.\n\nThe manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at the place set in `place`. The first id ends up highest in the schedule. All other manufacturing orders keep their order relative to each other.\n\n`before_id` places them directly above that manufacturing order, and `after_id` directly below it. Sending the same request again changes nothing, so a request can be retried safely.\n\nOnly open manufacturing orders can be reranked.\n\nManufacturing orders linked to the same sales order always stay together. Listing one of them moves all of them, placed where the first of them is listed and keeping their order among themselves, and the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id` is a manufacturing order linked to a sales order, the orders are placed above or below all manufacturing orders of that sales order.\n\nTo rerank more than 250 manufacturing orders, send them in batches: the first batch with `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the same batch.\n\nManufacturing order lists show the new order shortly after the request returns.\n\nThe request returns 422 when any of the manufacturing orders, including the one in `before_id` or `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or is linked to the same sales order as one of them.",
         "operationId": "reRankManufacturingOrder",
         "requestBody": {
           "required": true,
-          "description": "Rerank manufacturing order body",
+          "description": "The manufacturing orders to move and where to put them",
           "content": {
             "application/json": {
               "schema": {
@@ -63,26 +73,94 @@ Only open manufacturing orders can be reranked. If the reranked order is linked 
                 ],
                 "properties": {
                   "order_ids": {
-                    "description": "Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.",
+                    "description": "IDs of the manufacturing orders to move, in the order they should appear, highest first. 1 to 250 unique IDs.",
                     "type": "array",
                     "minItems": 1,
-                    "maxItems": 1,
+                    "maxItems": 250,
+                    "uniqueItems": true,
                     "items": {
-                      "type": "integer"
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2147483647
                     }
                   },
                   "place": {
-                    "description": "Where to place the reranked order, relative to another manufacturing order.",
+                    "description": "Where to put the manufacturing orders. Set exactly one of `position`, `before_id` or `after_id`.",
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "before_id"
-                    ],
+                    "minProperties": 1,
+                    "maxProperties": 1,
                     "properties": {
+                      "position": {
+                        "type": "string",
+                        "enum": [
+                          "top",
+                          "bottom"
+                        ],
+                        "description": "- `top` — above all other manufacturing orders\n- `bottom` — below all other manufacturing orders"
+                      },
                       "before_id": {
-                        "description": "ID of the manufacturing order to place the reranked order before. Placement is relative (drag-and-drop): the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.",
-                        "type": "integer"
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647,
+                        "description": "ID of the manufacturing order to place them directly above. When it is linked to a sales order, they go above all manufacturing orders of that sales order. It can't be one of `order_ids` or linked to the same sales order as one of them."
+                      },
+                      "after_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647,
+                        "description": "ID of the manufacturing order to place them directly below. When it is linked to a sales order, they go below all manufacturing orders of that sales order. It can't be one of `order_ids` or linked to the same sales order as one of them."
                       }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "top": {
+                  "summary": "Move to the top",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "position": "top"
+                    }
+                  }
+                },
+                "before": {
+                  "summary": "Move directly above another manufacturing order",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "before_id": 55
+                    }
+                  }
+                },
+                "after": {
+                  "summary": "Move directly below another manufacturing order",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "after_id": 55
+                    }
+                  }
+                },
+                "bottom": {
+                  "summary": "Move to the bottom",
+                  "value": {
+                    "order_ids": [
+                      101,
+                      102
+                    ],
+                    "place": {
+                      "position": "bottom"
                     }
                   }
                 }
@@ -91,8 +169,8 @@ Only open manufacturing orders can be reranked. If the reranked order is linked 
           }
         },
         "responses": {
-          "204": {
-            "description": "Manufacturing order reranked successfully",
+          "200": {
+            "description": "Manufacturing orders reranked",
             "headers": {
               "X-Ratelimit-Limit": {
                 "description": "Number of requests available for this application.",
@@ -110,6 +188,35 @@ Only open manufacturing orders can be reranked. If the reranked order is linked 
                 "description": "The timestamp when the quota will reset.",
                 "schema": {
                   "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "order_ids"
+                  ],
+                  "properties": {
+                    "order_ids": {
+                      "description": "The moved manufacturing orders in their resulting order, including manufacturing orders that moved with them because they are linked to the same sales order. It can list more than 250 ids.",
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "order_ids": [
+                    101,
+                    102
+                  ]
                 }
               }
             }
@@ -142,38 +249,6 @@ Only open manufacturing orders can be reranked. If the reranked order is linked 
                   "statusCode": 401,
                   "name": "UnauthorizedError",
                   "message": "Unauthorized"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Make sure data is correct",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 404,
-                  "name": "NotFoundError",
-                  "message": "Not found"
                 }
               }
             }

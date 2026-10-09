@@ -21,6 +21,16 @@ export type Webhooks =
   | OutsourcedPurchaseOrderRecipeRowEventsWebhookWebhookRequest;
 
 /**
+ * Orders in their resulting order, including linked manufacturing orders moved together.
+ */
+export type RerankOrdersResponse = {
+  /**
+   * IDs of the orders moved, in their resulting order
+   */
+  order_ids: Array<number>;
+};
+
+/**
  * Base error message schema
  */
 export type ErrorResponse = {
@@ -803,14 +813,16 @@ export type CreateSerialNumberResourceType =
   | 'SalesOrderRow';
 
 /**
- * Legacy per-string failure reason in the published 200 response schema.
+ * Per-string failure reasons documented in the published 200 response schema.
+ * NOT_IN_STOCK is documented for unavailable stock; it was not reproduced
+ * by the October 2026 test-tenant probes.
  * Current invalid-input probes never produced these values: unknown,
  * duplicate, and mixed valid/invalid inputs hard-failed the entire
  * request with ``422``. The enum remains modeled until a successful
  * attachment establishes the current 200 response shape.
  *
  */
-export type CreateSerialNumberFailureReason = 'DUPLICATE' | 'MISSING';
+export type CreateSerialNumberFailureReason = 'DUPLICATE' | 'MISSING' | 'NOT_IN_STOCK';
 
 /**
  * Type of business object a custom fields collection applies to
@@ -1718,18 +1730,23 @@ export type Variant = UpdatableEntity & {
    */
   minimum_order_quantity?: number | null;
   /**
-   * Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
-  custom_fields?: Array<{
-    /**
-     * Name of the custom field
-     */
-    field_name?: string;
-    /**
-     * Value stored in the custom field
-     */
-    field_value?: string;
-  }> | null;
+  custom_fields?:
+    | Array<{
+        /**
+         * Name of the custom field
+         */
+        field_name?: string;
+        /**
+         * Value stored in the custom field
+         */
+        field_value?: string;
+      }>
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | null;
   /**
    * Configuration attribute values that define this variant (color, size, etc.)
    */
@@ -1776,27 +1793,23 @@ export type ServiceVariant = UpdatableEntity & {
   service_id: number;
   type?: VariantType;
   /**
-   * Custom field values specific to this service variant, in
-   * the legacy ``[{field_name, field_value}]`` array shape
-   * (configured via ``/custom_fields_collections``; distinct
-   * from the sales-order ``custom_fields`` dict — see
-   * ``CustomFieldValue``). The API returns ``null`` (not
-   * ``[]``) when the variant has no custom-field assignments —
-   * non-nullable here causes the generated parser to fail with
-   * "NoneType is not iterable" on every create_service /
-   * get_service response.
-   *
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
-  custom_fields?: Array<{
-    /**
-     * Name of the custom field
-     */
-    field_name?: string;
-    /**
-     * Value for the custom field
-     */
-    field_value?: string;
-  }> | null;
+  custom_fields?:
+    | Array<{
+        /**
+         * Name of the custom field
+         */
+        field_name?: string;
+        /**
+         * Value for the custom field
+         */
+        field_value?: string;
+      }>
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | null;
 } & DeletableEntity;
 
 /**
@@ -1844,7 +1857,7 @@ export type Location = DeletableEntity & {
   /**
    * Legal name of the entity that owns the location
    */
-  legal_name?: string;
+  legal_name?: string | null;
   /**
    * Identifier of the associated address record, or null if no address is on file
    */
@@ -1999,61 +2012,97 @@ export type InventorySafetyStockLevel = {
 export type InventorySignalLeadTimeSource = 'sku' | 'system_po' | 'system_mo' | 'fallback';
 
 /**
- * Replenishment signal for a single variant, summed across all locations. Derived nightly from the last 30 days of demand.
+ * Replenishment urgency from low (0) to stockout (3).
+ */
+export type InventorySignalStockRisk = 0 | 1 | 2 | 3;
+
+/**
+ * Replenishment signal for one variant, summed across all locations, using the selected demand window.
  */
 export type InventorySignal = {
   /**
-   * The variant the signal describes. One row per variant, summed across all locations.
+   * Quantity consumed over the last demand_window days divided by demand_window. Demand counts
+   * sales, manufacturing ingredient consumption, and outsourced purchase order recipe rows. If the variant's
+   * first stock movement is less than demand_window days old, the divisor is the days since that movement
+   * instead. Recalculated nightly at 07:00 UTC, so it can be up to 24 hours old. The average is flat: no
+   * seasonality and no trend.
    */
-  variant_id?: number;
+  avg_daily_demand?: string;
   /**
-   * Quantity consumed over the last 30 days divided by 30. Recalculated nightly at 07:00 UTC.
-   */
-  avg_daily_demand_30d?: string;
-  /**
-   * Calculated as avg_daily_demand_30d * lead_time_used + safety_stock. Not the reorder_point on /inventory. Null while demand has not yet been calculated.
-   */
-  reorder_point?: string | null;
-  /**
-   * floor(in_stock / avg_daily_demand_30d). Ignores committed stock and incoming supply. Null while demand has not yet been calculated.
-   */
-  days_of_stock_left?: number | null;
-  /**
-   * Risk level - 0 low, 1 high, 2 critical, 3 stockout. Null while demand has not yet been calculated.
-   */
-  stock_risk?: number | null;
-  /**
-   * Quantity on hand, summed across all locations
-   */
-  in_stock?: string;
-  /**
-   * Quantity claimed by open sales and manufacturing orders
+   * Quantity already claimed by open sales and manufacturing orders, so it cannot cover the demand
+   * ahead. stock_risk and safety_stock_breach_at are worked out from in_stock less committed.
+   * days_of_stock_left is not.
    */
   committed?: string;
   /**
-   * Projected date stock falls below safety stock. Set on high and critical rows only.
+   * Whole days until stock runs out at the current demand rate (= floor(in_stock /
+   * avg_daily_demand)). Uses in_stock alone: it ignores committed stock and incoming supply, so it can disagree
+   * with stock_risk. Null while the variant's demand has not yet been calculated.
    */
-  safety_stock_breach_at?: string | null;
+  days_of_stock_left?: number | null;
   /**
-   * Incoming quantity that stock_risk counted as landing in time
+   * When avg_daily_demand was last calculated. It dates the average, not the row. Every other field
+   * updates within seconds of a change to in_stock, safety_stock or incoming supply. A lead time change is not
+   * applied within seconds.
+   */
+  demand_calculated_at?: string;
+  /**
+   * The number of days avg_daily_demand is calculated over: 7, 30, 60 or 90. Matches the
+   * demand_window query parameter, which defaults to 30.
+   */
+  demand_window?: 7 | 30 | 60 | 90;
+  /**
+   * The incoming quantity that stock_risk counted. Open orders are taken in expected-date order. An
+   * order counts only if it lands on or before the projected breach day, and each counted order pushes that day
+   * further out. An overdue order counts as landing today. 0 means nothing incoming lands in time. Null where
+   * incoming supply could not change the risk. Neither value means nothing is incoming.
    */
   expected_before_safety_stock_breach?: string | null;
   /**
-   * The safety stock level set for the variant
+   * Quantity on hand, summed across all locations.
    */
-  safety_stock?: string;
+  in_stock?: string;
   /**
-   * Lead time in days used in the calculations
-   */
-  lead_time_used?: number;
-  /**
-   * Which source supplied lead_time_used
+   * Which source supplied lead_time_used: sku (variant lead time), system_po (factory default
+   * purchase lead time), system_mo (factory default manufacturing lead time) or fallback (14 days).
    */
   lead_time_source?: InventorySignalLeadTimeSource;
   /**
-   * When avg_daily_demand_30d was last calculated
+   * Lead time in days used in the calculations. The variant lead time. Where that is not set, the
+   * factory default purchase lead time, then the factory default manufacturing lead time, then 14 days.
    */
-  demand_calculated_at?: string;
+  lead_time_used?: number;
+  /**
+   * The calculated stock level under which the shortfall lands inside the lead time
+   * (= avg_daily_demand * lead_time_used + safety_stock). Null while the variant's demand has not yet been
+   * calculated. This is not the reorder_point on the inventory object, which is the user-set safety stock.
+   */
+  reorder_point?: string | null;
+  /**
+   * The safety stock level set for the variant.
+   */
+  safety_stock?: string;
+  /**
+   * The projected date on which in_stock less committed, counting incoming supply, falls below
+   * safety stock. Set on high (1) and critical (2) rows only. Null everywhere else.
+   */
+  safety_stock_breach_at?: string | null;
+  /**
+   * How urgent replenishment is, as an integer from 0 to 3. Worked out from in_stock less
+   * committed, plus incoming supply that lands in time, over a horizon of lead_time_used + 7 days.
+   * 0 = low: stock stays at or above safety stock through the horizon.
+   * 1 = high: stock falls below safety stock inside the horizon, but after the lead time.
+   * 2 = critical: stock falls below safety stock inside the lead time, so an order placed now arrives late.
+   * 3 = stockout: in_stock is 0 or less.
+   * Stockout is checked first and the first match wins. Values are in ascending severity, so a value of 1 or
+   * more means the variant needs attention. Null while the variant's demand has not yet been calculated.
+   */
+  stock_risk?: InventorySignalStockRisk | null;
+  /**
+   * ID of the product or material variant the signal describes. Signals are account-wide: one row
+   * per variant, summed across all locations.
+   */
+  variant_id?: number;
 };
 
 /**
@@ -2219,11 +2268,11 @@ export type ManufacturingOrder = {
   /**
    * ID of the linked sales order, if applicable
    */
-  sales_order_id?: number;
+  sales_order_id?: number | null;
   /**
    * ID of the specific sales order row, if applicable
    */
-  sales_order_row_id?: number;
+  sales_order_row_id?: number | null;
   /**
    * Delivery deadline from the linked sales order
    */
@@ -2231,15 +2280,15 @@ export type ManufacturingOrder = {
   /**
    * Total cost of materials used in production
    */
-  material_cost?: number;
+  material_cost?: number | null;
   /**
    * Total cost of subassemblies used in production
    */
-  subassemblies_cost?: number;
+  subassemblies_cost?: number | null;
   /**
    * Total cost of production operations and labor
    */
-  operations_cost?: number;
+  operations_cost?: number | null;
   /**
    * Serial numbers assigned to produced items
    */
@@ -2477,11 +2526,11 @@ export type ManufacturingOrderOperationRow = {
   /**
    * ID of the resource (machine/workstation) used for this operation
    */
-  resource_id?: number;
+  resource_id?: number | null;
   /**
    * Name of the resource (machine/workstation) used
    */
-  resource_name?: string;
+  resource_name?: string | null;
   /**
    * Operators assigned to perform this operation
    */
@@ -2493,7 +2542,7 @@ export type ManufacturingOrderOperationRow = {
   /**
    * ID of the currently active operator working on this operation
    */
-  active_operator_id?: number;
+  active_operator_id?: number | null;
   /**
    * Planned time per unit for this operation (deprecated — use ``planned_time_parameter`` instead)
    *
@@ -2505,17 +2554,17 @@ export type ManufacturingOrderOperationRow = {
    */
   planned_time_parameter?: string;
   /**
-   * Total actual time spent on this operation
+   * Actual time as a decimal string, or null before completion
    */
-  total_actual_time?: string;
+  total_actual_time?: string | null;
   /**
    * Planned cost per unit for this operation
    */
   planned_cost_per_unit?: string;
   /**
-   * Total actual cost incurred for this operation
+   * Actual cost as a decimal string, or null before completion
    */
-  total_actual_cost?: string;
+  total_actual_cost?: string | null;
   /**
    * Total time consumed so far for this operation
    */
@@ -2537,7 +2586,7 @@ export type ManufacturingOrderOperationRow = {
   /**
    * Group boundary setting for operation grouping
    */
-  group_boundary?: number;
+  group_boundary?: number | null;
   /**
    * Whether the current status allows for operator actions
    */
@@ -2811,7 +2860,7 @@ export type ManufacturingOrderRecipeRow = {
   /**
    * Additional notes about this ingredient or special handling instructions
    */
-  notes?: string;
+  notes?: string | null;
   /**
    * Planned quantity of this ingredient needed per unit produced
    */
@@ -2939,11 +2988,10 @@ export type CreateSerialNumberFailedItem = {
 };
 
 /**
- * Published 200 response from ``POST /serial_numbers``. A current valid
- * attachment success was not available for destructive verification, so
- * this envelope is retained. Invalid strings do not produce this response:
- * the verified API rejects the entire request with ``422`` instead of
- * returning per-string entries in ``failed``.
+ * Attachment results from ``POST /serial_numbers``. A matching-variant
+ * attachment returned this 200 envelope in October 2026 with an empty
+ * failed array. Invalid strings and quantity conflicts can reject the
+ * entire request with 422 instead of returning per-string failures.
  *
  */
 export type CreateSerialNumbersResponse = {
@@ -3132,7 +3180,7 @@ export type InventoryItem = ArchivableEntity & {
   /**
    * Category for organizational grouping and reporting
    */
-  category_name?: string;
+  category_name?: string | null;
   /**
    * Whether this item can be sold to customers
    */
@@ -3841,13 +3889,13 @@ export type PurchaseOrderRow = {
   /**
    * The conversion rate between the purchase and stock tracking UoMs.
    */
-  purchase_uom_conversion_rate?: number;
+  purchase_uom_conversion_rate?: number | null;
   /**
    * The unit used to measure the quantity of the items (e.g. pcs, kg, m) you purchase. It can be different
    * from the unit used to track stock.
    *
    */
-  purchase_uom?: string;
+  purchase_uom?: string | null;
   /**
    * Currency used for this line item pricing
    */
@@ -4106,6 +4154,28 @@ export type UpdatePurchaseOrderAdditionalCostRowRequest = {
 };
 
 /**
+ * Traceability allocation supplied when receiving a purchase order row.
+ */
+export type PurchaseOrderReceiveTraceability = {
+  /**
+   * Batch to receive into, or null for unallocated stock
+   */
+  batch_id?: number | null;
+  /**
+   * Destination bin, or null when no bin is allocated
+   */
+  bin_location_id?: number | null;
+  /**
+   * Received serial number, or null for nonserialized stock
+   */
+  serial_number_id?: number | null;
+  /**
+   * Positive quantity, accepted as a number or decimal string.
+   */
+  quantity?: number | string;
+};
+
+/**
  * Row-level data for receiving items against a purchase order, including quantity and batch details
  */
 export type PurchaseOrderReceiveRow = {
@@ -4128,6 +4198,10 @@ export type PurchaseOrderReceiveRow = {
    */
   location_id?: number;
   /**
+   * Batch, serial number, or bin allocations for this receipt.
+   */
+  traceability?: Array<PurchaseOrderReceiveTraceability>;
+  /**
    * Array of batch-specific transactions for this received quantity
    */
   batch_transactions?: Array<{
@@ -4137,13 +4211,21 @@ export type PurchaseOrderReceiveRow = {
 };
 
 /**
- * Placement target for a rerank operation. Ranking is relative, mirroring drag-and-drop reordering - the reranked order is moved next to the target order.
+ * Exact placement for reranked orders. Supply exactly one of before_id, after_id, or position.
  */
 export type RerankPlace = {
   /**
-   * ID of the order to place the reranked order before. Placement is relative (drag-and-drop) - the order is moved next to this target, landing directly above it when moving up and directly below it when moving down.
+   * ID of the order to place the reranked order after.
    */
-  before_id: number;
+  after_id?: number;
+  /**
+   * Move the reranked orders to the top or bottom of the list.
+   */
+  position?: 'top' | 'bottom';
+  /**
+   * ID of the order to place the reranked orders directly above.
+   */
+  before_id?: number;
 };
 
 /**
@@ -4151,9 +4233,9 @@ export type RerankPlace = {
  */
 export type RerankManufacturingOrderRequest = {
   /**
-   * Manufacturing order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.
+   * Manufacturing orders to rerank, in the desired order. Accepts up to 250 distinct IDs.
    */
-  order_ids: [number];
+  order_ids: Array<number>;
   /**
    * Where to place the reranked order, relative to another manufacturing order
    */
@@ -4165,9 +4247,9 @@ export type RerankManufacturingOrderRequest = {
  */
 export type RerankSalesOrderRequest = {
   /**
-   * Sales order(s) to rerank (the ones that move). Currently exactly one id is supported; the array shape is reserved for future bulk reranking.
+   * Sales orders to rerank, in the desired order. Accepts up to 250 distinct IDs.
    */
-  order_ids: [number];
+  order_ids: Array<number>;
   /**
    * Where to place the reranked order, relative to another sales order
    */
@@ -4701,7 +4783,7 @@ export type CreateMaterialVariantRequest = {
     config_value: string;
   }>;
   /**
-   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
   custom_fields?:
     | {
@@ -4786,7 +4868,7 @@ export type CreateVariantRequest = {
     config_value: string;
   }>;
   /**
-   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
   custom_fields?:
     | {
@@ -4872,18 +4954,23 @@ export type VariantResponse = {
     config_value?: string;
   }> | null;
   /**
-   * Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
-  custom_fields?: Array<{
-    /**
-     * Name of the custom field
-     */
-    field_name?: string;
-    /**
-     * Value stored in the custom field
-     */
-    field_value?: string;
-  }> | null;
+  custom_fields?:
+    | Array<{
+        /**
+         * Name of the custom field
+         */
+        field_name?: string;
+        /**
+         * Value stored in the custom field
+         */
+        field_value?: string;
+      }>
+    | {
+        [key: string]: string | number | boolean | null;
+      }
+    | null;
   /**
    * Details of the parent product or material this variant belongs to
    */
@@ -4949,7 +5036,7 @@ export type UpdateVariantRequest = {
     config_value?: string;
   }>;
   /**
-   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
   custom_fields?:
     | {
@@ -5473,18 +5560,22 @@ export type CreateServiceVariantRequest = {
    */
   default_cost?: number | null;
   /**
-   * Custom field values for this variant
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
-  custom_fields?: Array<{
-    /**
-     * Custom field name
-     */
-    field_name: string;
-    /**
-     * Custom field value
-     */
-    field_value: string;
-  }>;
+  custom_fields?:
+    | Array<{
+        /**
+         * Custom field name
+         */
+        field_name: string;
+        /**
+         * Custom field value
+         */
+        field_value: string;
+      }>
+    | {
+        [key: string]: string | number | boolean | null;
+      };
 };
 
 /**
@@ -5534,7 +5625,7 @@ export type UpdateServiceRequest = {
    */
   custom_field_collection_id?: number | null;
   /**
-   * Custom fields as a UUID-keyed scalar map (when enabled for the account) or the legacy field_name/field_value array. The API rejects nonempty maps on accounts without the object custom-fields feature.
+   * Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.
    */
   custom_fields?:
     | {
@@ -6033,9 +6124,9 @@ export type SalesOrder = BaseEntity & {
    */
   linked_manufacturing_order_id?: number | null;
   /**
-   * Shipping fee details for this sales order
+   * Shipping fee details, null, or an empty object when no fee is set
    */
-  shipping_fee?: SalesOrderShippingFee | null;
+  shipping_fee?: SalesOrderShippingFee | null | {};
   /**
    * Complete address information for billing and shipping
    */
@@ -6147,7 +6238,7 @@ export type SalesOrderRow = {
     /**
      * ID of the batch being allocated
      */
-    batch_id?: number;
+    batch_id?: number | null;
     /**
      * Quantity allocated from this batch
      */
@@ -7546,6 +7637,28 @@ export type StockAdjustmentBatchTransaction = {
 };
 
 /**
+ * Batch, serial, and bin allocation returned in a stock-adjustment response
+ */
+export type StockAdjustmentTraceability = {
+  /**
+   * Batch ID, or null for unallocated stock
+   */
+  batch_id?: number | null;
+  /**
+   * Serial number ID, or null for nonserialized stock
+   */
+  serial_number_id?: number | null;
+  /**
+   * Bin ID, or null when no bin is allocated
+   */
+  bin_location_id?: number | null;
+  /**
+   * Allocated quantity as a decimal string
+   */
+  quantity?: string;
+};
+
+/**
  * Individual line item in a stock adjustment showing specific variant and quantity changes
  */
 export type StockAdjustmentRow = {
@@ -7569,6 +7682,14 @@ export type StockAdjustmentRow = {
    * Optional batch-specific adjustments for tracked inventory
    */
   batch_transactions?: Array<StockAdjustmentBatchTransaction>;
+  /**
+   * Batch, serial, and bin allocations returned for this adjustment row
+   */
+  traceability?: Array<StockAdjustmentTraceability>;
+  /**
+   * Deletion timestamp for this row, or null while active
+   */
+  deleted_at?: string | null;
 };
 
 /**
@@ -7765,7 +7886,7 @@ export type StockTransferRow = {
     /**
      * ID of the batch being transferred
      */
-    batch_id: number;
+    batch_id: number | null;
     /**
      * Quantity from this specific batch
      */
@@ -7859,7 +7980,7 @@ export type SalesOrderFulfillment = {
       /**
        * ID of the batch
        */
-      batch_id?: number;
+      batch_id?: number | null;
       /**
        * Quantity from this batch
        */
@@ -8557,40 +8678,40 @@ export type CustomFieldsCollectionListResponse = {
 export type CustomFieldType = 'shortText' | 'number' | 'singleSelect' | 'date' | 'boolean' | 'url';
 
 /**
- * Resource type a ``CustomFieldDefinition`` applies to. Immutable
- * after creation.
+ * Entity the custom field applies to. Immutable after creation.
+ * - `SalesOrder` / `SalesOrderRow` — the field lives on a sales order, or on one of its rows.
+ * - `ProductVariant` / `MaterialVariant` / `ServiceVariant` — the field lives on an item. In Katana these are the Products, Materials, and Services an item can be. Values are held **per variant**, not on the product / material / service itself: a `ProductVariant` definition is set and read on each of a product's variants, and a product with one variant simply has one place to set it.
+ * - `PurchaseOrder` / `PurchaseOrderRow` / `OutsourcedPurchaseOrder` / `OutsourcedPurchaseOrderRow` — the field lives on a purchase order, standard or outsourced, or on one of its rows.
+ * - `ProductionOperation` — the field lives on a production operation.
+ * - `RecipeBom` — the field lives on a BOM row. The same definitions are used on manufacturing order recipe rows and outsourced purchase order recipe rows.
+ * - `Supplier` — the field lives on a supplier.
+ * - `Customer` — the field lives on a customer.
  *
- * The partner-defined custom-fields surface (``/custom_field_definitions``)
- * is live for **sales orders and sales order rows only**. These are
- * the sole values the API accepts today; creating a definition with
- * any other ``entity_type`` is rejected.
+ * Two groups each share a single pool of definitions, so a definition is accepted beyond the exact entity type it was created with:
+ * - The three variant entity types — a definition created with any one of them is accepted on any variant, whatever kind of item it belongs to.
+ * - Standard and outsourced purchase orders — `PurchaseOrder` and `OutsourcedPurchaseOrder` definitions are both accepted on any purchase order, and likewise `PurchaseOrderRow` / `OutsourcedPurchaseOrderRow` on any purchase order row.
  *
- * Katana has signalled on its roadmap that custom fields will expand
- * to further entities (items / variants, and others). Each new entity
- * type must be added here only once the live API accepts it — keeping
- * this enum honest forces a deliberate spec edit per rollout rather
- * than advertising values that 422.
+ * Katana's own UI still scopes each definition to the item type or kind of order it was created for, so pick the `entity_type` that matches where you want the field to appear.
  *
- * Note: the legacy ``[{field_name, field_value}]`` custom-fields shape
- * on Variant / Product / Material / Service is a **separate** surface
- * (see ``/custom_fields_collections``) and is unrelated to this enum.
- *
+ * The variant entity types, the four purchase order entity types, `Customer`, and `ProductionOperation` are behind feature flags — contact support@katanamrp.com to enable. `ProductionOperation` additionally requires the Advanced Manufacturing or Manufacturing Management add-on.
  */
-export type CustomFieldEntityType = 'SalesOrder' | 'SalesOrderRow';
+export type CustomFieldEntityType =
+  | 'SalesOrder'
+  | 'SalesOrderRow'
+  | 'ProductVariant'
+  | 'MaterialVariant'
+  | 'ServiceVariant'
+  | 'PurchaseOrder'
+  | 'PurchaseOrderRow'
+  | 'OutsourcedPurchaseOrder'
+  | 'OutsourcedPurchaseOrderRow'
+  | 'ProductionOperation'
+  | 'RecipeBom'
+  | 'Supplier'
+  | 'Customer';
 
 /**
- * A partner-defined custom field that callers register once via
- * ``POST /custom_field_definitions`` and then attach values for on a
- * sales order (or sales order row) through that resource's
- * ``custom_fields`` property, keyed by this definition's ``id``
- * (UUID).
- *
- * Scope today: ``entity_type`` is limited to ``SalesOrder`` /
- * ``SalesOrderRow`` (see ``CustomFieldEntityType``). A factory may
- * hold at most **50 definitions**. ``field_type``, ``entity_type``,
- * and ``source`` are **immutable** after creation; only ``label``,
- * ``description``, and ``options`` may be updated.
- *
+ * A custom field definition registered through POST /custom_field_definitions. Values are keyed by its UUID in the entity custom_fields property. See CustomFieldEntityType for supported entities and account feature requirements. A factory may hold at most 50 definitions. field_type, entity_type, and source are immutable; label, description, and options may be updated.
  */
 export type CustomFieldDefinition = {
   /**
@@ -8621,13 +8742,7 @@ export type CustomFieldDefinition = {
    */
   description?: string | null;
   /**
-   * Choice configuration. Present and meaningful only when
-   * ``field_type`` is ``singleSelect``; ``null`` for every other
-   * type. Each choice carries its server-assigned integer ``id``
-   * (the value stored on the entity) and ``label``; soft-deleted
-   * choices remain in the array so historical values stay
-   * resolvable.
-   *
+   * Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies.
    */
   options?: CustomFieldOptions | null;
   /**
@@ -8673,13 +8788,7 @@ export type CreateCustomFieldDefinitionRequest = {
    */
   description?: string | null;
   /**
-   * Choice configuration. Required when ``field_type`` is
-   * ``singleSelect``; omit (or send ``null``) for every other type.
-   * On create, send each choice with just a ``label`` — the server
-   * assigns each one an integer ``id`` and returns the resolved
-   * array. Use those ``id`` values when setting the field on a
-   * sales order.
-   *
+   * Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies. Choices are required for singleSelect; send labels only when creating choices.
    */
   options?: CustomFieldOptionsCreate | null;
 };
@@ -8700,18 +8809,9 @@ export type UpdateCustomFieldDefinitionRequest = {
    */
   description?: string | null;
   /**
-   * Updated choice configuration (``singleSelect`` only). Send the
-   * **full** ``choices`` array — every existing choice must be
-   * included and identified by its server-assigned ``id``. A choice
-   * present in the array without an ``id`` is created. A choice
-   * omitted from the array is removed from the active choices list
-   * (it can no longer be selected), but its past values on existing
-   * records are not resolvable after removal. Use ``"deleted": true``
-   * instead to soft-delete a choice — it stays in the array so
-   * historical values referencing its ``id`` remain resolvable, but
-   * it is no longer offered as a new selection. Choices are never
-   * hard-deleted.
+   * Keys you omit keep their current value, so send only what you are changing. `null` clears the whole object (rejected on a `singleSelect`, which must always keep its choices).
    *
+   * `choices` is only meaningful when the field is a `singleSelect`, and is the exception to the merge rule: send the **full** array, every existing choice included and identified by its server-assigned `id`. Omit a choice and it is removed from history — use `deleted: true` instead to soft-delete it and keep historical values resolvable. New choices are sent without an `id`.
    */
   options?: CustomFieldOptions | null;
 };
@@ -8769,9 +8869,9 @@ export type CustomFieldChoiceCreate = {
 };
 
 /**
- * Choice configuration for a ``singleSelect`` custom field definition,
- * as returned on read and supplied on update.
+ * Keys you omit keep their current value, so send only what you are changing. `null` clears the whole object (rejected on a `singleSelect`, which must always keep its choices).
  *
+ * `choices` is only meaningful when the field is a `singleSelect`, and is the exception to the merge rule: send the **full** array, every existing choice included and identified by its server-assigned `id`. Omit a choice and it is removed from history — use `deleted: true` instead to soft-delete it and keep historical values resolvable. New choices are sent without an `id`.
  */
 export type CustomFieldOptions = {
   /**
@@ -8780,20 +8880,35 @@ export type CustomFieldOptions = {
    * historical values stay resolvable.
    *
    */
-  choices: Array<CustomFieldChoice>;
+  choices?: Array<CustomFieldChoice>;
+  /**
+   * Replaces the current list of transactional entities this variant definition also applies to. Omit to leave it untouched. Removing a target stops the definition being a valid key on that entity, and values already snapshotted onto existing records of that type stop being returned — they are retained and reappear if the target is added back. Same validation as on create — see `POST /custom_field_definitions`.
+   */
+  appearsOn?: Array<
+    'SalesOrderRow' | 'PurchaseOrderRow' | 'OutsourcedPurchaseOrderRow' | 'ManufacturingOrder'
+  >;
 };
 
 /**
- * Choice configuration supplied when creating a ``singleSelect``
- * custom field definition. Each choice carries only a ``label``; the
- * server assigns each one an integer ``id``.
- *
+ * Extra configuration for the definition. `choices` is only meaningful when `field_type` is `singleSelect`; `appearsOn` is only meaningful on a variant definition. Omit (or send `null`) when neither applies.
  */
 export type CustomFieldOptionsCreate = {
   /**
    * The choices to create, each identified by ``label`` only.
    */
-  choices: Array<CustomFieldChoiceCreate>;
+  choices?: Array<CustomFieldChoiceCreate>;
+  /**
+   * Transactional entities this definition additionally applies to, on top of its own `entity_type`. Listing a target makes this definition's id a valid key in that entity's `custom_fields` — nothing is copied, and the target's `custom_fields` accepts its own definitions and linked-in ones alike.
+   *
+   * Only variant definitions (`ProductVariant` / `MaterialVariant` / `ServiceVariant`) may target `SalesOrderRow`, `PurchaseOrderRow`, `OutsourcedPurchaseOrderRow`, and `ManufacturingOrder`; a `ProductionOperation` definition may target `ManufacturingOrder` only. Any other combination, a duplicate entry, or the definition's own `entity_type` is rejected with a 422.
+   *
+   * Separately from this, a row or manufacturing order created against a variant takes a **snapshot** of that variant's current values for the fields that name it in `appearsOn`. The snapshot is editable on the record afterwards and is never re-synced, so later edits to the variant do not reach records that already exist. A value whose definition no longer applies to the entity — the target was dropped from `appearsOn`, or the definition was deleted — is retained but no longer returned on reads of that record.
+   *
+   * Behind a feature flag on the target side too — contact support@katanamrp.com to enable.
+   */
+  appearsOn?: Array<
+    'SalesOrderRow' | 'PurchaseOrderRow' | 'OutsourcedPurchaseOrderRow' | 'ManufacturingOrder'
+  >;
 };
 
 /**
@@ -9581,9 +9696,9 @@ export type OutsourcedPurchaseOrderRecipeRow = {
    */
   ingredient_variant_id: number;
   /**
-   * The planned quantity of this ingredient per unit of production
+   * Quantity per unit: a decimal string on create and a JSON number on read
    */
-  planned_quantity_per_unit: number;
+  planned_quantity_per_unit: string | number;
   /**
    * Current availability status of this ingredient
    */
@@ -9600,7 +9715,7 @@ export type OutsourcedPurchaseOrderRecipeRow = {
    * Batch allocation transactions for this ingredient
    */
   batch_transactions?: Array<{
-    batch_id?: number;
+    batch_id?: number | null;
     quantity?: number;
   }>;
   /**
@@ -9706,9 +9821,12 @@ export type SalesOrderShippingFee = {
    */
   sales_order_id: number;
   /**
-   * Shipping fee amount in the order currency
+   * Shipping fee amount in the order currency. Creation returns a
+   * JSON number; list, detail, and update responses return decimal
+   * strings. Preserve the wire representation in either case.
+   *
    */
-  amount: string;
+  amount: string | number;
   /**
    * ID of the tax rate applied to the shipping fee
    */
@@ -10530,6 +10648,18 @@ export type SalesReturnReason = {
    */
   name: string;
 };
+
+/**
+ * Selects the representation of `custom_fields` on items, for both the request body and the response.
+ *
+ * - `default` — object keyed by custom field definition id (UUID).
+ * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+ *
+ * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+ *
+ * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+ */
+export type CustomFieldsFormat = 'default' | 'legacy';
 
 /**
  * Filters results by an array of IDs.
@@ -12390,7 +12520,11 @@ export type GetAllInventorySignalsData = {
   path?: never;
   query?: {
     /**
-     * Filters signals by valid variant ids. A variant with no demand in the 30-day window has no row, so the response can contain fewer rows than ids requested.
+     * Number of days of demand history used to calculate replenishment signals.
+     */
+    demand_window?: 7 | 30 | 60 | 90;
+    /**
+     * Filters signals by valid variant ids. A variant with no demand in the selected window has no row, so the response can contain fewer rows than ids requested.
      */
     variant_id?: Array<number>;
     /**
@@ -13020,6 +13154,10 @@ export type RerankManufacturingOrderError =
   RerankManufacturingOrderErrors[keyof RerankManufacturingOrderErrors];
 
 export type RerankManufacturingOrderResponses = {
+  /**
+   * Manufacturing orders reranked
+   */
+  200: RerankOrdersResponse;
   /**
    * Manufacturing order reranked successfully
    */
@@ -13919,6 +14057,19 @@ export type UpdateManufacturingOrderRecipeRowsResponse =
 
 export type GetAllMaterialsData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: {
     /**
@@ -14030,6 +14181,19 @@ export type CreateMaterialData = {
    * new material details
    */
   body: CreateMaterialRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: never;
   url: '/materials';
@@ -14109,6 +14273,19 @@ export type DeleteMaterialResponse = DeleteMaterialResponses[keyof DeleteMateria
 
 export type GetMaterialData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -14155,6 +14332,19 @@ export type UpdateMaterialData = {
    * Material details
    */
   body: UpdateMaterialRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -14268,6 +14458,19 @@ export type GetAllNegativeStockResponse =
 
 export type GetAllProductsData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: {
     /**
@@ -14401,6 +14604,19 @@ export type CreateProductData = {
    * new product details
    */
   body: CreateProductRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: never;
   url: '/products';
@@ -14480,6 +14696,19 @@ export type DeleteProductResponse = DeleteProductResponses[keyof DeleteProductRe
 
 export type GetProductData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -14526,6 +14755,19 @@ export type UpdateProductData = {
    * product details
    */
   body: UpdateProductRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -16083,6 +16325,19 @@ export type SearchVariantsData = {
    * Structured search body. See the schema for the field allowlist, operators, and caps.
    */
   body: VariantSearchRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: never;
   url: '/variants/search';
@@ -16124,6 +16379,19 @@ export type SearchVariantsResponse = SearchVariantsResponses[keyof SearchVariant
 
 export type GetAllVariantsData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: {
     /**
@@ -16242,6 +16510,19 @@ export type CreateVariantData = {
    * new variant details
    */
   body: CreateVariantRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: never;
   url: '/variants';
@@ -16321,6 +16602,19 @@ export type DeleteVariantResponse = DeleteVariantResponses[keyof DeleteVariantRe
 
 export type GetVariantData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -16367,6 +16661,19 @@ export type UpdateVariantData = {
    * Variant details
    */
   body: UpdateVariantRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -17732,6 +18039,19 @@ export type GetAllUsersResponse = GetAllUsersResponses[keyof GetAllUsersResponse
 
 export type GetAllServicesData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: {
     /**
@@ -17821,6 +18141,19 @@ export type CreateServiceData = {
    * Service data for creating a new service record
    */
   body: CreateServiceRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path?: never;
   query?: never;
   url: '/services';
@@ -17900,6 +18233,19 @@ export type DeleteServiceResponse = DeleteServiceResponses[keyof DeleteServiceRe
 
 export type GetServiceData = {
   body?: never;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -17945,6 +18291,19 @@ export type UpdateServiceData = {
    * Service data for updating an existing service record
    */
   body: UpdateServiceRequest;
+  headers?: {
+    /**
+     * Selects the representation of `custom_fields` on items, for both the request body and the response.
+     *
+     * - `default` — object keyed by custom field definition id (UUID).
+     * - `legacy` — the `{field_name, field_value}` array tied to custom fields collections.
+     *
+     * Most accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.
+     *
+     * Requesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.
+     */
+    'X-Custom-Fields-Format'?: 'default' | 'legacy';
+  };
   path: {
     /**
      * Resource identifier
@@ -19310,6 +19669,10 @@ export type RerankSalesOrderErrors = {
 export type RerankSalesOrderError = RerankSalesOrderErrors[keyof RerankSalesOrderErrors];
 
 export type RerankSalesOrderResponses = {
+  /**
+   * Sales orders reranked
+   */
+  200: RerankOrdersResponse;
   /**
    * Sales order reranked successfully
    */

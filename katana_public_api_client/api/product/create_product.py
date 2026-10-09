@@ -5,8 +5,11 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.create_product_request import CreateProductRequest
+from ...models.create_product_x_custom_fields_format import (
+    CreateProductXCustomFieldsFormat,
+)
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.product import Product
@@ -15,8 +18,11 @@ from ...models.product import Product
 def _get_kwargs(
     *,
     body: CreateProductRequest,
+    x_custom_fields_format: CreateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -80,12 +86,14 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateProductRequest,
+    x_custom_fields_format: CreateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Product]:
     """Create a product
 
      Creates a product object.
 
     Args:
+        x_custom_fields_format (CreateProductXCustomFieldsFormat | Unset):
         body (CreateProductRequest): Request payload for creating a new finished product with
             variants, configurations, and manufacturing
             specifications
@@ -112,6 +120,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -125,12 +134,14 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateProductRequest,
+    x_custom_fields_format: CreateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Product | None:
     """Create a product
 
      Creates a product object.
 
     Args:
+        x_custom_fields_format (CreateProductXCustomFieldsFormat | Unset):
         body (CreateProductRequest): Request payload for creating a new finished product with
             variants, configurations, and manufacturing
             specifications
@@ -158,6 +169,7 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -165,12 +177,14 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateProductRequest,
+    x_custom_fields_format: CreateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Product]:
     """Create a product
 
      Creates a product object.
 
     Args:
+        x_custom_fields_format (CreateProductXCustomFieldsFormat | Unset):
         body (CreateProductRequest): Request payload for creating a new finished product with
             variants, configurations, and manufacturing
             specifications
@@ -197,6 +211,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -208,12 +223,14 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateProductRequest,
+    x_custom_fields_format: CreateProductXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Product | None:
     """Create a product
 
      Creates a product object.
 
     Args:
+        x_custom_fields_format (CreateProductXCustomFieldsFormat | Unset):
         body (CreateProductRequest): Request payload for creating a new finished product with
             variants, configurations, and manufacturing
             specifications
@@ -242,5 +259,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

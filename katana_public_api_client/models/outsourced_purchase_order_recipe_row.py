@@ -30,7 +30,7 @@ class OutsourcedPurchaseOrderRecipeRow:
     id: int
     purchase_order_row_id: int
     ingredient_variant_id: int
-    planned_quantity_per_unit: float
+    planned_quantity_per_unit: float | str
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | Unset | None = UNSET
@@ -51,6 +51,7 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         ingredient_variant_id = self.ingredient_variant_id
 
+        planned_quantity_per_unit: float | str
         planned_quantity_per_unit = self.planned_quantity_per_unit
 
         created_at: str | Unset = UNSET
@@ -146,7 +147,12 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         ingredient_variant_id = d.pop("ingredient_variant_id")
 
-        planned_quantity_per_unit = d.pop("planned_quantity_per_unit")
+        def _parse_planned_quantity_per_unit(data: object) -> float | str:
+            return cast(float | str, data)
+
+        planned_quantity_per_unit = _parse_planned_quantity_per_unit(
+            d.pop("planned_quantity_per_unit")
+        )
 
         _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset

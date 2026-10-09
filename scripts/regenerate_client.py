@@ -612,7 +612,10 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
 # Eligibility for the empty-dict-as-null post-processor (#509). A ``_parse_*``
 # helper is patched only when both ``None`` and ``Unset`` checks are present —
 # that signals ``None`` is a valid return value. Object alternatives which
-# accept an empty mapping are excluded; their {} must not become null. Multi-variant oneOf parsers (e.g. Material | Product |
+# accept an empty mapping are excluded; their {} must not become null. The
+# shipping_fee helper is the exception: its documented empty object means
+# that no fee is set, and existing clients normalize it to None.
+# Multi-variant oneOf parsers (e.g. Material | Product |
 # Unset) lack the ``None`` check and are correctly skipped.
 _PARSE_HEADER_RE = re.compile(
     r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
@@ -717,10 +720,16 @@ def _insert_empty_dict_normalization(
             r"(\w+)\.from_dict\(\s*(?:cast\(Mapping\[str,\s*Any\],\s*)?data\b",
             body,
         )
+        absent_shipping_fee = (
+            m.group(0).startswith("        def _parse_shipping_fee(")
+            and "SalesOrderShippingFee" in alternatives
+            and "SalesOrderShippingFee" not in (empty_object_classes or set())
+        )
         if (
             alternatives
             and empty_object_classes is not None
             and any(name in empty_object_classes for name in alternatives)
+            and not absent_shipping_fee
         ):
             continue
 

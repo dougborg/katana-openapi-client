@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-14T13:38:42.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all custom field definitions
 
@@ -81,7 +81,17 @@ Returns a list of custom field definitions in the factory, optionally filtered b
               "enum": [
                 "SalesOrder",
                 "SalesOrderRow",
-                "ProductionOperation"
+                "ProductVariant",
+                "MaterialVariant",
+                "ServiceVariant",
+                "PurchaseOrder",
+                "PurchaseOrderRow",
+                "OutsourcedPurchaseOrder",
+                "OutsourcedPurchaseOrderRow",
+                "ProductionOperation",
+                "RecipeBom",
+                "Supplier",
+                "Customer"
               ]
             },
             "in": "query"
@@ -231,6 +241,22 @@ Returns a list of custom field definitions in the factory, optionally filtered b
                       "options": null,
                       "created_at": "2026-05-14T10:05:00.000Z",
                       "updated_at": "2026-05-14T10:05:00.000Z",
+                      "deleted_at": null
+                    },
+                    {
+                      "id": "a1b2c3d4-1111-2222-3333-444455556666",
+                      "label": "Country of origin",
+                      "description": null,
+                      "field_type": "shortText",
+                      "entity_type": "ProductVariant",
+                      "source": "your-integration",
+                      "options": {
+                        "appearsOn": [
+                          "SalesOrderRow"
+                        ]
+                      },
+                      "created_at": "2026-05-14T10:10:00.000Z",
+                      "updated_at": "2026-05-14T10:10:00.000Z",
                       "deleted_at": null
                     }
                   ]

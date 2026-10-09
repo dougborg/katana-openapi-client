@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -11,6 +12,7 @@ if TYPE_CHECKING:
     from ..models.stock_adjustment_batch_transaction import (
         StockAdjustmentBatchTransaction,
     )
+    from ..models.stock_adjustment_traceability import StockAdjustmentTraceability
 
 
 T = TypeVar("T", bound="StockAdjustmentRow")
@@ -30,6 +32,8 @@ class StockAdjustmentRow:
     id: int | Unset = UNSET
     cost_per_unit: float | Unset = UNSET
     batch_transactions: list[StockAdjustmentBatchTransaction] | Unset = UNSET
+    traceability: list[StockAdjustmentTraceability] | Unset = UNSET
+    deleted_at: datetime.datetime | Unset | None = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id
@@ -47,6 +51,21 @@ class StockAdjustmentRow:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
+        traceability: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.traceability, Unset):
+            traceability = []
+            for traceability_item_data in self.traceability:
+                traceability_item = traceability_item_data.to_dict()
+                traceability.append(traceability_item)
+
+        deleted_at: str | Unset | None
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -61,6 +80,10 @@ class StockAdjustmentRow:
             field_dict["cost_per_unit"] = cost_per_unit
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
+        if traceability is not UNSET:
+            field_dict["traceability"] = traceability
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
@@ -68,6 +91,9 @@ class StockAdjustmentRow:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.stock_adjustment_batch_transaction import (
             StockAdjustmentBatchTransaction,
+        )
+        from ..models.stock_adjustment_traceability import (
+            StockAdjustmentTraceability,
         )
 
         d = dict(src_dict)
@@ -90,12 +116,42 @@ class StockAdjustmentRow:
 
                 batch_transactions.append(batch_transactions_item)
 
+        _traceability = d.pop("traceability", UNSET)
+        traceability: list[StockAdjustmentTraceability] | Unset = UNSET
+        if _traceability is not UNSET:
+            traceability = []
+            for traceability_item_data in _traceability:
+                traceability_item = StockAdjustmentTraceability.from_dict(
+                    cast(Mapping[str, Any], traceability_item_data)
+                )
+
+                traceability.append(traceability_item)
+
+        def _parse_deleted_at(data: object) -> datetime.datetime | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = datetime.datetime.fromisoformat(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | Unset | None, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         stock_adjustment_row = cls(
             variant_id=variant_id,
             quantity=quantity,
             id=id,
             cost_per_unit=cost_per_unit,
             batch_transactions=batch_transactions,
+            traceability=traceability,
+            deleted_at=deleted_at,
         )
 
         return stock_adjustment_row

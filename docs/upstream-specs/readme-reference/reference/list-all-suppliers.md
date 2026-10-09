@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # List all suppliers
 
@@ -210,6 +210,10 @@ Returns a list of suppliers you’ve previously created. The suppliers are retur
                       "phone": "123456",
                       "comment": "Luke Skywalker was a Tatooine farmboy who rose from humble beginnings to become one of the\n              greatest Jedi the galaxy has ever known.",
                       "currency": "UAH",
+                      "custom_fields": {
+                        "2fa40b67-e0f1-46be-84b2-6441f2c976c3": "Net 30",
+                        "b6c0cbb5-6ba0-4f6e-a6f4-2b6c3f4a57ea": 14
+                      },
                       "created_at": "2020-10-23T10:37:05.085Z",
                       "updated_at": "2020-10-23T10:37:05.085Z",
                       "deleted_at": null,

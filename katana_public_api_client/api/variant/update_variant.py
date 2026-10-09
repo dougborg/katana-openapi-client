@@ -6,10 +6,13 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
+from ...client_types import UNSET, Response, Unset
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.update_variant_request import UpdateVariantRequest
+from ...models.update_variant_x_custom_fields_format import (
+    UpdateVariantXCustomFieldsFormat,
+)
 from ...models.variant import Variant
 
 
@@ -17,8 +20,11 @@ def _get_kwargs(
     id: int,
     *,
     body: UpdateVariantRequest,
+    x_custom_fields_format: UpdateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(x_custom_fields_format, Unset):
+        headers["X-Custom-Fields-Format"] = str(x_custom_fields_format)
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
@@ -85,6 +91,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
+    x_custom_fields_format: UpdateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Update a variant
 
@@ -93,6 +100,7 @@ def sync_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateVariantXCustomFieldsFormat | Unset):
         body (UpdateVariantRequest): Request payload for updating product variant details
             including pricing, configuration, and inventory information.
             Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
@@ -116,6 +124,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = client.get_httpx_client().request(
@@ -130,6 +139,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
+    x_custom_fields_format: UpdateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Update a variant
 
@@ -138,6 +148,7 @@ def sync(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateVariantXCustomFieldsFormat | Unset):
         body (UpdateVariantRequest): Request payload for updating product variant details
             including pricing, configuration, and inventory information.
             Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
@@ -162,6 +173,7 @@ def sync(
         id=id,
         client=client,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     ).parsed
 
 
@@ -170,6 +182,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
+    x_custom_fields_format: UpdateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Update a variant
 
@@ -178,6 +191,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateVariantXCustomFieldsFormat | Unset):
         body (UpdateVariantRequest): Request payload for updating product variant details
             including pricing, configuration, and inventory information.
             Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
@@ -201,6 +215,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         body=body,
+        x_custom_fields_format=x_custom_fields_format,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -213,6 +228,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
+    x_custom_fields_format: UpdateVariantXCustomFieldsFormat | Unset = UNSET,
 ) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Update a variant
 
@@ -221,6 +237,7 @@ async def asyncio(
 
     Args:
         id (int):
+        x_custom_fields_format (UpdateVariantXCustomFieldsFormat | Unset):
         body (UpdateVariantRequest): Request payload for updating product variant details
             including pricing, configuration, and inventory information.
             Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
@@ -246,5 +263,6 @@ async def asyncio(
             id=id,
             client=client,
             body=body,
+            x_custom_fields_format=x_custom_fields_format,
         )
     ).parsed

@@ -185,7 +185,7 @@ class KatanaVariant(KatanaBaseModel):
         default_factory=list,
         description="Configuration attributes (e.g., size, color)",
     )
-    custom_fields: list[dict[str, str]] = Field(
+    custom_fields: list[dict[str, str]] | dict[str, str | float | bool | None] = Field(
         default_factory=list, description="Custom field values"
     )
 
@@ -231,8 +231,10 @@ class KatanaVariant(KatanaBaseModel):
                 )
 
         # Convert custom fields to simple dicts
-        custom: list[dict[str, str]] = []
-        if generated.custom_fields:
+        custom: list[dict[str, str]] | dict[str, str | float | bool | None] = []
+        if isinstance(generated.custom_fields, dict):
+            custom = dict(generated.custom_fields)
+        elif generated.custom_fields:
             for field in generated.custom_fields:
                 custom.append(
                     {
@@ -444,11 +446,11 @@ class KatanaVariant(KatanaBaseModel):
             "Updated At": self.updated_at.isoformat() if self.updated_at else "",
         }
 
-    def get_custom_field(self, field_name: str) -> str | None:
-        """Get value of a custom field by name.
+    def get_custom_field(self, field_name: str) -> str | float | bool | None:
+        """Get a custom field by its legacy name or definition UUID.
 
         Args:
-            field_name: Name of the custom field
+            field_name: Legacy field name, or definition UUID for object-form fields
 
         Returns:
             Field value or None if not found
@@ -466,6 +468,8 @@ class KatanaVariant(KatanaBaseModel):
             print(variant.get_custom_field("Missing"))  # None
             ```
         """
+        if isinstance(self.custom_fields, dict):
+            return self.custom_fields.get(field_name)
         for field in self.custom_fields:
             if field.get("field_name") == field_name:
                 return field.get("field_value")

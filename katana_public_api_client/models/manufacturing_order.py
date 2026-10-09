@@ -66,12 +66,12 @@ class ManufacturingOrder:
     total_cost: float | Unset = UNSET
     total_actual_time: float | Unset = UNSET
     total_planned_time: float | Unset = UNSET
-    sales_order_id: int | Unset = UNSET
-    sales_order_row_id: int | Unset = UNSET
+    sales_order_id: int | Unset | None = UNSET
+    sales_order_row_id: int | Unset | None = UNSET
     sales_order_delivery_deadline: datetime.datetime | Unset | None = UNSET
-    material_cost: float | Unset = UNSET
-    subassemblies_cost: float | Unset = UNSET
-    operations_cost: float | Unset = UNSET
+    material_cost: float | Unset | None = UNSET
+    subassemblies_cost: float | Unset | None = UNSET
+    operations_cost: float | Unset | None = UNSET
     serial_numbers: list[SerialNumber] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -171,9 +171,17 @@ class ManufacturingOrder:
 
         total_planned_time = self.total_planned_time
 
-        sales_order_id = self.sales_order_id
+        sales_order_id: int | Unset | None
+        if isinstance(self.sales_order_id, Unset):
+            sales_order_id = UNSET
+        else:
+            sales_order_id = self.sales_order_id
 
-        sales_order_row_id = self.sales_order_row_id
+        sales_order_row_id: int | Unset | None
+        if isinstance(self.sales_order_row_id, Unset):
+            sales_order_row_id = UNSET
+        else:
+            sales_order_row_id = self.sales_order_row_id
 
         sales_order_delivery_deadline: str | Unset | None
         if isinstance(self.sales_order_delivery_deadline, Unset):
@@ -185,11 +193,23 @@ class ManufacturingOrder:
         else:
             sales_order_delivery_deadline = self.sales_order_delivery_deadline
 
-        material_cost = self.material_cost
+        material_cost: float | Unset | None
+        if isinstance(self.material_cost, Unset):
+            material_cost = UNSET
+        else:
+            material_cost = self.material_cost
 
-        subassemblies_cost = self.subassemblies_cost
+        subassemblies_cost: float | Unset | None
+        if isinstance(self.subassemblies_cost, Unset):
+            subassemblies_cost = UNSET
+        else:
+            subassemblies_cost = self.subassemblies_cost
 
-        operations_cost = self.operations_cost
+        operations_cost: float | Unset | None
+        if isinstance(self.operations_cost, Unset):
+            operations_cost = UNSET
+        else:
+            operations_cost = self.operations_cost
 
         serial_numbers: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.serial_numbers, Unset):
@@ -440,9 +460,25 @@ class ManufacturingOrder:
 
         total_planned_time = d.pop("total_planned_time", UNSET)
 
-        sales_order_id = d.pop("sales_order_id", UNSET)
+        def _parse_sales_order_id(data: object) -> int | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | Unset | None, data)
 
-        sales_order_row_id = d.pop("sales_order_row_id", UNSET)
+        sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
+
+        def _parse_sales_order_row_id(data: object) -> int | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | Unset | None, data)
+
+        sales_order_row_id = _parse_sales_order_row_id(
+            d.pop("sales_order_row_id", UNSET)
+        )
 
         def _parse_sales_order_delivery_deadline(
             data: object,
@@ -467,11 +503,34 @@ class ManufacturingOrder:
             d.pop("sales_order_delivery_deadline", UNSET)
         )
 
-        material_cost = d.pop("material_cost", UNSET)
+        def _parse_material_cost(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
 
-        subassemblies_cost = d.pop("subassemblies_cost", UNSET)
+        material_cost = _parse_material_cost(d.pop("material_cost", UNSET))
 
-        operations_cost = d.pop("operations_cost", UNSET)
+        def _parse_subassemblies_cost(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
+
+        subassemblies_cost = _parse_subassemblies_cost(
+            d.pop("subassemblies_cost", UNSET)
+        )
+
+        def _parse_operations_cost(data: object) -> float | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | Unset | None, data)
+
+        operations_cost = _parse_operations_cost(d.pop("operations_cost", UNSET))
 
         _serial_numbers = d.pop("serial_numbers", UNSET)
         serial_numbers: list[SerialNumber] | Unset = UNSET

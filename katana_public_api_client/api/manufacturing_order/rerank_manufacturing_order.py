@@ -9,6 +9,7 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.rerank_manufacturing_order_request import RerankManufacturingOrderRequest
+from ...models.rerank_orders_response import RerankOrdersResponse
 
 
 def _get_kwargs(
@@ -32,7 +33,12 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse | None:
+    if response.status_code == 200:
+        response_200 = RerankOrdersResponse.from_dict(response.json())
+
+        return response_200
+
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -70,7 +76,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,19 +89,36 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: RerankManufacturingOrderRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]:
     """Change a manufacturing order's rank
 
-     Repositions a manufacturing order in the production schedule relative to another manufacturing
-    order.
+     Moves one or more manufacturing orders to an exact place in the production schedule.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at
+    the place set in `place`. The first id ends up highest in the schedule. All other manufacturing
+    orders keep their order relative to each other.
 
-    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
-    order, all
-    related manufacturing orders are repositioned together.
+    `before_id` places them directly above that manufacturing order, and `after_id` directly below it.
+    Sending the same request again changes nothing, so a request can be retried safely.
+
+    Only open manufacturing orders can be reranked.
+
+    Manufacturing orders linked to the same sales order always stay together. Listing one of them moves
+    all of them, placed where the first of them is listed and keeping their order among themselves, and
+    the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id`
+    is a manufacturing order linked to a sales order, the orders are placed above or below all
+    manufacturing orders of that sales order.
+
+    To rerank more than 250 manufacturing orders, send them in batches: the first batch with
+    `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the
+    previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the
+    same batch.
+
+    Manufacturing order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the manufacturing orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or
+    is linked to the same sales order as one of them.
 
     Args:
         body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
@@ -108,7 +131,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]
     """
 
     kwargs = _get_kwargs(
@@ -126,19 +149,36 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: RerankManufacturingOrderRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse | None:
     """Change a manufacturing order's rank
 
-     Repositions a manufacturing order in the production schedule relative to another manufacturing
-    order.
+     Moves one or more manufacturing orders to an exact place in the production schedule.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at
+    the place set in `place`. The first id ends up highest in the schedule. All other manufacturing
+    orders keep their order relative to each other.
 
-    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
-    order, all
-    related manufacturing orders are repositioned together.
+    `before_id` places them directly above that manufacturing order, and `after_id` directly below it.
+    Sending the same request again changes nothing, so a request can be retried safely.
+
+    Only open manufacturing orders can be reranked.
+
+    Manufacturing orders linked to the same sales order always stay together. Listing one of them moves
+    all of them, placed where the first of them is listed and keeping their order among themselves, and
+    the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id`
+    is a manufacturing order linked to a sales order, the orders are placed above or below all
+    manufacturing orders of that sales order.
+
+    To rerank more than 250 manufacturing orders, send them in batches: the first batch with
+    `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the
+    previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the
+    same batch.
+
+    Manufacturing order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the manufacturing orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or
+    is linked to the same sales order as one of them.
 
     Args:
         body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
@@ -151,7 +191,7 @@ def sync(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse
     """
 
     return sync_detailed(
@@ -164,19 +204,36 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: RerankManufacturingOrderRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]:
     """Change a manufacturing order's rank
 
-     Repositions a manufacturing order in the production schedule relative to another manufacturing
-    order.
+     Moves one or more manufacturing orders to an exact place in the production schedule.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at
+    the place set in `place`. The first id ends up highest in the schedule. All other manufacturing
+    orders keep their order relative to each other.
 
-    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
-    order, all
-    related manufacturing orders are repositioned together.
+    `before_id` places them directly above that manufacturing order, and `after_id` directly below it.
+    Sending the same request again changes nothing, so a request can be retried safely.
+
+    Only open manufacturing orders can be reranked.
+
+    Manufacturing orders linked to the same sales order always stay together. Listing one of them moves
+    all of them, placed where the first of them is listed and keeping their order among themselves, and
+    the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id`
+    is a manufacturing order linked to a sales order, the orders are placed above or below all
+    manufacturing orders of that sales order.
+
+    To rerank more than 250 manufacturing orders, send them in batches: the first batch with
+    `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the
+    previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the
+    same batch.
+
+    Manufacturing order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the manufacturing orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or
+    is linked to the same sales order as one of them.
 
     Args:
         body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
@@ -189,7 +246,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse]
     """
 
     kwargs = _get_kwargs(
@@ -205,19 +262,36 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: RerankManufacturingOrderRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse | None:
     """Change a manufacturing order's rank
 
-     Repositions a manufacturing order in the production schedule relative to another manufacturing
-    order.
+     Moves one or more manufacturing orders to an exact place in the production schedule.
 
-    Ranking is relative, mirroring drag-and-drop reordering: the reranked order is placed next to the
-    target
-    order.
+    The manufacturing orders in `order_ids` are placed as one consecutive block, in the order given, at
+    the place set in `place`. The first id ends up highest in the schedule. All other manufacturing
+    orders keep their order relative to each other.
 
-    Only open manufacturing orders can be reranked. When a manufacturing order is linked to a sales
-    order, all
-    related manufacturing orders are repositioned together.
+    `before_id` places them directly above that manufacturing order, and `after_id` directly below it.
+    Sending the same request again changes nothing, so a request can be retried safely.
+
+    Only open manufacturing orders can be reranked.
+
+    Manufacturing orders linked to the same sales order always stay together. Listing one of them moves
+    all of them, placed where the first of them is listed and keeping their order among themselves, and
+    the response includes all of them, so it can list more than 250 ids. When `before_id` or `after_id`
+    is a manufacturing order linked to a sales order, the orders are placed above or below all
+    manufacturing orders of that sales order.
+
+    To rerank more than 250 manufacturing orders, send them in batches: the first batch with
+    `place.position` set to `top`, each next batch with `place.after_id` set to the last id in the
+    previous response's `order_ids`. Keep manufacturing orders linked to the same sales order in the
+    same batch.
+
+    Manufacturing order lists show the new order shortly after the request returns.
+
+    The request returns 422 when any of the manufacturing orders, including the one in `before_id` or
+    `after_id`, doesn't exist or is not open, or when `before_id` or `after_id` is one of `order_ids` or
+    is linked to the same sales order as one of them.
 
     Args:
         body (RerankManufacturingOrderRequest): Request payload for repositioning a manufacturing
@@ -230,7 +304,7 @@ async def asyncio(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        Any | DetailedErrorResponse | ErrorResponse | RerankOrdersResponse
     """
 
     return (

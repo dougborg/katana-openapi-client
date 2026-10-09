@@ -1,8 +1,8 @@
 ---
 updatedAt: 2026-05-29T09:20:09.000Z
+agentTools:
+  projectIndex: https://developer.katanamrp.com/llms.txt
 ---
-
-Fetch the complete documentation index at: https://developer.katanamrp.com/llms.txt. Use this file to discover all available pages before exploring further. Append .md to any documentation page URL to get its markdown version.
 
 # Create a material
 
@@ -45,6 +45,21 @@ Creates a material object.
         ],
         "description": "Creates a material object.",
         "operationId": "createMaterial",
+        "parameters": [
+          {
+            "name": "X-Custom-Fields-Format",
+            "required": false,
+            "in": "header",
+            "description": "Selects the representation of `custom_fields` on items, for both the request body and the response.\n\n- `default` — object keyed by custom field definition id (UUID).\n- `legacy` — the `{field_name, field_value}` array tied to custom fields collections.\n\nMost accounts do not need this header: an account that has not moved to item custom fields always gets `legacy`, and an account that has moved and no longer uses collections always gets the object representation. The header matters only while both are available for the account, where `legacy` is the default and `default` opts into the object representation.\n\nRequesting a representation the account does not have returns 422, as does sending a `custom_fields` body whose shape does not match the representation in force, mixing both shapes in one request, or combining `custom_field_collection_id` with the object representation — that field belongs to the legacy representation and is left out of responses entirely under the object one. Responses vary on this header.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "default",
+                "legacy"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "description": "new material details",
           "required": true,
@@ -115,7 +130,8 @@ Creates a material object.
                   "custom_field_collection_id": {
                     "type": "integer",
                     "maximum": 2147483647,
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Custom fields collection the item draws its legacy `{field_name, field_value}` custom fields from. Belongs to the legacy representation only — sending it together with object-form `custom_fields` is rejected with a 422. See the `X-Custom-Fields-Format` header."
                   },
                   "variants": {
                     "type": "array",
@@ -184,26 +200,50 @@ Creates a material object.
                           }
                         },
                         "custom_fields": {
-                          "type": "array",
-                          "maxItems": 3,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "field_name",
-                              "field_value"
-                            ],
-                            "properties": {
-                              "field_name": {
-                                "maxLength": 40,
-                                "type": "string"
-                              },
-                              "field_value": {
-                                "maxLength": 100,
-                                "type": "string"
+                          "description": "Custom field values on the variant. Served in one of two representations depending on the account — the legacy `{field_name, field_value}` array, or an object keyed by custom field definition id. See the `X-Custom-Fields-Format` header for how the representation is chosen, and note that a single request must not mix the two.",
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "description": "Object representation. Custom field values keyed by custom field definition id (UUID) of a definition whose `entity_type` is `ProductVariant`, `MaterialVariant`, or `ServiceVariant`. Each value matches the definition’s `field_type` — string for `shortText` / `url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Send `null` to clear a single value. Keys that are not a UUID, and UUIDs with no matching definition, are rejected with a 422.",
+                              "additionalProperties": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "type": "array",
+                              "maxItems": 3,
+                              "description": "Legacy representation. Up to three name/value pairs, drawn from the custom fields collection assigned to the item. Superseded by the object representation.",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "field_name",
+                                  "field_value"
+                                ],
+                                "properties": {
+                                  "field_name": {
+                                    "maxLength": 40,
+                                    "type": "string"
+                                  },
+                                  "field_value": {
+                                    "maxLength": 100,
+                                    "type": "string"
+                                  }
+                                }
                               }
                             }
-                          }
+                          ]
                         }
                       }
                     }
@@ -238,63 +278,125 @@ Creates a material object.
             },
             "content": {
               "application/json": {
-                "example": {
-                  "id": 1,
-                  "name": "Kyber Crystal",
-                  "uom": "pcs",
-                  "category_name": "Lightsaber components",
-                  "default_supplier_id": 1,
-                  "type": "material",
-                  "purchase_uom": "pcs",
-                  "purchase_uom_conversion_rate": 1,
-                  "batch_tracked": false,
-                  "is_sellable": false,
-                  "variants": [
-                    {
+                "examples": {
+                  "legacyCustomFields": {
+                    "summary": "Legacy custom fields representation",
+                    "value": {
                       "id": 1,
-                      "sku": "KC",
-                      "sales_price": null,
-                      "product_id": 1,
-                      "purchase_price": 45,
+                      "name": "Kyber Crystal",
+                      "uom": "pcs",
+                      "category_name": "Lightsaber components",
+                      "default_supplier_id": 1,
                       "type": "material",
+                      "purchase_uom": "pcs",
+                      "purchase_uom_conversion_rate": 1,
+                      "batch_tracked": false,
+                      "is_sellable": false,
+                      "variants": [
+                        {
+                          "id": 1,
+                          "sku": "KC",
+                          "sales_price": null,
+                          "product_id": 1,
+                          "purchase_price": 45,
+                          "type": "material",
+                          "created_at": "2020-10-23T10:37:05.085Z",
+                          "updated_at": "2020-10-23T10:37:05.085Z",
+                          "lead_time": 1,
+                          "minimum_order_quantity": 3,
+                          "config_attributes": [
+                            {
+                              "config_name": "Type",
+                              "config_value": "Standard"
+                            }
+                          ],
+                          "internal_barcode": "internalcode",
+                          "registered_barcode": "registeredcode",
+                          "supplier_item_codes": [
+                            "code"
+                          ],
+                          "custom_fields": [
+                            {
+                              "field_name": "Power level",
+                              "field_value": "Strong"
+                            }
+                          ]
+                        }
+                      ],
+                      "configs": [
+                        {
+                          "id": 1,
+                          "name": "Type",
+                          "values": [
+                            "Standard",
+                            "Double-bladed"
+                          ],
+                          "product_id": 1
+                        }
+                      ],
+                      "additional_info": "additional info",
+                      "custom_field_collection_id": 1,
                       "created_at": "2020-10-23T10:37:05.085Z",
-                      "updated_at": "2020-10-23T10:37:05.085Z",
-                      "lead_time": 1,
-                      "minimum_order_quantity": 3,
-                      "config_attributes": [
-                        {
-                          "config_name": "Type",
-                          "config_value": "Standard"
-                        }
-                      ],
-                      "internal_barcode": "internalcode",
-                      "registered_barcode": "registeredcode",
-                      "supplier_item_codes": [
-                        "code"
-                      ],
-                      "custom_fields": [
-                        {
-                          "field_name": "Power level",
-                          "field_value": "Strong"
-                        }
-                      ]
+                      "updated_at": "2020-10-23T10:37:05.085Z"
                     }
-                  ],
-                  "configs": [
-                    {
+                  },
+                  "objectCustomFields": {
+                    "summary": "Object custom fields representation",
+                    "value": {
                       "id": 1,
-                      "name": "Type",
-                      "values": [
-                        "Standard",
-                        "Double-bladed"
+                      "name": "Kyber Crystal",
+                      "uom": "pcs",
+                      "category_name": "Lightsaber components",
+                      "default_supplier_id": 1,
+                      "type": "material",
+                      "purchase_uom": "pcs",
+                      "purchase_uom_conversion_rate": 1,
+                      "batch_tracked": false,
+                      "is_sellable": false,
+                      "variants": [
+                        {
+                          "id": 1,
+                          "sku": "KC",
+                          "sales_price": null,
+                          "product_id": 1,
+                          "purchase_price": 45,
+                          "type": "material",
+                          "created_at": "2020-10-23T10:37:05.085Z",
+                          "updated_at": "2020-10-23T10:37:05.085Z",
+                          "lead_time": 1,
+                          "minimum_order_quantity": 3,
+                          "config_attributes": [
+                            {
+                              "config_name": "Type",
+                              "config_value": "Standard"
+                            }
+                          ],
+                          "internal_barcode": "internalcode",
+                          "registered_barcode": "registeredcode",
+                          "supplier_item_codes": [
+                            "code"
+                          ],
+                          "custom_fields": {
+                            "a1b2c3d4-1111-2222-3333-444455556666": "Strong"
+                          }
+                        }
                       ],
-                      "product_id": 1
+                      "configs": [
+                        {
+                          "id": 1,
+                          "name": "Type",
+                          "values": [
+                            "Standard",
+                            "Double-bladed"
+                          ],
+                          "product_id": 1
+                        }
+                      ],
+                      "additional_info": "additional info",
+                      "created_at": "2020-10-23T10:37:05.085Z",
+                      "updated_at": "2020-10-23T10:37:05.085Z"
                     }
-                  ],
-                  "additional_info": "additional info",
-                  "custom_field_collection_id": 1,
-                  "created_at": "2020-10-23T10:37:05.085Z",
-                  "updated_at": "2020-10-23T10:37:05.085Z"
+                  }
                 }
               }
             }

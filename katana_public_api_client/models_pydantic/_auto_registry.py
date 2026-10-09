@@ -508,6 +508,9 @@ from katana_public_api_client.models.purchase_order_list_response import (
 from katana_public_api_client.models.purchase_order_receive_row import (
     PurchaseOrderReceiveRow as AttrsPurchaseOrderReceiveRow,
 )
+from katana_public_api_client.models.purchase_order_receive_traceability import (
+    PurchaseOrderReceiveTraceability as AttrsPurchaseOrderReceiveTraceability,
+)
 from katana_public_api_client.models.purchase_order_row import (
     PurchaseOrderRow as AttrsPurchaseOrderRow,
 )
@@ -535,6 +538,9 @@ from katana_public_api_client.models.required_validation_error import (
 )
 from katana_public_api_client.models.rerank_manufacturing_order_request import (
     RerankManufacturingOrderRequest as AttrsRerankManufacturingOrderRequest,
+)
+from katana_public_api_client.models.rerank_orders_response import (
+    RerankOrdersResponse as AttrsRerankOrdersResponse,
 )
 from katana_public_api_client.models.rerank_place import RerankPlace as AttrsRerankPlace
 from katana_public_api_client.models.rerank_sales_order_request import (
@@ -641,6 +647,9 @@ from katana_public_api_client.models.stock_adjustment_list_response import (
 )
 from katana_public_api_client.models.stock_adjustment_row import (
     StockAdjustmentRow as AttrsStockAdjustmentRow,
+)
+from katana_public_api_client.models.stock_adjustment_traceability import (
+    StockAdjustmentTraceability as AttrsStockAdjustmentTraceability,
 )
 from katana_public_api_client.models.stock_transfer import (
     StockTransfer as AttrsStockTransfer,
@@ -925,6 +934,7 @@ from ._generated.common import (
     ProductOperationRow as PydanticProductOperationRow,
     ProductOperationRowListResponse as PydanticProductOperationRowListResponse,
     RerankManufacturingOrderRequest as PydanticRerankManufacturingOrderRequest,
+    RerankOrdersResponse as PydanticRerankOrdersResponse,
     RerankPlace as PydanticRerankPlace,
     RerankSalesOrderRequest as PydanticRerankSalesOrderRequest,
     SearchComparator as PydanticSearchComparator,
@@ -1094,6 +1104,7 @@ from ._generated.purchase_orders import (
     PurchaseOrderBase as PydanticPurchaseOrderBase,
     PurchaseOrderListResponse as PydanticPurchaseOrderListResponse,
     PurchaseOrderReceiveRow as PydanticPurchaseOrderReceiveRow,
+    PurchaseOrderReceiveTraceability as PydanticPurchaseOrderReceiveTraceability,
     PurchaseOrderRow as PydanticPurchaseOrderRow,
     PurchaseOrderRowListResponse as PydanticPurchaseOrderRowListResponse,
     PurchaseOrderRowRequest as PydanticPurchaseOrderRowRequest,
@@ -1173,6 +1184,7 @@ from ._generated.stock import (
     StockAdjustmentBatchTransaction as PydanticStockAdjustmentBatchTransaction,
     StockAdjustmentListResponse as PydanticStockAdjustmentListResponse,
     StockAdjustmentRow as PydanticStockAdjustmentRow,
+    StockAdjustmentTraceability as PydanticStockAdjustmentTraceability,
     Stocktake as PydanticStocktake,
     StocktakeListResponse as PydanticStocktakeListResponse,
     StocktakeRow as PydanticStocktakeRow,
@@ -1497,6 +1509,9 @@ def register_all_models() -> None:
     register(AttrsPurchaseOrderBase, PydanticPurchaseOrderBase)
     register(AttrsPurchaseOrderListResponse, PydanticPurchaseOrderListResponse)
     register(AttrsPurchaseOrderReceiveRow, PydanticPurchaseOrderReceiveRow)
+    register(
+        AttrsPurchaseOrderReceiveTraceability, PydanticPurchaseOrderReceiveTraceability
+    )
     register(AttrsPurchaseOrderRow, PydanticPurchaseOrderRow)
     register(AttrsPurchaseOrderRowListResponse, PydanticPurchaseOrderRowListResponse)
     register(AttrsPurchaseOrderRowRequest, PydanticPurchaseOrderRowRequest)
@@ -1509,6 +1524,7 @@ def register_all_models() -> None:
     register(
         AttrsRerankManufacturingOrderRequest, PydanticRerankManufacturingOrderRequest
     )
+    register(AttrsRerankOrdersResponse, PydanticRerankOrdersResponse)
     register(AttrsRerankPlace, PydanticRerankPlace)
     register(AttrsRerankSalesOrderRequest, PydanticRerankSalesOrderRequest)
     register(AttrsReturnableItem, PydanticReturnableItem)
@@ -1563,6 +1579,7 @@ def register_all_models() -> None:
     )
     register(AttrsStockAdjustmentListResponse, PydanticStockAdjustmentListResponse)
     register(AttrsStockAdjustmentRow, PydanticStockAdjustmentRow)
+    register(AttrsStockAdjustmentTraceability, PydanticStockAdjustmentTraceability)
     register(AttrsStockTransfer, PydanticStockTransfer)
     register(AttrsStockTransferListResponse, PydanticStockTransferListResponse)
     register(AttrsStockTransferRow, PydanticStockTransferRow)
