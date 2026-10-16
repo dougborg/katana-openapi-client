@@ -6,7 +6,13 @@ from pathlib import Path
 
 import httpx
 import pytest
-from scripts.live_contracts import catalog, scenarios, spec, validate_sample
+from scripts.live_contracts import (
+    catalog,
+    detail_fixtures,
+    scenarios,
+    spec,
+    validate_sample,
+)
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.testing_artifacts import live_test_artifacts
@@ -40,6 +46,27 @@ def test_both_clients_share_all_eight_core_write_scenarios():
         assert (f"{path}/{{id}}", "delete") in operations
 
 
+def test_owned_fixtures_cover_all_fourteen_missing_detail_paths():
+    module_spec = importlib.util.spec_from_file_location(
+        "shared_sdk_contracts_live",
+        Path(__file__).parent / "integration/test_shared_sdk_contracts_live.py",
+    )
+    assert module_spec is not None and module_spec.loader is not None
+    live = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(live)
+    details = detail_fixtures()
+    assert len(live.OWNED_DETAILS) == 14
+    assert {op["path"] for op in live.READS} | live.OWNED_DETAILS == {
+        op["path"] for op in catalog() if op["method"] == "get"
+    }
+    operations = {(op["path"], op["method"]) for op in catalog()}
+    for definition in details["resources"].values():
+        method = definition.get("method", "post")
+        assert (definition["path"], method) in operations
+        if method == "post":
+            assert (definition["path"] + "/{id}", "delete") in operations
+
+
 def test_validator_fails_on_wire_drift_without_printing_tenant_values():
     validate_sample("/locations", "get", 200, {"data": []})
     secret_value = "tenant-value-that-must-not-appear"
@@ -58,8 +85,9 @@ def test_validator_checks_delete_contract_and_empty_body():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure", ["parser", "validator"])
+@pytest.mark.parametrize("bulk", [False, True])
 async def test_create_is_recorded_before_parser_or_validator_failure(
-    tmp_path, monkeypatch, failure
+    tmp_path, monkeypatch, failure, bulk
 ):
     module_spec = importlib.util.spec_from_file_location(
         "shared_sdk_contracts_live",
@@ -75,11 +103,23 @@ async def test_create_is_recorded_before_parser_or_validator_failure(
         if request.method == "DELETE":
             deleted.append(request.url.path)
             return httpx.Response(204)
-        body = (
-            {"id": 1, "name": "SDT-CUSTOMER"}
-            if request.method == "POST"
-            else {"factory_id": 123}
-        )
+        if request.method == "POST":
+            body = (
+                [
+                    {
+                        "id": entity_id,
+                        "price_list_id": 1,
+                        "variant_id": entity_id,
+                        "adjustment_method": "fixed",
+                        "amount": 1,
+                    }
+                    for entity_id in (1, 2)
+                ]
+                if bulk
+                else {"id": 1, "name": "SDT-CUSTOMER"}
+            )
+        else:
+            body = {"factory_id": 123}
         return httpx.Response(200, json=body)
 
     def fail(*args, **kwargs):
@@ -87,7 +127,9 @@ async def test_create_is_recorded_before_parser_or_validator_failure(
 
     if failure == "parser":
         endpoint = importlib.import_module(
-            live.operation("/customers", "post")["python"]
+            live.operation("/price_list_rows" if bulk else "/customers", "post")[
+                "python"
+            ]
         )
         monkeypatch.setattr(endpoint, "_parse_response", fail)
     else:
@@ -105,11 +147,17 @@ async def test_create_is_recorded_before_parser_or_validator_failure(
             ) as artifacts:
                 await live.call(
                     client,
-                    "/customers",
+                    "/price_list_rows" if bulk else "/customers",
                     "post",
-                    body={"name": "SDT-CUSTOMER"},
+                    body={"price_list_id": 1, "price_list_rows": []}
+                    if bulk
+                    else {"name": "SDT-CUSTOMER"},
                     artifacts=artifacts,
                 )
         assert artifacts is not None
         assert all(row["deleted_at"] for row in artifacts.rows)
-    assert deleted == ["/v1/customers/1"]
+    assert deleted == (
+        ["/v1/price_list_rows/2", "/v1/price_list_rows/1"]
+        if bulk
+        else ["/v1/customers/1"]
+    )

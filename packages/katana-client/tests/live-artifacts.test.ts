@@ -14,12 +14,41 @@ const operations: Operation[] = [
     query: [],
     required_query: [],
   },
+  {
+    path: '/price_list_rows',
+    method: 'post',
+    sdk: 'createPriceListRow',
+    query: [],
+    required_query: [],
+  },
+  {
+    path: '/price_list_rows/{id}',
+    method: 'delete',
+    sdk: 'deletePriceListRow',
+    query: [],
+    required_query: [],
+  },
+  {
+    path: '/custom_field_definitions',
+    method: 'post',
+    sdk: 'createCustomFieldDefinition',
+    query: [],
+    required_query: [],
+  },
+  {
+    path: '/custom_field_definitions/{id}',
+    method: 'delete',
+    sdk: 'deleteCustomFieldDefinition',
+    query: [],
+    required_query: [],
+  },
 ];
 let directory: string;
 let factoryId: number;
 let deleteStatus: number;
 let nextId: number;
 let deleted: string[];
+let postResponse: unknown;
 
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), 'katana-session-unit-'));
@@ -27,6 +56,7 @@ beforeEach(() => {
   deleteStatus = 204;
   nextId = 1;
   deleted = [];
+  postResponse = undefined;
   vi.stubEnv('KATANA_TEST_API_KEY', 'unit-test-key');
   vi.stubEnv('KATANA_TEST_BASE_URL', 'https://katana.test/v1');
   vi.stubEnv('KATANA_TEST_LEDGER_DIR', directory);
@@ -40,7 +70,7 @@ beforeEach(() => {
       }
       const body =
         request.method === 'POST'
-          ? { id: nextId++, name: 'SDT-CUSTOMER' }
+          ? (postResponse ?? { id: nextId++, name: 'SDT-CUSTOMER' })
           : { factory_id: factoryId };
       return new Response(JSON.stringify(body), {
         status: 200,
@@ -57,6 +87,37 @@ afterEach(() => {
 });
 
 describe('live artifact failure paths', () => {
+  it('retains valid IDs on both sides of a malformed bulk row', async () => {
+    postResponse = [{ id: 1 }, { id: 'bad/id' }, { id: 2 }];
+    const session = new Session(operations, () => {});
+    await session.startWrites();
+    await expect(session.call('/price_list_rows', 'post', { body: {} })).rejects.toThrow();
+    await session.cleanup();
+    expect(deleted).toEqual(['/v1/price_list_rows/2', '/v1/price_list_rows/1']);
+  });
+  it.each([
+    [
+      '/price_list_rows',
+      [{ id: 1 }, { id: 2 }],
+      ['/v1/price_list_rows/2', '/v1/price_list_rows/1'],
+    ],
+    [
+      '/custom_field_definitions',
+      { id: '123e4567-e89b-12d3-a456-426614174000' },
+      ['/v1/custom_field_definitions/123e4567-e89b-12d3-a456-426614174000'],
+    ],
+  ] as const)('cleans %s after its first ledger write fails', async (path, response, expected) => {
+    postResponse = response;
+    const session = new Session(operations, () => {});
+    await session.startWrites();
+    vi.spyOn(session, 'save').mockImplementationOnce(() => {
+      throw new Error('disk full');
+    });
+    await expect(session.call(path, 'post', { body: {} })).rejects.toThrow();
+    await session.cleanup();
+    expect(deleted).toEqual(expected);
+    expect(session.rows.every((row) => row.deleted_at !== null)).toBe(true);
+  });
   it('records a successful create before validation fails, then cleans it', async () => {
     const session = new Session(operations, (samples) => {
       if (samples[0].method === 'post') throw new Error('wire drift');

@@ -75,6 +75,14 @@ def scenarios() -> list[dict[str, Any]]:
     )
 
 
+@cache
+def detail_fixtures() -> dict[str, Any]:
+    """Owned resources and dependency recipes shared by the two live suites."""
+    return json.loads(
+        (ROOT / "tests/integration/fixtures/detail_reads.json").read_text()
+    )
+
+
 def validate_sample(path: str, method: str, status: int, body: Any) -> None:
     """Validate without printing payloads or JSON Schema's instance repr."""
     operation = spec()["paths"][path][method]
@@ -105,7 +113,15 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=["catalog", "validate"])
     args = parser.parse_args()
     if args.command == "catalog":
-        print(json.dumps({"operations": catalog(), "scenarios": scenarios()}))
+        print(
+            json.dumps(
+                {
+                    "operations": catalog(),
+                    "scenarios": scenarios(),
+                    "details": detail_fixtures(),
+                }
+            )
+        )
     else:
         for sample in json.load(sys.stdin):
             validate_sample(**sample)

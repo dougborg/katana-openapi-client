@@ -152,8 +152,9 @@ async def test_changed_tenant_refuses_cleanup(tmp_path: Path) -> None:
     assert deleted == []
 
 
+@pytest.mark.parametrize("entity_ids", [[1], [1, 2]])
 async def test_failed_ledger_write_still_cleans_created_resource(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch, entity_ids
 ) -> None:
     deleted = []
 
@@ -173,10 +174,12 @@ async def test_failed_ledger_write_still_cleans_created_resource(
             ) as artifacts:
                 with monkeypatch.context() as patch:
                     patch.setattr(artifacts, "_save", fail_save)
-                    artifacts.record(
-                        endpoint="/sales_orders", entity_id=1, issue="#test"
+                    artifacts.record_many(
+                        endpoint="/sales_orders", entity_ids=entity_ids, issue="#test"
                     )
-    assert deleted == ["/v1/sales_orders/1"]
+    assert deleted == [
+        f"/v1/sales_orders/{entity_id}" for entity_id in reversed(entity_ids)
+    ]
 
 
 async def test_missing_factory_fails_before_test_can_write(tmp_path: Path) -> None:
@@ -285,3 +288,27 @@ async def test_cleanup_gives_up_on_a_lasting_dependency_conflict(
     assert error.response.status_code == 412
     assert artifacts is not None
     assert artifacts.rows[0]["deleted_at"] is None
+
+
+async def test_malformed_bulk_id_retains_other_resources_for_cleanup(
+    tmp_path: Path,
+) -> None:
+    deleted = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "DELETE":
+            deleted.append(request.url.path)
+            return httpx.Response(204)
+        return httpx.Response(200, json={"factory_id": 123})
+
+    async with _client(handler) as client:
+        with pytest.raises(ValueError, match="valid IDs were retained"):
+            async with live_test_artifacts(
+                client=client, directory=tmp_path
+            ) as artifacts:
+                artifacts.record_many(
+                    endpoint="/price_list_rows",
+                    entity_ids=[1, "bad/id", 2],
+                    issue="#1157",
+                )
+    assert deleted == ["/v1/price_list_rows/2", "/v1/price_list_rows/1"]

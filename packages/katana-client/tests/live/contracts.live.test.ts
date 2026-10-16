@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { type Operation, Session } from './contractSession.js';
+import { type DetailFixtures, FixtureRecipes } from './fixtureRecipes.js';
 import { hasTestCredentials, sdtTag } from './testClient.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -21,12 +22,14 @@ type Scenario = {
   update: Record<string, unknown>;
   field: string;
 };
-const { operations, scenarios } = JSON.parse(python('catalog')) as {
+const { operations, scenarios, details } = JSON.parse(python('catalog')) as {
   operations: Operation[];
   scenarios: Scenario[];
+  details: DetailFixtures;
 };
 type Entity = Record<string, unknown> & { id: number; variants?: { id: number }[] };
 const fast = process.env.KATANA_LIVE_FAST === '1';
+const ownedDetails = new Set(details.cases.flatMap((c) => c.reads.map((r) => r.path)));
 
 function entries(body: unknown): Entity[] {
   return (Array.isArray(body) ? body : (body as { data: Entity[] }).data) as Entity[];
@@ -41,9 +44,28 @@ function substitute(value: unknown, context: Record<string, unknown>): unknown {
 }
 
 describe.skipIf(!hasTestCredentials())('shared live SDK contracts', () => {
+  for (const fixture of fast ? [] : details.cases) {
+    it(`reads owned ${fixture.name} details`, async () => {
+      const session = new Session(operations, (samples) => {
+        python('validate', samples);
+      });
+      await session.startWrites();
+      const recipes = new FixtureRecipes(details.resources, session, fixture.name);
+      try {
+        for (const read of fixture.reads) {
+          const id = await recipes.resolve(read.id);
+          await session.call(read.path, 'get', { path: { id } });
+        }
+      } finally {
+        await session.cleanup();
+      }
+    });
+  }
   for (const op of operations.filter(
     (o) =>
-      o.method === 'get' && (!fast || ['/locations', '/products', '/suppliers'].includes(o.path))
+      o.method === 'get' &&
+      !ownedDetails.has(o.path) &&
+      (!fast || ['/locations', '/products', '/suppliers'].includes(o.path))
   )) {
     it(`GET ${op.path}`, async (test) => {
       const session = new Session(operations, (samples) => {

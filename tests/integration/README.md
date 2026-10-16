@@ -42,11 +42,17 @@ nightly/manual runs; fork PRs explicitly skip.
 
 The Python and TypeScript generated SDKs use the same eight core write scenarios in
 `fixtures/core_round_trips.json`. Read coverage comes from every GET operation in the
-source spec. Detail reads without test-tenant records are reported as skips, not counted
-as successful coverage. Each sampled response is checked against its operation's
-response schema. TypeScript runs the shared Python wire validator with payloads over
-stdin, so its live suite also needs `uv sync --all-extras` at the repo root. Neither
-response payloads nor credentials are written to CI artifacts.
+source spec. The 14 detail paths whose collections were empty now use shared owned
+fixtures from `fixtures/detail_reads.json`: services, price lists and their
+rows/customer links, custom-field definitions, disabled webhooks, shipping fees, returns
+and return rows, PO additional costs, outsourced recipe rows, and bin transfers and
+rows. Dependencies are created lazily and deleted in reverse order; no permanent batches
+or serial numbers are created. New variants and sales orders are read back before
+dependent writes. Other detail reads without test-tenant records are reported as skips,
+not counted as successful coverage. Each sampled response is checked against its
+operation's response schema. TypeScript runs the shared Python wire validator with
+payloads over stdin, so its live suite also needs `uv sync --all-extras` at the repo
+root. Neither response payloads nor credentials are written to CI artifacts.
 
 The jobs and workflow runs execute sequentially against the shared key. Both clients
 write tenant-scoped cleanup ledgers that the test-only recovery CLI can retry.
@@ -103,6 +109,12 @@ async def test_write(live_client, live_artifacts):
     )
     # Assertions or further operations on this test-owned customer go here.
 ```
+
+For a bulk create response, use
+`live_artifacts.record_many(endpoint=..., entity_ids=[...], issue=...)`. It retains
+every valid ID before writing the ledger, so cleanup still attempts all recoverable
+resources if persistence fails or another row's ID is malformed. Both clients support
+integer IDs and custom-field definition UUIDs.
 
 The fixture verifies `/factory` before yielding, records each resource with its
 `factory_id` and base URL, and deletes resources in reverse creation order in a

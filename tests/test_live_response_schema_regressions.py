@@ -5,7 +5,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, ValidationError
 from scripts.validate_response_examples import _build_local_registry, load_yaml_spec
 from sqlalchemy import create_engine
 from sqlmodel import SQLModel
@@ -276,3 +276,36 @@ async def test_custom_collection_namespace_preserves_bare_arrays(body):
     ) as client:
         rows = await client.api.custom_fields.list()
     assert [row.to_dict() for row in rows] == body
+
+
+def test_service_without_category_preserves_null():
+    round_trip("Service", {"id": 1, "name": "SDT-SERVICE", "category_name": None})
+
+
+@pytest.mark.parametrize("body", [[], {"data": []}])
+def test_return_row_unassigned_batches_preserve_both_collection_shapes(body):
+    import importlib
+
+    from scripts.live_contracts import catalog, validate_sample
+
+    path = "/sales_return_rows/{id}/unassigned_batch_transactions"
+    validate_sample(path, "get", 200, body)
+    operation = next(op for op in catalog() if op["path"] == path)
+    endpoint = importlib.import_module(operation["python"])
+    parsed = endpoint._parse_response(
+        client=Client(base_url="https://example.test"),
+        response=httpx.Response(200, json=body),
+    )
+    response = Response(
+        status_code=HTTPStatus.OK, content=b"", headers={}, parsed=parsed
+    )
+    assert unwrap_data(response) == []
+
+
+def test_storage_bin_create_and_update_reject_overlong_names():
+    for name, body in [
+        ("StorageBinCreate", {"bin_name": "x" * 41, "location_id": 1}),
+        ("StorageBinUpdate", {"bin_name": "x" * 41}),
+    ]:
+        with pytest.raises(ValidationError):
+            validate(name, body)

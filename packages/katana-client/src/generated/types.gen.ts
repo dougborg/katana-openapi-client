@@ -5478,7 +5478,7 @@ export type Service = ArchivableDeletableEntity & {
   /**
    * A string used to group similar items for better organization and analysis
    */
-  category_name?: string;
+  category_name?: string | null;
   /**
    * Sellable services can be added to Quotes and Sales orders
    */
@@ -17660,7 +17660,7 @@ export type GetSalesReturnRowUnassignedBatchTransactionsResponses = {
   /**
    * List of unassigned batch transactions
    */
-  200: UnassignedBatchTransactionListResponse;
+  200: Array<UnassignedBatchTransaction> | UnassignedBatchTransactionListResponse;
 };
 
 export type GetSalesReturnRowUnassignedBatchTransactionsResponse =

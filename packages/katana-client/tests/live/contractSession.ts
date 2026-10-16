@@ -17,10 +17,10 @@ export type Operation = {
   required_query: string[];
 };
 export type Sample = { path: string; method: string; status: number; body: unknown };
-type Entity = { id: number };
+type Entity = { id: number | string };
 type LedgerRow = {
   endpoint: string;
-  entity_id: number;
+  entity_id: number | string;
   issue: string;
   method: string;
   created_at: string;
@@ -44,21 +44,32 @@ export class Session {
       const request = new Request(input, init);
       const response = await globalThis.fetch(request);
       if (this.ledger && request.method === 'POST' && response.ok) {
-        const body = (await response.clone().json()) as Entity;
+        const body = (await response.clone().json()) as Entity | Entity[];
         const endpoint = new URL(request.url).pathname.slice(new URL(this.baseUrl).pathname.length);
-        expect(body.id).toEqual(expect.any(Number));
-        this.rows.push({
-          endpoint,
-          entity_id: body.id,
-          issue: '#1157',
-          method: 'POST',
-          created_at: new Date().toISOString(),
-          base_url: this.baseUrl,
-          factory_id: this.factoryId,
-          deleted_at: null,
-          delete_error: null,
-        });
+        const rows = Array.isArray(body) ? body : [body];
+        const validRows = rows.filter(
+          (row) =>
+            row &&
+            ((typeof row.id === 'number' && Number.isSafeInteger(row.id) && row.id > 0) ||
+              (typeof row.id === 'string' && /^[A-Za-z0-9-]+$/.test(row.id)))
+        );
+        for (const row of validRows) {
+          this.rows.push({
+            endpoint,
+            entity_id: row.id,
+            issue: '#1157',
+            method: 'POST',
+            created_at: new Date().toISOString(),
+            base_url: this.baseUrl,
+            factory_id: this.factoryId,
+            deleted_at: null,
+            delete_error: null,
+          });
+        }
         this.save();
+        expect(validRows.length, 'Malformed created IDs; valid IDs retained for cleanup').toBe(
+          rows.length
+        );
       }
       return response;
     },
@@ -104,7 +115,7 @@ export class Session {
     const body = unwrap(result);
     this.validate([{ path, method, status: result.response?.status ?? 0, body: body ?? null }]);
     if (method === 'delete') {
-      const id = (options.path as { id: number }).id;
+      const id = (options.path as { id: number | string }).id;
       const row = this.rows.find(
         (r) => r.endpoint === path.replace('/{id}', '') && r.entity_id === id
       );

@@ -1,0 +1,372 @@
+{
+  "resources": {
+    "location": {
+      "path": "/factory",
+      "method": "get",
+      "select": "default_sales_location_id"
+    },
+    "product": {
+      "path": "/products",
+      "body": {
+        "name": "$tag",
+        "uom": "pcs",
+        "is_producible": true,
+        "is_purchasable": true,
+        "variants": [
+          {
+            "sku": "$tag"
+          }
+        ]
+      },
+      "verify": [
+        {
+          "path": "/variants/{id}",
+          "id": "variants.0.id"
+        }
+      ]
+    },
+    "material": {
+      "path": "/materials",
+      "body": {
+        "name": "$tag",
+        "uom": "pcs",
+        "variants": [
+          {
+            "sku": "$tag"
+          }
+        ]
+      }
+    },
+    "customer": {
+      "path": "/customers",
+      "body": {
+        "name": "$tag"
+      }
+    },
+    "supplier": {
+      "path": "/suppliers",
+      "body": {
+        "name": "$tag"
+      }
+    },
+    "service": {
+      "path": "/services",
+      "body": {
+        "name": "$tag",
+        "uom": "hours",
+        "variants": [
+          {
+            "sku": "$tag",
+            "sales_price": 1
+          }
+        ]
+      }
+    },
+    "price_list": {
+      "path": "/price_lists",
+      "body": {
+        "name": "$tag"
+      }
+    },
+    "price_rows": {
+      "path": "/price_list_rows",
+      "body": {
+        "price_list_id": "$price_list.id",
+        "price_list_rows": [
+          {
+            "variant_id": "$product.variants.0.id",
+            "adjustment_method": "fixed",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    "price_customers": {
+      "path": "/price_list_customers",
+      "body": {
+        "price_list_id": "$price_list.id",
+        "price_list_customers": [
+          {
+            "customer_id": "$customer.id"
+          }
+        ]
+      }
+    },
+    "definition": {
+      "path": "/custom_field_definitions",
+      "body": {
+        "label": "$tag",
+        "source": "$tag",
+        "field_type": "shortText",
+        "entity_type": "SalesOrder"
+      }
+    },
+    "webhook": {
+      "path": "/webhooks",
+      "body": {
+        "url": "https://example.invalid/katana-live-test",
+        "enabled": false,
+        "description": "$tag",
+        "subscribed_events": [
+          "sales_order.created"
+        ]
+      }
+    },
+    "order": {
+      "path": "/sales_orders",
+      "body": {
+        "order_no": "$tag",
+        "customer_id": "$customer.id",
+        "sales_order_rows": [
+          {
+            "variant_id": "$product.variants.0.id",
+            "quantity": 1,
+            "price_per_unit": 1
+          }
+        ]
+      },
+      "verify": [
+        {
+          "path": "/sales_orders/{id}",
+          "id": "id"
+        }
+      ]
+    },
+    "fee": {
+      "path": "/sales_order_shipping_fee",
+      "body": {
+        "sales_order_id": "$order.id",
+        "amount": "1.00",
+        "description": "$tag"
+      }
+    },
+    "fulfillment": {
+      "path": "/sales_order_fulfillments",
+      "body": {
+        "sales_order_id": "$order.id",
+        "status": "DELIVERED",
+        "sales_order_fulfillment_rows": [
+          {
+            "sales_order_row_id": "$order.sales_order_rows.0.id",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    "return": {
+      "path": "/sales_returns",
+      "after": [
+        "fulfillment"
+      ],
+      "body": {
+        "sales_order_id": "$order.id",
+        "return_location_id": "$location",
+        "order_no": "$tag"
+      }
+    },
+    "purchase_order": {
+      "path": "/purchase_orders",
+      "body": {
+        "order_no": "$tag",
+        "supplier_id": "$supplier.id",
+        "location_id": "$location",
+        "purchase_order_rows": [
+          {
+            "variant_id": "$material.variants.0.id",
+            "quantity": 1,
+            "price_per_unit": 1
+          }
+        ]
+      }
+    },
+    "additional_cost": {
+      "path": "/additional_costs",
+      "method": "get",
+      "select": "data.0.id"
+    },
+    "tax_rate": {
+      "path": "/tax_rates",
+      "method": "get",
+      "select": "data.0.id"
+    },
+    "cost": {
+      "path": "/po_additional_cost_rows",
+      "body": {
+        "additional_cost_id": "$additional_cost",
+        "tax_rate_id": "$tax_rate",
+        "group_id": "$purchase_order.default_group_id",
+        "price": 1,
+        "reference": "$tag"
+      }
+    },
+    "outsourced_order": {
+      "path": "/purchase_orders",
+      "body": {
+        "order_no": "$tag",
+        "entity_type": "outsourced",
+        "supplier_id": "$supplier.id",
+        "location_id": "$location",
+        "tracking_location_id": "$location",
+        "purchase_order_rows": [
+          {
+            "variant_id": "$product.variants.0.id",
+            "quantity": 1,
+            "price_per_unit": 1
+          }
+        ]
+      }
+    },
+    "recipe_row": {
+      "path": "/outsourced_purchase_order_recipe_rows",
+      "body": {
+        "purchase_order_row_id": "$outsourced_order.purchase_order_rows.0.id",
+        "ingredient_variant_id": "$material.variants.0.id",
+        "planned_quantity_per_unit": 1,
+        "notes": "$tag"
+      }
+    },
+    "source_bin": {
+      "path": "/bin_locations",
+      "body": {
+        "bin_name": "$tag",
+        "location_id": "$location"
+      },
+      "tag": "SRC"
+    },
+    "target_bin": {
+      "path": "/bin_locations",
+      "body": {
+        "bin_name": "$tag",
+        "location_id": "$location"
+      },
+      "tag": "DST"
+    },
+    "bin_transfer": {
+      "path": "/bin_transfers",
+      "body": {
+        "bin_transfer_number": "$tag",
+        "location_id": "$location",
+        "bin_transfer_rows": [
+          {
+            "variant_id": "$product.variants.0.id",
+            "quantity": "1",
+            "source_bin_location_id": "$source_bin.id",
+            "target_bin_location_id": "$target_bin.id"
+          }
+        ]
+      }
+    },
+    "return_row": {
+      "path": "/sales_return_rows",
+      "body": {
+        "sales_return_id": "$return.id",
+        "variant_id": "$product.variants.0.id",
+        "fulfillment_row_id": "$fulfillment.sales_order_fulfillment_rows.0.id",
+        "quantity": 1
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "services",
+      "reads": [
+        {
+          "path": "/services/{id}",
+          "id": "$service.id"
+        }
+      ]
+    },
+    {
+      "name": "price_lists",
+      "reads": [
+        {
+          "path": "/price_lists/{id}",
+          "id": "$price_list.id"
+        },
+        {
+          "path": "/price_list_rows/{id}",
+          "id": "$price_rows.0.id"
+        },
+        {
+          "path": "/price_list_customers/{id}",
+          "id": "$price_customers.0.id"
+        }
+      ]
+    },
+    {
+      "name": "custom_field_definitions",
+      "reads": [
+        {
+          "path": "/custom_field_definitions/{id}",
+          "id": "$definition.id"
+        }
+      ]
+    },
+    {
+      "name": "webhooks",
+      "reads": [
+        {
+          "path": "/webhooks/{id}",
+          "id": "$webhook.id"
+        }
+      ]
+    },
+    {
+      "name": "shipping_fees",
+      "reads": [
+        {
+          "path": "/sales_order_shipping_fee/{id}",
+          "id": "$fee.id"
+        }
+      ]
+    },
+    {
+      "name": "sales_returns",
+      "reads": [
+        {
+          "path": "/sales_returns/{id}",
+          "id": "$return.id"
+        },
+        {
+          "path": "/sales_return_rows/{id}",
+          "id": "$return_row.id"
+        },
+        {
+          "path": "/sales_return_rows/{id}/unassigned_batch_transactions",
+          "id": "$return_row.id"
+        }
+      ]
+    },
+    {
+      "name": "po_additional_costs",
+      "reads": [
+        {
+          "path": "/po_additional_cost_rows/{id}",
+          "id": "$cost.id"
+        }
+      ]
+    },
+    {
+      "name": "outsourced_recipes",
+      "reads": [
+        {
+          "path": "/outsourced_purchase_order_recipe_rows/{id}",
+          "id": "$recipe_row.id"
+        }
+      ]
+    },
+    {
+      "name": "bin_transfers",
+      "reads": [
+        {
+          "path": "/bin_transfers/{id}",
+          "id": "$bin_transfer.id"
+        },
+        {
+          "path": "/bin_transfer_rows/{id}",
+          "id": "$bin_transfer.bin_transfer_rows.0.id"
+        }
+      ]
+    }
+  ]
+}

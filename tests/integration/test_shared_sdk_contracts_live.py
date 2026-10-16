@@ -8,7 +8,7 @@ import json
 from typing import Any, get_type_hints
 
 import pytest
-from scripts.live_contracts import catalog, scenarios, validate_sample
+from scripts.live_contracts import catalog, detail_fixtures, scenarios, validate_sample
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.testing_artifacts import LiveTestArtifacts
@@ -52,8 +52,14 @@ async def call(
     async def record_created(response: Any) -> None:
         if artifacts is not None and method == "post" and response.is_success:
             await response.aread()
-            artifacts.record(
-                endpoint=path, entity_id=response.json()["id"], issue="#1157"
+            created = response.json()
+            rows = created if isinstance(created, list) else [created]
+            artifacts.record_many(
+                endpoint=path,
+                entity_ids=[
+                    row.get("id") if isinstance(row, dict) else None for row in rows
+                ],
+                issue="#1157",
             )
 
     hooks = client.get_async_httpx_client().event_hooks["response"]
@@ -78,7 +84,72 @@ def entries(body: Any) -> list[dict[str, Any]]:
     return body if isinstance(body, list) else body.get("data", [])
 
 
-READS = [o for o in OPERATIONS if o["method"] == "get"]
+OWNED_DETAILS = {
+    read["path"] for case in detail_fixtures()["cases"] for read in case["reads"]
+}
+READS = [
+    o for o in OPERATIONS if o["method"] == "get" and o["path"] not in OWNED_DETAILS
+]
+
+
+@pytest.mark.parametrize(
+    "case", detail_fixtures()["cases"], ids=lambda case: case["name"]
+)
+async def test_owned_detail_reads(
+    live_client: KatanaClient, live_artifacts: LiveTestArtifacts, case: dict[str, Any]
+) -> None:
+    resources = detail_fixtures()["resources"]
+    values: dict[str, Any] = {}
+
+    async def resolve(value: Any, tag: str) -> Any:
+        if isinstance(value, dict):
+            return {key: await resolve(item, tag) for key, item in value.items()}
+        if isinstance(value, list):
+            return [await resolve(item, tag) for item in value]
+        if not isinstance(value, str) or not value.startswith("$"):
+            return value
+        if value == "$tag":
+            return tag
+        name, *keys = value[1:].split(".")
+        if name not in values:
+            definition = resources[name]
+            own_tag = live_artifacts.tag(
+                definition.get("tag", f"PY-{case['name']}-{name}")
+            )
+            for dependency in definition.get("after", []):
+                await resolve(f"${dependency}", own_tag)
+            body = await resolve(definition.get("body"), own_tag)
+            result = await call(
+                live_client,
+                definition["path"],
+                definition.get("method", "post"),
+                body=body,
+                artifacts=live_artifacts,
+            )
+            for check in definition.get("verify", []):
+                checked_id = result
+                for key in check["id"].split("."):
+                    checked_id = (
+                        checked_id[int(key)]
+                        if isinstance(checked_id, list)
+                        else checked_id[key]
+                    )
+                await call(live_client, check["path"], entity_id=checked_id)
+            for key in (
+                definition.get("select", "").split(".")
+                if definition.get("select")
+                else []
+            ):
+                result = result[int(key)] if isinstance(result, list) else result[key]
+            values[name] = result
+        result = values[name]
+        for key in keys:
+            result = result[int(key)] if isinstance(result, list) else result[key]
+        return result
+
+    for read in case["reads"]:
+        entity_id = await resolve(read["id"], "")
+        await call(live_client, read["path"], entity_id=entity_id)
 
 
 @pytest.mark.parametrize(

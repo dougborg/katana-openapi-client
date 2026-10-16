@@ -2700,6 +2700,7 @@ components:
       properties:
         bin_name:
           type: string
+          maxLength: 40
           description: Name of the storage bin
       example:
         bin_name: A-01-SHELF-2
@@ -2714,6 +2715,7 @@ components:
         bin_name:
           type: string
           minLength: 1
+          maxLength: 40
           description: Name of the storage bin
         location_id:
           type: integer
@@ -9115,7 +9117,9 @@ components:
               type: string
               description: The unit used to measure the quantity of the service (e.g. pcs, hours)
             category_name:
-              type: string
+              type:
+                - string
+                - "null"
               description: A string used to group similar items for better organization and analysis
             is_sellable:
               type: boolean
@@ -21794,7 +21798,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UnassignedBatchTransactionListResponse"
+                anyOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/UnassignedBatchTransaction"
+                  - $ref: "#/components/schemas/UnassignedBatchTransactionListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
