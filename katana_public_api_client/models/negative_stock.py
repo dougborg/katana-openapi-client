@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -30,7 +30,7 @@ class NegativeStock:
     latest_negative_stock_date: datetime.datetime | Unset = UNSET
     name: str | Unset = UNSET
     sku: str | Unset = UNSET
-    category: str | Unset = UNSET
+    category: str | Unset | None = UNSET
     quantity_on_hand: float | Unset = UNSET
     quantity_allocated: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -48,7 +48,11 @@ class NegativeStock:
 
         sku = self.sku
 
-        category = self.category
+        category: str | Unset | None
+        if isinstance(self.category, Unset):
+            category = UNSET
+        else:
+            category = self.category
 
         quantity_on_hand = self.quantity_on_hand
 
@@ -96,7 +100,14 @@ class NegativeStock:
 
         sku = d.pop("sku", UNSET)
 
-        category = d.pop("category", UNSET)
+        def _parse_category(data: object) -> str | Unset | None:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(str | Unset | None, data)
+
+        category = _parse_category(d.pop("category", UNSET))
 
         quantity_on_hand = d.pop("quantity_on_hand", UNSET)
 

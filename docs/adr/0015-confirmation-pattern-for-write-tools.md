@@ -124,6 +124,13 @@ The `destructiveHint` annotation is settled by uniform policy:
 | `update_stock_adjustment`                  | `True`            |
 | `rebuild_cache` (wipes local cache tables) | `True`            |
 
+Tools accepting additive sub-payloads (`add_rows`, `add_variants`, `add_bom_rows`, and
+similar actions) must set `idempotentHint: false`. Replaying an apply can create
+duplicate records even when header-only changes are idempotent. This applies to purchase
+orders, sales orders, manufacturing orders, bin transfers, items, and
+`manage_product_bom` (#950). The annotation is per tool, so it must describe the least
+safe supported call. Preview/apply confirmation does not make a replay idempotent.
+
 ## Consequences
 
 ### Positive Consequences

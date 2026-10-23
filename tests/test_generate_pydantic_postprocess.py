@@ -628,3 +628,27 @@ def test_inject_json_columns_preserves_nested_uuid_key_metadata(gen):
     assert 'Annotated[str, Field(pattern="uuid")]' in result
     assert 'SQLField(sa_column=Column(PydanticJSON), description="Values")' in result
     compile(result, "<generated>", "exec")
+
+
+def test_multiline_union_cleanup_preserves_decimal_string(gen: ModuleType) -> None:
+    from typing import Annotated
+
+    from pydantic import BaseModel, Field
+
+    source = """class Ingredient(BaseModel):
+    cost: Annotated[float | str | None, Field(
+        description="Actual cost", union_mode="left_to_right"
+    )] = None
+"""
+    cls = gen.ClassInfo(
+        name="Ingredient", source=source, bases=["BaseModel"], line_start=1, line_end=5
+    )
+    fixed = gen.fix_union_mode_without_discriminator([cls])[0]
+    namespace: dict[str, Any] = {
+        "BaseModel": BaseModel,
+        "Field": Field,
+        "Annotated": Annotated,
+    }
+    exec(fixed.source, namespace)
+    model = namespace["Ingredient"](cost="2.5000000000")
+    assert model.cost == "2.5000000000"

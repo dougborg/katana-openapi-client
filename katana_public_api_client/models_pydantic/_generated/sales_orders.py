@@ -389,9 +389,7 @@ class SalesOrderSearchFilter(KatanaPydanticBase):
     ] = None
     location_id: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(
-            description="Location id the order ships from.", union_mode="left_to_right"
-        ),
+        Field(description="Location id the order ships from."),
     ] = None
     status: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
@@ -517,15 +515,11 @@ class SalesOrderRowSearchFilter(KatanaPydanticBase):
     ] = None
     location_id: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(
-            description="Location id this row ships from.", union_mode="left_to_right"
-        ),
+        Field(description="Location id this row ships from."),
     ] = None
     tax_rate_id: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(
-            description="Tax rate id applied to this row.", union_mode="left_to_right"
-        ),
+        Field(description="Tax rate id applied to this row."),
     ] = None
     quantity: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
@@ -577,9 +571,7 @@ class SalesOrderRowSearchFilter(KatanaPydanticBase):
     ] = None
     shipping_date: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(
-            description="Actual shipping date for this row.", union_mode="left_to_right"
-        ),
+        Field(description="Actual shipping date for this row."),
     ] = None
 
 

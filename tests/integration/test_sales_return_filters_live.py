@@ -40,6 +40,13 @@ async def _create_sales_return(
     order = order_response.json()
     live_artifacts.record(endpoint="/sales_orders", entity_id=order["id"], issue="#939")
 
+    # Verify the dependency through its read API before creating a return.
+    # A nightly received "non-existing Sales order" immediately after a
+    # successful create; preserve a clear failure if that order is not visible.
+    visible = await http.get(f"/sales_orders/{order['id']}")
+    visible.raise_for_status()
+    assert visible.json()["id"] == order["id"]
+
     return_response = await http.post(
         "/sales_returns",
         json={

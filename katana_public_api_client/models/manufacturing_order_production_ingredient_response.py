@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -30,9 +30,9 @@ class ManufacturingOrderProductionIngredientResponse:
     manufacturing_order_id: int | Unset = UNSET
     manufacturing_order_recipe_row_id: int | Unset = UNSET
     production_id: int | Unset = UNSET
-    quantity: float | Unset = UNSET
+    quantity: float | str | Unset = UNSET
     production_date: datetime.datetime | Unset = UNSET
-    cost: float | Unset = UNSET
+    cost: float | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,13 +48,21 @@ class ManufacturingOrderProductionIngredientResponse:
 
         production_id = self.production_id
 
-        quantity = self.quantity
+        quantity: float | str | Unset
+        if isinstance(self.quantity, Unset):
+            quantity = UNSET
+        else:
+            quantity = self.quantity
 
         production_date: str | Unset = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
-        cost = self.cost
+        cost: float | str | Unset
+        if isinstance(self.cost, Unset):
+            cost = UNSET
+        else:
+            cost = self.cost
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -99,7 +107,12 @@ class ManufacturingOrderProductionIngredientResponse:
 
         production_id = d.pop("production_id", UNSET)
 
-        quantity = d.pop("quantity", UNSET)
+        def _parse_quantity(data: object) -> float | str | Unset:
+            if isinstance(data, Unset):
+                return data
+            return cast(float | str | Unset, data)
+
+        quantity = _parse_quantity(d.pop("quantity", UNSET))
 
         _production_date = d.pop("production_date", UNSET)
         production_date: datetime.datetime | Unset
@@ -108,7 +121,12 @@ class ManufacturingOrderProductionIngredientResponse:
         else:
             production_date = datetime.datetime.fromisoformat(_production_date)
 
-        cost = d.pop("cost", UNSET)
+        def _parse_cost(data: object) -> float | str | Unset:
+            if isinstance(data, Unset):
+                return data
+            return cast(float | str | Unset, data)
+
+        cost = _parse_cost(d.pop("cost", UNSET))
 
         manufacturing_order_production_ingredient_response = cls(
             id=id,

@@ -258,9 +258,19 @@ class ManufacturingOrderProductionIngredient(DeletableEntity):
     manufacturing_order_id: int | None = None
     manufacturing_order_recipe_row_id: int | None = None
     production_id: int | None = None
-    quantity: float | None = None
+    quantity: Annotated[
+        float | str | None,
+        Field(
+            description="Decimal value; the live API can return a decimal string.",
+        ),
+    ] = None
     production_date: AwareDatetime | None = None
-    cost: float | None = None
+    cost: Annotated[
+        float | str | None,
+        Field(
+            description="Decimal value; the live API can return a decimal string.",
+        ),
+    ] = None
 
 
 class UpdateManufacturingOrderProductionIngredientRequest(KatanaPydanticBase):
@@ -471,14 +481,18 @@ class ManufacturingOrderProductionIngredientResponse(KatanaPydanticBase):
         Field(description="ID of the production batch where ingredient was used"),
     ] = None
     quantity: Annotated[
-        float | None, Field(description="Actual quantity of ingredient consumed")
+        float | str | None,
+        Field(
+            description="Actual quantity of ingredient consumed",
+        ),
     ] = None
     production_date: Annotated[
         AwareDatetime | None,
         Field(description="Date when the ingredient was consumed in production"),
     ] = None
     cost: Annotated[
-        float | None, Field(description="Cost of the ingredient consumed")
+        float | str | None,
+        Field(description="Cost of the ingredient consumed"),
     ] = None
 
 

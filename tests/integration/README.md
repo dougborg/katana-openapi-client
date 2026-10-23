@@ -34,11 +34,30 @@ export KATANA_TEST_BASE_URL=https://api.katanamrp.com/v1   # optional; this is t
 ## Running in CI
 
 The [`live-integration.yml`](../../.github/workflows/live-integration.yml) workflow runs
-this suite on a nightly schedule, on manual dispatch, and on any PR carrying the
-`needs-live-test` label (no automatic live run on every PR). It is **soft-fail** — a red
-suite surfaces in the job summary + an uploaded artifact but does not block.
+this suite on a nightly schedule and on manual dispatch. Client, transport, MCP, shared
+live-harness, and schema PR changes automatically run a fast subset; `needs-live-test`
+selects the full suite. Nightly/manual failures fail the workflow and open or update a
+tracking issue. PR test failures remain informational. Missing credentials fail
+nightly/manual runs; fork PRs explicitly skip.
 
-One-time setup by a repo owner — the workflow is a green no-op until the secret exists:
+The Python and TypeScript generated SDKs use the same eight core write scenarios in
+`fixtures/core_round_trips.json`. Read coverage comes from every GET operation in the
+source spec. The 14 detail paths whose collections were empty now use shared owned
+fixtures from `fixtures/detail_reads.json`: services, price lists and their
+rows/customer links, custom-field definitions, disabled webhooks, shipping fees, returns
+and return rows, PO additional costs, outsourced recipe rows, and bin transfers and
+rows. Dependencies are created lazily and deleted in reverse order; no permanent batches
+or serial numbers are created. New variants and sales orders are read back before
+dependent writes. Other detail reads without test-tenant records are reported as skips,
+not counted as successful coverage. Each sampled response is checked against its
+operation's response schema. TypeScript runs the shared Python wire validator with
+payloads over stdin, so its live suite also needs `uv sync --all-extras` at the repo
+root. Neither response payloads nor credentials are written to CI artifacts.
+
+The jobs and workflow runs execute sequentially against the shared key. Both clients
+write tenant-scoped cleanup ledgers that the test-only recovery CLI can retry.
+
+One-time setup by a repo owner — nightly/manual validation requires the test secret:
 
 ```bash
 gh secret set KATANA_TEST_API_KEY            # test-tenant key
@@ -91,6 +110,12 @@ async def test_write(live_client, live_artifacts):
     # Assertions or further operations on this test-owned customer go here.
 ```
 
+For a bulk create response, use
+`live_artifacts.record_many(endpoint=..., entity_ids=[...], issue=...)`. It retains
+every valid ID before writing the ledger, so cleanup still attempts all recoverable
+resources if persistence fails or another row's ID is malformed. Both clients support
+integer IDs and custom-field definition UUIDs.
+
 The fixture verifies `/factory` before yielding, records each resource with its
 `factory_id` and base URL, and deletes resources in reverse creation order in a
 `finally` block. Record children separately only when they need their own DELETE;
@@ -139,5 +164,5 @@ factory and API URL before writing, and deletes its temporary sales order throug
 `live_artifacts`. These fixture IDs are test data, not credentials.
 
 For another test tenant, set `KATANA_TEST_BATCH_FIXTURE` to a JSON file with the same
-fields describing an approved fixture in that tenant. A tenant mismatch fails before
-any write; the test never falls back to production credentials or creates a replacement.
+fields describing an approved fixture in that tenant. A tenant mismatch fails before any
+write; the test never falls back to production credentials or creates a replacement.

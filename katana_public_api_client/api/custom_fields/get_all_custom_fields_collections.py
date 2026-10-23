@@ -1,11 +1,13 @@
+from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
+from ...models.custom_fields_collection import CustomFieldsCollection
 from ...models.custom_fields_collection_list_response import (
     CustomFieldsCollectionListResponse,
 )
@@ -24,9 +26,41 @@ def _get_kwargs() -> dict[str, Any]:
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
+) -> (
+    CustomFieldsCollectionListResponse
+    | list[CustomFieldsCollection]
+    | ErrorResponse
+    | None
+):
     if response.status_code == 200:
-        response_200 = CustomFieldsCollectionListResponse.from_dict(response.json())
+
+        def _parse_response_200(
+            data: object,
+        ) -> CustomFieldsCollectionListResponse | list[CustomFieldsCollection]:
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                response_200_type_0 = []
+                _response_200_type_0 = data
+                for response_200_type_0_item_data in _response_200_type_0:
+                    response_200_type_0_item = CustomFieldsCollection.from_dict(
+                        cast(Mapping[str, Any], response_200_type_0_item_data)
+                    )
+
+                    response_200_type_0.append(response_200_type_0_item)
+
+                return response_200_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            response_200_type_1 = CustomFieldsCollectionListResponse.from_dict(
+                cast(Mapping[str, Any], data)
+            )
+
+            return response_200_type_1
+
+        response_200 = _parse_response_200(response.json())
 
         return response_200
 
@@ -53,7 +87,9 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
+) -> Response[
+    CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse
+]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -65,7 +101,9 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
+) -> Response[
+    CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse
+]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -76,7 +114,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[CustomFieldsCollectionListResponse | ErrorResponse]
+        Response[CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse]
     """
 
     kwargs = _get_kwargs()
@@ -91,7 +129,12 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
+) -> (
+    CustomFieldsCollectionListResponse
+    | list[CustomFieldsCollection]
+    | ErrorResponse
+    | None
+):
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -102,7 +145,7 @@ def sync(
 
 
     Returns:
-        CustomFieldsCollectionListResponse | ErrorResponse
+        CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse
     """
 
     return sync_detailed(
@@ -113,7 +156,9 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
+) -> Response[
+    CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse
+]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -124,7 +169,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[CustomFieldsCollectionListResponse | ErrorResponse]
+        Response[CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse]
     """
 
     kwargs = _get_kwargs()
@@ -137,7 +182,12 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
+) -> (
+    CustomFieldsCollectionListResponse
+    | list[CustomFieldsCollection]
+    | ErrorResponse
+    | None
+):
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -148,7 +198,7 @@ async def asyncio(
 
 
     Returns:
-        CustomFieldsCollectionListResponse | ErrorResponse
+        CustomFieldsCollectionListResponse | list[CustomFieldsCollection] | ErrorResponse
     """
 
     return (

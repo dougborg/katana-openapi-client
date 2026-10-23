@@ -1928,9 +1928,7 @@ class VariantSearchFilter(KatanaPydanticBase):
     ] = None
     registered_barcode: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(
-            description="Registered (GTIN/EAN/UPC) barcode.", union_mode="left_to_right"
-        ),
+        Field(description="Registered (GTIN/EAN/UPC) barcode."),
     ] = None
     sales_price: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,

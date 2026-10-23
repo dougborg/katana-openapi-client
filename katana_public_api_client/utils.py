@@ -507,6 +507,9 @@ def unwrap_data[T, DataT](
     if parsed is None:
         return default
 
+    if isinstance(parsed, list):
+        return parsed
+
     # Extract data field if it exists
     data = getattr(parsed, "data", None)
     if isinstance(data, Unset):

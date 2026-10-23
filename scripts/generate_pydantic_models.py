@@ -1120,7 +1120,7 @@ def fix_union_mode_without_discriminator(classes: list[ClassInfo]) -> list[Class
 
         # Pattern to match union_mode as an argument with comma before
         source = re.sub(
-            r',\s*union_mode\s*=\s*"[^"]*"(?=[,\)])',
+            r',\s*union_mode\s*=\s*"[^"]*"(?=\s*[,\)])',
             "",
             source,
         )
