@@ -258,3 +258,26 @@ def test_removed_reporting_tools_stay_unregistered(
         f"again. If this is a deliberate restoration, update REMOVED_TOOLS "
         f"and add an ADR explaining why we're back in this space."
     )
+
+
+def test_tools_with_additive_subpayloads_do_not_advertise_safe_retries(
+    registered_tools: dict[str, Any],
+) -> None:
+    """A replay can create duplicate rows even when header PATCHes are safe."""
+    additive_tools = set()
+    for name, tool in registered_tools.items():
+        properties = tool.parameters.get("properties", {})
+        if any(field.startswith("add_") for field in properties):
+            additive_tools.add(name)
+            assert tool.annotations is not None, name
+            assert (
+                tool.model_dump(by_alias=True)["annotations"]["idempotentHint"] is False
+            ), name
+    assert additive_tools == {
+        "modify_purchase_order",
+        "modify_sales_order",
+        "modify_manufacturing_order",
+        "modify_bin_transfer",
+        "manage_product_bom",
+        "modify_item",
+    }

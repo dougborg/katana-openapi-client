@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 import httpx
@@ -8,6 +9,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.error_response import ErrorResponse
+from ...models.unassigned_batch_transaction import UnassignedBatchTransaction
 from ...models.unassigned_batch_transaction_list_response import (
     UnassignedBatchTransactionListResponse,
 )
@@ -29,9 +31,41 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | UnassignedBatchTransactionListResponse | None:
+) -> (
+    ErrorResponse
+    | list[UnassignedBatchTransaction]
+    | UnassignedBatchTransactionListResponse
+    | None
+):
     if response.status_code == 200:
-        response_200 = UnassignedBatchTransactionListResponse.from_dict(response.json())
+
+        def _parse_response_200(
+            data: object,
+        ) -> list[UnassignedBatchTransaction] | UnassignedBatchTransactionListResponse:
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                response_200_type_0 = []
+                _response_200_type_0 = data
+                for response_200_type_0_item_data in _response_200_type_0:
+                    response_200_type_0_item = UnassignedBatchTransaction.from_dict(
+                        cast(Mapping[str, Any], response_200_type_0_item_data)
+                    )
+
+                    response_200_type_0.append(response_200_type_0_item)
+
+                return response_200_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            response_200_type_1 = UnassignedBatchTransactionListResponse.from_dict(
+                cast(Mapping[str, Any], data)
+            )
+
+            return response_200_type_1
+
+        response_200 = _parse_response_200(response.json())
 
         return response_200
 
@@ -63,7 +97,11 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | UnassignedBatchTransactionListResponse]:
+) -> Response[
+    ErrorResponse
+    | list[UnassignedBatchTransaction]
+    | UnassignedBatchTransactionListResponse
+]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,7 +114,11 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | UnassignedBatchTransactionListResponse]:
+) -> Response[
+    ErrorResponse
+    | list[UnassignedBatchTransaction]
+    | UnassignedBatchTransactionListResponse
+]:
     """Get unassigned batch transactions for a sales return row
 
      Retrieves unassigned batch transactions associated with a sales return row.
@@ -90,7 +132,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | UnassignedBatchTransactionListResponse]
+        Response[ErrorResponse | list[UnassignedBatchTransaction] | UnassignedBatchTransactionListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -108,7 +150,12 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | UnassignedBatchTransactionListResponse | None:
+) -> (
+    ErrorResponse
+    | list[UnassignedBatchTransaction]
+    | UnassignedBatchTransactionListResponse
+    | None
+):
     """Get unassigned batch transactions for a sales return row
 
      Retrieves unassigned batch transactions associated with a sales return row.
@@ -122,7 +169,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | UnassignedBatchTransactionListResponse
+        ErrorResponse | list[UnassignedBatchTransaction] | UnassignedBatchTransactionListResponse
     """
 
     return sync_detailed(
@@ -135,7 +182,11 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | UnassignedBatchTransactionListResponse]:
+) -> Response[
+    ErrorResponse
+    | list[UnassignedBatchTransaction]
+    | UnassignedBatchTransactionListResponse
+]:
     """Get unassigned batch transactions for a sales return row
 
      Retrieves unassigned batch transactions associated with a sales return row.
@@ -149,7 +200,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | UnassignedBatchTransactionListResponse]
+        Response[ErrorResponse | list[UnassignedBatchTransaction] | UnassignedBatchTransactionListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -165,7 +216,12 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | UnassignedBatchTransactionListResponse | None:
+) -> (
+    ErrorResponse
+    | list[UnassignedBatchTransaction]
+    | UnassignedBatchTransactionListResponse
+    | None
+):
     """Get unassigned batch transactions for a sales return row
 
      Retrieves unassigned batch transactions associated with a sales return row.
@@ -179,7 +235,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | UnassignedBatchTransactionListResponse
+        ErrorResponse | list[UnassignedBatchTransaction] | UnassignedBatchTransactionListResponse
     """
 
     return (

@@ -24,7 +24,7 @@ from katana_public_api_client.api.custom_fields import (
 from katana_public_api_client.api.factory import get_factory
 from katana_public_api_client.api.user import get_all_users
 from katana_public_api_client.models import (
-    CustomFieldsCollectionListResponse,
+    CustomFieldsCollection,
     Factory,
     UserListResponse,
 )
@@ -69,6 +69,8 @@ async def test_get_all_custom_fields_collections(live_client: KatanaClient) -> N
     assert is_success(response), (
         f"GET /custom_fields_collections returned {response.status_code}"
     )
-    unwrap_as(response, CustomFieldsCollectionListResponse)
     collections = unwrap_data(response)
     assert isinstance(collections, list)
+    assert all(
+        isinstance(collection, CustomFieldsCollection) for collection in collections
+    )

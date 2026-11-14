@@ -98,9 +98,16 @@ class LiveTestArtifacts:
         Add to memory before writing so fixture teardown still attempts
         cleanup if the filesystem write fails.
         """
-        if not _valid_artifact(endpoint, entity_id):
-            raise ValueError("Expected a collection path and a resource ID")
-        self.rows.append(
+        self.record_many(endpoint=endpoint, entity_ids=[entity_id], issue=issue)
+
+    def record_many(self, *, endpoint: str, entity_ids: list[Any], issue: str) -> None:
+        """Keep every bulk-created resource in memory before persisting the ledger."""
+        valid_ids = [
+            entity_id
+            for entity_id in entity_ids
+            if _valid_artifact(endpoint, entity_id)
+        ]
+        self.rows.extend(
             {
                 "endpoint": endpoint,
                 "entity_id": entity_id,
@@ -112,8 +119,13 @@ class LiveTestArtifacts:
                 "deleted_at": None,
                 "delete_error": None,
             }
+            for entity_id in valid_ids
         )
         self._save()
+        if len(valid_ids) != len(entity_ids):
+            raise ValueError(
+                "Expected a collection path and a resource ID; valid IDs were retained for cleanup"
+            )
 
     async def _delete_row(
         self, row: dict[str, Any], failures: list[Exception]

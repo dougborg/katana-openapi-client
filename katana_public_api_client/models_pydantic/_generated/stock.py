@@ -168,14 +168,18 @@ class StorageBinUpdate(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    bin_name: Annotated[str, Field(description="Name of the storage bin")]
+    bin_name: Annotated[
+        str, Field(description="Name of the storage bin", max_length=40)
+    ]
 
 
 class StorageBinCreate(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    bin_name: Annotated[str, Field(description="Name of the storage bin", min_length=1)]
+    bin_name: Annotated[
+        str, Field(description="Name of the storage bin", max_length=40, min_length=1)
+    ]
     location_id: Annotated[
         int, Field(description="ID of the location the storage bin belongs to", ge=1)
     ]

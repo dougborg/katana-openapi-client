@@ -11,23 +11,14 @@
  * silently becomes `GET /suppliers?page=1&limit=250` returns a list envelope,
  * not a supplier, so the round-trip fails at the first assertion.
  *
- * Write tests follow the Python suite's SDT contract
- * (`tests/integration/README.md`): every created entity carries an
- * `SDT-<date>-<run>-<name>` tag and is deleted in a `finally`.
+ * Write round-trips now live in contracts.live.test.ts, sharing scenarios,
+ * wire validation, tenant verification and persistent cleanup with Python.
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  createSupplier,
-  deleteSupplier,
-  getAllLocations,
-  getAllProducts,
-  getAllSuppliers,
-  getLocation,
-  updateSupplier,
-} from '../../src/generated/sdk.gen.js';
+import { getAllLocations, getAllProducts, getLocation } from '../../src/generated/sdk.gen.js';
 import { unwrap, unwrapData } from '../../src/responses.js';
-import { hasTestCredentials, makeTestClient, sdtTag } from './testClient.js';
+import { hasTestCredentials, makeTestClient } from './testClient.js';
 
 /** A base fetch that records each outgoing request's method and URL. */
 function recordingFetch(): { fetch: typeof fetch; sent: { method: string; url: URL }[] } {
@@ -38,11 +29,6 @@ function recordingFetch(): { fetch: typeof fetch; sent: { method: string; url: U
     return globalThis.fetch(request);
   };
   return { fetch: recording, sent };
-}
-
-/** The most recent element, if any. */
-function last<T>(items: T[]): T | undefined {
-  return items[items.length - 1];
 }
 
 describe.skipIf(!hasTestCredentials())('live: SDK against the test tenant', () => {
@@ -87,70 +73,5 @@ describe.skipIf(!hasTestCredentials())('live: SDK against the test tenant', () =
       products.map((_, i) => String(i + 1)) // page=1, page=2, ...
     );
     expect(new Set(products.map((p) => p.id)).size).toBe(products.length);
-  });
-
-  it('round-trips a supplier: create, read back, PATCH, DELETE', async () => {
-    const { fetch, sent } = recordingFetch();
-    const katana = makeTestClient({ fetch });
-    const name = sdtTag('TS-SUPPLIER');
-    let createdId: number | undefined;
-    let deleted = false;
-
-    try {
-      // Create — must go out as a single POST, not a paginated GET.
-      const created = unwrap(
-        await createSupplier({
-          client: katana.sdk,
-          body: { name, comment: 'katana-openapi-client TS live smoke test' },
-        })
-      );
-      createdId = created.id;
-      expect(last(sent)?.method).toBe('POST');
-      expect(last(sent)?.url.searchParams.has('page')).toBe(false);
-      expect(created.id).toEqual(expect.any(Number));
-      expect(created.name).toBe(name);
-
-      // Read back through the list endpoint's `ids` filter.
-      const [readBack] = unwrapData(
-        await getAllSuppliers({ client: katana.sdk, query: { ids: [created.id] } })
-      );
-      expect(readBack?.id).toBe(created.id);
-      expect(readBack?.name).toBe(name);
-
-      // PATCH.
-      const renamed = `${name}-PATCHED`;
-      const updated = unwrap(
-        await updateSupplier({
-          client: katana.sdk,
-          path: { id: created.id },
-          body: { name: renamed },
-        })
-      );
-      expect(last(sent)?.method).toBe('PATCH');
-      expect(updated.id).toBe(created.id);
-      expect(updated.name).toBe(renamed);
-
-      // DELETE — a 204, which `unwrap` surfaces as `undefined`.
-      const removed = unwrap(
-        await deleteSupplier({ client: katana.sdk, path: { id: created.id } })
-      );
-      deleted = true;
-      expect(last(sent)?.method).toBe('DELETE');
-      expect(removed).toBeUndefined();
-
-      const afterDelete = unwrapData(
-        await getAllSuppliers({ client: katana.sdk, query: { ids: [created.id] } })
-      );
-      expect(afterDelete).toEqual([]);
-    } finally {
-      if (createdId !== undefined && !deleted) {
-        // A soft assertion reports a failed cleanup without masking the
-        // error that got us here.
-        const cleanup = await deleteSupplier({ client: katana.sdk, path: { id: createdId } });
-        expect
-          .soft(cleanup.error, `cleanup failed: supplier ${createdId} (${name}) left on the tenant`)
-          .toBeUndefined();
-      }
-    }
   });
 });
