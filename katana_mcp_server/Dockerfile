@@ -7,7 +7,7 @@
 #   - stdio: Standard I/O for Claude Desktop and Claude Code
 #   - sse: Server-Sent Events for Cursor IDE
 
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 # Metadata
 LABEL org.opencontainers.image.title="Katana MCP Server"
